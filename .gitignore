@@ -1,0 +1,55 @@
+# ADP-OS .gitignore
+# Workspace data and VM files should not be versioned
+
+# Local assistant/tool configuration
+.claude/
+
+# Snapshot state
+snapshots/
+
+# Logs
+logs/
+
+# Configuration overrides (local secrets, paths)
+configs/local.json
+configs/secrets.json
+
+# VM disk images
+*.vmdk
+*.vmem
+*.nvram
+*.vmsd
+*.vmss
+*.vmsn
+
+# Large ISO files
+*.iso
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# PowerShell module cache
+*.psm1c
+*.psd1c
+
+# Local tool binaries
+.tools/
+
+# Generated runtime state
+*.lck
+*.scoreboard
+vmware.log
+*.vmxf
+
+# Temp files
+*.tmp
+*.temp
+*~
+NUL
+
+# Local debugging artifacts
+adp-*.txt
+guest-authorized_keys
+guestOS=,
+sudo-test.txt

@@ -1,0 +1,44 @@
+{
+  "frontend": {
+    "runtime": "vmware",
+    "os": "ubuntu-26.04",
+    "cpu": 4,
+    "memory": 8192,
+    "disk": 80,
+    "workspace": "frontend",
+    "sync_profile": "frontend",
+    "bootstrap_profile": "frontend",
+    "snapshot_policy": "on-demand",
+    "danger": false,
+    "static_ip": "192.168.242.131",
+    "ssh_port": 22
+  },
+  "backend": {
+    "runtime": "vmware",
+    "os": "ubuntu-26.04",
+    "cpu": 4,
+    "memory": 8192,
+    "disk": 120,
+    "workspace": "backend",
+    "sync_profile": "backend",
+    "bootstrap_profile": "backend",
+    "snapshot_policy": "on-demand",
+    "danger": false,
+    "static_ip": "192.168.242.133",
+    "ssh_port": 22
+  },
+  "agent": {
+    "runtime": "vmware",
+    "os": "ubuntu-26.04",
+    "cpu": 6,
+    "memory": 16384,
+    "disk": 160,
+    "workspace": "agent",
+    "sync_profile": "agent",
+    "bootstrap_profile": "agent",
+    "snapshot_policy": "always",
+    "danger": true,
+    "static_ip": "192.168.242.135",
+    "ssh_port": 22
+  }
+}

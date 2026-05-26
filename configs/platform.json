@@ -1,0 +1,42 @@
+{
+  "platform": "windows",
+  "version": "1.0.0-mvp",
+  "paths": {
+    "workspace_root": "${env:USERPROFILE}\\adp-workspaces",
+    "iso_cache": "${env:USERPROFILE}\\adp-iso",
+    "vm_store": "${env:USERPROFILE}\\adp-vms",
+    "logs": "${project:root}\\logs",
+    "snapshots": "${project:root}\\snapshots",
+    "configs": "${project:root}\\configs"
+  },
+  "defaults": {
+    "ubuntu_iso": "ubuntu-26.04-live-server-amd64.iso",
+    "iso_path": null,
+    "ubuntu_version": "26.04",
+    "vm_memory_base": 4096,
+    "vm_cpu_base": 2,
+    "vm_disk_base": 40,
+    "ssh_port_start": 2222,
+    "admin_user": "adp",
+    "admin_password": "adp"
+  },
+  "network": {
+    "mode": "static",
+    "vmware_nat": {
+      "cidr": "192.168.242.0/24",
+      "prefix": 24,
+      "gateway": "192.168.242.2",
+      "dns": [
+        "192.168.242.2",
+        "1.1.1.1"
+      ],
+      "interface_match": "en*"
+    }
+  },
+  "features": {
+    "vmware": true,
+    "hyperv": false,
+    "mutagen": true,
+    "docker": true
+  }
+}

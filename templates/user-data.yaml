@@ -1,0 +1,47 @@
+#cloud-config
+# ADP-OS Ubuntu Autoinstall — User Data
+# Fully unattended Ubuntu Server 26.04 LTS setup
+
+autoinstall:
+  version: 1
+  locale: en_US.UTF-8
+  keyboard:
+    layout: us
+  identity:
+    hostname: adp-runtime
+    username: adp
+    password: "$6$rounds=4096$adposhash$PLACEHOLDER_HASHED_PASSWORD"
+  ssh:
+    install-server: true
+    allow-pw: false
+    authorized-keys:
+      - ssh-ed25519 AAA...PLACEHOLDER
+  packages:
+    - git
+    - curl
+    - wget
+    - build-essential
+    - ca-certificates
+    - gnupg
+    - lsb-release
+    - software-properties-common
+    - apt-transport-https
+    - unzip
+    - jq
+    - tree
+    - tmux
+    - htop
+    - iotop
+    - openssh-server
+    - ripgrep
+    - fd-find
+    - fzf
+  late-commands:
+    # Register that bootstrap is pending
+    - echo "ADP-OS Runtime — bootstrap pending on first SSH" > /home/adp/BOOTSTRAP_PENDING.txt
+    - chown adp:adp /home/adp/BOOTSTRAP_PENDING.txt
+  user-data:
+    disable_root: true
+    timezone: UTC
+  updates: all
+  shutdown: reboot

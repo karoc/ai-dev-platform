@@ -1,0 +1,42 @@
+{
+  "frontend": {
+    "mode": "two-way-resolved",
+    "ignore": [
+      "node_modules",
+      ".next",
+      "dist",
+      "build",
+      ".turbo",
+      ".cache"
+    ],
+    "watch_mode": "inotify",
+    "sync_interval_ms": 100
+  },
+  "backend": {
+    "mode": "two-way-resolved",
+    "ignore": [
+      "node_modules",
+      "dist",
+      "build",
+      "__pycache__",
+      ".venv",
+      "venv",
+      "*.pyc",
+      ".pytest_cache"
+    ],
+    "watch_mode": "inotify",
+    "sync_interval_ms": 100
+  },
+  "agent": {
+    "mode": "two-way-resolved",
+    "ignore": [
+      "node_modules",
+      ".git",
+      "dist",
+      ".next",
+      "build"
+    ],
+    "watch_mode": "inotify",
+    "sync_interval_ms": 100
+  }
+}

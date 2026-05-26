@@ -1,0 +1,167 @@
+# AI Dev Platform OS
+
+AI Dev Platform OS, or ADP-OS, is a local AI development runtime platform for Windows, VMware Workstation, Ubuntu Server, and Mutagen.
+
+The project provisions isolated Linux runtimes for frontend, backend, and agent workloads, keeps workspaces synchronized from Windows into each VM, and creates rollback snapshots for repeatable local AI coding workflows.
+
+> Status: Windows MVP. macOS, Linux hosts, Hyper-V, KVM, container runtimes, and richer workspace orchestration are planned but not implemented yet.
+
+## What It Provides
+
+- Windows control plane implemented in PowerShell 7.
+- VMware Workstation VM factory for Ubuntu Server 26.04.
+- Remastered Ubuntu autoinstall ISO generation with cloud-init seed data.
+- Runtime profiles for `frontend`, `backend`, and `agent`.
+- Idempotent SSH bootstrap for Docker, Node.js, Python, ripgrep, fd, tmux, and profile-specific tools.
+- Mutagen-based two-way workspace synchronization.
+- Static IP networking with configurable NAT subnet and per-runtime addresses.
+- VMware snapshot commands for clean rollback points.
+- Diagnostics and deployment pre-check scripts.
+
+## Requirements
+
+- Windows 11.
+- PowerShell 7 or newer.
+- VMware Workstation Pro with `vmrun.exe` and `vmware-vdiskmanager.exe`.
+- Ubuntu Server 26.04 live server ISO.
+- WSL with `xorriso` or another compatible ISO remastering path.
+- OpenSSH client.
+- Mutagen 0.18.x, either on `PATH` or at `.tools\mutagen\mutagen.exe`.
+
+Install `xorriso` in WSL:
+
+```powershell
+wsl -u root bash -lc "apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y xorriso"
+```
+
+## Quick Start
+
+Clone the repository:
+
+```powershell
+git clone https://github.com/karoc/ai-dev-platform.git
+cd ai-dev-platform
+```
+
+Place the Ubuntu ISO at:
+
+```text
+%USERPROFILE%\adp-iso\ubuntu-26.04-live-server-amd64.iso
+```
+
+Or pass it during initialization:
+
+```powershell
+.\install.ps1 -IsoPath C:\path\to\ubuntu-26.04-live-server-amd64.iso
+```
+
+Initialize the platform:
+
+```powershell
+.\install.ps1
+.\cli\adp.ps1 init
+```
+
+Create and start runtimes:
+
+```powershell
+.\cli\adp.ps1 up frontend
+.\cli\adp.ps1 up backend
+.\cli\adp.ps1 up agent
+```
+
+Start workspace synchronization:
+
+```powershell
+.\cli\adp.ps1 sync start frontend
+.\cli\adp.ps1 sync start backend
+.\cli\adp.ps1 sync start agent
+```
+
+Check health:
+
+```powershell
+.\cli\adp.ps1 doctor
+.\cli\adp.ps1 sync status
+```
+
+Create clean snapshots:
+
+```powershell
+.\cli\adp.ps1 snapshot create frontend clean
+.\cli\adp.ps1 snapshot create backend clean
+.\cli\adp.ps1 snapshot create agent clean
+```
+
+## Default Runtimes
+
+| Runtime | Purpose | CPU | Memory | Disk | Static IP |
+| --- | --- | ---: | ---: | ---: | --- |
+| `frontend` | JavaScript and frontend development | 4 | 8192 MB | 80 GB | `192.168.242.131` |
+| `backend` | Python and backend development | 4 | 8192 MB | 120 GB | `192.168.242.133` |
+| `agent` | AI agent runtime with higher IO tuning | 6 | 16384 MB | 160 GB | `192.168.242.135` |
+
+Static addresses are configured in `configs\topology.json`. The VMware NAT subnet, gateway, DNS, and interface match are configured in `configs\platform.json`.
+
+Apply configured networking to existing VMs:
+
+```powershell
+.\cli\adp.ps1 network apply all
+```
+
+## Workspace Paths
+
+By default, Windows workspaces are created under:
+
+```text
+%USERPROFILE%\adp-workspaces
+```
+
+They are synchronized into each VM at:
+
+```text
+/home/adp/workspace
+```
+
+Examples:
+
+```text
+%USERPROFILE%\adp-workspaces\frontend  <->  frontend:/home/adp/workspace
+%USERPROFILE%\adp-workspaces\backend   <->  backend:/home/adp/workspace
+%USERPROFILE%\adp-workspaces\agent     <->  agent:/home/adp/workspace
+```
+
+## Command Reference
+
+```powershell
+.\cli\adp.ps1 init
+.\cli\adp.ps1 up <frontend|backend|agent>
+.\cli\adp.ps1 stop <frontend|backend|agent>
+.\cli\adp.ps1 sync status
+.\cli\adp.ps1 sync start <frontend|backend|agent>
+.\cli\adp.ps1 sync stop <frontend|backend|agent>
+.\cli\adp.ps1 network apply <frontend|backend|agent|all>
+.\cli\adp.ps1 snapshot create <runtime> <name>
+.\cli\adp.ps1 restore <runtime> <name>
+.\cli\adp.ps1 logs <runtime>
+.\cli\adp.ps1 doctor
+.\cli\adp.ps1 destroy <runtime>
+```
+
+## Documentation
+
+- [Architecture](docs/architecture.md)
+- [Configuration](docs/configuration.md)
+- [Operations](docs/operations.md)
+- [Networking](docs/networking.md)
+- [Contributing](CONTRIBUTING.md)
+
+## Security Notes
+
+This MVP is designed for local, single-user development. It uses a default runtime user named `adp` and a default bootstrap password of `adp` to automate sudo during provisioning. Do not expose these VMs directly to untrusted networks without changing credentials and reviewing SSH access.
+
+Runtime secrets, VM disks, ISO images, logs, local tool binaries, and local assistant settings are excluded from version control.
+
+## License
+
+MIT. See [LICENSE](LICENSE).
