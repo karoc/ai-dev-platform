@@ -1,5 +1,7 @@
 # Operations
 
+[简体中文](zh-CN/operations.md) | English
+
 This guide covers day-to-day operation of ADP-OS.
 
 ## Health Checks

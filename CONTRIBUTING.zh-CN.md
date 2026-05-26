@@ -1,21 +1,21 @@
-# Contributing
+# 贡献指南
 
-[简体中文](CONTRIBUTING.zh-CN.md) | English
+简体中文 | [English](CONTRIBUTING.md)
 
-Thank you for helping improve AI Dev Platform OS.
+感谢你帮助改进 AI Dev Platform OS。
 
-## Development Requirements
+## 开发要求
 
-- Windows 11.
-- PowerShell 7+.
-- VMware Workstation Pro.
-- WSL with `xorriso`.
-- OpenSSH client.
-- Mutagen 0.18.x.
+- Windows 11。
+- PowerShell 7+。
+- VMware Workstation Pro。
+- 安装了 `xorriso` 的 WSL。
+- OpenSSH client。
+- Mutagen 0.18.x。
 
-## Before Submitting Changes
+## 提交变更前
 
-Run:
+运行：
 
 ```powershell
 pwsh -NoProfile -Command '$failed = $false; Get-ChildItem -Recurse -Filter *.ps1 | ForEach-Object { $errors = $null; [System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$null, [ref]$errors) > $null; if ($errors) { $failed = $true; $path = $_.FullName; $errors | ForEach-Object { "{0}:{1}: {2}" -f $path, $_.Extent.StartLineNumber, $_.Message } } }; if ($failed) { exit 1 }'
@@ -24,7 +24,7 @@ pwsh -NoProfile -Command '$failed = $false; Get-ChildItem -Recurse -Filter *.ps1
 .\cli\adp.ps1 doctor
 ```
 
-For bootstrap shell scripts:
+对于 bootstrap shell 脚本：
 
 ```powershell
 $repo = (Get-Location).Path -replace '\\', '/'
@@ -33,18 +33,18 @@ $path = "/mnt/$drive" + $repo.Substring(2)
 wsl bash -lc "bash -n '$path/bootstrap/base/setup-base.sh' '$path/bootstrap/frontend/setup-frontend.sh' '$path/bootstrap/frontend/browser-tools.sh' '$path/bootstrap/backend/setup-backend.sh' '$path/bootstrap/agent/setup-agent.sh'"
 ```
 
-## Coding Guidelines
+## 编码规范
 
-- Keep host-specific operations under `adapters`.
-- Keep runtime creation logic under `runtimes`.
-- Keep command entry points thin and route through adapters/core modules.
-- Prefer idempotent bootstrap scripts.
-- Avoid committing local VM data, logs, ISOs, tool binaries, SSH keys, or local assistant settings.
-- Keep PowerShell compatible with PowerShell 7 on Windows.
+- 主机专属操作放在 `adapters` 下。
+- 运行时创建逻辑放在 `runtimes` 下。
+- 命令入口保持轻量，通过 adapters/core modules 路由。
+- 优先编写幂等 bootstrap 脚本。
+- 避免提交本地 VM 数据、日志、ISO、工具二进制、SSH keys 或本地 assistant 设置。
+- 保持 PowerShell 与 Windows 上的 PowerShell 7 兼容。
 
-## Commit Hygiene
+## 提交卫生
 
-Use focused commits. Mention which runtime path was affected, for example:
+使用聚焦的提交。说明影响的运行时路径，例如：
 
 ```text
 vmware: make guest IP detection resilient
@@ -52,6 +52,6 @@ network: add static IP apply command
 docs: add configuration guide
 ```
 
-## Security
+## 安全
 
-The MVP uses local development defaults. Do not add real credentials, private SSH keys, tokens, internal hostnames, or customer data to the repository.
+MVP 使用本地开发默认值。不要向仓库添加真实凭据、私有 SSH keys、tokens、内部主机名或客户数据。

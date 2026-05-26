@@ -161,6 +161,7 @@ Examples:
 
 ## Documentation
 
+- [Documentation Home](docs/README.md)
 - [Architecture](docs/architecture.md)
 - [Configuration](docs/configuration.md)
 - [Operations](docs/operations.md)

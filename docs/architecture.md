@@ -1,5 +1,7 @@
 # Architecture
 
+[简体中文](zh-CN/architecture.md) | English
+
 ADP-OS is structured as a local control plane plus runtime fabric.
 
 ```text

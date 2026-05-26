@@ -1,5 +1,7 @@
 # Configuration
 
+[简体中文](zh-CN/configuration.md) | English
+
 ADP-OS is configured through JSON files in `configs`.
 
 ## `platform.json`

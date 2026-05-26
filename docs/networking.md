@@ -1,5 +1,7 @@
 # Networking
 
+[简体中文](zh-CN/networking.md) | English
+
 ADP-OS supports static IP networking for VMware NAT runtimes.
 
 ## Default Network

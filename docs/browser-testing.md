@@ -1,5 +1,7 @@
 # Browser Testing
 
+[简体中文](zh-CN/browser-testing.md) | English
+
 ADP-OS supports headless browser acceptance tests from the `frontend` runtime.
 
 The frontend runtime is intentionally lightweight by default. It installs Node.js, pnpm, frontend tooling, and browser helper commands, but it does not preinstall browser binaries during bootstrap. Browser engines are large and should be installed on demand inside the VM, not committed to this repository.

@@ -161,12 +161,13 @@ adp-frontend-browser-install chromium
 
 ## 文档
 
-- [Architecture](docs/architecture.md)
-- [Configuration](docs/configuration.md)
-- [Operations](docs/operations.md)
-- [Networking](docs/networking.md)
-- [Browser Testing](docs/browser-testing.md)
-- [Contributing](CONTRIBUTING.md)
+- [文档首页](docs/zh-CN/README.md)
+- [架构说明](docs/zh-CN/architecture.md)
+- [配置说明](docs/zh-CN/configuration.md)
+- [操作指南](docs/zh-CN/operations.md)
+- [网络说明](docs/zh-CN/networking.md)
+- [浏览器测试](docs/zh-CN/browser-testing.md)
+- [贡献指南](CONTRIBUTING.zh-CN.md)
 
 ## 安全说明
 
