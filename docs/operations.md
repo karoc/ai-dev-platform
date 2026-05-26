@@ -77,6 +77,33 @@ adp-backend
 adp-agent
 ```
 
+## Frontend Browser Tests
+
+The frontend runtime includes lightweight browser acceptance helpers. They do not install browser binaries during bootstrap.
+
+Check readiness:
+
+```powershell
+ssh adp-os-adp-frontend
+adp-frontend-browser-check
+```
+
+Install Chromium support on demand:
+
+```bash
+adp-frontend-browser-install chromium
+```
+
+Then run project tests from the synced workspace:
+
+```bash
+cd /home/adp/workspace
+pnpm install
+pnpm exec playwright test
+```
+
+Browser downloads stay inside the VM user cache. Generated reports such as `playwright-report`, `test-results`, and `blob-report` are ignored by the frontend sync profile.
+
 ## Snapshots and Restore
 
 Create a baseline snapshot:

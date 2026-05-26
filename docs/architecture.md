@@ -99,6 +99,15 @@ Runtime-specific bootstrap scripts extend the base runtime:
 - `bootstrap\backend\setup-backend.sh`
 - `bootstrap\agent\setup-agent.sh`
 
+The frontend profile also installs lightweight browser acceptance helper commands from `bootstrap\frontend\browser-tools.sh`:
+
+```text
+adp-frontend-browser-check
+adp-frontend-browser-install
+```
+
+These helpers are scripts only. Browser engines and Playwright caches are downloaded on demand inside the VM and are not vendored into the ADP-OS repository.
+
 Bootstrap scripts are idempotent and use marker files in `/home/adp`.
 
 ## Workspace Fabric

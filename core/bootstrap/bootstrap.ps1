@@ -107,6 +107,15 @@ function Invoke-RuntimeBootstrap {
             return $false
         }
 
+        $browserToolsScript = Join-Path $script:BootstrapState.BootstrapDir "$profile\browser-tools.sh"
+        if (Test-Path $browserToolsScript) {
+            Copy-BootstrapFile -LocalPath $browserToolsScript -RemotePath "/tmp/browser-tools.sh" 2>$null
+            if ($LASTEXITCODE -ne 0) {
+                Write-ErrorLog -Message "Failed to upload $profile browser tools script" -Component "bootstrap"
+                return $false
+            }
+        }
+
         $result = Invoke-BootstrapSSH -Command "printf '%s\n' 'adp' | sudo -S bash /tmp/setup-${profile}.sh" 2>&1
         if ($LASTEXITCODE -ne 0) {
             Write-WarnLog -Message "$profile bootstrap had warnings: $result" -Component "bootstrap"

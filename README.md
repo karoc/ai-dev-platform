@@ -1,5 +1,7 @@
 # AI Dev Platform OS
 
+[简体中文](README.zh-CN.md) | English
+
 AI Dev Platform OS, or ADP-OS, is a local AI development runtime platform for Windows, VMware Workstation, Ubuntu Server, and Mutagen.
 
 The project provisions isolated Linux runtimes for frontend, backend, and agent workloads, keeps workspaces synchronized from Windows into each VM, and creates rollback snapshots for repeatable local AI coding workflows.
@@ -13,6 +15,7 @@ The project provisions isolated Linux runtimes for frontend, backend, and agent 
 - Remastered Ubuntu autoinstall ISO generation with cloud-init seed data.
 - Runtime profiles for `frontend`, `backend`, and `agent`.
 - Idempotent SSH bootstrap for Docker, Node.js, Python, ripgrep, fd, tmux, and profile-specific tools.
+- Lightweight frontend browser acceptance helpers with on-demand Playwright browser installation.
 - Mutagen-based two-way workspace synchronization.
 - Static IP networking with configurable NAT subnet and per-runtime addresses.
 - VMware snapshot commands for clean rollback points.
@@ -76,6 +79,14 @@ Start workspace synchronization:
 .\cli\adp.ps1 sync start frontend
 .\cli\adp.ps1 sync start backend
 .\cli\adp.ps1 sync start agent
+```
+
+Prepare frontend browser acceptance testing when needed:
+
+```powershell
+ssh adp-os-adp-frontend
+adp-frontend-browser-check
+adp-frontend-browser-install chromium
 ```
 
 Check health:
@@ -154,6 +165,7 @@ Examples:
 - [Configuration](docs/configuration.md)
 - [Operations](docs/operations.md)
 - [Networking](docs/networking.md)
+- [Browser Testing](docs/browser-testing.md)
 - [Contributing](CONTRIBUTING.md)
 
 ## Security Notes

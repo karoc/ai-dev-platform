@@ -7,7 +7,11 @@
       "dist",
       "build",
       ".turbo",
-      ".cache"
+      ".cache",
+      "playwright-report",
+      "test-results",
+      "blob-report",
+      ".playwright"
     ],
     "watch_mode": "inotify",
     "sync_interval_ms": 100
@@ -34,7 +38,10 @@
       ".git",
       "dist",
       ".next",
-      "build"
+      "build",
+      "playwright-report",
+      "test-results",
+      "blob-report"
     ],
     "watch_mode": "inotify",
     "sync_interval_ms": 100

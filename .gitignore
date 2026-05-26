@@ -53,3 +53,9 @@ adp-*.txt
 guest-authorized_keys
 guestOS=,
 sudo-test.txt
+
+# Browser test artifacts
+playwright-report/
+test-results/
+blob-report/
+.playwright/
