@@ -6,6 +6,7 @@
 
 ## 从这里开始
 
+- [ADP-OS 与 Docker](positioning.md)：ADP-OS 与 Docker 的关系，以及各自适用场景。
 - [操作指南](operations.md)：日常运行时命令和工作流。
 - [配置说明](configuration.md)：平台、拓扑和同步配置。
 - [网络说明](networking.md)：静态 VMware NAT 网络和排障。

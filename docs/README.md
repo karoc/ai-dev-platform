@@ -6,6 +6,7 @@ This documentation covers how to install, operate, configure, and understand ADP
 
 ## Start Here
 
+- [ADP-OS and Docker](positioning.md): how ADP-OS relates to Docker and when to use each.
 - [Operations](operations.md): day-to-day runtime commands and workflows.
 - [Configuration](configuration.md): platform, topology, and sync configuration.
 - [Networking](networking.md): static VMware NAT networking and troubleshooting.

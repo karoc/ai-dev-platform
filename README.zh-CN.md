@@ -8,6 +8,8 @@ AI Dev Platform OS，简称 ADP-OS，是一个面向 Windows、VMware Workstatio
 
 本项目会为前端、后端和 Agent 工作负载创建隔离的 Linux 运行时，将 Windows 工作区同步到各个 VM 中，并提供回滚快照，以支持可复现的本地 AI 编码工作流。
 
+ADP-OS 不替代 Docker。它创建可运行 Docker 的本地 Linux 运行时，并在其外层提供 VM 生命周期管理、工作区同步、角色化 bootstrap、诊断、静态网络和快照回滚。
+
 > 状态：Windows MVP。macOS、Linux 主机、Hyper-V、KVM、容器运行时以及更完整的工作区编排仍在计划中，尚未实现。
 
 ## 提供能力
@@ -164,6 +166,7 @@ adp-frontend-browser-install chromium
 ## 文档
 
 - [文档首页](docs/zh-CN/README.md)
+- [ADP-OS 与 Docker](docs/zh-CN/positioning.md)
 - [架构说明](docs/zh-CN/architecture.md)
 - [配置说明](docs/zh-CN/configuration.md)
 - [操作指南](docs/zh-CN/operations.md)

@@ -8,6 +8,8 @@ AI Dev Platform OS, or ADP-OS, is a local AI development runtime platform for Wi
 
 The project provisions isolated Linux runtimes for frontend, backend, and agent workloads, keeps workspaces synchronized from Windows into each VM, and creates rollback snapshots for repeatable local AI coding workflows.
 
+ADP-OS does not replace Docker. It provisions Docker-capable local Linux runtimes and adds VM lifecycle management, workspace synchronization, role-specific bootstrap, diagnostics, static networking, and snapshot rollback around those runtimes.
+
 > Status: Windows MVP. macOS, Linux hosts, Hyper-V, KVM, container runtimes, and richer workspace orchestration are planned but not implemented yet.
 
 ## What It Provides
@@ -164,6 +166,7 @@ Examples:
 ## Documentation
 
 - [Documentation Home](docs/README.md)
+- [ADP-OS and Docker](docs/positioning.md)
 - [Architecture](docs/architecture.md)
 - [Configuration](docs/configuration.md)
 - [Operations](docs/operations.md)
