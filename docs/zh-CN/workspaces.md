@@ -111,10 +111,21 @@ Workspace task 是 ADP-OS 的第一个 agent-native workflow 入口。它会把 
 - `prepare`：汇总任务，并打印 readiness、运行时、同步、检查点和验证准备流程。
 - `snapshot`：检查建议快照是否存在，评估 snapshot-first gate，并打印准备好之后要显式运行的快照命令。
 - `run`：打印显式执行边界，覆盖 readiness、snapshot-first gate、运行时进入、手动 agent 执行、验证和 review handoff。
-- `validate`：打印 manifest 中配置的任务验证命令。
+- `validate`：打印 manifest 中配置的任务验证命令。带 `-Execute` 时，它只会通过 SSH 在 task 的目标项目目录中运行这些已声明的验证命令。与 `-Execute` 一起加 `-Plan` 可只预览远端 SSH 命令，不会执行。
 - `review`：打印 human review bundle，覆盖 readiness、检查点、验证、源码 diff 检查，以及最终 rollback/revise/commit 决策。要求快照的 task 在 checkpoint gate ready 前不应被接受，除非在 ADP-OS 外部显式豁免。
 - `rollback`：打印 VM snapshot restore 命令和独立的 Git 源码回滚检查，但不会执行。
 - `commit`：打印 review、验证、diff 检查、暂存和提交边界，但不会 stage 或 commit 文件。
+
+Validation execution 有意保持很窄：
+
+```powershell
+.\cli\adp.ps1 workspace task validate frontend-browser-acceptance -Execute -Plan -ManifestPath configs\workspace.recipes.example.json
+.\cli\adp.ps1 workspace task validate frontend-browser-acceptance -Execute -ManifestPath configs\workspace.recipes.example.json
+```
+
+`-Execute -Plan` 会打印将要运行的 SSH 命令。`-Execute` 会连接到 task runtime，进入 `/home/adp/workspace/<project-path>`，并按顺序运行每条 `tasks[].validation` 命令。ADP-OS 不会创建快照、启动同步、安装隐藏依赖、下载浏览器 binary（除非你声明的命令自己这么做）、stage 文件、commit 文件，也不会自动把 task 标记为 validated。Review 仍然是单独的显式步骤。
+
+执行 validation 时，建议设置 `tasks[].project`，让 task 明确指向某个 project。如果省略，ADP-OS 只有在 manifest 中恰好只有一个 project 使用该 task runtime 时才会推断 project。远端执行前会拒绝绝对路径，以及包含 `.` 或 `..` segment 的路径。
 
 记录本地 lifecycle decision：
 
@@ -155,10 +166,11 @@ configs/workspace.recipes.example.json
 
 ```powershell
 .\cli\adp.ps1 workspace task validate frontend-browser-acceptance -ManifestPath configs\workspace.recipes.example.json
+.\cli\adp.ps1 workspace task validate frontend-browser-acceptance -Execute -Plan -ManifestPath configs\workspace.recipes.example.json
 .\cli\adp.ps1 workspace task run broad-agent-refactor -ManifestPath configs\workspace.recipes.example.json
 ```
 
-这些 recipes 只是示例。ADP-OS 会从 manifest 打印验证命令，但这些 workspace planning commands 不会安装 packages、下载浏览器 binary、运行 Playwright、运行 Python 工具、创建快照、恢复快照、stage 文件或 commit 改动。
+这些 recipes 只是示例。默认情况下，ADP-OS 会从 manifest 打印验证命令，但 workspace planning commands 不会安装 packages、下载浏览器 binary、运行 Playwright、运行 Python 工具、创建快照、恢复快照、stage 文件或 commit 改动。只有显式调用 `workspace task validate -Execute` 时，validation 才会执行。
 
 初始 manifest schema 有意保持精简：
 
@@ -171,6 +183,7 @@ configs/workspace.recipes.example.json
 - `projects[].sync`：该项目是否预期使用 ADP sync。
 - `projects[].validation`：人类或 agent 应为项目运行的验证命令。
 - `tasks`：可选的具名任务计划。
+- `tasks[].project`：可选的 project 名称，来自 `projects[].name`；执行 validation 时建议设置。
 - `tasks[].risk`：可选的任务风险标记。`high`、`broad`、`destructive` 和 `uncertain` 默认触发 snapshot-first gate，除非显式覆盖。
 - `tasks[].requires_snapshot`：可选 boolean，用于显式要求执行前通过 snapshot-first gate。
 - `tasks[].snapshot`：任务开始前建议创建的快照名称。

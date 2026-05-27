@@ -193,7 +193,13 @@ Assert-Command `
     -Name "workspace task validate frontend browser recipe" `
     -Arguments @("workspace", "task", "validate", "frontend-browser-acceptance", "-ManifestPath", "configs\workspace.recipes.example.json") `
     -ExitCode 0 `
-    -Patterns @("Workspace task validate: frontend-browser-acceptance", "Validation plan:", "pnpm install", "pnpm exec playwright test")
+    -Patterns @("Workspace task validate: frontend-browser-acceptance", "Validation plan:", "pnpm install", "pnpm exec playwright test", "To execute validation explicitly", "-Execute -ManifestPath")
+
+Assert-Command `
+    -Name "workspace task validate execute plan frontend browser recipe" `
+    -Arguments @("workspace", "task", "validate", "frontend-browser-acceptance", "-Execute", "-Plan", "-ManifestPath", "configs\workspace.recipes.example.json") `
+    -ExitCode 0 `
+    -Patterns @("Workspace task validate: frontend-browser-acceptance", "Explicit execution mode", "Validation execution:", "project \(frontend-app: /home/adp/workspace/frontend-app\)", "runtime \(frontend: adp@192\.168\.242\.131:22\)", "Plan only: validation commands will not be executed", "ssh -i .*adp@192\.168\.242\.131", "pnpm exec playwright test")
 
 Assert-Command `
     -Name "workspace task run broad agent recipe" `
@@ -294,6 +300,18 @@ Assert-Command `
     -Arguments @("workspace", "task", "deploy", "before-large-agent-task", "-ManifestPath", "configs\workspace.example.json") `
     -ExitCode 1 `
     -Patterns @("Unknown workspace task command: deploy", "Valid: prepare, snapshot, run, validate, review, rollback, commit, mark")
+
+Assert-Command `
+    -Name "workspace task execute only supports validate" `
+    -Arguments @("workspace", "task", "run", "before-large-agent-task", "-Execute", "-ManifestPath", "configs\workspace.example.json") `
+    -ExitCode 1 `
+    -Patterns @("-Execute and -Plan are only supported with: adp workspace task validate <task-name>")
+
+Assert-Command `
+    -Name "workspace task validate plan requires execute" `
+    -Arguments @("workspace", "task", "validate", "before-large-agent-task", "-Plan", "-ManifestPath", "configs\workspace.example.json") `
+    -ExitCode 1 `
+    -Patterns @("-Plan is only supported with -Execute for workspace task validation")
 
 Assert-Command `
     -Name "workspace unknown subcommand" `

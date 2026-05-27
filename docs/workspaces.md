@@ -111,10 +111,21 @@ The task lifecycle commands are plan-only. They do not start runtimes, change sy
 - `prepare`: summarizes the task and prints the readiness, runtime, sync, checkpoint, and validation preparation flow.
 - `snapshot`: checks whether the recommended snapshot exists, evaluates the snapshot-first gate, and prints the explicit snapshot command to run when ready.
 - `run`: prints the explicit execution boundary for readiness, snapshot-first gating, runtime entry, manual agent execution, validation, and review handoff.
-- `validate`: prints the task validation commands from the manifest.
+- `validate`: prints the task validation commands from the manifest. With `-Execute`, it runs only those declared validation commands over SSH in the task's target project directory. Add `-Plan` with `-Execute` to preview the remote SSH commands without running them.
 - `review`: prints a human review bundle for readiness, checkpoint, validation, source diff inspection, and final rollback/revise/commit decision. Tasks that require snapshots should not be accepted until the checkpoint gate is ready or explicitly waived outside ADP-OS.
 - `rollback`: prints the VM snapshot restore command and separate Git source rollback checks without running them.
 - `commit`: prints the review, validation, diff inspection, staging, and commit boundary without staging or committing files.
+
+Validation execution is intentionally narrow:
+
+```powershell
+.\cli\adp.ps1 workspace task validate frontend-browser-acceptance -Execute -Plan -ManifestPath configs\workspace.recipes.example.json
+.\cli\adp.ps1 workspace task validate frontend-browser-acceptance -Execute -ManifestPath configs\workspace.recipes.example.json
+```
+
+`-Execute -Plan` prints the SSH commands that would run. `-Execute` connects to the task runtime, changes into `/home/adp/workspace/<project-path>`, and runs each `tasks[].validation` command in order. ADP-OS does not create snapshots, start sync, install hidden dependencies, download browser binaries beyond what the declared command itself does, stage files, commit files, or mark the task as validated. Review remains an explicit separate step.
+
+For validation execution, set `tasks[].project` when a task should target a specific project. If omitted, ADP-OS will only infer the project when exactly one manifest project uses the task runtime. Absolute paths and `.` or `..` path segments are rejected before remote execution.
 
 Record a local lifecycle decision:
 
@@ -155,10 +166,11 @@ Use task-specific planning commands to make the operating boundary explicit:
 
 ```powershell
 .\cli\adp.ps1 workspace task validate frontend-browser-acceptance -ManifestPath configs\workspace.recipes.example.json
+.\cli\adp.ps1 workspace task validate frontend-browser-acceptance -Execute -Plan -ManifestPath configs\workspace.recipes.example.json
 .\cli\adp.ps1 workspace task run broad-agent-refactor -ManifestPath configs\workspace.recipes.example.json
 ```
 
-These recipes are examples only. ADP-OS prints validation commands from the manifest but does not install packages, download browser binaries, run Playwright, run Python tools, create snapshots, restore snapshots, stage files, or commit changes through these workspace planning commands.
+These recipes are examples only. By default, ADP-OS prints validation commands from the manifest but does not install packages, download browser binaries, run Playwright, run Python tools, create snapshots, restore snapshots, stage files, or commit changes through workspace planning commands. Validation execution only happens when `workspace task validate` is called with `-Execute`.
 
 The initial manifest schema is intentionally small:
 
@@ -171,6 +183,7 @@ The initial manifest schema is intentionally small:
 - `projects[].sync`: whether the project is expected to use ADP sync.
 - `projects[].validation`: commands a human or agent should run for the project.
 - `tasks`: optional named task plans.
+- `tasks[].project`: optional project name from `projects[].name`; recommended for validation execution.
 - `tasks[].risk`: optional task risk marker. `high`, `broad`, `destructive`, and `uncertain` imply snapshot-first gating unless overridden.
 - `tasks[].requires_snapshot`: optional boolean that explicitly requires a snapshot-first gate before execution.
 - `tasks[].snapshot`: recommended snapshot name before starting the task.

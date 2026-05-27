@@ -39,6 +39,7 @@
   "tasks": [
     {
       "name": "docs-copy-edit",
+      "project": "agent-workspace",
       "runtime": "agent",
       "risk": "low",
       "requires_snapshot": false,
@@ -49,6 +50,7 @@
     },
     {
       "name": "frontend-browser-acceptance",
+      "project": "frontend-app",
       "runtime": "frontend",
       "risk": "normal",
       "requires_snapshot": false,
@@ -59,6 +61,7 @@
     },
     {
       "name": "backend-validation-pass",
+      "project": "backend-api",
       "runtime": "backend",
       "risk": "normal",
       "requires_snapshot": false,
@@ -70,6 +73,7 @@
     },
     {
       "name": "broad-agent-refactor",
+      "project": "agent-workspace",
       "runtime": "agent",
       "risk": "high",
       "requires_snapshot": true,

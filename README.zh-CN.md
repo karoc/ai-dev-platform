@@ -186,6 +186,15 @@ ADP-OS 还提供一个多场景 workspace recipes manifest，用于常见 agent-
 
 这些 recipes 覆盖低风险维护、frontend 浏览器验收、backend 验证，以及带 snapshot-first gate 的高风险 agent 工作。它们只是 planning examples；workspace 命令不会安装 packages、下载浏览器、创建快照、运行验证或 commit 文件。
 
+Validation 可以从 task recipe 中显式执行：
+
+```powershell
+.\cli\adp.ps1 workspace task validate frontend-browser-acceptance -Execute -Plan -ManifestPath configs\workspace.recipes.example.json
+.\cli\adp.ps1 workspace task validate frontend-browser-acceptance -Execute -ManifestPath configs\workspace.recipes.example.json
+```
+
+`-Execute -Plan` 会预览远端 SSH 命令。`-Execute` 只会在目标项目目录中运行已声明的 `tasks[].validation` 命令；review、rollback、stage 和 commit 仍然是独立的显式步骤。
+
 ## 命令参考
 
 ```powershell
@@ -200,6 +209,7 @@ ADP-OS 还提供一个多场景 workspace recipes manifest，用于常见 agent-
 .\cli\adp.ps1 workspace status
 .\cli\adp.ps1 workspace dashboard
 .\cli\adp.ps1 workspace task <prepare|snapshot|run|validate|review|rollback|commit> <task-name>
+.\cli\adp.ps1 workspace task validate <task-name> [-Execute] [-Plan]
 .\cli\adp.ps1 workspace task mark <task-name> <prepared|checkpointed|running|validated|reviewed|rollback|committed>
 .\cli\adp.ps1 sync start <frontend|backend|agent>
 .\cli\adp.ps1 sync stop <frontend|backend|agent>

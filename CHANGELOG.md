@@ -11,6 +11,7 @@ The project does not yet publish versioned releases. Entries are grouped by date
 ### Added
 
 - Added `configs/workspace.recipes.example.json` with copyable workspace recipes for low-risk maintenance, frontend browser acceptance, backend validation, and high-risk agent work with a snapshot-first gate.
+- Added explicit `adp workspace task validate <task> -Execute` support for running declared validation commands in the task project over SSH, with `-Execute -Plan` preview.
 - Added CI and CLI smoke coverage for the workspace recipes manifest.
 - Documented the workspace recipes in English and Simplified Chinese README and workspace docs.
 

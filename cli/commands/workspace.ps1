@@ -7,7 +7,9 @@ param(
     [string]$TaskName,
     [string]$TaskState,
     [string]$ManifestPath = "adp-workspace.json",
-    [string]$StatePath
+    [string]$StatePath,
+    [switch]$Execute,
+    [switch]$Plan
 )
 
 $ErrorActionPreference = "Stop"
@@ -15,6 +17,7 @@ $ErrorActionPreference = "Stop"
 function Show-WorkspaceUsage {
     Write-ErrorLog -Message "Usage: adp workspace <init|show|plan|status|dashboard|task> [-ManifestPath <path>]" -Component "cli.workspace"
     Write-Host "  adp workspace task <prepare|snapshot|run|validate|review|rollback|commit> <task-name> [-ManifestPath <path>]" -ForegroundColor DarkGray
+    Write-Host "  adp workspace task validate <task-name> [-Execute] [-Plan] [-ManifestPath <path>]" -ForegroundColor DarkGray
     Write-Host "  adp workspace task mark <task-name> <prepared|checkpointed|running|validated|reviewed|rollback|committed> [-StatePath <path>]" -ForegroundColor DarkGray
 }
 
@@ -173,6 +176,112 @@ function Get-WorkspaceSnapshotGate {
         Detail   = "create checkpoint first: adp snapshot create $($Task.runtime) $($Task.snapshot)"
         Blocking = $true
     }
+}
+
+function Quote-PosixSingleArgument {
+    param([string]$Value)
+
+    return "'" + ($Value -replace "'", "'""'""'") + "'"
+}
+
+function Find-WorkspaceProjectForTask {
+    param(
+        [object]$Manifest,
+        [object]$Task
+    )
+
+    $projects = Get-WorkspaceArray $Manifest.projects
+    $taskProjectName = if ($Task.PSObject.Properties.Name -contains "project") { [string]$Task.project } else { "" }
+
+    if (-not [string]::IsNullOrWhiteSpace($taskProjectName)) {
+        foreach ($project in $projects) {
+            if ($project.name -eq $taskProjectName) {
+                return $project
+            }
+        }
+
+        throw "Workspace task '$($Task.name)' references project '$taskProjectName', but no matching projects[].name exists."
+    }
+
+    $runtimeProjects = @($projects | Where-Object { $_.runtime -eq $Task.runtime })
+    if ($runtimeProjects.Count -eq 1) {
+        return $runtimeProjects[0]
+    }
+
+    if ($runtimeProjects.Count -eq 0) {
+        throw "Workspace task '$($Task.name)' has no matching project for runtime '$($Task.runtime)'. Set tasks[].project before executing validation."
+    }
+
+    throw "Workspace task '$($Task.name)' matches multiple projects for runtime '$($Task.runtime)'. Set tasks[].project before executing validation."
+}
+
+function Resolve-WorkspaceRemoteProjectPath {
+    param([object]$Project)
+
+    if (-not $Project.path) {
+        throw "Workspace project '$($Project.name)' is missing projects[].path."
+    }
+
+    $projectPath = ([string]$Project.path).Replace("\", "/").Trim()
+    if ([string]::IsNullOrWhiteSpace($projectPath)) {
+        throw "Workspace project '$($Project.name)' has an empty projects[].path."
+    }
+
+    if ($projectPath.StartsWith("/") -or $projectPath -match '^[A-Za-z]:') {
+        throw "Workspace project '$($Project.name)' must use a relative projects[].path before remote validation execution."
+    }
+
+    $segments = @($projectPath -split "/" | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+    if ($segments -contains "." -or $segments -contains "..") {
+        throw "Workspace project '$($Project.name)' path cannot contain '.' or '..' segments before remote validation execution."
+    }
+
+    return "/home/adp/workspace/$($segments -join '/')"
+}
+
+function Get-WorkspaceRuntimeSshTarget {
+    param([string]$RuntimeName)
+
+    if ([string]::IsNullOrWhiteSpace($RuntimeName)) {
+        throw "Set tasks[].runtime before executing validation."
+    }
+
+    if (-not (Test-RuntimeExists $RuntimeName)) {
+        throw "Unknown runtime: $RuntimeName. Valid: $((Get-AllRuntimeNames) -join ', ')"
+    }
+
+    $runtime = Get-RuntimeConfig $RuntimeName
+    $sshHost = if ($runtime.PSObject.Properties.Name -contains "static_ip") { [string]$runtime.static_ip } else { "" }
+    if ([string]::IsNullOrWhiteSpace($sshHost)) {
+        throw "Runtime '$RuntimeName' has no static_ip configured; validation execution needs an explicit SSH target."
+    }
+
+    $port = if ($runtime.PSObject.Properties.Name -contains "ssh_port" -and $runtime.ssh_port) { [int]$runtime.ssh_port } else { 22 }
+    $config = Get-PlatformConfig
+    $user = if ($config.defaults.admin_user) { [string]$config.defaults.admin_user } else { "adp" }
+    $keyPath = Join-Path "$env:USERPROFILE\.ssh\adp-os" "adp-os"
+    return [pscustomobject]@{
+        Host    = $sshHost
+        Port    = $port
+        User    = $user
+        KeyPath = $keyPath
+    }
+}
+
+function Invoke-WorkspaceRemoteValidationCommand {
+    param(
+        [object]$SshTarget,
+        [string]$RemoteCommand
+    )
+
+    & ssh -i $SshTarget.KeyPath `
+        -o StrictHostKeyChecking=no `
+        -o UserKnownHostsFile=NUL `
+        -o IdentitiesOnly=yes `
+        -o ConnectTimeout=10 `
+        -p $SshTarget.Port `
+        "$($SshTarget.User)@$($SshTarget.Host)" `
+        $RemoteCommand
 }
 
 function Set-WorkspaceTaskState {
@@ -690,12 +799,17 @@ function Find-WorkspaceTask {
 function Write-TaskHeader {
     param(
         [string]$Action,
-        [object]$Task
+        [object]$Task,
+        [switch]$ExplicitExecution
     )
 
     Write-Host ""
     Write-Host "Workspace task $Action`: $($Task.name)" -ForegroundColor Cyan
-    Write-Host "Task lifecycle output is plan-only. No VM, sync, snapshot, file, Git, or validation command will be changed or run." -ForegroundColor DarkGray
+    if ($ExplicitExecution) {
+        Write-Host "Explicit execution mode. ADP-OS runs only the declared validation commands; it does not create snapshots, stage files, or commit changes." -ForegroundColor DarkGray
+    } else {
+        Write-Host "Task lifecycle output is plan-only. No VM, sync, snapshot, file, Git, or validation command will be changed or run." -ForegroundColor DarkGray
+    }
     Write-Host ""
 }
 
@@ -780,24 +894,77 @@ function Write-WorkspaceTaskSnapshot {
 }
 
 function Write-WorkspaceTaskValidate {
-    param([object]$Task)
+    param(
+        [object]$Manifest,
+        [object]$Task,
+        [switch]$ExecuteValidation,
+        [switch]$PlanOnly
+    )
 
-    Write-TaskHeader -Action "validate" -Task $Task
+    Write-TaskHeader -Action "validate" -Task $Task -ExplicitExecution:$ExecuteValidation
     Write-TaskSummary -Task $Task
 
     $validationCommands = Get-WorkspaceArray $Task.validation
     Write-Host ""
-    Write-Host "Validation plan:" -ForegroundColor Yellow
+    $mode = if ($ExecuteValidation) { "Validation execution:" } else { "Validation plan:" }
+    Write-Host $mode -ForegroundColor Yellow
     if ($validationCommands.Count -eq 0) {
         Write-WorkspaceCheck -Level "WARN" -Name "task validation" -Detail "(none configured)"
         Write-Host "  Add tasks[].validation commands before using this task for review gates." -ForegroundColor DarkGray
         return
     }
 
+    if (-not $ExecuteValidation) {
+        $index = 1
+        foreach ($command in $validationCommands) {
+            Write-Host "  $index. $command" -ForegroundColor DarkGray
+            $index += 1
+        }
+
+        Write-Host ""
+        Write-Host "To execute validation explicitly:" -ForegroundColor Yellow
+        Write-Host "  adp workspace task validate $($Task.name) -Execute -ManifestPath <manifest>" -ForegroundColor DarkGray
+        Write-Host "  Add -Plan to preview the remote SSH commands without running them." -ForegroundColor DarkGray
+        return
+    }
+
+    $project = Find-WorkspaceProjectForTask -Manifest $Manifest -Task $Task
+    $remotePath = Resolve-WorkspaceRemoteProjectPath -Project $project
+    $sshTarget = Get-WorkspaceRuntimeSshTarget -RuntimeName $Task.runtime
+
+    Write-WorkspaceCheck -Level "OK" -Name "project" -Detail "($($project.name): $remotePath)"
+    Write-WorkspaceCheck -Level "OK" -Name "runtime" -Detail "($($Task.runtime): $($sshTarget.User)@$($sshTarget.Host):$($sshTarget.Port))"
+
+    if ($PlanOnly) {
+        Write-Host ""
+        Write-Host "Plan only: validation commands will not be executed." -ForegroundColor Cyan
+    } else {
+        Write-Host ""
+        Write-Host "Executing declared validation commands. No packages, browsers, snapshots, Git staging, or commits are managed by ADP-OS beyond these commands." -ForegroundColor Yellow
+    }
+
     $index = 1
     foreach ($command in $validationCommands) {
-        Write-Host "  $index. $command" -ForegroundColor DarkGray
+        $remoteCommand = "cd $(Quote-PosixSingleArgument $remotePath) && $command"
+        if ($PlanOnly) {
+            Write-Host "  $index. ssh -i $($sshTarget.KeyPath) -p $($sshTarget.Port) $($sshTarget.User)@$($sshTarget.Host) $(Quote-PosixSingleArgument $remoteCommand)" -ForegroundColor DarkGray
+        } else {
+            Write-Host ""
+            Write-Host "[$index/$($validationCommands.Count)] $command" -ForegroundColor Yellow
+            Invoke-WorkspaceRemoteValidationCommand -SshTarget $sshTarget -RemoteCommand $remoteCommand
+            $exitCode = $LASTEXITCODE
+            if ($exitCode -ne 0) {
+                Write-ErrorLog -Message "Workspace validation command failed with exit code $exitCode`: $command" -Component "cli.workspace"
+                exit $exitCode
+            }
+        }
         $index += 1
+    }
+
+    if (-not $PlanOnly) {
+        Write-Host ""
+        Write-Host "Workspace validation complete: $($Task.name)" -ForegroundColor Green
+        Write-Host "  Review remains explicit; ADP-OS did not mark state, stage files, or commit changes." -ForegroundColor DarkGray
     }
 }
 
@@ -952,12 +1119,24 @@ function Invoke-WorkspaceTask {
         [string]$Name,
         [string]$StateName,
         [string]$Path,
-        [string]$LocalStatePath
+        [string]$LocalStatePath,
+        [switch]$ExecuteValidation,
+        [switch]$PlanOnly
     )
 
     $validTaskCommands = @("prepare", "snapshot", "run", "validate", "review", "rollback", "commit", "mark")
     if ([string]::IsNullOrWhiteSpace($Command) -or $Command -notin $validTaskCommands) {
         Write-ErrorLog -Message "Unknown workspace task command: $Command. Valid: $($validTaskCommands -join ', ')" -Component "cli.workspace"
+        exit 1
+    }
+
+    if (($ExecuteValidation -or $PlanOnly) -and $Command -ne "validate") {
+        Write-ErrorLog -Message "-Execute and -Plan are only supported with: adp workspace task validate <task-name>" -Component "cli.workspace"
+        exit 1
+    }
+
+    if ($PlanOnly -and -not $ExecuteValidation) {
+        Write-ErrorLog -Message "-Plan is only supported with -Execute for workspace task validation." -Component "cli.workspace"
         exit 1
     }
 
@@ -974,7 +1153,7 @@ function Invoke-WorkspaceTask {
             Write-WorkspaceTaskRun -Task $task -ManifestPath $Path
         }
         "validate" {
-            Write-WorkspaceTaskValidate -Task $task
+            Write-WorkspaceTaskValidate -Manifest $Manifest -Task $task -ExecuteValidation:$ExecuteValidation -PlanOnly:$PlanOnly
         }
         "review" {
             Write-WorkspaceTaskReview -Task $task -ManifestPath $Path
@@ -1048,7 +1227,7 @@ switch ($SubCommand) {
     }
     "task" {
         $manifest = Read-WorkspaceManifest -Path $ManifestPath
-        Invoke-WorkspaceTask -Manifest $manifest -Command $TaskCommand -Name $TaskName -StateName $TaskState -Path $ManifestPath -LocalStatePath $StatePath
+        Invoke-WorkspaceTask -Manifest $manifest -Command $TaskCommand -Name $TaskName -StateName $TaskState -Path $ManifestPath -LocalStatePath $StatePath -ExecuteValidation:$Execute -PlanOnly:$Plan
     }
     default {
         Write-ErrorLog -Message "Unknown workspace command: $SubCommand. Valid: init, show, plan, status, dashboard, task" -Component "cli.workspace"

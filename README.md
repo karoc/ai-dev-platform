@@ -186,6 +186,15 @@ ADP-OS also includes a multi-scenario workspace recipes manifest for common agen
 
 The recipes cover low-risk maintenance, frontend browser acceptance, backend validation, and high-risk agent work with a snapshot-first gate. They are planning examples only; the workspace commands do not install packages, download browsers, create snapshots, run validation, or commit files.
 
+Validation can be executed explicitly from a task recipe:
+
+```powershell
+.\cli\adp.ps1 workspace task validate frontend-browser-acceptance -Execute -Plan -ManifestPath configs\workspace.recipes.example.json
+.\cli\adp.ps1 workspace task validate frontend-browser-acceptance -Execute -ManifestPath configs\workspace.recipes.example.json
+```
+
+`-Execute -Plan` previews the remote SSH commands. `-Execute` runs only the declared `tasks[].validation` commands in the target project directory; review, rollback, staging, and commit remain separate explicit steps.
+
 ## Command Reference
 
 ```powershell
@@ -200,6 +209,7 @@ The recipes cover low-risk maintenance, frontend browser acceptance, backend val
 .\cli\adp.ps1 workspace status
 .\cli\adp.ps1 workspace dashboard
 .\cli\adp.ps1 workspace task <prepare|snapshot|run|validate|review|rollback|commit> <task-name>
+.\cli\adp.ps1 workspace task validate <task-name> [-Execute] [-Plan]
 .\cli\adp.ps1 workspace task mark <task-name> <prepared|checkpointed|running|validated|reviewed|rollback|committed>
 .\cli\adp.ps1 sync start <frontend|backend|agent>
 .\cli\adp.ps1 sync stop <frontend|backend|agent>
