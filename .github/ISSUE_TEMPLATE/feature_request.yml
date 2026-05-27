@@ -1,0 +1,45 @@
+name: Feature request
+description: Suggest an improvement to ADP-OS.
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What user problem should this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe the behavior you want.
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - install
+        - cli
+        - vmware
+        - networking
+        - bootstrap
+        - sync
+        - browser-testing
+        - documentation
+        - cross-platform
+        - other
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+  - type: textarea
+    id: notes
+    attributes:
+      label: Additional context
+      description: Do not include secrets, private keys, tokens, VM disks, ISO files, or private local paths that should not be public.

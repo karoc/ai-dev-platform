@@ -1,0 +1,82 @@
+name: Bug report
+description: Report a reproducible ADP-OS problem.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a problem. Do not include secrets, private keys, tokens, VM disks, ISO files, or private local paths that should not be public.
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What happened?
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - install
+        - cli
+        - vmware
+        - networking
+        - bootstrap
+        - sync
+        - browser-testing
+        - documentation
+        - other
+    validations:
+      required: true
+  - type: input
+    id: commit
+    attributes:
+      label: ADP-OS commit
+      description: Output of `git rev-parse --short HEAD`.
+      placeholder: b068842
+  - type: input
+    id: host
+    attributes:
+      label: Host environment
+      placeholder: Windows 11, PowerShell 7.6, VMware Workstation Pro
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps
+      description: Provide the smallest command sequence that reproduces the issue.
+      placeholder: |
+        1. Run ...
+        2. Run ...
+        3. Observe ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostics
+      description: Paste relevant output from non-sensitive diagnostics.
+      render: text
+      placeholder: |
+        .\cli\adp.ps1 doctor
+        .\cli\adp.ps1 sync status
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety check
+      options:
+        - label: I removed secrets, private keys, tokens, VM disks, ISO files, and private local paths from this report.
+          required: true

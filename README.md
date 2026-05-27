@@ -2,6 +2,8 @@
 
 [简体中文](README.zh-CN.md) | English
 
+[![CI](https://github.com/karoc/ai-dev-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/karoc/ai-dev-platform/actions/workflows/ci.yml)
+
 AI Dev Platform OS, or ADP-OS, is a local AI development runtime platform for Windows, VMware Workstation, Ubuntu Server, and Mutagen.
 
 The project provisions isolated Linux runtimes for frontend, backend, and agent workloads, keeps workspaces synchronized from Windows into each VM, and creates rollback snapshots for repeatable local AI coding workflows.
@@ -168,6 +170,8 @@ Examples:
 - [Networking](docs/networking.md)
 - [Browser Testing](docs/browser-testing.md)
 - [Contributing](CONTRIBUTING.md)
+- [Security](SECURITY.md)
+- [Changelog](CHANGELOG.md)
 
 ## Security Notes
 

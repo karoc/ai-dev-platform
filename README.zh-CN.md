@@ -2,6 +2,8 @@
 
 简体中文 | [English](README.md)
 
+[![CI](https://github.com/karoc/ai-dev-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/karoc/ai-dev-platform/actions/workflows/ci.yml)
+
 AI Dev Platform OS，简称 ADP-OS，是一个面向 Windows、VMware Workstation、Ubuntu Server 和 Mutagen 的本地 AI 开发运行时平台。
 
 本项目会为前端、后端和 Agent 工作负载创建隔离的 Linux 运行时，将 Windows 工作区同步到各个 VM 中，并提供回滚快照，以支持可复现的本地 AI 编码工作流。
@@ -168,6 +170,8 @@ adp-frontend-browser-install chromium
 - [网络说明](docs/zh-CN/networking.md)
 - [浏览器测试](docs/zh-CN/browser-testing.md)
 - [贡献指南](CONTRIBUTING.zh-CN.md)
+- [安全策略](SECURITY.zh-CN.md)
+- [变更日志](CHANGELOG.zh-CN.md)
 
 ## 安全说明
 

@@ -18,3 +18,5 @@ This documentation covers how to install, operate, configure, and understand ADP
 ## Project
 
 - [Contributing](../CONTRIBUTING.md): development requirements, validation, and commit hygiene.
+- [Security](../SECURITY.md): local development security model and vulnerability reporting.
+- [Changelog](../CHANGELOG.md): notable public changes.
