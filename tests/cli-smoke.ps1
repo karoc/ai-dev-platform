@@ -118,10 +118,16 @@ Assert-Command `
     -Patterns @("Plan only: no projects will be cloned", "adp up agent -Plan", "adp snapshot create agent before-large-agent-task")
 
 Assert-Command `
+    -Name "workspace status example manifest" `
+    -Arguments @("workspace", "status", "-ManifestPath", "configs\workspace.example.json") `
+    -ExitCode 0 `
+    -Patterns @("Workspace readiness: example-project", "Status only: no projects will be cloned", "Manifest:", "Projects:", "runtime agent", "validation commands")
+
+Assert-Command `
     -Name "workspace unknown subcommand" `
     -Arguments @("workspace", "nope", "-ManifestPath", "configs\workspace.example.json") `
     -ExitCode 1 `
-    -Patterns @("Unknown workspace command: nope", "Valid: init, show, plan")
+    -Patterns @("Unknown workspace command: nope", "Valid: init, show, plan, status")
 
 $workspaceManifest = Join-Path ([System.IO.Path]::GetTempPath()) ("adp-workspace-test-{0}.json" -f ([guid]::NewGuid().ToString("N")))
 try {
@@ -138,6 +144,31 @@ try {
     Get-Content -LiteralPath $workspaceManifest -Raw | ConvertFrom-Json | Out-Null
 } finally {
     Remove-Item -LiteralPath $workspaceManifest -Force -ErrorAction SilentlyContinue
+}
+
+$incompleteWorkspaceManifest = Join-Path ([System.IO.Path]::GetTempPath()) ("adp-workspace-incomplete-{0}.json" -f ([guid]::NewGuid().ToString("N")))
+try {
+    @"
+{
+  "name": "incomplete-workspace",
+  "version": 1,
+  "projects": [
+    {
+      "name": "app",
+      "path": "app",
+      "sync": true
+    }
+  ]
+}
+"@ | Set-Content -LiteralPath $incompleteWorkspaceManifest -Encoding utf8
+
+    Assert-Command `
+        -Name "workspace status incomplete manifest" `
+        -Arguments @("workspace", "status", "-ManifestPath", $incompleteWorkspaceManifest) `
+        -ExitCode 0 `
+        -Patterns @("Workspace readiness: incomplete-workspace", "runtime \(missing\)", "sync \(blocked: missing runtime\)", "validation commands \(none configured\)")
+} finally {
+    Remove-Item -LiteralPath $incompleteWorkspaceManifest -Force -ErrorAction SilentlyContinue
 }
 
 Assert-Command `

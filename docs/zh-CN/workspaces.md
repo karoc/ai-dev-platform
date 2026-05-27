@@ -72,6 +72,14 @@ ADP-OS 可以用一个轻量的 workspace manifest 记录目标项目。这个 m
 
 `workspace plan` 有意保持非破坏性：它不会 clone 项目、启动或停止 VM、修改 Mutagen session、创建快照，也不会运行验证命令。它只会把 manifest 转换成操作计划。
 
+检查 workspace readiness：
+
+```powershell
+.\cli\adp.ps1 workspace status
+```
+
+`workspace status` 同样保持非破坏性。它会报告 manifest 是否已加载、项目路径是否存在、配置的运行时是否已知且已创建、预期 sync session 是否存在、任务快照是已存在还是建议创建，以及 validation 命令是否已声明。它不会创建目录、启动同步、创建快照，也不会运行验证命令。
+
 公开示例位于：
 
 ```text

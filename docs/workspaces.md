@@ -72,6 +72,14 @@ Preview the suggested runtime, sync, snapshot, and validation flow:
 
 `workspace plan` is intentionally non-destructive: it does not clone projects, start or stop VMs, change Mutagen sessions, create snapshots, or run validation commands. It only turns the manifest into an operating plan.
 
+Check workspace readiness:
+
+```powershell
+.\cli\adp.ps1 workspace status
+```
+
+`workspace status` is also non-destructive. It reports whether the manifest is loaded, project paths exist, configured runtimes are known and created, expected sync sessions are present, task snapshots already exist or are recommended, and validation commands are declared. It does not create directories, start sync, create snapshots, or run validation commands.
+
 The public example lives at:
 
 ```text

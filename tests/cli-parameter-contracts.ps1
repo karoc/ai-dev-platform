@@ -36,7 +36,7 @@ $workspace = Read-Text "cli\commands\workspace.ps1"
 Assert-Contains -Name "CLI help defined before use" -Text $cli -Pattern 'function\s+Show-Help[\s\S]*if\s*\(-not\s+\$Command\s+-or\s+\$Command\s+-eq\s+"help"\)'
 Assert-Contains -Name "CLI propagates command exit codes" -Text $cli -Pattern 'Invoke-CommandFile[\s\S]*if\s*\(\$LASTEXITCODE\)\s*\{[\s\S]*exit\s+\$LASTEXITCODE'
 Assert-Contains -Name "CLI registers workspace command" -Text $cli -Pattern '\$validCommands\s*=\s*@\([\s\S]*"workspace"'
-Assert-Contains -Name "CLI help includes workspace command" -Text $cli -Pattern 'adp workspace <init\|show\|plan>'
+Assert-Contains -Name "CLI help includes workspace command" -Text $cli -Pattern 'adp workspace <init\|show\|plan\|status>'
 Assert-Contains -Name "up -IsoPath propagation" -Text $up -Pattern 'New-RuntimeVM[\s\S]*-IsoPath\s+\$IsoPath'
 Assert-Contains -Name "vm factory IsoPath parameter" -Text $factory -Pattern 'function\s+New-RuntimeVM[\s\S]*\[string\]\$IsoPath'
 Assert-Contains -Name "vm factory IsoPath resolution" -Text $factory -Pattern '\$resolvedIsoPath\s*=\s*if\s*\(\$IsoPath\)'
@@ -59,5 +59,9 @@ Assert-Contains -Name "doctor checks ISO shape" -Text $doctor -Pattern 'ISO shap
 Assert-Contains -Name "workspace init uses public example manifest" -Text $workspace -Pattern 'configs\\workspace\.example\.json'
 Assert-Contains -Name "workspace plan is non-destructive" -Text $workspace -Pattern 'Plan only: no projects will be cloned, no sync sessions will be changed, and no snapshots will be created'
 Assert-Contains -Name "workspace plan suggests previewed runtime startup" -Text $workspace -Pattern 'adp up \$\(\$project\.runtime\) -Plan'
+Assert-Contains -Name "workspace status is non-destructive" -Text $workspace -Pattern 'Status only: no projects will be cloned, no sync sessions will be changed, no snapshots will be created, and no validation commands will be run'
+Assert-Contains -Name "workspace status checks runtime readiness" -Text $workspace -Pattern 'Get-WorkspaceRuntimeStatus'
+Assert-Contains -Name "workspace status checks sync readiness" -Text $workspace -Pattern 'Get-WorkspaceSyncStatus'
+Assert-Contains -Name "workspace status checks snapshot readiness" -Text $workspace -Pattern 'Get-WorkspaceSnapshotStatus'
 
 Write-Output "CLI parameter contracts OK"
