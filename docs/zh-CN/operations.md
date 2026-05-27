@@ -18,6 +18,14 @@
 All checks passed. Platform is healthy.
 ```
 
+首次使用时可以附加检查清单：
+
+```powershell
+.\cli\adp.ps1 doctor -FirstRun
+```
+
+`doctor` 会检查平台前置条件、配置结构、本地覆盖状态、VMware 工具、Mutagen 版本、ISO cache、运行时拓扑、静态 IP 唯一性、静态 IP 网段、VM 状态、运行中 VM 的 SSH 可达性，以及 Mutagen sessions。
+
 运行集成检查：
 
 ```powershell
@@ -36,6 +44,12 @@ All checks passed. Platform is healthy.
 如果 VM 已存在且正在运行，ADP 会报告当前 IP 并跳过创建。
 
 `agent` 运行时可能会打印 high-IO profile 提示。这不是错误；它表示该运行时面向 AI agent 工作负载配置，执行破坏性或大范围任务前建议先创建快照。
+
+不创建、不启动、不 provisioning、不 bootstrap VM，只预览启动计划：
+
+```powershell
+.\cli\adp.ps1 up agent -Plan
+```
 
 ## 停止运行时
 
@@ -134,6 +148,12 @@ pnpm exec playwright test
 
 销毁运行时会删除该运行时的 VM 文件。`%USERPROFILE%\adp-workspaces` 下的工作区数据是独立的。
 
+先预览删除计划：
+
+```powershell
+.\cli\adp.ps1 destroy frontend -Plan
+```
+
 ## 重新应用网络
 
 ```powershell
@@ -141,3 +161,9 @@ pnpm exec playwright test
 ```
 
 编辑 `configs\platform.json` 或 `configs\topology.json` 后使用此命令。
+
+可以先预览 guest 网络改动：
+
+```powershell
+.\cli\adp.ps1 network apply all -Plan
+```

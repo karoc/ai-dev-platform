@@ -150,4 +150,6 @@ JSON object 会递归合并。数组和标量值会替换默认值。空的 `con
 
 不要提交 `configs\local.json`；共享默认值应提交到主配置文件。
 
+运行 `.\cli\adp.ps1 doctor` 可以查看 `configs\local.json` 是不存在、为空、已应用、存在但没有支持的顶层字段，还是使用了不支持的顶层字段。
+
 `configs\secrets.json` 同样已被忽略，保留给未来专门的 secret 支持。当前 MVP 不会读取它。

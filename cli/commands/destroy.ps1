@@ -3,11 +3,12 @@
 
 param(
     [string]$RuntimeName,
-    [switch]$Force
+    [switch]$Force,
+    [switch]$Plan
 )
 
 if (-not $RuntimeName) {
-    Write-ErrorLog -Message "Usage: adp destroy <runtime> [-Force]" -Component "cli.destroy"
+    Write-ErrorLog -Message "Usage: adp destroy <runtime> [-Plan] [-Force]" -Component "cli.destroy"
     exit 1
 }
 
@@ -37,9 +38,17 @@ Write-Host "  VMX: $vmxPath" -ForegroundColor DarkGray
 Write-Host "  Directory: $vmPath" -ForegroundColor DarkGray
 Write-Host ""
 
+if ($Plan) {
+    Write-Host "Plan only: no files will be deleted." -ForegroundColor Cyan
+    Write-Host "  Would stop VM if running: $vmxPath" -ForegroundColor DarkGray
+    Write-Host "  Would remove directory:   $vmPath" -ForegroundColor DarkGray
+    Write-Host "  Workspace data under workspace_root is not removed by destroy." -ForegroundColor DarkGray
+    return
+}
+
 if (-not $Force) {
     Write-Host "This will PERMANENTLY DELETE this runtime and ALL its data." -ForegroundColor Red
-    Write-Host "Run 'adp destroy $RuntimeName -Force' to confirm." -ForegroundColor Yellow
+    Write-Host "Run 'adp destroy $RuntimeName -Force' to confirm, or 'adp destroy $RuntimeName -Plan' to preview." -ForegroundColor Yellow
     return
 }
 

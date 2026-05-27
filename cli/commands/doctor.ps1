@@ -1,6 +1,10 @@
 # ADP-OS Doctor Command
 # System diagnostics — checks all dependencies and platform health
 
+param(
+    [switch]$FirstRun
+)
+
 Write-InfoLog -Message "Running: adp doctor" -Component "cli.doctor"
 
 . (Join-Path (Get-ProjectRoot) "runtimes\vmware\os-profiles.ps1")
@@ -14,6 +18,7 @@ Write-Host ""
 
 $script:issues = @()
 $script:ok = @()
+$script:info = @()
 
 function Test-Check {
     param(
@@ -29,6 +34,83 @@ function Test-Check {
         Write-Host "  [FAIL]  $Name $Detail" -ForegroundColor Red
         $script:issues += $Name
     }
+}
+
+function Write-InfoCheck {
+    param(
+        [string]$Name,
+        [string]$Detail = ""
+    )
+
+    Write-Host "  [INFO]  $Name $Detail" -ForegroundColor DarkGray
+    $script:info += $Name
+}
+
+function Test-IPv4InCidr {
+    param(
+        [string]$Address,
+        [string]$Cidr
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Address) -or [string]::IsNullOrWhiteSpace($Cidr)) {
+        return $false
+    }
+
+    $parts = $Cidr -split '/', 2
+    if ($parts.Count -ne 2) {
+        return $false
+    }
+
+    $ip = $null
+    $network = $null
+    if (-not [System.Net.IPAddress]::TryParse($Address, [ref]$ip)) {
+        return $false
+    }
+    if (-not [System.Net.IPAddress]::TryParse($parts[0], [ref]$network)) {
+        return $false
+    }
+    if ($ip.AddressFamily -ne [System.Net.Sockets.AddressFamily]::InterNetwork -or $network.AddressFamily -ne [System.Net.Sockets.AddressFamily]::InterNetwork) {
+        return $false
+    }
+
+    $prefix = 0
+    if (-not [int]::TryParse($parts[1], [ref]$prefix) -or $prefix -lt 0 -or $prefix -gt 32) {
+        return $false
+    }
+
+    $ipBytes = $ip.GetAddressBytes()
+    $networkBytes = $network.GetAddressBytes()
+    [array]::Reverse($ipBytes)
+    [array]::Reverse($networkBytes)
+    $ipInt = [BitConverter]::ToUInt32($ipBytes, 0)
+    $networkInt = [BitConverter]::ToUInt32($networkBytes, 0)
+    $mask = if ($prefix -eq 0) { [uint32]0 } else { [uint32]::MaxValue -shl (32 - $prefix) }
+
+    return (($ipInt -band $mask) -eq ($networkInt -band $mask))
+}
+
+function Test-RuntimeSSHReachable {
+    param(
+        [string]$HostAddress,
+        [int]$Port = 22
+    )
+
+    $keyPath = Join-Path "$env:USERPROFILE\.ssh\adp-os" "adp-os"
+    if (-not (Test-Path $keyPath)) {
+        return $false
+    }
+
+    $result = & ssh -i $keyPath `
+        -o StrictHostKeyChecking=no `
+        -o UserKnownHostsFile=NUL `
+        -o IdentitiesOnly=yes `
+        -o ConnectTimeout=5 `
+        -o BatchMode=yes `
+        -p $Port `
+        "adp@$HostAddress" `
+        "echo ok" 2>$null
+
+    return ($LASTEXITCODE -eq 0 -and $result -eq "ok")
 }
 
 # --- Platform ---
@@ -57,6 +139,24 @@ if ($localConfigStatus.Exists) {
 } else {
     Test-Check -Name "local config" -Condition $true -Detail "(not present, using committed defaults)"
     Write-Host "  [INFO]  Optional: copy configs\local.example.json to configs\local.json for machine-local overrides." -ForegroundColor DarkGray
+}
+if ($localConfigStatus.Exists -and -not $localConfigStatus.Empty) {
+    $unsupportedSections = @($localConfigStatus.UnsupportedSections)
+    Test-Check -Name "local config supported sections" -Condition ($unsupportedSections.Count -eq 0) -Detail "$(if ($unsupportedSections.Count -gt 0) { '(' + ($unsupportedSections -join ', ') + ')' } else { '(platform, topology, sync_profiles)' })"
+}
+
+$config = Get-PlatformConfig
+$topology = Get-TopologyConfig
+Test-Check -Name "platform paths" -Condition ($config.paths.workspace_root -and $config.paths.iso_cache -and $config.paths.vm_store) -Detail "(workspace_root, iso_cache, vm_store)"
+Test-Check -Name "platform defaults" -Condition ($config.defaults.ubuntu_iso -and $config.defaults.admin_user -and $config.defaults.admin_password) -Detail "(ubuntu_iso, admin_user, admin_password)"
+Test-Check -Name "network mode" -Condition ($config.network.mode -eq "static") -Detail "($($config.network.mode))"
+
+if ($config.network.vmware_nat) {
+    $nat = $config.network.vmware_nat
+    Test-Check -Name "VMware NAT config" -Condition ($nat.cidr -and $nat.gateway -and $nat.prefix) -Detail "($($nat.cidr), gateway $($nat.gateway), prefix $($nat.prefix))"
+    if ($nat.cidr -and $nat.gateway) {
+        Test-Check -Name "VMware NAT gateway range" -Condition (Test-IPv4InCidr -Address $nat.gateway -Cidr $nat.cidr) -Detail "($($nat.gateway) in $($nat.cidr))"
+    }
 }
 
 # --- VMware ---
@@ -102,7 +202,11 @@ if (-not $hasMutagen) {
 if ($hasMutagen) {
     Initialize-Mutagen -ProjectRoot (Get-ProjectRoot) | Out-Null
     $mutagenVersion = Invoke-Mutagen -Arguments @("version") 2>$null | Select-Object -First 1
-    Test-Check -Name "mutagen version" -Condition $true -Detail "($mutagenVersion, $mutagenPath)"
+    $mutagenVersionOk = "$mutagenVersion" -match '^0\.18\.'
+    Test-Check -Name "mutagen version" -Condition $mutagenVersionOk -Detail "($mutagenVersion, $mutagenPath)"
+    if (-not $mutagenVersionOk) {
+        Write-Host "  [INFO]  ADP-OS is tested with Mutagen 0.18.x." -ForegroundColor DarkGray
+    }
 }
 
 # --- SSH ---
@@ -114,7 +218,6 @@ Test-Check -Name "OpenSSH Client" -Condition $hasSsh
 # --- ISO ---
 Write-Host ""
 Write-Host "OS ISO:" -ForegroundColor Yellow
-$config = Get-PlatformConfig
 $isoName = if ($config.defaults.iso_path) { $config.defaults.iso_path } else { $config.defaults.ubuntu_iso }
 $isoCache = Resolve-Path "iso_cache"
 $isoPath = Join-Path $isoCache $isoName
@@ -138,7 +241,7 @@ Test-Check -Name "Logs" -Condition (Test-Path (Join-Path (Get-ProjectRoot) "logs
 # --- Runtime topology ---
 Write-Host ""
 Write-Host "Runtimes:" -ForegroundColor Yellow
-$topology = Get-TopologyConfig
+$staticIpOwners = @{}
 foreach ($name in (Get-AllRuntimeNames)) {
     $rt = $topology.$name
     $profile = Get-OSProfile -OSName $rt.os
@@ -147,19 +250,65 @@ foreach ($name in (Get-AllRuntimeNames)) {
     $vmxPath = Join-Path $vmPath "$vmName.vmx"
     $vmdkPath = Join-Path $vmPath "$vmName.vmdk"
 
-    Test-Check -Name "$name topology" -Condition ($profile.seedType -eq "cloud-init" -and $rt.ssh_port -eq 22) -Detail "($($rt.os), ssh:$($rt.ssh_port))"
+    $topologyOk = ($profile.seedType -eq "cloud-init" -and $rt.ssh_port -eq 22 -and $rt.cpu -gt 0 -and $rt.memory -gt 0 -and $rt.disk -gt 0 -and $rt.workspace -and $rt.sync_profile -and $rt.bootstrap_profile)
+    Test-Check -Name "$name topology" -Condition $topologyOk -Detail "($($rt.os), cpu:$($rt.cpu), memory:$($rt.memory), disk:$($rt.disk), ssh:$($rt.ssh_port))"
+
+    if ($rt.static_ip) {
+        $ipDuplicate = $staticIpOwners.ContainsKey($rt.static_ip)
+        if ($ipDuplicate) {
+            Test-Check -Name "$name static IP unique" -Condition $false -Detail "($($rt.static_ip) also used by $($staticIpOwners[$rt.static_ip]))"
+        } else {
+            $staticIpOwners[$rt.static_ip] = $name
+            Test-Check -Name "$name static IP unique" -Condition $true -Detail "($($rt.static_ip))"
+        }
+
+        if ($config.network.vmware_nat.cidr) {
+            Test-Check -Name "$name static IP range" -Condition (Test-IPv4InCidr -Address $rt.static_ip -Cidr $config.network.vmware_nat.cidr) -Detail "($($rt.static_ip) in $($config.network.vmware_nat.cidr))"
+        }
+    } else {
+        Test-Check -Name "$name static IP" -Condition $false -Detail "(missing)"
+    }
+
+    $syncProfile = $null
+    try {
+        $syncProfile = Get-SyncProfile $rt.sync_profile
+        Test-Check -Name "$name sync profile" -Condition ($syncProfile.mode -and $syncProfile.ignore) -Detail "($($rt.sync_profile), $($syncProfile.mode))"
+    } catch {
+        Test-Check -Name "$name sync profile" -Condition $false -Detail "($($rt.sync_profile): $_)"
+    }
+
     if (Test-Path $vmPath) {
         Test-Check -Name "$name VMX" -Condition (Test-Path $vmxPath) -Detail "($vmxPath)"
         Test-Check -Name "$name VMDK" -Condition (Test-Path $vmdkPath) -Detail "($vmdkPath)"
+        $status = Get-VMStatus $vmxPath
+        Test-Check -Name "$name VM status" -Condition ($status -match "running|stopped") -Detail "($status)"
+        if ($status -match "running" -and $rt.static_ip) {
+            Test-Check -Name "$name SSH reachable" -Condition (Test-RuntimeSSHReachable -HostAddress $rt.static_ip -Port $rt.ssh_port) -Detail "($($rt.static_ip):$($rt.ssh_port))"
+        } else {
+            Write-InfoCheck -Name "$name SSH reachable" -Detail "(skipped, VM status: $status)"
+        }
     } else {
-        Write-Host "  [INFO]  $name VM not created yet ($vmPath)" -ForegroundColor DarkGray
+        Write-InfoCheck -Name "$name VM" -Detail "(not created yet: $vmPath)"
+    }
+
+    if ($hasMutagen) {
+        $sessionName = "adp-$name"
+        try {
+            if (Test-SyncSessionExists -SessionName $sessionName) {
+                Test-Check -Name "$name Mutagen session" -Condition $true -Detail "($sessionName)"
+            } else {
+                Write-InfoCheck -Name "$name Mutagen session" -Detail "(not started: $sessionName)"
+            }
+        } catch {
+            Write-InfoCheck -Name "$name Mutagen session" -Detail "(status unavailable: $_)"
+        }
     }
 }
 
 # --- Summary ---
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Cyan
-Write-Host "  Results: $($ok.Count) OK, $($issues.Count) issues" -ForegroundColor $(if ($issues.Count -eq 0) { "Green" } else { "Red" })
+Write-Host "  Results: $($ok.Count) OK, $($issues.Count) issues, $($info.Count) info" -ForegroundColor $(if ($issues.Count -eq 0) { "Green" } else { "Red" })
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
@@ -170,4 +319,30 @@ if ($issues.Count -gt 0) {
     }
 } else {
     Write-Host "All checks passed. Platform is healthy." -ForegroundColor Green
+}
+
+if ($FirstRun) {
+    Write-Host ""
+    Write-Host "First-run checklist" -ForegroundColor Cyan
+    Write-Host "========================================" -ForegroundColor Cyan
+    Write-Host "  1. Review or create local overrides:" -ForegroundColor Yellow
+    Write-Host "     Copy-Item configs\local.example.json configs\local.json" -ForegroundColor DarkGray
+    Write-Host "  2. Confirm ISO availability:" -ForegroundColor Yellow
+    Write-Host "     .\install.ps1 -IsoPath C:\path\to\ubuntu-26.04-live-server-amd64.iso" -ForegroundColor DarkGray
+    Write-Host "  3. Initialize platform:" -ForegroundColor Yellow
+    Write-Host "     .\install.ps1" -ForegroundColor DarkGray
+    Write-Host "     .\cli\adp.ps1 init" -ForegroundColor DarkGray
+    Write-Host "  4. Preview runtime creation/startup:" -ForegroundColor Yellow
+    Write-Host "     .\cli\adp.ps1 up agent -Plan" -ForegroundColor DarkGray
+    Write-Host "  5. Start a runtime:" -ForegroundColor Yellow
+    Write-Host "     .\cli\adp.ps1 up agent" -ForegroundColor DarkGray
+    Write-Host "  6. Preview networking changes when needed:" -ForegroundColor Yellow
+    Write-Host "     .\cli\adp.ps1 network apply agent -Plan" -ForegroundColor DarkGray
+    Write-Host "  7. Place target projects under the matching workspace root:" -ForegroundColor Yellow
+    Write-Host "     $workspaceRoot\agent" -ForegroundColor DarkGray
+    Write-Host "  8. Start sync after the runtime is reachable:" -ForegroundColor Yellow
+    Write-Host "     .\cli\adp.ps1 sync start agent" -ForegroundColor DarkGray
+    Write-Host "  9. Create a snapshot before risky agent work:" -ForegroundColor Yellow
+    Write-Host "     .\cli\adp.ps1 snapshot create agent before-large-agent-task" -ForegroundColor DarkGray
+    Write-Host ""
 }

@@ -3,18 +3,19 @@
 
 param(
     [string]$SubCommand,
-    [string]$RuntimeName
+    [string]$RuntimeName,
+    [switch]$Plan
 )
 
 $ErrorActionPreference = "Stop"
 
 if (-not $SubCommand -or $SubCommand -ne "apply") {
-    Write-ErrorLog -Message "Usage: adp network apply <runtime|all>" -Component "cli.network"
+    Write-ErrorLog -Message "Usage: adp network apply <runtime|all> [-Plan]" -Component "cli.network"
     exit 1
 }
 
 if (-not $RuntimeName) {
-    Write-ErrorLog -Message "Usage: adp network apply <runtime|all>" -Component "cli.network"
+    Write-ErrorLog -Message "Usage: adp network apply <runtime|all> [-Plan]" -Component "cli.network"
     exit 1
 }
 
@@ -138,7 +139,10 @@ function Wait-RuntimeSSH {
 }
 
 function Apply-RuntimeNetwork {
-    param([string]$TargetRuntime)
+    param(
+        [string]$TargetRuntime,
+        [switch]$PlanOnly
+    )
 
     if (-not (Test-RuntimeExists $TargetRuntime)) {
         throw "Unknown runtime: $TargetRuntime"
@@ -170,6 +174,16 @@ function Apply-RuntimeNetwork {
     Write-Host "  VM status: $status" -ForegroundColor DarkGray
     Write-Host "  Current: $currentIp" -ForegroundColor DarkGray
     Write-Host "  Target:  $($network.Address)/$($network.Prefix) via $($network.Gateway)" -ForegroundColor DarkGray
+
+    if ($PlanOnly) {
+        Write-Host "  Plan only: no guest files will be changed." -ForegroundColor Cyan
+        Write-Host "  Would verify SSH at: $currentIp" -ForegroundColor DarkGray
+        Write-Host "  Would upload: /tmp/99-adp-static.yaml" -ForegroundColor DarkGray
+        Write-Host "  Would install: /etc/netplan/99-adp-static.yaml" -ForegroundColor DarkGray
+        Write-Host "  Would wait for target SSH: $($network.Address)" -ForegroundColor DarkGray
+        Write-Host "  Would update Mutagen SSH alias: adp-os-adp-$TargetRuntime" -ForegroundColor DarkGray
+        return
+    }
 
     if (-not (Test-RuntimeSSH -HostAddress $currentIp)) {
         throw "SSH is not reachable at current address $currentIp"
@@ -219,7 +233,7 @@ $targets = if ($RuntimeName -eq "all") { Get-AllRuntimeNames } else { @($Runtime
 
 foreach ($target in $targets) {
     try {
-        Apply-RuntimeNetwork -TargetRuntime $target
+        Apply-RuntimeNetwork -TargetRuntime $target -PlanOnly:$Plan
     } catch {
         Write-ErrorLog -Message "$target network apply failed: $_" -Component "cli.network"
         exit 1

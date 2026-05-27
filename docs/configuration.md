@@ -150,4 +150,6 @@ Merging is recursive for JSON objects. Arrays and scalar values replace the defa
 
 Do not commit `configs\local.json`; commit shared defaults to the main config files instead.
 
+Run `.\cli\adp.ps1 doctor` to see whether `configs\local.json` is missing, empty, applied, present without supported sections, or using unsupported top-level sections.
+
 `configs\secrets.json` is also ignored and reserved for future secret-specific support. It is not read by the current MVP.

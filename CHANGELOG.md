@@ -10,6 +10,8 @@ The project does not yet publish versioned releases. Entries are grouped by date
 
 ### Added
 
+- Added `adp doctor -FirstRun` for first-run checklist guidance.
+- Added `-Plan` previews for `adp up`, `adp network apply`, and `adp destroy`.
 - Added public `SECURITY.md` and `SECURITY.zh-CN.md`.
 - Added public `CHANGELOG.md` and `CHANGELOG.zh-CN.md`.
 - Added GitHub issue templates for bug reports and feature requests.
@@ -32,6 +34,7 @@ The project does not yet publish versioned releases. Entries are grouped by date
 - Updated sync and Git ignore rules for browser test reports and Playwright artifacts.
 - Reworded the agent runtime startup warning from `DANGER MODE` to a high-IO agent profile notice.
 - Updated `adp doctor` to report local config override status.
+- Expanded `adp doctor` checks for configuration shape, VMware NAT range, runtime static IP uniqueness, sync profiles, running-runtime SSH reachability, Mutagen version, and Mutagen sessions.
 
 ## 2026-05-26
 

@@ -10,6 +10,8 @@
 
 ### 新增
 
+- 新增 `adp doctor -FirstRun`，提供首次使用检查清单。
+- 新增 `adp up`、`adp network apply` 和 `adp destroy` 的 `-Plan` 预览。
 - 新增公开 `SECURITY.md` 和 `SECURITY.zh-CN.md`。
 - 新增公开 `CHANGELOG.md` 和 `CHANGELOG.zh-CN.md`。
 - 新增 GitHub bug report 和 feature request issue templates。
@@ -32,6 +34,7 @@
 - 更新同步和 Git ignore 规则，忽略浏览器测试报告和 Playwright 产物。
 - 将 agent 运行时启动提示从 `DANGER MODE` 改为 high-IO agent profile 提示。
 - 更新 `adp doctor`，报告本地配置覆盖状态。
+- 扩展 `adp doctor`，检查配置结构、VMware NAT 网段、运行时静态 IP 唯一性、sync profiles、运行中 VM 的 SSH 可达性、Mutagen 版本和 Mutagen sessions。
 
 ## 2026-05-26
 

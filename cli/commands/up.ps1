@@ -5,13 +5,14 @@ param(
     [string]$RuntimeName,
     [switch]$NoBootstrap,
     [switch]$NoProvision,
+    [switch]$Plan,
     [string]$IsoPath
 )
 
 $ErrorActionPreference = "Stop"
 
 if (-not $RuntimeName) {
-    Write-ErrorLog -Message "Usage: adp up <runtime> (frontend|backend|agent) [-NoBootstrap] [-NoProvision]" -Component "cli.up"
+    Write-ErrorLog -Message "Usage: adp up <runtime> (frontend|backend|agent) [-Plan] [-NoBootstrap] [-NoProvision]" -Component "cli.up"
     exit 1
 }
 
@@ -105,6 +106,28 @@ if ($rt.danger) {
     Write-Host "  Snapshot recommended before destructive or large-scale tasks." -ForegroundColor DarkGray
 }
 Write-Host ""
+
+if ($Plan) {
+    $isoName = if ($config.defaults.iso_path) { $config.defaults.iso_path } else { $config.defaults.ubuntu_iso }
+    $plannedIsoPath = if ($IsoPath) { $IsoPath } else { Join-Path $isoCache $isoName }
+    $exists = Test-Path $vmxPath
+    $status = if ($exists) { Get-VMStatus $vmxPath } else { "not-created" }
+    Write-Host "Plan only: no VM will be created, started, provisioned, or bootstrapped." -ForegroundColor Cyan
+    Write-Host "  Runtime:      $RuntimeName" -ForegroundColor DarkGray
+    Write-Host "  VMX:          $vmxPath" -ForegroundColor DarkGray
+    Write-Host "  Current:      $status" -ForegroundColor DarkGray
+    Write-Host "  ISO:          $plannedIsoPath" -ForegroundColor DarkGray
+    Write-Host "  Static IP:    $(if ($rt.static_ip) { $rt.static_ip } else { 'not configured' })" -ForegroundColor DarkGray
+    Write-Host "  Workspace:    $(Join-Path (Resolve-Path 'workspace_root') $rt.workspace)" -ForegroundColor DarkGray
+    if (-not $exists) {
+        Write-Host "  Would create VM from ISO and start provisioning unless -NoProvision is used." -ForegroundColor DarkGray
+    } elseif ($status -match "running") {
+        Write-Host "  Would detect running VM and continue bootstrap readiness checks unless -NoBootstrap is used." -ForegroundColor DarkGray
+    } else {
+        Write-Host "  Would start existing VM and continue bootstrap readiness checks unless -NoBootstrap is used." -ForegroundColor DarkGray
+    }
+    return
+}
 
 # --- Case 1: VM exists ---
 if (Test-Path $vmxPath) {

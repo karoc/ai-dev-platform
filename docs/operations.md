@@ -18,6 +18,14 @@ Expected result:
 All checks passed. Platform is healthy.
 ```
 
+For first-run guidance, include the checklist:
+
+```powershell
+.\cli\adp.ps1 doctor -FirstRun
+```
+
+`doctor` checks platform prerequisites, configuration shape, local override status, VMware tooling, Mutagen version, ISO cache, runtime topology, static IP uniqueness, static IP ranges, VM status, SSH reachability for running VMs, and Mutagen sessions.
+
 Run integration checks:
 
 ```powershell
@@ -36,6 +44,12 @@ Run integration checks:
 If a VM exists and is already running, ADP reports the current IP and skips creation.
 
 The `agent` runtime may print a high-IO profile notice. This is not an error; it means the runtime is sized for AI agent workloads and snapshots are recommended before destructive or large-scale tasks.
+
+Preview startup without creating, starting, provisioning, or bootstrapping a VM:
+
+```powershell
+.\cli\adp.ps1 up agent -Plan
+```
 
 ## Stop Runtimes
 
@@ -134,6 +148,12 @@ Snapshots are VMware snapshots and may take several minutes on running VMs. ADP 
 
 Destroying a runtime removes the VM files for that runtime. Workspace data under `%USERPROFILE%\adp-workspaces` is separate.
 
+Preview the deletion first:
+
+```powershell
+.\cli\adp.ps1 destroy frontend -Plan
+```
+
 ## Re-apply Networking
 
 ```powershell
@@ -141,3 +161,9 @@ Destroying a runtime removes the VM files for that runtime. Workspace data under
 ```
 
 Use this after editing `configs\platform.json` or `configs\topology.json`.
+
+Preview the guest networking changes first:
+
+```powershell
+.\cli\adp.ps1 network apply all -Plan
+```

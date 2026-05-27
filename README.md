@@ -105,6 +105,7 @@ Check health:
 
 ```powershell
 .\cli\adp.ps1 doctor
+.\cli\adp.ps1 doctor -FirstRun
 .\cli\adp.ps1 sync status
 ```
 
@@ -167,17 +168,17 @@ See [Workspaces](docs/workspaces.md) for target-project layout and ADP-OS dogfoo
 
 ```powershell
 .\cli\adp.ps1 init
-.\cli\adp.ps1 up <frontend|backend|agent>
+.\cli\adp.ps1 up <frontend|backend|agent> [-Plan]
 .\cli\adp.ps1 stop <frontend|backend|agent>
 .\cli\adp.ps1 sync status
 .\cli\adp.ps1 sync start <frontend|backend|agent>
 .\cli\adp.ps1 sync stop <frontend|backend|agent>
-.\cli\adp.ps1 network apply <frontend|backend|agent|all>
+.\cli\adp.ps1 network apply <frontend|backend|agent|all> [-Plan]
 .\cli\adp.ps1 snapshot create <runtime> <name>
 .\cli\adp.ps1 restore <runtime> <name>
 .\cli\adp.ps1 logs <runtime>
-.\cli\adp.ps1 doctor
-.\cli\adp.ps1 destroy <runtime>
+.\cli\adp.ps1 doctor [-FirstRun]
+.\cli\adp.ps1 destroy <runtime> [-Plan]
 ```
 
 ## Documentation

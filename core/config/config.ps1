@@ -52,11 +52,12 @@ function Apply-LocalConfig {
 
     $localConfigPath = Join-Path $ProjectRoot "configs\local.json"
     $script:LocalConfigStatus = [pscustomobject]@{
-        Path     = $localConfigPath
-        Exists   = $false
-        Empty    = $false
-        Applied  = $false
-        Sections = @()
+        Path                = $localConfigPath
+        Exists              = $false
+        Empty               = $false
+        Applied             = $false
+        Sections            = @()
+        UnsupportedSections = @()
     }
 
     if (-not (Test-Path $localConfigPath)) {
@@ -71,6 +72,11 @@ function Apply-LocalConfig {
         Write-Verbose "ADP-OS local config exists but is empty: $localConfigPath"
         return
     }
+
+    $supportedSections = @("platform", "topology", "sync_profiles")
+    $script:LocalConfigStatus.UnsupportedSections = @(
+        $localConfig.PSObject.Properties.Name | Where-Object { $_ -notin $supportedSections }
+    )
 
     $sections = [System.Collections.Generic.List[string]]::new()
     if ($localConfig.PSObject.Properties.Name -contains "platform" -and $localConfig.platform) {
