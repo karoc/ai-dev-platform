@@ -116,6 +116,7 @@ Run non-destructive validation:
 
 ```powershell
 .\tests\cli-smoke.ps1
+.\tests\install-smoke.ps1
 .\test-integration.ps1
 .\deploy-check.ps1
 ```

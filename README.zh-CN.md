@@ -116,6 +116,7 @@ adp-frontend-browser-install chromium
 
 ```powershell
 .\tests\cli-smoke.ps1
+.\tests\install-smoke.ps1
 .\test-integration.ps1
 .\deploy-check.ps1
 ```

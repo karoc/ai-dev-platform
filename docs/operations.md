@@ -44,11 +44,14 @@ Run integration checks:
 
 ```powershell
 .\tests\cli-smoke.ps1
+.\tests\install-smoke.ps1
 .\test-integration.ps1
 .\deploy-check.ps1
 ```
 
 `cli-smoke.ps1` checks command dispatch, non-destructive previews, and input error boundaries. It does not create, start, stop, sync, or destroy VMs.
+
+`install-smoke.ps1` checks installer diagnostics and local-state writes with a temporary `USERPROFILE`. It does not use the real user profile, download dependencies, validate VMware, create VMs, or require a real ISO.
 
 Installer troubleshooting switches:
 

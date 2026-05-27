@@ -12,6 +12,7 @@
 
 - 新增 CLI 参数契约 CI 验证，用于检查已接收的开关是否贯通到实际执行路径。
 - 新增非破坏性 CLI smoke tests，覆盖命令分发、预览输出和输入错误边界。
+- 新增非破坏性 installer smoke tests，覆盖 skip 开关、ISO 诊断、临时本地状态写入和显式 ISO cache 行为。
 - 新增更强的首次使用依赖诊断，覆盖 VMware disk manager、WSL、`xorriso`、ISO remaster、Mutagen 版本和 ISO 基本形态。
 - 新增显式 Mutagen 修复入口 `adp doctor -FixMutagen`，支持先用 `-Plan` 预览再下载。
 - 新增 workspace manifest 示例，以及非破坏性的 `adp workspace init/show/plan` 命令。

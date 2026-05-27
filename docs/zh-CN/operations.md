@@ -44,11 +44,14 @@ All checks passed. Platform is healthy.
 
 ```powershell
 .\tests\cli-smoke.ps1
+.\tests\install-smoke.ps1
 .\test-integration.ps1
 .\deploy-check.ps1
 ```
 
 `cli-smoke.ps1` 会检查命令分发、非破坏性预览和输入错误边界。它不会创建、启动、停止、同步或销毁 VM。
+
+`install-smoke.ps1` 使用临时 `USERPROFILE` 检查 installer 诊断和本地状态写入。它不会使用真实用户 profile，不会下载依赖，不会验证 VMware，不会创建 VM，也不要求真实 ISO。
 
 Installer 排障开关：
 

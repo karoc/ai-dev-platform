@@ -32,9 +32,11 @@ $logs = Read-Text "cli\commands\logs.ps1"
 $sync = Read-Text "cli\commands\sync.ps1"
 $doctor = Read-Text "cli\commands\doctor.ps1"
 $workspace = Read-Text "cli\commands\workspace.ps1"
+$ci = Read-Text ".github\workflows\ci.yml"
 
 Assert-Contains -Name "CLI help defined before use" -Text $cli -Pattern 'function\s+Show-Help[\s\S]*if\s*\(-not\s+\$Command\s+-or\s+\$Command\s+-eq\s+"help"\)'
 Assert-Contains -Name "CLI propagates command exit codes" -Text $cli -Pattern 'Invoke-CommandFile[\s\S]*if\s*\(\$LASTEXITCODE\)\s*\{[\s\S]*exit\s+\$LASTEXITCODE'
+Assert-Contains -Name "CI runs installer smoke tests" -Text $ci -Pattern '\.\\tests\\install-smoke\.ps1'
 Assert-Contains -Name "CLI registers workspace command" -Text $cli -Pattern '\$validCommands\s*=\s*@\([\s\S]*"workspace"'
 Assert-Contains -Name "CLI help includes workspace command" -Text $cli -Pattern 'adp workspace <init\|show\|plan\|status\|dashboard\|task>'
 Assert-Contains -Name "up -IsoPath propagation" -Text $up -Pattern 'New-RuntimeVM[\s\S]*-IsoPath\s+\$IsoPath'

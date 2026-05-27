@@ -54,6 +54,11 @@ jobs:
         run: |
           .\tests\cli-smoke.ps1
 
+      - name: Run installer smoke tests
+        shell: pwsh
+        run: |
+          .\tests\install-smoke.ps1
+
       - name: Check bootstrap shell syntax
         shell: bash
         run: |
