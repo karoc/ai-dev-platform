@@ -112,6 +112,14 @@ Workspace task 是 ADP-OS 的第一个 agent-native workflow 入口。它会把 
 - `rollback`：打印 VM snapshot restore 命令和独立的 Git 源码回滚检查，但不会执行。
 - `commit`：打印 review、验证、diff 检查、暂存和提交边界，但不会 stage 或 commit 文件。
 
+记录本地 lifecycle decision：
+
+```powershell
+.\cli\adp.ps1 workspace task mark before-large-agent-task prepared
+```
+
+`task mark` 只记录本地 task state。它会写入 `adp-workspace.state.json`，平台仓库默认忽略这个文件。state 文件让 `workspace dashboard` 可以显示人类或 agent 已将任务标记为 `prepared`、`checkpointed`、`running`、`validated`、`reviewed`、`rollback` 或 `committed`。标记状态不会运行任务、创建快照、运行验证、恢复快照、stage 文件或 commit 改动。
+
 公开示例位于：
 
 ```text

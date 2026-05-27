@@ -16,6 +16,7 @@
 - 新增 workspace manifest 示例，以及非破坏性的 `adp workspace init/show/plan` 命令。
 - 新增非破坏性的 `adp workspace status` readiness 输出，覆盖 manifest 项目、运行时、同步、快照和验证命令。
 - 新增非破坏性的 `adp workspace dashboard` 汇总视图，覆盖项目 readiness 和 task lifecycle state。
+- 新增被忽略的本地 `adp-workspace.state.json` lifecycle state 记录，可通过 `adp workspace task mark` 写入。
 - 新增 plan-only workspace task lifecycle 命令：`prepare`、`snapshot`、`validate` 和 `review`。
 - 扩展 plan-only workspace task lifecycle 边界，新增 `run`、`rollback` 和 `commit`。
 - 新增 `adp doctor -FirstRun`，提供首次使用检查清单。

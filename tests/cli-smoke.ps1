@@ -171,6 +171,33 @@ Assert-Command `
     -ExitCode 0 `
     -Patterns @("Workspace task commit: before-large-agent-task", "Commit boundary:", "git add <paths>", "git commit -m")
 
+$workspaceState = Join-Path ([System.IO.Path]::GetTempPath()) ("adp-workspace-state-{0}.json" -f ([guid]::NewGuid().ToString("N")))
+try {
+    Assert-Command `
+        -Name "workspace task mark" `
+        -Arguments @("workspace", "task", "mark", "before-large-agent-task", "prepared", "-ManifestPath", "configs\workspace.example.json", "-StatePath", $workspaceState) `
+        -ExitCode 0 `
+        -Patterns @("Workspace task mark: before-large-agent-task", "Recorded local lifecycle state only", "State:\s+prepared")
+
+    if (-not (Test-Path -LiteralPath $workspaceState)) {
+        throw "workspace task mark did not create state file: $workspaceState"
+    }
+
+    $state = Get-Content -LiteralPath $workspaceState -Raw | ConvertFrom-Json
+    $tasks = @($state.tasks)
+    if ($tasks.Count -ne 1 -or $tasks[0].name -ne "before-large-agent-task" -or $tasks[0].state -ne "prepared") {
+        throw "workspace task mark wrote unexpected state: $(Get-Content -LiteralPath $workspaceState -Raw)"
+    }
+
+    Assert-Command `
+        -Name "workspace dashboard with state" `
+        -Arguments @("workspace", "dashboard", "-ManifestPath", "configs\workspace.example.json", "-StatePath", $workspaceState) `
+        -ExitCode 0 `
+        -Patterns @("Workspace dashboard: example-project", "state: prepared at", "before-large-agent-task")
+} finally {
+    Remove-Item -LiteralPath $workspaceState -Force -ErrorAction SilentlyContinue
+}
+
 Assert-Command `
     -Name "workspace task unknown task" `
     -Arguments @("workspace", "task", "prepare", "not-a-task", "-ManifestPath", "configs\workspace.example.json") `
@@ -181,7 +208,7 @@ Assert-Command `
     -Name "workspace task unknown command" `
     -Arguments @("workspace", "task", "deploy", "before-large-agent-task", "-ManifestPath", "configs\workspace.example.json") `
     -ExitCode 1 `
-    -Patterns @("Unknown workspace task command: deploy", "Valid: prepare, snapshot, run, validate, review, rollback, commit")
+    -Patterns @("Unknown workspace task command: deploy", "Valid: prepare, snapshot, run, validate, review, rollback, commit, mark")
 
 Assert-Command `
     -Name "workspace unknown subcommand" `

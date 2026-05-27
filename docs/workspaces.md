@@ -112,6 +112,14 @@ The task lifecycle commands are plan-only. They do not start runtimes, change sy
 - `rollback`: prints the VM snapshot restore command and separate Git source rollback checks without running them.
 - `commit`: prints the review, validation, diff inspection, staging, and commit boundary without staging or committing files.
 
+Record a local lifecycle decision:
+
+```powershell
+.\cli\adp.ps1 workspace task mark before-large-agent-task prepared
+```
+
+`task mark` records local task state only. It writes `adp-workspace.state.json`, which the platform repository ignores by default. The state file lets `workspace dashboard` show that a human or agent has marked a task as `prepared`, `checkpointed`, `running`, `validated`, `reviewed`, `rollback`, or `committed`. Marking state does not run the task, create snapshots, run validation, restore snapshots, stage files, or commit changes.
+
 The public example lives at:
 
 ```text

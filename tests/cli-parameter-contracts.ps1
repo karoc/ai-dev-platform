@@ -65,6 +65,8 @@ Assert-Contains -Name "workspace status checks sync readiness" -Text $workspace 
 Assert-Contains -Name "workspace status checks snapshot readiness" -Text $workspace -Pattern 'Get-WorkspaceSnapshotStatus'
 Assert-Contains -Name "workspace dashboard is non-destructive" -Text $workspace -Pattern 'Dashboard only: no projects will be cloned, no sync sessions will be changed, no snapshots will be created, no validation commands will be run, and no Git commands will be run'
 Assert-Contains -Name "workspace dashboard summarizes lifecycle state" -Text $workspace -Pattern 'Task lifecycle:[\s\S]*execution:[\s\S]*rollback:[\s\S]*commit:'
+Assert-Contains -Name "workspace state defaults to ignored local path" -Text $workspace -Pattern 'adp-workspace\.state\.json'
+Assert-Contains -Name "workspace task mark records local state only" -Text $workspace -Pattern 'Recorded local lifecycle state only\. No VM, sync, snapshot, file, Git, or validation command was run'
 Assert-Contains -Name "workspace task lifecycle is plan-only" -Text $workspace -Pattern 'Task lifecycle output is plan-only\. No VM, sync, snapshot, file, Git, or validation command will be changed or run'
 Assert-Contains -Name "workspace task lifecycle supports prepare" -Text $workspace -Pattern '"prepare"[\s\S]*Write-WorkspaceTaskPrepare'
 Assert-Contains -Name "workspace task lifecycle supports snapshot" -Text $workspace -Pattern '"snapshot"[\s\S]*Write-WorkspaceTaskSnapshot'
@@ -73,5 +75,6 @@ Assert-Contains -Name "workspace task lifecycle supports validate" -Text $worksp
 Assert-Contains -Name "workspace task lifecycle supports review" -Text $workspace -Pattern '"review"[\s\S]*Write-WorkspaceTaskReview'
 Assert-Contains -Name "workspace task lifecycle supports rollback" -Text $workspace -Pattern '"rollback"[\s\S]*Write-WorkspaceTaskRollback'
 Assert-Contains -Name "workspace task lifecycle supports commit" -Text $workspace -Pattern '"commit"[\s\S]*Write-WorkspaceTaskCommit'
+Assert-Contains -Name "workspace task lifecycle supports mark" -Text $workspace -Pattern '"mark"[\s\S]*Write-WorkspaceTaskMark'
 
 Write-Output "CLI parameter contracts OK"

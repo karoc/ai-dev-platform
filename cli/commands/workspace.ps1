@@ -5,7 +5,9 @@ param(
     [string]$SubCommand,
     [string]$TaskCommand,
     [string]$TaskName,
-    [string]$ManifestPath = "adp-workspace.json"
+    [string]$TaskState,
+    [string]$ManifestPath = "adp-workspace.json",
+    [string]$StatePath
 )
 
 $ErrorActionPreference = "Stop"
@@ -13,6 +15,7 @@ $ErrorActionPreference = "Stop"
 function Show-WorkspaceUsage {
     Write-ErrorLog -Message "Usage: adp workspace <init|show|plan|status|dashboard|task> [-ManifestPath <path>]" -Component "cli.workspace"
     Write-Host "  adp workspace task <prepare|snapshot|run|validate|review|rollback|commit> <task-name> [-ManifestPath <path>]" -ForegroundColor DarkGray
+    Write-Host "  adp workspace task mark <task-name> <prepared|checkpointed|running|validated|reviewed|rollback|committed> [-StatePath <path>]" -ForegroundColor DarkGray
 }
 
 function Read-WorkspaceManifest {
@@ -38,6 +41,104 @@ function Get-WorkspaceArray {
     }
 
     return @($Value)
+}
+
+function Resolve-WorkspaceStatePath {
+    param([string]$Path)
+
+    if (-not [string]::IsNullOrWhiteSpace($Path)) {
+        return $Path
+    }
+
+    return (Join-Path (Get-ProjectRoot) "adp-workspace.state.json")
+}
+
+function Read-WorkspaceState {
+    param([string]$Path)
+
+    if (-not (Test-Path -LiteralPath $Path)) {
+        return [pscustomobject]@{
+            version = 1
+            tasks   = @()
+        }
+    }
+
+    $raw = Get-Content -LiteralPath $Path -Raw
+    if ([string]::IsNullOrWhiteSpace($raw)) {
+        return [pscustomobject]@{
+            version = 1
+            tasks   = @()
+        }
+    }
+
+    $state = $raw | ConvertFrom-Json
+    if (-not ($state.PSObject.Properties.Name -contains "tasks")) {
+        $state | Add-Member -NotePropertyName "tasks" -NotePropertyValue @()
+    }
+
+    return $state
+}
+
+function Write-WorkspaceState {
+    param(
+        [object]$State,
+        [string]$Path
+    )
+
+    $parent = Split-Path -Path $Path -Parent
+    if (-not [string]::IsNullOrWhiteSpace($parent) -and -not (Test-Path -LiteralPath $parent)) {
+        New-Item -ItemType Directory -Path $parent -Force | Out-Null
+    }
+
+    $State | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $Path -Encoding utf8
+}
+
+function Get-WorkspaceTaskState {
+    param(
+        [object]$State,
+        [string]$TaskName
+    )
+
+    foreach ($taskState in (Get-WorkspaceArray $State.tasks)) {
+        if ($taskState.name -eq $TaskName) {
+            return $taskState
+        }
+    }
+
+    return $null
+}
+
+function Set-WorkspaceTaskState {
+    param(
+        [object]$State,
+        [string]$TaskName,
+        [string]$StateName
+    )
+
+    $tasks = [System.Collections.Generic.List[object]]::new()
+    $updated = $false
+    $timestamp = (Get-Date).ToUniversalTime().ToString("o")
+
+    foreach ($taskState in (Get-WorkspaceArray $State.tasks)) {
+        if ($taskState.name -eq $TaskName) {
+            $taskState.state = $StateName
+            $taskState.updated_at = $timestamp
+            $updated = $true
+        }
+        $tasks.Add($taskState) | Out-Null
+    }
+
+    if (-not $updated) {
+        $tasks.Add([pscustomobject]@{
+            name       = $TaskName
+            state      = $StateName
+            updated_at = $timestamp
+        }) | Out-Null
+    }
+
+    $State.tasks = @($tasks.ToArray())
+    $State | Add-Member -NotePropertyName "updated_at" -NotePropertyValue $timestamp -Force
+    return $State
 }
 
 function Write-WorkspaceSummary {
@@ -409,7 +510,8 @@ function Select-WorstWorkspaceLevel {
 function Write-WorkspaceDashboard {
     param(
         [object]$Manifest,
-        [string]$ManifestPath
+        [string]$ManifestPath,
+        [string]$StatePath
     )
 
     Write-Host "Workspace dashboard: $($Manifest.name)" -ForegroundColor Cyan
@@ -417,10 +519,13 @@ function Write-WorkspaceDashboard {
 
     $projects = Get-WorkspaceArray $Manifest.projects
     $tasks = Get-WorkspaceArray $Manifest.tasks
+    $resolvedStatePath = Resolve-WorkspaceStatePath -Path $StatePath
+    $state = Read-WorkspaceState -Path $resolvedStatePath
 
     Write-Host ""
     Write-Host "Overview:" -ForegroundColor Yellow
     Write-WorkspaceCheck -Level "OK" -Name "manifest" -Detail "(projects: $($projects.Count), tasks: $($tasks.Count), path: $ManifestPath)"
+    Write-WorkspaceCheck -Level "INFO" -Name "state" -Detail "(path: $resolvedStatePath)"
 
     Write-Host ""
     Write-Host "Project readiness:" -ForegroundColor Yellow
@@ -466,8 +571,17 @@ function Write-WorkspaceDashboard {
         }
         $rollbackState = if ($task.runtime -and $task.snapshot) { $snapshotStatus.Status } else { "not configured" }
         $commitState = if ($validationCommands.Count -gt 0) { "review gated" } else { "blocked" }
+        $recordedState = Get-WorkspaceTaskState -State $state -TaskName $taskName
+        $recordedStateTime = if ($recordedState -and $recordedState.updated_at -is [datetime]) {
+            $recordedState.updated_at.ToUniversalTime().ToString("o")
+        } elseif ($recordedState) {
+            $recordedState.updated_at
+        } else {
+            $null
+        }
+        $recordedStateText = if ($recordedState) { "$($recordedState.state) at $recordedStateTime" } else { "not recorded" }
 
-        Write-WorkspaceCheck -Level $taskLevel -Name $taskName -Detail "(runtime: $($runtimeStatus.Status); checkpoint: $($snapshotStatus.Status); execution: $executionState; validation: $($validationCommands.Count); review: gated; rollback: $rollbackState; commit: $commitState)"
+        Write-WorkspaceCheck -Level $taskLevel -Name $taskName -Detail "(state: $recordedStateText; runtime: $($runtimeStatus.Status); checkpoint: $($snapshotStatus.Status); execution: $executionState; validation: $($validationCommands.Count); review: gated; rollback: $rollbackState; commit: $commitState)"
         Write-Host "      prepare: adp workspace task prepare $taskName -ManifestPath $ManifestPath" -ForegroundColor DarkGray
         Write-Host "      run:     adp workspace task run $taskName -ManifestPath $ManifestPath" -ForegroundColor DarkGray
         Write-Host "      review:  adp workspace task review $taskName -ManifestPath $ManifestPath" -ForegroundColor DarkGray
@@ -711,15 +825,43 @@ function Write-WorkspaceTaskCommit {
     Write-Host "     git commit -m ""<message>""" -ForegroundColor DarkGray
 }
 
+function Write-WorkspaceTaskMark {
+    param(
+        [object]$Task,
+        [string]$StateName,
+        [string]$Path
+    )
+
+    $validStates = @("prepared", "checkpointed", "running", "validated", "reviewed", "rollback", "committed")
+    if ([string]::IsNullOrWhiteSpace($StateName) -or $StateName -notin $validStates) {
+        Write-ErrorLog -Message "Unknown workspace task state: $StateName. Valid: $($validStates -join ', ')" -Component "cli.workspace"
+        exit 1
+    }
+
+    $resolvedStatePath = Resolve-WorkspaceStatePath -Path $Path
+    $state = Read-WorkspaceState -Path $resolvedStatePath
+    $state = Set-WorkspaceTaskState -State $state -TaskName $Task.name -StateName $StateName
+    Write-WorkspaceState -State $state -Path $resolvedStatePath
+
+    Write-Host ""
+    Write-Host "Workspace task mark: $($Task.name)" -ForegroundColor Cyan
+    Write-Host "Recorded local lifecycle state only. No VM, sync, snapshot, file, Git, or validation command was run." -ForegroundColor DarkGray
+    Write-Host ""
+    Write-Host "  State: $StateName" -ForegroundColor Green
+    Write-Host "  File:  $resolvedStatePath" -ForegroundColor DarkGray
+}
+
 function Invoke-WorkspaceTask {
     param(
         [object]$Manifest,
         [string]$Command,
         [string]$Name,
-        [string]$Path
+        [string]$StateName,
+        [string]$Path,
+        [string]$LocalStatePath
     )
 
-    $validTaskCommands = @("prepare", "snapshot", "run", "validate", "review", "rollback", "commit")
+    $validTaskCommands = @("prepare", "snapshot", "run", "validate", "review", "rollback", "commit", "mark")
     if ([string]::IsNullOrWhiteSpace($Command) -or $Command -notin $validTaskCommands) {
         Write-ErrorLog -Message "Unknown workspace task command: $Command. Valid: $($validTaskCommands -join ', ')" -Component "cli.workspace"
         exit 1
@@ -748,6 +890,9 @@ function Invoke-WorkspaceTask {
         }
         "commit" {
             Write-WorkspaceTaskCommit -Task $task -ManifestPath $Path
+        }
+        "mark" {
+            Write-WorkspaceTaskMark -Task $task -StateName $StateName -Path $LocalStatePath
         }
     }
 }
@@ -805,11 +950,11 @@ switch ($SubCommand) {
     }
     "dashboard" {
         $manifest = Read-WorkspaceManifest -Path $ManifestPath
-        Write-WorkspaceDashboard -Manifest $manifest -ManifestPath $ManifestPath
+        Write-WorkspaceDashboard -Manifest $manifest -ManifestPath $ManifestPath -StatePath $StatePath
     }
     "task" {
         $manifest = Read-WorkspaceManifest -Path $ManifestPath
-        Invoke-WorkspaceTask -Manifest $manifest -Command $TaskCommand -Name $TaskName -Path $ManifestPath
+        Invoke-WorkspaceTask -Manifest $manifest -Command $TaskCommand -Name $TaskName -StateName $TaskState -Path $ManifestPath -LocalStatePath $StatePath
     }
     default {
         Write-ErrorLog -Message "Unknown workspace command: $SubCommand. Valid: init, show, plan, status, dashboard, task" -Component "cli.workspace"
