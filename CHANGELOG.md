@@ -13,6 +13,7 @@ The project does not yet publish versioned releases. Entries are grouped by date
 - Added CI validation for CLI parameter contracts so accepted switches are checked against their execution paths.
 - Added non-destructive CLI smoke tests for command dispatch, preview output, and input error boundaries.
 - Added non-destructive installer smoke tests for skip switches, ISO diagnostics, temporary local-state writes, and explicit ISO cache behavior.
+- Added VMware NAT subnet prerequisite guidance in `doctor`, networking docs, and local override documentation.
 - Added stronger first-run dependency diagnostics for VMware disk management, WSL, `xorriso`, ISO remastering, Mutagen version, and ISO shape.
 - Added explicit Mutagen remediation through `adp doctor -FixMutagen`, with `-Plan` preview before downloading.
 - Added an example workspace manifest and non-destructive `adp workspace init/show/plan` commands.

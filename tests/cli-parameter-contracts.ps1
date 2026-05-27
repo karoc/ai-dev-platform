@@ -33,6 +33,8 @@ $sync = Read-Text "cli\commands\sync.ps1"
 $doctor = Read-Text "cli\commands\doctor.ps1"
 $workspace = Read-Text "cli\commands\workspace.ps1"
 $ci = Read-Text ".github\workflows\ci.yml"
+$networkingDocs = Read-Text "docs\networking.md"
+$networkingDocsZh = Read-Text "docs\zh-CN\networking.md"
 
 Assert-Contains -Name "CLI help defined before use" -Text $cli -Pattern 'function\s+Show-Help[\s\S]*if\s*\(-not\s+\$Command\s+-or\s+\$Command\s+-eq\s+"help"\)'
 Assert-Contains -Name "CLI propagates command exit codes" -Text $cli -Pattern 'Invoke-CommandFile[\s\S]*if\s*\(\$LASTEXITCODE\)\s*\{[\s\S]*exit\s+\$LASTEXITCODE'
@@ -58,6 +60,9 @@ Assert-Contains -Name "sync stop validates runtime" -Text $sync -Pattern '"stop"
 Assert-Contains -Name "sync validates subcommand before mutagen" -Text $sync -Pattern '\$validSubCommands[\s\S]*Unknown sync command[\s\S]*Initialize-Mutagen'
 Assert-Contains -Name "doctor checks WSL xorriso" -Text $doctor -Pattern 'WSL xorriso'
 Assert-Contains -Name "doctor checks ISO shape" -Text $doctor -Pattern 'ISO shape'
+Assert-Contains -Name "doctor reports VMware NAT prerequisites" -Text $doctor -Pattern 'VMware NAT prerequisites[\s\S]*Virtual Network Editor'
+Assert-Contains -Name "networking docs explain NAT prerequisites" -Text $networkingDocs -Pattern '## Prerequisites[\s\S]*Virtual Network Editor[\s\S]*VMware NAT prerequisites'
+Assert-Contains -Name "Chinese networking docs explain NAT prerequisites" -Text $networkingDocsZh -Pattern '## 前置条件[\s\S]*Virtual Network Editor[\s\S]*VMware NAT prerequisites'
 Assert-Contains -Name "doctor supports Mutagen remediation plan" -Text $doctor -Pattern '\[switch\]\$FixMutagen[\s\S]*\[switch\]\$Plan[\s\S]*Install-LocalMutagen[\s\S]*Plan only: no files will be downloaded'
 Assert-Contains -Name "doctor rejects plan without Mutagen remediation" -Text $doctor -Pattern '-Plan is only supported with -FixMutagen'
 Assert-Contains -Name "mutagen adapter installs local ignored binary" -Text (Read-Text "adapters\windows\mutagen\mutagen.ps1") -Pattern 'function\s+Install-LocalMutagen[\s\S]*mutagen_windows_amd64_v\$Version\.zip[\s\S]*Expand-Archive[\s\S]*Test-MutagenVersionSupported'

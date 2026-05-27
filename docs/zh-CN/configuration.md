@@ -148,6 +148,8 @@ JSON object 会递归合并。数组和标量值会替换默认值。空的 `con
 
 `platform.defaults.iso_path` 会在 `platform.paths.iso_cache` 内解析。如果要从任意位置导入 ISO，请运行 `.\install.ps1 -IsoPath C:\path\to\ubuntu-26.04-live-server-amd64.iso`；安装脚本会把它复制到配置的 ISO cache。
 
+如果不同机器上的 VMware NAT 设置不同，请在 `configs\local.json` 中覆盖 `platform.network.vmware_nat` 和受影响的 `topology.<runtime>.static_ip`。请先在 VMware Workstation 的 Virtual Network Editor 中确认真实 NAT 子网；参见[网络说明](networking.md#前置条件)。
+
 不要提交 `configs\local.json`；共享默认值应提交到主配置文件。
 
 运行 `.\cli\adp.ps1 doctor` 可以查看 `configs\local.json` 是不存在、为空、已应用、存在但没有支持的顶层字段，还是使用了不支持的顶层字段。

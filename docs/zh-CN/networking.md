@@ -27,6 +27,31 @@ backend   192.168.242.133
 agent     192.168.242.135
 ```
 
+## 前置条件
+
+创建运行时或应用网络前，先确认 VMware Workstation 的 NAT 网络与 ADP-OS 配置一致。
+
+1. 打开 VMware Workstation Pro。
+2. 打开 **Edit > Virtual Network Editor**。
+3. 选择 NAT 网络，通常是 `VMnet8`。
+4. 确认 subnet 是 `192.168.242.0`，prefix 是 `/24`，NAT gateway 是 `192.168.242.2`。
+5. 确认 ADP 运行时静态 IP 位于该子网内，并且不落在 VMware DHCP 已使用的地址范围中。
+
+运行：
+
+```powershell
+.\cli\adp.ps1 doctor
+```
+
+`doctor` 会报告：
+
+- `VMware NAT config`：ADP 是否配置了 NAT CIDR、gateway 和 prefix。
+- `VMware NAT gateway range`：配置的 gateway 是否位于配置的 CIDR 内。
+- `<runtime> static IP range`：每个运行时 IP 是否位于配置的 CIDR 内。
+- `VMware NAT prerequisites`：提醒你把 ADP 配置与 VMware 实际的 `VMnet8` NAT 设置进行比对。
+
+ADP 无法以完全非破坏性的方式可靠读取或修改所有 VMware NAT 设置。请把 VMware Virtual Network Editor 视为实际 host NAT 子网的事实来源，然后让 ADP 配置与它保持一致。
+
 ## 配置网络
 
 编辑 `configs\platform.json`：
@@ -55,6 +80,14 @@ agent     192.168.242.135
   }
 }
 ```
+
+对于本机专属的 NAT 设置，优先使用被忽略的本地覆盖文件，而不是直接修改已提交的默认配置：
+
+```powershell
+Copy-Item configs\local.example.json configs\local.json
+```
+
+然后在 `configs\local.json` 中更新 `platform.network.vmware_nat` 和 `topology.<runtime>.static_ip`。
 
 ## 对已有 VM 应用网络
 

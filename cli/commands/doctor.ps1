@@ -187,6 +187,7 @@ if ($config.network.vmware_nat) {
     if ($nat.cidr -and $nat.gateway) {
         Test-Check -Name "VMware NAT gateway range" -Condition (Test-IPv4InCidr -Address $nat.gateway -Cidr $nat.cidr) -Detail "($($nat.gateway) in $($nat.cidr))"
     }
+    Write-InfoCheck -Name "VMware NAT prerequisites" -Detail "(confirm VMnet8/NAT subnet in VMware Virtual Network Editor; override configs\local.json if it differs)"
 }
 
 # --- VMware ---
