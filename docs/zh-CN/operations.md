@@ -33,6 +33,15 @@ All checks passed. Platform is healthy.
 .\deploy-check.ps1
 ```
 
+Installer 排障开关：
+
+```powershell
+.\install.ps1 -SkipDependencyCheck
+.\install.ps1 -SkipVMValidation
+```
+
+这些开关主要用于受控排障和类似 CI 的验证路径。正常首次安装不建议使用。
+
 ## 启动运行时
 
 ```powershell
@@ -49,6 +58,18 @@ All checks passed. Platform is healthy.
 
 ```powershell
 .\cli\adp.ps1 up agent -Plan
+```
+
+只创建 VM 定义，不启动 OS provisioning 或 bootstrap：
+
+```powershell
+.\cli\adp.ps1 up agent -NoProvision
+```
+
+初始化平台状态，并创建运行时 VM 定义，但不启动 OS provisioning：
+
+```powershell
+.\cli\adp.ps1 init agent -SkipProvision
 ```
 
 首次创建运行时时，可以从任意位置传入 ISO：

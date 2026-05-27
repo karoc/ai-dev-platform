@@ -33,6 +33,15 @@ Run integration checks:
 .\deploy-check.ps1
 ```
 
+Installer troubleshooting switches:
+
+```powershell
+.\install.ps1 -SkipDependencyCheck
+.\install.ps1 -SkipVMValidation
+```
+
+These switches are intended for controlled troubleshooting and CI-like validation paths. Normal first-run setup should not use them.
+
 ## Start Runtimes
 
 ```powershell
@@ -49,6 +58,18 @@ Preview startup without creating, starting, provisioning, or bootstrapping a VM:
 
 ```powershell
 .\cli\adp.ps1 up agent -Plan
+```
+
+Create the VM definition without starting OS provisioning or bootstrap:
+
+```powershell
+.\cli\adp.ps1 up agent -NoProvision
+```
+
+Initialize platform state and create a runtime VM definition without starting OS provisioning:
+
+```powershell
+.\cli\adp.ps1 init agent -SkipProvision
 ```
 
 When creating a runtime for the first time, you can pass an ISO from any location:

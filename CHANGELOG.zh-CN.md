@@ -10,6 +10,7 @@
 
 ### 新增
 
+- 新增 CLI 参数契约 CI 验证，用于检查已接收的开关是否贯通到实际执行路径。
 - 新增 `adp doctor -FirstRun`，提供首次使用检查清单。
 - 新增 `adp up`、`adp network apply` 和 `adp destroy` 的 `-Plan` 预览。
 - 新增公开 `SECURITY.md` 和 `SECURITY.zh-CN.md`。
@@ -29,6 +30,12 @@
 
 ### 变更
 
+- 修复 `adp init <runtime> -SkipProvision`，现在会传递到 `adp up -NoProvision`，不再只是跳过 bootstrap。
+- 修复 `adp up <runtime> -NoProvision`，现在创建 VM 定义后会停止，不再继续进入 bootstrap readiness checks。
+- 修复 `adp help`，现在 help 定义会在 CLI dispatch 路径调用前加载。
+- 修复嵌套命令日志状态查询，避免命令调用命令时因日志级别状态查找失败。
+- 修复 `adp logs`、`adp sync start` 和 `adp sync stop`，现在会在命令边界拒绝未知 runtime 名称。
+- 修复 `install.ps1 -SkipDependencyCheck` 和 `install.ps1 -SkipVMValidation`，现在两个开关都会改变对应 installer 行为。
 - 修复 `adp up <runtime> -IsoPath <path>`，现在传入的 ISO 路径会正确传递给 VM 创建流程，不再回退到配置的 ISO cache。
 - 更新 README 语言导航。
 - 更新 frontend bootstrap，使其安装轻量浏览器辅助命令，但默认不下载浏览器。

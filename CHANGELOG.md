@@ -10,6 +10,7 @@ The project does not yet publish versioned releases. Entries are grouped by date
 
 ### Added
 
+- Added CI validation for CLI parameter contracts so accepted switches are checked against their execution paths.
 - Added `adp doctor -FirstRun` for first-run checklist guidance.
 - Added `-Plan` previews for `adp up`, `adp network apply`, and `adp destroy`.
 - Added public `SECURITY.md` and `SECURITY.zh-CN.md`.
@@ -29,6 +30,12 @@ The project does not yet publish versioned releases. Entries are grouped by date
 
 ### Changed
 
+- Fixed `adp init <runtime> -SkipProvision` so it now propagates to `adp up -NoProvision` instead of only skipping bootstrap.
+- Fixed `adp up <runtime> -NoProvision` so it stops after VM definition creation instead of continuing into bootstrap readiness checks.
+- Fixed `adp help` so help is defined before the CLI dispatch path calls it.
+- Fixed nested command logging so command-to-command execution does not fail when log level state is looked up.
+- Fixed `adp logs`, `adp sync start`, and `adp sync stop` to reject unknown runtime names at the command boundary.
+- Fixed `install.ps1 -SkipDependencyCheck` and `install.ps1 -SkipVMValidation` so both switches now change the corresponding installer behavior.
 - Fixed `adp up <runtime> -IsoPath <path>` so the supplied ISO path is passed through to VM creation instead of falling back to the configured ISO cache.
 - Updated README language navigation.
 - Updated frontend bootstrap to install lightweight browser helper commands without downloading browsers by default.

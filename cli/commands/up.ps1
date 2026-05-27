@@ -203,6 +203,12 @@ try {
     exit 1
 }
 
+if ($NoProvision) {
+    Write-Host ""
+    Write-Host "Runtime '$RuntimeName' definition is ready. Provisioning, startup, and bootstrap were skipped." -ForegroundColor Yellow
+    return
+}
+
 # --- Bootstrap (if not skipped) ---
 Invoke-BootstrapIfReady -TargetRuntime $RuntimeName -TargetVmxPath $vmxPath
 

@@ -64,48 +64,52 @@ Write-InfoLog -Message "Dependency check starting" -Component "install"
 
 $deps = @()
 
-# PowerShell 7+
-$psVersion = $PSVersionTable.PSVersion
-if ($psVersion.Major -ge 7) {
-    Write-Host "  PowerShell $psVersion [OK]" -ForegroundColor Green
-    $deps += @{ Name = "PowerShell 7+"; Status = "OK" }
+if ($SkipDependencyCheck) {
+    Write-Host "  Dependency checks skipped by -SkipDependencyCheck." -ForegroundColor Yellow
 } else {
-    Write-Host "  PowerShell $psVersion [WARN] — PowerShell 7+ recommended" -ForegroundColor Yellow
-    $deps += @{ Name = "PowerShell 7+"; Status = "WARN" }
-}
+    # PowerShell 7+
+    $psVersion = $PSVersionTable.PSVersion
+    if ($psVersion.Major -ge 7) {
+        Write-Host "  PowerShell $psVersion [OK]" -ForegroundColor Green
+        $deps += @{ Name = "PowerShell 7+"; Status = "OK" }
+    } else {
+        Write-Host "  PowerShell $psVersion [WARN] — PowerShell 7+ recommended" -ForegroundColor Yellow
+        $deps += @{ Name = "PowerShell 7+"; Status = "WARN" }
+    }
 
-# VMware Workstation / vmrun
-$vmwareStatus = Test-VMwareAvailable
-if ($vmwareStatus) {
-    $vmrunPath = Find-Vmrun
-    Write-Host "  VMware Workstation (vmrun) [OK] — $vmrunPath" -ForegroundColor Green
-    $deps += @{ Name = "VMware Workstation"; Status = "OK"; Path = $vmrunPath }
-} else {
-    Write-Host "  VMware Workstation [MISSING] — vmrun.exe not found" -ForegroundColor Red
-    Write-Host "    Install from: https://www.vmware.com/products/workstation-pro.html" -ForegroundColor DarkGray
-    $deps += @{ Name = "VMware Workstation"; Status = "MISSING" }
-}
+    # VMware Workstation / vmrun
+    $vmwareStatus = Test-VMwareAvailable
+    if ($vmwareStatus) {
+        $vmrunPath = Find-Vmrun
+        Write-Host "  VMware Workstation (vmrun) [OK] — $vmrunPath" -ForegroundColor Green
+        $deps += @{ Name = "VMware Workstation"; Status = "OK"; Path = $vmrunPath }
+    } else {
+        Write-Host "  VMware Workstation [MISSING] — vmrun.exe not found" -ForegroundColor Red
+        Write-Host "    Install from: https://www.vmware.com/products/workstation-pro.html" -ForegroundColor DarkGray
+        $deps += @{ Name = "VMware Workstation"; Status = "MISSING" }
+    }
 
-# Mutagen
-$mutagen = Find-Mutagen -ProjectRoot $script:ProjectRoot
-if ($mutagen) {
-    Write-Host "  Mutagen [OK] — $mutagen" -ForegroundColor Green
-    $deps += @{ Name = "Mutagen"; Status = "OK" }
-} else {
-    Write-Host "  Mutagen [MISSING] — will be needed for Phase 3 sync" -ForegroundColor Yellow
-    Write-Host "    Download: https://github.com/mutagen-io/mutagen/releases" -ForegroundColor DarkGray
-    Write-Host "    Place:    .tools\mutagen\mutagen.exe" -ForegroundColor DarkGray
-    $deps += @{ Name = "Mutagen"; Status = "MISSING" }
-}
+    # Mutagen
+    $mutagen = Find-Mutagen -ProjectRoot $script:ProjectRoot
+    if ($mutagen) {
+        Write-Host "  Mutagen [OK] — $mutagen" -ForegroundColor Green
+        $deps += @{ Name = "Mutagen"; Status = "OK" }
+    } else {
+        Write-Host "  Mutagen [MISSING] — will be needed for Phase 3 sync" -ForegroundColor Yellow
+        Write-Host "    Download: https://github.com/mutagen-io/mutagen/releases" -ForegroundColor DarkGray
+        Write-Host "    Place:    .tools\mutagen\mutagen.exe" -ForegroundColor DarkGray
+        $deps += @{ Name = "Mutagen"; Status = "MISSING" }
+    }
 
-# OpenSSH Client
-$ssh = Get-Command ssh -ErrorAction SilentlyContinue
-if ($ssh) {
-    Write-Host "  OpenSSH Client [OK]" -ForegroundColor Green
-    $deps += @{ Name = "OpenSSH Client"; Status = "OK" }
-} else {
-    Write-Host "  OpenSSH Client [MISSING]" -ForegroundColor Yellow
-    $deps += @{ Name = "OpenSSH Client"; Status = "MISSING" }
+    # OpenSSH Client
+    $ssh = Get-Command ssh -ErrorAction SilentlyContinue
+    if ($ssh) {
+        Write-Host "  OpenSSH Client [OK]" -ForegroundColor Green
+        $deps += @{ Name = "OpenSSH Client"; Status = "OK" }
+    } else {
+        Write-Host "  OpenSSH Client [MISSING]" -ForegroundColor Yellow
+        $deps += @{ Name = "OpenSSH Client"; Status = "MISSING" }
+    }
 }
 
 # =============================================
@@ -162,18 +166,22 @@ if ($IsoPath) {
 Write-Host "`n[5/6] Initializing VMware adapter..." -ForegroundColor Yellow
 Write-InfoLog -Message "VMware adapter initialization" -Component "install"
 
-try {
-    $vmrunPath = Initialize-VMware
-    Write-Host "  vmrun: $vmrunPath [OK]" -ForegroundColor Green
+if ($SkipVMValidation) {
+    Write-Host "  VMware validation skipped by -SkipVMValidation." -ForegroundColor Yellow
+} else {
+    try {
+        $vmrunPath = Initialize-VMware
+        Write-Host "  vmrun: $vmrunPath [OK]" -ForegroundColor Green
 
-    $registeredVMs = Get-RegisteredVMs
-    Write-Host "  Registered VMs: $($registeredVMs.Count)" -ForegroundColor Cyan
-    foreach ($vm in $registeredVMs) {
-        Write-Host "    - $(Split-Path $vm -Leaf)" -ForegroundColor DarkGray
+        $registeredVMs = Get-RegisteredVMs
+        Write-Host "  Registered VMs: $($registeredVMs.Count)" -ForegroundColor Cyan
+        foreach ($vm in $registeredVMs) {
+            Write-Host "    - $(Split-Path $vm -Leaf)" -ForegroundColor DarkGray
+        }
+    } catch {
+        Write-ErrorLog -Message "VMware initialization failed: $_" -Component "install"
+        throw
     }
-} catch {
-    Write-ErrorLog -Message "VMware initialization failed: $_" -Component "install"
-    throw
 }
 
 # =============================================
@@ -204,7 +212,9 @@ Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
 $missing = $deps | Where-Object { $_.Status -eq "MISSING" }
-if ($missing) {
+if ($SkipDependencyCheck) {
+    Write-Host "Dependency checks were skipped." -ForegroundColor Yellow
+} elseif ($missing) {
     Write-Host "Missing dependencies:" -ForegroundColor Yellow
     foreach ($m in $missing) {
         Write-Host "  - $($m.Name)" -ForegroundColor Yellow

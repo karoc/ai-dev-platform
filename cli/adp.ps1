@@ -50,6 +50,26 @@ function Invoke-CommandFile {
     & $scriptBlock
 }
 
+function Show-Help {
+    Write-Host ""
+    Write-Host "ADP-OS CLI — AI Development Platform OS" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "Commands:" -ForegroundColor Yellow
+    Write-Host "  adp init                       Initialize platform and VM factory"
+    Write-Host "  adp init <runtime> [-IsoPath <path>] [-SkipProvision]  Initialize and prepare a runtime"
+    Write-Host "  adp up <runtime> [-IsoPath <path>] [-Plan] [-NoProvision] [-NoBootstrap]  Start a runtime"
+    Write-Host "  adp stop <runtime>             Stop a runtime"
+    Write-Host "  adp sync status                Show workspace sync status"
+    Write-Host "  adp network apply <rt|all> [-Plan]  Apply configured static IP networking"
+    Write-Host "  adp snapshot create <rt> <name>  Create runtime snapshot"
+    Write-Host "  adp restore <rt> <name>        Restore runtime snapshot"
+    Write-Host "  adp logs <runtime>             Show runtime logs"
+    Write-Host "  adp doctor [-FirstRun]         Run diagnostics"
+    Write-Host "  adp destroy <runtime> [-Plan]  Destroy a runtime"
+    Write-Host "  adp help                       Show this help"
+    Write-Host ""
+}
+
 if (-not $Command -or $Command -eq "help") {
     Show-Help
     exit 0
@@ -72,23 +92,3 @@ if (-not (Test-Path $commandFile)) {
 
 Write-DebugLog -Message "Executing command: $Command with args: $Arguments" -Component "cli"
 Invoke-CommandFile -Path $commandFile -RawArguments $Arguments
-
-# --- Help ---
-function Show-Help {
-    Write-Host ""
-    Write-Host "ADP-OS CLI — AI Development Platform OS" -ForegroundColor Cyan
-    Write-Host ""
-    Write-Host "Commands:" -ForegroundColor Yellow
-    Write-Host "  adp init                       Initialize platform and VM factory"
-    Write-Host "  adp up <runtime> [-IsoPath <path>] [-Plan]  Start a runtime"
-    Write-Host "  adp stop <runtime>             Stop a runtime"
-    Write-Host "  adp sync status                Show workspace sync status"
-    Write-Host "  adp network apply <rt|all> [-Plan]  Apply configured static IP networking"
-    Write-Host "  adp snapshot create <rt> <name>  Create runtime snapshot"
-    Write-Host "  adp restore <rt> <name>        Restore runtime snapshot"
-    Write-Host "  adp logs <runtime>             Show runtime logs"
-    Write-Host "  adp doctor [-FirstRun]         Run diagnostics"
-    Write-Host "  adp destroy <runtime> [-Plan]  Destroy a runtime"
-    Write-Host "  adp help                       Show this help"
-    Write-Host ""
-}

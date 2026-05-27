@@ -129,8 +129,16 @@ if ($RuntimeName) {
     if (-not (Test-Path $isoCheck) -and -not $IsoPath) {
         Write-Host "  Cannot provision: ISO not cached and no -IsoPath given." -ForegroundColor Red
     } else {
-        & (Join-Path (Get-ProjectRoot) "cli\commands\up.ps1") `
-            -RuntimeName $RuntimeName -IsoPath $IsoPath -NoBootstrap:$SkipProvision
+        $upCommand = Join-Path (Get-ProjectRoot) "cli\commands\up.ps1"
+        $upArgs = @{
+            RuntimeName = $RuntimeName
+            NoProvision = $SkipProvision
+        }
+        if ($IsoPath) {
+            $upArgs.IsoPath = $IsoPath
+        }
+
+        . $upCommand @upArgs
     }
 }
 

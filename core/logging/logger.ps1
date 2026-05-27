@@ -4,7 +4,7 @@
 $script:LogDir = $null
 $script:LogLevel = "INFO"
 
-$LogLevels = @{
+$script:LogLevels = @{
     "DEBUG" = 0
     "INFO"  = 1
     "WARN"  = 2
@@ -32,8 +32,19 @@ function Write-Log {
         [string]$Component = "core"
     )
 
-    $currentLevel = $LogLevels[$script:LogLevel]
-    $msgLevel = $LogLevels[$Level]
+    $levels = if ($script:LogLevels) {
+        $script:LogLevels
+    } else {
+        @{
+            "DEBUG" = 0
+            "INFO"  = 1
+            "WARN"  = 2
+            "ERROR" = 3
+        }
+    }
+    $effectiveLogLevel = if ($script:LogLevel) { $script:LogLevel } else { "INFO" }
+    $currentLevel = $levels[$effectiveLogLevel]
+    $msgLevel = $levels[$Level]
 
     if ($msgLevel -lt $currentLevel) { return }
 

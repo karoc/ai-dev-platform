@@ -10,6 +10,11 @@ if (-not $RuntimeName) {
     exit 1
 }
 
+if (-not (Test-RuntimeExists $RuntimeName)) {
+    Write-ErrorLog -Message "Unknown runtime: $RuntimeName. Valid: $((Get-AllRuntimeNames) -join ', ')" -Component "cli.logs"
+    exit 1
+}
+
 Write-InfoLog -Message "Showing logs for: $RuntimeName" -Component "cli.logs"
 
 $logsDir = Join-Path (Get-ProjectRoot) "logs"

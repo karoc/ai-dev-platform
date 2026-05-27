@@ -13,6 +13,23 @@ if (-not $SubCommand) {
     exit 1
 }
 
+$validSubCommands = @("status", "start", "stop", "list")
+if ($SubCommand -notin $validSubCommands) {
+    Write-ErrorLog -Message "Unknown sync command: $SubCommand. Valid: $($validSubCommands -join ', ')" -Component "cli.sync"
+    exit 1
+}
+
+if ($SubCommand -in @("start", "stop")) {
+    if (-not $RuntimeName) {
+        Write-ErrorLog -Message "Usage: adp sync $SubCommand <runtime>" -Component "cli.sync"
+        exit 1
+    }
+    if (-not (Test-RuntimeExists $RuntimeName)) {
+        Write-ErrorLog -Message "Unknown runtime: $RuntimeName. Valid: $((Get-AllRuntimeNames) -join ', ')" -Component "cli.sync"
+        exit 1
+    }
+}
+
 Write-Host ""
 Write-Host "ADP-OS Sync" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
@@ -40,10 +57,6 @@ switch ($SubCommand) {
         Invoke-Mutagen -Arguments @("sync", "list")
     }
     "start" {
-        if (-not $RuntimeName) {
-            Write-ErrorLog -Message "Usage: adp sync start <runtime>" -Component "cli.sync"
-            exit 1
-        }
         Write-Host "Starting sync for: $RuntimeName" -ForegroundColor Yellow
         $rt = Get-RuntimeConfig $RuntimeName
         $profile = Get-SyncProfile $rt.sync_profile
@@ -91,16 +104,8 @@ switch ($SubCommand) {
             -SSHKeyPath $sshKeyPath
     }
     "stop" {
-        if (-not $RuntimeName) {
-            Write-ErrorLog -Message "Usage: adp sync stop <runtime>" -Component "cli.sync"
-            exit 1
-        }
         $sessionName = "adp-$RuntimeName"
         Write-Host "Stopping sync for: $RuntimeName" -ForegroundColor Yellow
         Stop-SyncSession -SessionName $sessionName
-    }
-    default {
-        Write-ErrorLog -Message "Unknown sync command: $SubCommand" -Component "cli.sync"
-        exit 1
     }
 }
