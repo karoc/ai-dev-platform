@@ -124,10 +124,46 @@ Assert-Command `
     -Patterns @("Workspace readiness: example-project", "Status only: no projects will be cloned", "Manifest:", "Projects:", "runtime agent", "validation commands")
 
 Assert-Command `
+    -Name "workspace task prepare" `
+    -Arguments @("workspace", "task", "prepare", "before-large-agent-task", "-ManifestPath", "configs\workspace.example.json") `
+    -ExitCode 0 `
+    -Patterns @("Workspace task prepare: before-large-agent-task", "Task lifecycle output is plan-only", "Preparation checklist:", "adp workspace task snapshot before-large-agent-task")
+
+Assert-Command `
+    -Name "workspace task snapshot" `
+    -Arguments @("workspace", "task", "snapshot", "before-large-agent-task", "-ManifestPath", "configs\workspace.example.json") `
+    -ExitCode 0 `
+    -Patterns @("Workspace task snapshot: before-large-agent-task", "Checkpoint:", "adp snapshot create agent before-large-agent-task")
+
+Assert-Command `
+    -Name "workspace task validate" `
+    -Arguments @("workspace", "task", "validate", "before-large-agent-task", "-ManifestPath", "configs\workspace.example.json") `
+    -ExitCode 0 `
+    -Patterns @("Workspace task validate: before-large-agent-task", "Validation plan:", "git status --short", "pnpm test")
+
+Assert-Command `
+    -Name "workspace task review" `
+    -Arguments @("workspace", "task", "review", "before-large-agent-task", "-ManifestPath", "configs\workspace.example.json") `
+    -ExitCode 0 `
+    -Patterns @("Workspace task review: before-large-agent-task", "Human review bundle:", "rollback, revise, or commit")
+
+Assert-Command `
+    -Name "workspace task unknown task" `
+    -Arguments @("workspace", "task", "prepare", "not-a-task", "-ManifestPath", "configs\workspace.example.json") `
+    -ExitCode 1 `
+    -Patterns @("Workspace task not found: not-a-task", "Available tasks: before-large-agent-task")
+
+Assert-Command `
+    -Name "workspace task unknown command" `
+    -Arguments @("workspace", "task", "deploy", "before-large-agent-task", "-ManifestPath", "configs\workspace.example.json") `
+    -ExitCode 1 `
+    -Patterns @("Unknown workspace task command: deploy", "Valid: prepare, snapshot, validate, review")
+
+Assert-Command `
     -Name "workspace unknown subcommand" `
     -Arguments @("workspace", "nope", "-ManifestPath", "configs\workspace.example.json") `
     -ExitCode 1 `
-    -Patterns @("Unknown workspace command: nope", "Valid: init, show, plan, status")
+    -Patterns @("Unknown workspace command: nope", "Valid: init, show, plan, status, task")
 
 $workspaceManifest = Join-Path ([System.IO.Path]::GetTempPath()) ("adp-workspace-test-{0}.json" -f ([guid]::NewGuid().ToString("N")))
 try {

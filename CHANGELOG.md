@@ -15,6 +15,7 @@ The project does not yet publish versioned releases. Entries are grouped by date
 - Added stronger first-run dependency diagnostics for VMware disk management, WSL, `xorriso`, ISO remastering, Mutagen version, and ISO shape.
 - Added an example workspace manifest and non-destructive `adp workspace init/show/plan` commands.
 - Added non-destructive `adp workspace status` readiness output for manifest projects, runtimes, sync, snapshots, and validation commands.
+- Added plan-only workspace task lifecycle commands: `prepare`, `snapshot`, `validate`, and `review`.
 - Added `adp doctor -FirstRun` for first-run checklist guidance.
 - Added `-Plan` previews for `adp up`, `adp network apply`, and `adp destroy`.
 - Added public `SECURITY.md` and `SECURITY.zh-CN.md`.

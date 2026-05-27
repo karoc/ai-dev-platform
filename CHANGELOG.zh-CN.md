@@ -15,6 +15,7 @@
 - 新增更强的首次使用依赖诊断，覆盖 VMware disk manager、WSL、`xorriso`、ISO remaster、Mutagen 版本和 ISO 基本形态。
 - 新增 workspace manifest 示例，以及非破坏性的 `adp workspace init/show/plan` 命令。
 - 新增非破坏性的 `adp workspace status` readiness 输出，覆盖 manifest 项目、运行时、同步、快照和验证命令。
+- 新增 plan-only workspace task lifecycle 命令：`prepare`、`snapshot`、`validate` 和 `review`。
 - 新增 `adp doctor -FirstRun`，提供首次使用检查清单。
 - 新增 `adp up`、`adp network apply` 和 `adp destroy` 的 `-Plan` 预览。
 - 新增公开 `SECURITY.md` 和 `SECURITY.zh-CN.md`。

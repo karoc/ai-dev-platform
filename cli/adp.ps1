@@ -60,7 +60,7 @@ function Show-Help {
     Write-Host "  adp up <runtime> [-IsoPath <path>] [-Plan] [-NoProvision] [-NoBootstrap]  Start a runtime"
     Write-Host "  adp stop <runtime>             Stop a runtime"
     Write-Host "  adp sync status                Show workspace sync status"
-    Write-Host "  adp workspace <init|show|plan|status>  Manage workspace manifests"
+    Write-Host "  adp workspace <init|show|plan|status|task>  Manage workspace manifests"
     Write-Host "  adp network apply <rt|all> [-Plan]  Apply configured static IP networking"
     Write-Host "  adp snapshot create <rt> <name>  Create runtime snapshot"
     Write-Host "  adp restore <rt> <name>        Restore runtime snapshot"

@@ -3,13 +3,16 @@
 
 param(
     [string]$SubCommand,
+    [string]$TaskCommand,
+    [string]$TaskName,
     [string]$ManifestPath = "adp-workspace.json"
 )
 
 $ErrorActionPreference = "Stop"
 
 function Show-WorkspaceUsage {
-    Write-ErrorLog -Message "Usage: adp workspace <init|show|plan|status> [-ManifestPath <path>]" -Component "cli.workspace"
+    Write-ErrorLog -Message "Usage: adp workspace <init|show|plan|status|task> [-ManifestPath <path>]" -Component "cli.workspace"
+    Write-Host "  adp workspace task <prepare|snapshot|validate|review> <task-name> [-ManifestPath <path>]" -ForegroundColor DarkGray
 }
 
 function Read-WorkspaceManifest {
@@ -378,6 +381,192 @@ function Write-WorkspaceStatus {
     }
 }
 
+function Find-WorkspaceTask {
+    param(
+        [object]$Manifest,
+        [string]$Name
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Name)) {
+        throw "Task name is required. Usage: adp workspace task <prepare|snapshot|validate|review> <task-name>"
+    }
+
+    $tasks = Get-WorkspaceArray $Manifest.tasks
+    foreach ($task in $tasks) {
+        if ($task.name -eq $Name) {
+            return $task
+        }
+    }
+
+    $available = @($tasks | ForEach-Object { $_.name } | Where-Object { $_ })
+    $detail = if ($available.Count -gt 0) { "Available tasks: $($available -join ', ')" } else { "No tasks are configured in the workspace manifest." }
+    throw "Workspace task not found: $Name. $detail"
+}
+
+function Write-TaskHeader {
+    param(
+        [string]$Action,
+        [object]$Task
+    )
+
+    Write-Host ""
+    Write-Host "Workspace task $Action`: $($Task.name)" -ForegroundColor Cyan
+    Write-Host "Task lifecycle output is plan-only. No VM, sync, snapshot, file, Git, or validation command will be changed or run." -ForegroundColor DarkGray
+    Write-Host ""
+}
+
+function Write-TaskSummary {
+    param([object]$Task)
+
+    $runtime = if ($Task.runtime) { $Task.runtime } else { "not configured" }
+    $snapshot = if ($Task.snapshot) { $Task.snapshot } else { "not configured" }
+
+    Write-Host "Task:" -ForegroundColor Yellow
+    Write-Host "  Name:      $($Task.name)" -ForegroundColor DarkGray
+    Write-Host "  Runtime:   $runtime" -ForegroundColor DarkGray
+    Write-Host "  Snapshot:  $snapshot" -ForegroundColor DarkGray
+
+    $validationCommands = Get-WorkspaceArray $Task.validation
+    Write-Host "  Validation commands: $($validationCommands.Count)" -ForegroundColor DarkGray
+    foreach ($command in $validationCommands) {
+        Write-Host "    - $command" -ForegroundColor DarkGray
+    }
+}
+
+function Write-WorkspaceTaskPrepare {
+    param(
+        [object]$Manifest,
+        [object]$Task,
+        [string]$ManifestPath
+    )
+
+    Write-TaskHeader -Action "prepare" -Task $Task
+    Write-TaskSummary -Task $Task
+
+    Write-Host ""
+    Write-Host "Preparation checklist:" -ForegroundColor Yellow
+    Write-Host "  1. Check workspace readiness:" -ForegroundColor DarkGray
+    Write-Host "     adp workspace status -ManifestPath $ManifestPath" -ForegroundColor DarkGray
+
+    if ($Task.runtime) {
+        Write-Host "  2. Preview runtime startup:" -ForegroundColor DarkGray
+        Write-Host "     adp up $($Task.runtime) -Plan" -ForegroundColor DarkGray
+        Write-Host "  3. Confirm sync when the runtime is ready:" -ForegroundColor DarkGray
+        Write-Host "     adp sync start $($Task.runtime)" -ForegroundColor DarkGray
+    } else {
+        Write-Host "  2. Add tasks[].runtime before preparing runtime and sync commands." -ForegroundColor DarkGray
+    }
+
+    if ($Task.snapshot -and $Task.runtime) {
+        Write-Host "  4. Plan the checkpoint:" -ForegroundColor DarkGray
+        Write-Host "     adp workspace task snapshot $($Task.name) -ManifestPath $ManifestPath" -ForegroundColor DarkGray
+    } else {
+        Write-Host "  4. Add tasks[].snapshot before planning checkpoint commands." -ForegroundColor DarkGray
+    }
+
+    Write-Host "  5. Review validation expectations:" -ForegroundColor DarkGray
+    Write-Host "     adp workspace task validate $($Task.name) -ManifestPath $ManifestPath" -ForegroundColor DarkGray
+}
+
+function Write-WorkspaceTaskSnapshot {
+    param([object]$Task)
+
+    Write-TaskHeader -Action "snapshot" -Task $Task
+    Write-TaskSummary -Task $Task
+
+    $snapshotStatus = Get-WorkspaceSnapshotStatus -RuntimeName $Task.runtime -SnapshotName $Task.snapshot
+    Write-Host ""
+    Write-Host "Checkpoint:" -ForegroundColor Yellow
+    Write-WorkspaceCheck -Level $snapshotStatus.Level -Name "snapshot" -Detail "($($snapshotStatus.Status)$(if ($snapshotStatus.Detail) { ': ' + $snapshotStatus.Detail }))"
+
+    if ($Task.runtime -and $Task.snapshot) {
+        Write-Host ""
+        Write-Host "Explicit command to create the checkpoint when ready:" -ForegroundColor Yellow
+        Write-Host "  adp snapshot create $($Task.runtime) $($Task.snapshot)" -ForegroundColor DarkGray
+    } else {
+        Write-Host ""
+        Write-Host "Add tasks[].runtime and tasks[].snapshot before creating a checkpoint." -ForegroundColor Yellow
+    }
+}
+
+function Write-WorkspaceTaskValidate {
+    param([object]$Task)
+
+    Write-TaskHeader -Action "validate" -Task $Task
+    Write-TaskSummary -Task $Task
+
+    $validationCommands = Get-WorkspaceArray $Task.validation
+    Write-Host ""
+    Write-Host "Validation plan:" -ForegroundColor Yellow
+    if ($validationCommands.Count -eq 0) {
+        Write-WorkspaceCheck -Level "WARN" -Name "task validation" -Detail "(none configured)"
+        Write-Host "  Add tasks[].validation commands before using this task for review gates." -ForegroundColor DarkGray
+        return
+    }
+
+    $index = 1
+    foreach ($command in $validationCommands) {
+        Write-Host "  $index. $command" -ForegroundColor DarkGray
+        $index += 1
+    }
+}
+
+function Write-WorkspaceTaskReview {
+    param(
+        [object]$Task,
+        [string]$ManifestPath
+    )
+
+    Write-TaskHeader -Action "review" -Task $Task
+    Write-TaskSummary -Task $Task
+
+    Write-Host ""
+    Write-Host "Human review bundle:" -ForegroundColor Yellow
+    Write-Host "  1. Confirm readiness before review:" -ForegroundColor DarkGray
+    Write-Host "     adp workspace status -ManifestPath $ManifestPath" -ForegroundColor DarkGray
+    Write-Host "  2. Confirm checkpoint state:" -ForegroundColor DarkGray
+    Write-Host "     adp workspace task snapshot $($Task.name) -ManifestPath $ManifestPath" -ForegroundColor DarkGray
+    Write-Host "  3. Run or inspect validation commands:" -ForegroundColor DarkGray
+    Write-Host "     adp workspace task validate $($Task.name) -ManifestPath $ManifestPath" -ForegroundColor DarkGray
+    Write-Host "  4. Inspect source changes in the target project:" -ForegroundColor DarkGray
+    Write-Host "     git status --short" -ForegroundColor DarkGray
+    Write-Host "     git diff --stat" -ForegroundColor DarkGray
+    Write-Host "     git diff" -ForegroundColor DarkGray
+    Write-Host "  5. Decide explicitly: rollback, revise, or commit." -ForegroundColor DarkGray
+}
+
+function Invoke-WorkspaceTask {
+    param(
+        [object]$Manifest,
+        [string]$Command,
+        [string]$Name,
+        [string]$Path
+    )
+
+    $validTaskCommands = @("prepare", "snapshot", "validate", "review")
+    if ([string]::IsNullOrWhiteSpace($Command) -or $Command -notin $validTaskCommands) {
+        Write-ErrorLog -Message "Unknown workspace task command: $Command. Valid: $($validTaskCommands -join ', ')" -Component "cli.workspace"
+        exit 1
+    }
+
+    $task = Find-WorkspaceTask -Manifest $Manifest -Name $Name
+
+    switch ($Command) {
+        "prepare" {
+            Write-WorkspaceTaskPrepare -Manifest $Manifest -Task $task -ManifestPath $Path
+        }
+        "snapshot" {
+            Write-WorkspaceTaskSnapshot -Task $task
+        }
+        "validate" {
+            Write-WorkspaceTaskValidate -Task $task
+        }
+        "review" {
+            Write-WorkspaceTaskReview -Task $task -ManifestPath $Path
+        }
+    }
+}
+
 if (-not $SubCommand) {
     Show-WorkspaceUsage
     exit 1
@@ -429,8 +618,12 @@ switch ($SubCommand) {
         $manifest = Read-WorkspaceManifest -Path $ManifestPath
         Write-WorkspaceStatus -Manifest $manifest
     }
+    "task" {
+        $manifest = Read-WorkspaceManifest -Path $ManifestPath
+        Invoke-WorkspaceTask -Manifest $manifest -Command $TaskCommand -Name $TaskName -Path $ManifestPath
+    }
     default {
-        Write-ErrorLog -Message "Unknown workspace command: $SubCommand. Valid: init, show, plan, status" -Component "cli.workspace"
+        Write-ErrorLog -Message "Unknown workspace command: $SubCommand. Valid: init, show, plan, status, task" -Component "cli.workspace"
         exit 1
     }
 }

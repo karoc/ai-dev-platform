@@ -80,6 +80,24 @@ ADP-OS 可以用一个轻量的 workspace manifest 记录目标项目。这个 m
 
 `workspace status` 同样保持非破坏性。它会报告 manifest 是否已加载、项目路径是否存在、配置的运行时是否已知且已创建、预期 sync session 是否存在、任务快照是已存在还是建议创建，以及 validation 命令是否已声明。它不会创建目录、启动同步、创建快照，也不会运行验证命令。
 
+## Task Lifecycle
+
+Workspace task 是 ADP-OS 的第一个 agent-native workflow 入口。它会把 manifest 里的 task 条目转换成明确的准备、检查点、验证和 review 步骤：
+
+```powershell
+.\cli\adp.ps1 workspace task prepare before-large-agent-task
+.\cli\adp.ps1 workspace task snapshot before-large-agent-task
+.\cli\adp.ps1 workspace task validate before-large-agent-task
+.\cli\adp.ps1 workspace task review before-large-agent-task
+```
+
+这些 task lifecycle 命令都是 plan-only。它们不会启动运行时、修改 sync session、创建快照、运行 Git 命令，也不会运行验证命令。它们只会打印人类或 agent 下一步应该显式执行的命令和 review checklist。
+
+- `prepare`：汇总任务，并打印 readiness、运行时、同步、检查点和验证准备流程。
+- `snapshot`：检查建议快照是否存在，并打印准备好之后要显式运行的快照命令。
+- `validate`：打印 manifest 中配置的任务验证命令。
+- `review`：打印 human review bundle，覆盖 readiness、检查点、验证、源码 diff 检查，以及最终 rollback/revise/commit 决策。
+
 公开示例位于：
 
 ```text

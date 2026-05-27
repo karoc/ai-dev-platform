@@ -80,6 +80,24 @@ Check workspace readiness:
 
 `workspace status` is also non-destructive. It reports whether the manifest is loaded, project paths exist, configured runtimes are known and created, expected sync sessions are present, task snapshots already exist or are recommended, and validation commands are declared. It does not create directories, start sync, create snapshots, or run validation commands.
 
+## Task Lifecycle
+
+Workspace tasks are the first agent-native workflow surface in ADP-OS. They turn a task entry from the manifest into explicit preparation, checkpoint, validation, and review steps:
+
+```powershell
+.\cli\adp.ps1 workspace task prepare before-large-agent-task
+.\cli\adp.ps1 workspace task snapshot before-large-agent-task
+.\cli\adp.ps1 workspace task validate before-large-agent-task
+.\cli\adp.ps1 workspace task review before-large-agent-task
+```
+
+The task lifecycle commands are plan-only. They do not start runtimes, change sync sessions, create snapshots, run Git commands, or run validation commands. They print the exact commands and review checklist a human or agent should use next.
+
+- `prepare`: summarizes the task and prints the readiness, runtime, sync, checkpoint, and validation preparation flow.
+- `snapshot`: checks whether the recommended snapshot exists and prints the explicit snapshot command to run when ready.
+- `validate`: prints the task validation commands from the manifest.
+- `review`: prints a human review bundle for readiness, checkpoint, validation, source diff inspection, and final rollback/revise/commit decision.
+
 The public example lives at:
 
 ```text
