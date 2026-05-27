@@ -35,6 +35,8 @@ All checks passed. Platform is healthy.
 
 如果 VM 已存在且正在运行，ADP 会报告当前 IP 并跳过创建。
 
+`agent` 运行时可能会打印 high-IO profile 提示。这不是错误；它表示该运行时面向 AI agent 工作负载配置，执行破坏性或大范围任务前建议先创建快照。
+
 ## 停止运行时
 
 ```powershell
@@ -52,6 +54,8 @@ ssh -i $env:USERPROFILE\.ssh\adp-os\adp-os adp@192.168.242.131
 默认地址见 [网络说明](networking.md)。
 
 ## 工作区同步
+
+启动同步前，将目标项目 clone 到匹配的 Windows workspace root 下。推荐布局和 dogfooding 指南见[工作区](workspaces.md)。
 
 启动同步：
 

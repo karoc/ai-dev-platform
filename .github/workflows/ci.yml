@@ -41,6 +41,7 @@ jobs:
           Get-Content configs\platform.json -Raw | ConvertFrom-Json | Out-Null
           Get-Content configs\topology.json -Raw | ConvertFrom-Json | Out-Null
           Get-Content configs\sync-profiles.json -Raw | ConvertFrom-Json | Out-Null
+          Get-Content configs\local.example.json -Raw | ConvertFrom-Json | Out-Null
 
       - name: Check bootstrap shell syntax
         shell: bash

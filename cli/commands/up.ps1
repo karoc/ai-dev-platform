@@ -101,7 +101,8 @@ Write-Host "  ADP-OS: Starting $RuntimeName" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "  CPU: $($rt.cpu) cores  |  RAM: $($rt.memory) MB  |  Disk: $($rt.disk) GB" -ForegroundColor DarkGray
 if ($rt.danger) {
-    Write-Host "  DANGER MODE — Agent runtime with elevated IO" -ForegroundColor Red
+    Write-Host "  Agent profile: high-IO runtime for AI agent workloads" -ForegroundColor Yellow
+    Write-Host "  Snapshot recommended before destructive or large-scale tasks." -ForegroundColor DarkGray
 }
 Write-Host ""
 

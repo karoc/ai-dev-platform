@@ -146,6 +146,13 @@ They are synchronized into each VM at:
 /home/adp/workspace
 ```
 
+Keep target projects separate from the ADP-OS platform repository. Clone application or experiment repositories under the runtime workspace root, for example:
+
+```powershell
+cd $env:USERPROFILE\adp-workspaces\agent
+git clone <project-url> my-project
+```
+
 Examples:
 
 ```text
@@ -153,6 +160,8 @@ Examples:
 %USERPROFILE%\adp-workspaces\backend   <->  backend:/home/adp/workspace
 %USERPROFILE%\adp-workspaces\agent     <->  agent:/home/adp/workspace
 ```
+
+See [Workspaces](docs/workspaces.md) for target-project layout and ADP-OS dogfooding guidance.
 
 ## Command Reference
 
@@ -177,6 +186,7 @@ Examples:
 - [ADP-OS and Docker](docs/positioning.md)
 - [Architecture](docs/architecture.md)
 - [Configuration](docs/configuration.md)
+- [Workspaces](docs/workspaces.md)
 - [Operations](docs/operations.md)
 - [Networking](docs/networking.md)
 - [Browser Testing](docs/browser-testing.md)

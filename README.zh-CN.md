@@ -146,6 +146,13 @@ adp-frontend-browser-install chromium
 /home/adp/workspace
 ```
 
+目标项目应和 ADP-OS 平台仓库分开。将应用或实验项目 clone 到对应运行时的 workspace root 下，例如：
+
+```powershell
+cd $env:USERPROFILE\adp-workspaces\agent
+git clone <project-url> my-project
+```
+
 示例：
 
 ```text
@@ -153,6 +160,8 @@ adp-frontend-browser-install chromium
 %USERPROFILE%\adp-workspaces\backend   <->  backend:/home/adp/workspace
 %USERPROFILE%\adp-workspaces\agent     <->  agent:/home/adp/workspace
 ```
+
+目标项目布局和 ADP-OS dogfooding 指南见[工作区](docs/zh-CN/workspaces.md)。
 
 ## 命令参考
 
@@ -177,6 +186,7 @@ adp-frontend-browser-install chromium
 - [ADP-OS 与 Docker](docs/zh-CN/positioning.md)
 - [架构说明](docs/zh-CN/architecture.md)
 - [配置说明](docs/zh-CN/configuration.md)
+- [工作区](docs/zh-CN/workspaces.md)
 - [操作指南](docs/zh-CN/operations.md)
 - [网络说明](docs/zh-CN/networking.md)
 - [浏览器测试](docs/zh-CN/browser-testing.md)

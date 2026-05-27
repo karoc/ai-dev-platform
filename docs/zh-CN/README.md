@@ -9,6 +9,7 @@
 - [ADP-OS 与 Docker](positioning.md)：ADP-OS 与 Docker 的关系，以及各自适用场景。
 - [操作指南](operations.md)：日常运行时命令和工作流。
 - [配置说明](configuration.md)：平台、拓扑、同步和本地覆盖配置。
+- [工作区](workspaces.md)：目标项目应该放在哪里，以及如何安全地 dogfood ADP-OS。
 - [网络说明](networking.md)：静态 VMware NAT 网络和排障。
 - [浏览器测试](browser-testing.md)：frontend 运行时的 headless 浏览器验收测试。
 

@@ -41,6 +41,24 @@ Test-Check -Name "Windows Version" -Condition ([Version]$osInfo.Version -ge [Ver
 
 Test-Check -Name "PowerShell 7+" -Condition ($PSVersionTable.PSVersion.Major -ge 7) -Detail "(v$($PSVersionTable.PSVersion))"
 
+# --- Configuration ---
+Write-Host ""
+Write-Host "Configuration:" -ForegroundColor Yellow
+$localConfigStatus = Get-LocalConfigStatus
+if ($localConfigStatus.Exists) {
+    if ($localConfigStatus.Empty) {
+        Test-Check -Name "local config" -Condition $true -Detail "(empty, ignored: $($localConfigStatus.Path))"
+    } elseif ($localConfigStatus.Applied) {
+        Test-Check -Name "local config" -Condition $true -Detail "(applied sections: $($localConfigStatus.Sections -join ', '))"
+    } else {
+        Test-Check -Name "local config" -Condition $true -Detail "(present, no supported sections)"
+        Write-Host "  [INFO]  Supported sections: platform, topology, sync_profiles" -ForegroundColor DarkGray
+    }
+} else {
+    Test-Check -Name "local config" -Condition $true -Detail "(not present, using committed defaults)"
+    Write-Host "  [INFO]  Optional: copy configs\local.example.json to configs\local.json for machine-local overrides." -ForegroundColor DarkGray
+}
+
 # --- VMware ---
 Write-Host ""
 Write-Host "VMware:" -ForegroundColor Yellow

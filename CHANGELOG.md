@@ -23,12 +23,15 @@ The project does not yet publish versioned releases. Entries are grouped by date
   - `adp-frontend-browser-install`
 - Added browser testing documentation.
 - Added `configs/local.example.json` and local config override support for machine-specific paths, VM sizing, networking, credentials, and sync profile changes.
+- Added workspace guidance for target project clones and ADP-OS dogfooding.
 
 ### Changed
 
 - Updated README language navigation.
 - Updated frontend bootstrap to install lightweight browser helper commands without downloading browsers by default.
 - Updated sync and Git ignore rules for browser test reports and Playwright artifacts.
+- Reworded the agent runtime startup warning from `DANGER MODE` to a high-IO agent profile notice.
+- Updated `adp doctor` to report local config override status.
 
 ## 2026-05-26
 

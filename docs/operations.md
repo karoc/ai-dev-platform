@@ -35,6 +35,8 @@ Run integration checks:
 
 If a VM exists and is already running, ADP reports the current IP and skips creation.
 
+The `agent` runtime may print a high-IO profile notice. This is not an error; it means the runtime is sized for AI agent workloads and snapshots are recommended before destructive or large-scale tasks.
+
 ## Stop Runtimes
 
 ```powershell
@@ -52,6 +54,8 @@ ssh -i $env:USERPROFILE\.ssh\adp-os\adp-os adp@192.168.242.131
 Default addresses are documented in `docs\networking.md`.
 
 ## Workspace Sync
+
+Place target project clones under the matching Windows workspace root before starting sync. See [Workspaces](workspaces.md) for recommended layouts and dogfooding guidance.
 
 Start sync:
 

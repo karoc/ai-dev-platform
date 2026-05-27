@@ -23,12 +23,15 @@
   - `adp-frontend-browser-install`
 - 新增浏览器测试文档。
 - 新增 `configs/local.example.json` 和本地配置覆盖支持，用于本机路径、VM 规格、网络、凭据和同步 profile 调整。
+- 新增目标项目 clone 和 ADP-OS dogfooding 的工作区指南。
 
 ### 变更
 
 - 更新 README 语言导航。
 - 更新 frontend bootstrap，使其安装轻量浏览器辅助命令，但默认不下载浏览器。
 - 更新同步和 Git ignore 规则，忽略浏览器测试报告和 Playwright 产物。
+- 将 agent 运行时启动提示从 `DANGER MODE` 改为 high-IO agent profile 提示。
+- 更新 `adp doctor`，报告本地配置覆盖状态。
 
 ## 2026-05-26
 

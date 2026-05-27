@@ -6,6 +6,7 @@ $script:_ProjectRoot = $null
 $script:PlatformConfig = $null
 $script:TopologyConfig = $null
 $script:SyncProfiles = $null
+$script:LocalConfigStatus = $null
 
 function Read-JsonConfig {
     param([string]$Path)
@@ -50,28 +51,45 @@ function Apply-LocalConfig {
     param([string]$ProjectRoot)
 
     $localConfigPath = Join-Path $ProjectRoot "configs\local.json"
+    $script:LocalConfigStatus = [pscustomobject]@{
+        Path     = $localConfigPath
+        Exists   = $false
+        Empty    = $false
+        Applied  = $false
+        Sections = @()
+    }
+
     if (-not (Test-Path $localConfigPath)) {
         return
     }
 
+    $script:LocalConfigStatus.Exists = $true
+
     $localConfig = Read-JsonConfig $localConfigPath
     if (-not $localConfig) {
+        $script:LocalConfigStatus.Empty = $true
         Write-Verbose "ADP-OS local config exists but is empty: $localConfigPath"
         return
     }
 
+    $sections = [System.Collections.Generic.List[string]]::new()
     if ($localConfig.PSObject.Properties.Name -contains "platform" -and $localConfig.platform) {
         Merge-ConfigObject -Base $script:PlatformConfig -Override $localConfig.platform
+        $sections.Add("platform") | Out-Null
     }
 
     if ($localConfig.PSObject.Properties.Name -contains "topology" -and $localConfig.topology) {
         Merge-ConfigObject -Base $script:TopologyConfig -Override $localConfig.topology
+        $sections.Add("topology") | Out-Null
     }
 
     if ($localConfig.PSObject.Properties.Name -contains "sync_profiles" -and $localConfig.sync_profiles) {
         Merge-ConfigObject -Base $script:SyncProfiles -Override $localConfig.sync_profiles
+        $sections.Add("sync_profiles") | Out-Null
     }
 
+    $script:LocalConfigStatus.Sections = @($sections)
+    $script:LocalConfigStatus.Applied = ($sections.Count -gt 0)
     Write-Verbose "ADP-OS local config applied from: $localConfigPath"
 }
 
@@ -92,6 +110,10 @@ function Initialize-Config {
 
 function Get-PlatformConfig {
     return $script:PlatformConfig
+}
+
+function Get-LocalConfigStatus {
+    return $script:LocalConfigStatus
 }
 
 function Get-TopologyConfig {
