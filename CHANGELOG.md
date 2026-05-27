@@ -13,6 +13,7 @@ The project does not yet publish versioned releases. Entries are grouped by date
 - Added CI validation for CLI parameter contracts so accepted switches are checked against their execution paths.
 - Added non-destructive CLI smoke tests for command dispatch, preview output, and input error boundaries.
 - Added stronger first-run dependency diagnostics for VMware disk management, WSL, `xorriso`, ISO remastering, Mutagen version, and ISO shape.
+- Added explicit Mutagen remediation through `adp doctor -FixMutagen`, with `-Plan` preview before downloading.
 - Added an example workspace manifest and non-destructive `adp workspace init/show/plan` commands.
 - Added non-destructive `adp workspace status` readiness output for manifest projects, runtimes, sync, snapshots, and validation commands.
 - Added non-destructive `adp workspace dashboard` rollups for project readiness and task lifecycle state.

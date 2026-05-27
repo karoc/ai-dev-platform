@@ -2,7 +2,9 @@
 # System diagnostics — checks all dependencies and platform health
 
 param(
-    [switch]$FirstRun
+    [switch]$FirstRun,
+    [switch]$FixMutagen,
+    [switch]$Plan
 )
 
 Write-InfoLog -Message "Running: adp doctor" -Component "cli.doctor"
@@ -10,6 +12,11 @@ Write-InfoLog -Message "Running: adp doctor" -Component "cli.doctor"
 . (Join-Path (Get-ProjectRoot) "runtimes\vmware\os-profiles.ps1")
 . (Join-Path (Get-ProjectRoot) "runtimes\vmware\vm-factory.ps1")
 . (Join-Path (Get-ProjectRoot) "adapters\windows\mutagen\mutagen.ps1")
+
+if ($Plan -and -not $FixMutagen) {
+    Write-ErrorLog -Message "-Plan is only supported with -FixMutagen." -Component "cli.doctor"
+    exit 1
+}
 
 Write-Host ""
 Write-Host "ADP-OS Doctor — System Diagnostics" -ForegroundColor Cyan
@@ -228,15 +235,38 @@ $hasMutagen = $null -ne $mutagenPath
 Test-Check -Name "mutagen" -Condition $hasMutagen
 if (-not $hasMutagen) {
     Write-Host "  [INFO]  Install by placing mutagen.exe at .tools\mutagen\mutagen.exe or adding it to PATH." -ForegroundColor DarkGray
+    Write-Host "  [INFO]  Or run: .\cli\adp.ps1 doctor -FixMutagen -Plan" -ForegroundColor DarkGray
 }
 
 if ($hasMutagen) {
     Initialize-Mutagen -ProjectRoot (Get-ProjectRoot) | Out-Null
-    $mutagenVersion = Invoke-Mutagen -Arguments @("version") 2>$null | Select-Object -First 1
-    $mutagenVersionOk = "$mutagenVersion" -match '^0\.18\.'
+    $mutagenVersion = Get-MutagenVersion -Path $mutagenPath
+    $mutagenVersionOk = Test-MutagenVersionSupported -VersionText $mutagenVersion
     Test-Check -Name "mutagen version" -Condition $mutagenVersionOk -Detail "($mutagenVersion, $mutagenPath)"
     if (-not $mutagenVersionOk) {
         Write-Host "  [INFO]  ADP-OS is tested with Mutagen 0.18.x." -ForegroundColor DarkGray
+        Write-Host "  [INFO]  To install the tested local version, run: .\cli\adp.ps1 doctor -FixMutagen -Plan" -ForegroundColor DarkGray
+    }
+}
+
+if ($FixMutagen) {
+    Write-Host ""
+    Write-Host "Mutagen remediation:" -ForegroundColor Cyan
+    $remediation = Install-LocalMutagen -ProjectRoot (Get-ProjectRoot) -Plan:$Plan
+    if ($Plan) {
+        Write-Host "  Plan only: no files will be downloaded, expanded, or overwritten." -ForegroundColor Yellow
+        Write-Host "  Version: $($remediation.Version)" -ForegroundColor DarkGray
+        Write-Host "  Download: $($remediation.Url)" -ForegroundColor DarkGray
+        Write-Host "  Archive:  $($remediation.ZipPath)" -ForegroundColor DarkGray
+        Write-Host "  Target:   $($remediation.TargetPath)" -ForegroundColor DarkGray
+        Write-Host "  To install: .\cli\adp.ps1 doctor -FixMutagen" -ForegroundColor DarkGray
+    } else {
+        Write-Host "  Mutagen installed locally." -ForegroundColor Green
+        Write-Host "  Version: $($remediation.VersionText)" -ForegroundColor DarkGray
+        Write-Host "  Target:  $($remediation.TargetPath)" -ForegroundColor DarkGray
+        Write-Host "  Archive: $($remediation.ZipPath)" -ForegroundColor DarkGray
+        $script:issues = @($script:issues | Where-Object { $_ -notin @("mutagen", "mutagen version") })
+        $script:ok += "mutagen remediation"
     }
 }
 

@@ -106,10 +106,11 @@ adp-frontend-browser-install chromium
 ```powershell
 .\cli\adp.ps1 doctor
 .\cli\adp.ps1 doctor -FirstRun
+.\cli\adp.ps1 doctor -FixMutagen -Plan
 .\cli\adp.ps1 sync status
 ```
 
-`install.ps1` 和 `doctor` 会检查 VMware 工具、`vmware-vdiskmanager.exe`、WSL、WSL `xorriso`、Mutagen 0.18.x、OpenSSH、ISO 是否存在以及 ISO 基本形态。它们会输出修复命令或放置路径提示，但默认不会下载大型二进制文件。
+`install.ps1` 和 `doctor` 会检查 VMware 工具、`vmware-vdiskmanager.exe`、WSL、WSL `xorriso`、Mutagen 0.18.x、OpenSSH、ISO 是否存在以及 ISO 基本形态。它们会输出修复命令或放置路径提示，但默认不会下载大型二进制文件。如需安装经过测试的本地 Mutagen binary，先运行 `doctor -FixMutagen -Plan` 预览，再运行 `doctor -FixMutagen`；下载的 archive 和解压后的 binary 会保留在已忽略的 `.tools\mutagen` 下。
 
 运行非破坏性验证：
 
@@ -195,7 +196,7 @@ git clone <project-url> my-project
 .\cli\adp.ps1 snapshot create <runtime> <name>
 .\cli\adp.ps1 restore <runtime> <name>
 .\cli\adp.ps1 logs <runtime>
-.\cli\adp.ps1 doctor [-FirstRun]
+.\cli\adp.ps1 doctor [-FirstRun] [-FixMutagen] [-Plan]
 .\cli\adp.ps1 destroy <runtime> [-Plan]
 ```
 

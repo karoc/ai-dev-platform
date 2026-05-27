@@ -26,6 +26,20 @@ For first-run guidance, include the checklist:
 
 `doctor` checks platform prerequisites, configuration shape, local override status, VMware tooling, Mutagen version, ISO cache, runtime topology, static IP uniqueness, static IP ranges, VM status, SSH reachability for running VMs, and Mutagen sessions.
 
+Preview local Mutagen remediation:
+
+```powershell
+.\cli\adp.ps1 doctor -FixMutagen -Plan
+```
+
+Install the tested local Mutagen binary only after reviewing the plan:
+
+```powershell
+.\cli\adp.ps1 doctor -FixMutagen
+```
+
+`-FixMutagen` downloads the official Mutagen 0.18.x Windows AMD64 archive, extracts `mutagen.exe` to `.tools\mutagen\mutagen.exe`, and verifies the installed version. The `.tools` directory is ignored by Git, so downloaded archives and local binaries are not committed.
+
 Run integration checks:
 
 ```powershell
@@ -55,7 +69,7 @@ These switches are intended for controlled troubleshooting and CI-like validatio
 - OpenSSH Client.
 - ISO presence and basic shape.
 
-The checks print remediation guidance. They do not download VMware, Mutagen, browsers, ISO images, or other large binaries by default.
+The checks print remediation guidance. They do not download VMware, Mutagen, browsers, ISO images, or other large binaries by default. Mutagen installation is explicit through `doctor -FixMutagen`.
 
 ## Start Runtimes
 

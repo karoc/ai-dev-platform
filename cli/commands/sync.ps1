@@ -44,6 +44,7 @@ try {
     Write-Host "  Download: https://github.com/mutagen-io/mutagen/releases" -ForegroundColor DarkGray
     Write-Host "  Place:    .tools\mutagen\mutagen.exe" -ForegroundColor DarkGray
     Write-Host "  Or add mutagen.exe to PATH." -ForegroundColor DarkGray
+    Write-Host "  ADP helper: .\cli\adp.ps1 doctor -FixMutagen -Plan" -ForegroundColor DarkGray
     return
 }
 

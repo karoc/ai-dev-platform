@@ -106,6 +106,18 @@ Assert-Command `
     -Patterns @("Unknown runtime: not-a-runtime", "frontend, backend, agent")
 
 Assert-Command `
+    -Name "doctor plan without fix mutagen" `
+    -Arguments @("doctor", "-Plan") `
+    -ExitCode 1 `
+    -Patterns @("-Plan is only supported with -FixMutagen")
+
+Assert-Command `
+    -Name "doctor fix mutagen plan" `
+    -Arguments @("doctor", "-FixMutagen", "-Plan") `
+    -ExitCode 0 `
+    -Patterns @("Mutagen remediation:", "Plan only: no files will be downloaded", "mutagen_windows_amd64_v0\.18\.1\.zip", "\.tools\\mutagen\\mutagen\.exe", "To install: \.\\cli\\adp\.ps1 doctor -FixMutagen")
+
+Assert-Command `
     -Name "workspace show example manifest" `
     -Arguments @("workspace", "show", "-ManifestPath", "configs\workspace.example.json") `
     -ExitCode 0 `

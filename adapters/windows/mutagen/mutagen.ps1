@@ -2,6 +2,27 @@
 # Mutagen session management for workspace sync
 
 $script:MutagenPath = $null
+$script:MutagenExpectedVersion = "0.18.1"
+
+function Get-MutagenExpectedVersion {
+    return $script:MutagenExpectedVersion
+}
+
+function Get-LocalMutagenPath {
+    param([string]$ProjectRoot)
+
+    if (-not $ProjectRoot) {
+        $ProjectRoot = Get-ProjectRoot
+    }
+
+    return (Join-Path $ProjectRoot ".tools\mutagen\mutagen.exe")
+}
+
+function Get-MutagenDownloadUrl {
+    param([string]$Version = (Get-MutagenExpectedVersion))
+
+    return "https://github.com/mutagen-io/mutagen/releases/download/v$Version/mutagen_windows_amd64_v$Version.zip"
+}
 
 function Find-Mutagen {
     param([string]$ProjectRoot)
@@ -10,7 +31,7 @@ function Find-Mutagen {
     if ($fromPath) { return $fromPath }
 
     if ($ProjectRoot) {
-        $localPath = Join-Path $ProjectRoot ".tools\mutagen\mutagen.exe"
+        $localPath = Get-LocalMutagenPath -ProjectRoot $ProjectRoot
         if (Test-Path $localPath) { return $localPath }
     }
 
@@ -25,6 +46,85 @@ function Initialize-Mutagen {
         throw "Mutagen not installed. Download the Windows AMD64 release from https://github.com/mutagen-io/mutagen/releases and place mutagen.exe at .tools\mutagen\mutagen.exe, or add it to PATH."
     }
     return $script:MutagenPath
+}
+
+function Get-MutagenVersion {
+    param([string]$Path)
+
+    if (-not $Path -or -not (Test-Path -LiteralPath $Path)) {
+        return $null
+    }
+
+    return (& $Path version 2>$null | Select-Object -First 1)
+}
+
+function Test-MutagenVersionSupported {
+    param([string]$VersionText)
+
+    return ("$VersionText" -match '^0\.18\.')
+}
+
+function Install-LocalMutagen {
+    param(
+        [string]$ProjectRoot,
+        [string]$Version = (Get-MutagenExpectedVersion),
+        [switch]$Plan
+    )
+
+    if (-not $ProjectRoot) {
+        $ProjectRoot = Get-ProjectRoot
+    }
+
+    $toolRoot = Join-Path $ProjectRoot ".tools\mutagen"
+    $targetPath = Get-LocalMutagenPath -ProjectRoot $ProjectRoot
+    $zipName = "mutagen_windows_amd64_v$Version.zip"
+    $zipPath = Join-Path $toolRoot $zipName
+    $extractPath = Join-Path $toolRoot "extract-$Version"
+    $downloadUrl = Get-MutagenDownloadUrl -Version $Version
+
+    if ($Plan) {
+        return [pscustomobject]@{
+            Planned     = $true
+            Version     = $Version
+            Url         = $downloadUrl
+            ZipPath     = $zipPath
+            ExtractPath = $extractPath
+            TargetPath  = $targetPath
+        }
+    }
+
+    if (-not (Test-Path -LiteralPath $toolRoot)) {
+        New-Item -ItemType Directory -Path $toolRoot -Force | Out-Null
+    }
+
+    Invoke-WebRequest -Uri $downloadUrl -OutFile $zipPath
+    if (Test-Path -LiteralPath $extractPath) {
+        Remove-Item -LiteralPath $extractPath -Recurse -Force
+    }
+    New-Item -ItemType Directory -Path $extractPath -Force | Out-Null
+    Expand-Archive -LiteralPath $zipPath -DestinationPath $extractPath -Force
+
+    $extracted = Get-ChildItem -LiteralPath $extractPath -Recurse -Filter "mutagen.exe" -File | Select-Object -First 1
+    if (-not $extracted) {
+        throw "Downloaded Mutagen archive did not contain mutagen.exe: $zipPath"
+    }
+    Copy-Item -LiteralPath $extracted.FullName -Destination $targetPath -Force
+
+    $versionText = Get-MutagenVersion -Path $targetPath
+    if (-not (Test-MutagenVersionSupported -VersionText $versionText)) {
+        throw "Installed Mutagen version is unsupported: $versionText. Expected 0.18.x."
+    }
+    Remove-Item -LiteralPath $extractPath -Recurse -Force
+
+    return [pscustomobject]@{
+        Planned     = $false
+        Version     = $Version
+        VersionText = $versionText
+        Url         = $downloadUrl
+        ZipPath     = $zipPath
+        ExtractPath = $extractPath
+        TargetPath  = $targetPath
+    }
 }
 
 function Invoke-Mutagen {

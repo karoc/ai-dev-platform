@@ -193,17 +193,17 @@ if ($SkipDependencyCheck) {
     # Mutagen
     $mutagen = Find-Mutagen -ProjectRoot $script:ProjectRoot
     if ($mutagen) {
-        $mutagenVersion = (& $mutagen version 2>$null | Select-Object -First 1)
-        if ("$mutagenVersion" -match '^0\.18\.') {
+        $mutagenVersion = Get-MutagenVersion -Path $mutagen
+        if (Test-MutagenVersionSupported -VersionText $mutagenVersion) {
             Write-DependencyLine -Name "Mutagen" -Status "OK" -Detail "$mutagenVersion at $mutagen"
             Add-DependencyResult -Name "Mutagen" -Status "OK" -Path $mutagen
         } else {
-            $remediation = "ADP-OS is tested with Mutagen 0.18.x."
+            $remediation = "ADP-OS is tested with Mutagen 0.18.x. Run: .\cli\adp.ps1 doctor -FixMutagen -Plan"
             Write-DependencyLine -Name "Mutagen" -Status "WARN" -Detail "$mutagenVersion at $mutagen" -Remediation $remediation
             Add-DependencyResult -Name "Mutagen" -Status "WARN" -Path $mutagen -Remediation $remediation
         }
     } else {
-        $remediation = "Download Mutagen 0.18.x, place mutagen.exe at .tools\mutagen\mutagen.exe, or add it to PATH."
+        $remediation = "Run: .\cli\adp.ps1 doctor -FixMutagen -Plan, or place Mutagen 0.18.x at .tools\mutagen\mutagen.exe."
         Write-DependencyLine -Name "Mutagen" -Status "MISSING" -Detail "needed for workspace sync" -Remediation $remediation
         Add-DependencyResult -Name "Mutagen" -Status "MISSING" -Remediation $remediation
     }

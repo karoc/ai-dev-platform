@@ -26,6 +26,20 @@ All checks passed. Platform is healthy.
 
 `doctor` 会检查平台前置条件、配置结构、本地覆盖状态、VMware 工具、Mutagen 版本、ISO cache、运行时拓扑、静态 IP 唯一性、静态 IP 网段、VM 状态、运行中 VM 的 SSH 可达性，以及 Mutagen sessions。
 
+预览本地 Mutagen 修复：
+
+```powershell
+.\cli\adp.ps1 doctor -FixMutagen -Plan
+```
+
+确认计划后，再安装经过测试的本地 Mutagen binary：
+
+```powershell
+.\cli\adp.ps1 doctor -FixMutagen
+```
+
+`-FixMutagen` 会下载官方 Mutagen 0.18.x Windows AMD64 archive，将 `mutagen.exe` 解压到 `.tools\mutagen\mutagen.exe`，并验证安装后的版本。`.tools` 目录已被 Git 忽略，因此下载的 archive 和本地 binary 不会被提交。
+
 运行集成检查：
 
 ```powershell
@@ -55,7 +69,7 @@ Installer 排障开关：
 - OpenSSH Client。
 - ISO 是否存在以及基本形态。
 
-这些检查会输出修复建议。默认不会下载 VMware、Mutagen、浏览器、ISO 镜像或其他大型二进制文件。
+这些检查会输出修复建议。默认不会下载 VMware、Mutagen、浏览器、ISO 镜像或其他大型二进制文件。Mutagen 安装必须通过 `doctor -FixMutagen` 显式触发。
 
 ## 启动运行时
 

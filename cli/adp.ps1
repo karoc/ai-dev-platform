@@ -65,7 +65,7 @@ function Show-Help {
     Write-Host "  adp snapshot create <rt> <name>  Create runtime snapshot"
     Write-Host "  adp restore <rt> <name>        Restore runtime snapshot"
     Write-Host "  adp logs <runtime>             Show runtime logs"
-    Write-Host "  adp doctor [-FirstRun]         Run diagnostics"
+    Write-Host "  adp doctor [-FirstRun] [-FixMutagen] [-Plan]  Run diagnostics and optional Mutagen remediation"
     Write-Host "  adp destroy <runtime> [-Plan]  Destroy a runtime"
     Write-Host "  adp help                       Show this help"
     Write-Host ""

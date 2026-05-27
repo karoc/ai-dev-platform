@@ -106,10 +106,11 @@ Check health:
 ```powershell
 .\cli\adp.ps1 doctor
 .\cli\adp.ps1 doctor -FirstRun
+.\cli\adp.ps1 doctor -FixMutagen -Plan
 .\cli\adp.ps1 sync status
 ```
 
-`install.ps1` and `doctor` check VMware tooling, `vmware-vdiskmanager.exe`, WSL, WSL `xorriso`, Mutagen 0.18.x, OpenSSH, ISO presence, and basic ISO shape. They print remediation commands or placement guidance, but do not download large binaries by default.
+`install.ps1` and `doctor` check VMware tooling, `vmware-vdiskmanager.exe`, WSL, WSL `xorriso`, Mutagen 0.18.x, OpenSSH, ISO presence, and basic ISO shape. They print remediation commands or placement guidance, but do not download large binaries by default. To install the tested local Mutagen binary, preview first with `doctor -FixMutagen -Plan`, then run `doctor -FixMutagen`; the downloaded archive and extracted binary stay under ignored `.tools\mutagen`.
 
 Run non-destructive validation:
 
@@ -195,7 +196,7 @@ See [Workspaces](docs/workspaces.md) for target-project layout and ADP-OS dogfoo
 .\cli\adp.ps1 snapshot create <runtime> <name>
 .\cli\adp.ps1 restore <runtime> <name>
 .\cli\adp.ps1 logs <runtime>
-.\cli\adp.ps1 doctor [-FirstRun]
+.\cli\adp.ps1 doctor [-FirstRun] [-FixMutagen] [-Plan]
 .\cli\adp.ps1 destroy <runtime> [-Plan]
 ```
 
