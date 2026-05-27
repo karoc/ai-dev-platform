@@ -6,6 +6,14 @@ All notable public changes to AI Dev Platform OS are documented here.
 
 The project does not yet publish versioned releases. Entries are grouped by date until release tags are introduced.
 
+## 2026-05-28
+
+### Added
+
+- Added `configs/workspace.recipes.example.json` with copyable workspace recipes for low-risk maintenance, frontend browser acceptance, backend validation, and high-risk agent work with a snapshot-first gate.
+- Added CI and CLI smoke coverage for the workspace recipes manifest.
+- Documented the workspace recipes in English and Simplified Chinese README and workspace docs.
+
 ## 2026-05-27
 
 ### Added

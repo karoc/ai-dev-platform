@@ -130,6 +130,36 @@ Workspace task 是 ADP-OS 的第一个 agent-native workflow 入口。它会把 
 configs/workspace.example.json
 ```
 
+如果需要一组更完整、可复制的 workflow，可以使用 recipes manifest：
+
+```text
+configs/workspace.recipes.example.json
+```
+
+它包含四类常见 task：
+
+- `docs-copy-edit`：低风险文档或小型维护任务。
+- `frontend-browser-acceptance`：带 Playwright 浏览器验收验证的前端任务。
+- `backend-validation-pass`：带依赖同步、测试和 lint 验证的后端任务。
+- `broad-agent-refactor`：高风险 agent 任务，执行前必须先通过 snapshot-first gate。
+
+用非破坏性的方式查看 recipes，不会修改运行时、sync session、快照、文件或验证状态：
+
+```powershell
+.\cli\adp.ps1 workspace show -ManifestPath configs\workspace.recipes.example.json
+.\cli\adp.ps1 workspace plan -ManifestPath configs\workspace.recipes.example.json
+.\cli\adp.ps1 workspace dashboard -ManifestPath configs\workspace.recipes.example.json
+```
+
+使用 task-specific planning commands，让操作边界更明确：
+
+```powershell
+.\cli\adp.ps1 workspace task validate frontend-browser-acceptance -ManifestPath configs\workspace.recipes.example.json
+.\cli\adp.ps1 workspace task run broad-agent-refactor -ManifestPath configs\workspace.recipes.example.json
+```
+
+这些 recipes 只是示例。ADP-OS 会从 manifest 打印验证命令，但这些 workspace planning commands 不会安装 packages、下载浏览器 binary、运行 Playwright、运行 Python 工具、创建快照、恢复快照、stage 文件或 commit 改动。
+
 初始 manifest schema 有意保持精简：
 
 - `name`：workspace 名称。

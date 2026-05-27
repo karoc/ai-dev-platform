@@ -1,0 +1,84 @@
+{
+  "name": "recipe-workspace",
+  "version": 1,
+  "description": "Multi-scenario ADP workspace recipes for low-risk maintenance, frontend browser acceptance, backend validation, and high-risk agent work.",
+  "projects": [
+    {
+      "name": "frontend-app",
+      "path": "frontend-app",
+      "runtime": "frontend",
+      "sync": true,
+      "validation": [
+        "pnpm install",
+        "pnpm test",
+        "pnpm exec playwright test"
+      ]
+    },
+    {
+      "name": "backend-api",
+      "path": "backend-api",
+      "runtime": "backend",
+      "sync": true,
+      "validation": [
+        "uv sync",
+        "uv run pytest",
+        "uv run ruff check ."
+      ]
+    },
+    {
+      "name": "agent-workspace",
+      "path": "agent-workspace",
+      "runtime": "agent",
+      "sync": true,
+      "validation": [
+        "git status --short",
+        "pnpm test"
+      ]
+    }
+  ],
+  "tasks": [
+    {
+      "name": "docs-copy-edit",
+      "runtime": "agent",
+      "risk": "low",
+      "requires_snapshot": false,
+      "validation": [
+        "git diff --check",
+        "git status --short"
+      ]
+    },
+    {
+      "name": "frontend-browser-acceptance",
+      "runtime": "frontend",
+      "risk": "normal",
+      "requires_snapshot": false,
+      "validation": [
+        "pnpm install",
+        "pnpm exec playwright test"
+      ]
+    },
+    {
+      "name": "backend-validation-pass",
+      "runtime": "backend",
+      "risk": "normal",
+      "requires_snapshot": false,
+      "validation": [
+        "uv sync",
+        "uv run pytest",
+        "uv run ruff check ."
+      ]
+    },
+    {
+      "name": "broad-agent-refactor",
+      "runtime": "agent",
+      "risk": "high",
+      "requires_snapshot": true,
+      "snapshot": "before-broad-agent-refactor",
+      "validation": [
+        "git status --short",
+        "git diff --check",
+        "pnpm test"
+      ]
+    }
+  ]
+}

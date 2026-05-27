@@ -176,6 +176,16 @@ Examples:
 
 See [Workspaces](docs/workspaces.md) for target-project layout and ADP-OS dogfooding guidance.
 
+ADP-OS also includes a multi-scenario workspace recipes manifest for common agent-native workflows:
+
+```powershell
+.\cli\adp.ps1 workspace show -ManifestPath configs\workspace.recipes.example.json
+.\cli\adp.ps1 workspace plan -ManifestPath configs\workspace.recipes.example.json
+.\cli\adp.ps1 workspace dashboard -ManifestPath configs\workspace.recipes.example.json
+```
+
+The recipes cover low-risk maintenance, frontend browser acceptance, backend validation, and high-risk agent work with a snapshot-first gate. They are planning examples only; the workspace commands do not install packages, download browsers, create snapshots, run validation, or commit files.
+
 ## Command Reference
 
 ```powershell

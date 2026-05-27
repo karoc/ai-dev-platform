@@ -130,6 +130,36 @@ The public example lives at:
 configs/workspace.example.json
 ```
 
+For a fuller set of copyable workflows, use the recipes manifest:
+
+```text
+configs/workspace.recipes.example.json
+```
+
+It includes four common task shapes:
+
+- `docs-copy-edit`: a low-risk documentation or small maintenance task.
+- `frontend-browser-acceptance`: a frontend task with Playwright browser acceptance validation.
+- `backend-validation-pass`: a backend task with dependency sync, test, and lint validation.
+- `broad-agent-refactor`: a high-risk agent task that requires a snapshot-first gate before execution.
+
+Inspect the recipes without changing runtimes, sync sessions, snapshots, files, or validation state:
+
+```powershell
+.\cli\adp.ps1 workspace show -ManifestPath configs\workspace.recipes.example.json
+.\cli\adp.ps1 workspace plan -ManifestPath configs\workspace.recipes.example.json
+.\cli\adp.ps1 workspace dashboard -ManifestPath configs\workspace.recipes.example.json
+```
+
+Use task-specific planning commands to make the operating boundary explicit:
+
+```powershell
+.\cli\adp.ps1 workspace task validate frontend-browser-acceptance -ManifestPath configs\workspace.recipes.example.json
+.\cli\adp.ps1 workspace task run broad-agent-refactor -ManifestPath configs\workspace.recipes.example.json
+```
+
+These recipes are examples only. ADP-OS prints validation commands from the manifest but does not install packages, download browser binaries, run Playwright, run Python tools, create snapshots, restore snapshots, stage files, or commit changes through these workspace planning commands.
+
 The initial manifest schema is intentionally small:
 
 - `name`: workspace name.

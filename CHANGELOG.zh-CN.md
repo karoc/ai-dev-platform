@@ -6,6 +6,14 @@
 
 项目尚未发布版本化 release。在引入 release tags 前，变更按日期分组。
 
+## 2026-05-28
+
+### 新增
+
+- 新增 `configs/workspace.recipes.example.json`，提供可复制的 workspace recipes，覆盖低风险维护、frontend 浏览器验收、backend 验证，以及带 snapshot-first gate 的高风险 agent 工作。
+- 新增 workspace recipes manifest 的 CI 和 CLI smoke 覆盖。
+- 在英文和简体中文 README、workspace 文档中补充 workspace recipes 说明。
+
 ## 2026-05-27
 
 ### 新增

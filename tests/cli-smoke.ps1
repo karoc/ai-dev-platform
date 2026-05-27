@@ -136,6 +136,18 @@ Assert-Command `
     -Patterns @("Plan only: no projects will be cloned", "adp up agent -Plan", "adp snapshot create agent before-large-agent-task")
 
 Assert-Command `
+    -Name "workspace show recipes manifest" `
+    -Arguments @("workspace", "show", "-ManifestPath", "configs\workspace.recipes.example.json") `
+    -ExitCode 0 `
+    -Patterns @("Workspace: recipe-workspace", "frontend-app:\s+frontend-app -> frontend", "backend-api:\s+backend-api -> backend", "agent-workspace:\s+agent-workspace -> agent")
+
+Assert-Command `
+    -Name "workspace plan recipes manifest" `
+    -Arguments @("workspace", "plan", "-ManifestPath", "configs\workspace.recipes.example.json") `
+    -ExitCode 0 `
+    -Patterns @("Plan only: no projects will be cloned", "adp up frontend -Plan", "adp up backend -Plan", "adp up agent -Plan", "adp snapshot create agent before-broad-agent-refactor")
+
+Assert-Command `
     -Name "workspace status example manifest" `
     -Arguments @("workspace", "status", "-ManifestPath", "configs\workspace.example.json") `
     -ExitCode 0 `
@@ -146,6 +158,12 @@ Assert-Command `
     -Arguments @("workspace", "dashboard", "-ManifestPath", "configs\workspace.example.json") `
     -ExitCode 0 `
     -Patterns @("Workspace dashboard: example-project", "Dashboard only: no projects will be cloned", "Project readiness:", "Task lifecycle:", "snapshot required: True", "checkpoint:", "execution:", "rollback:", "commit:")
+
+Assert-Command `
+    -Name "workspace dashboard recipes manifest" `
+    -Arguments @("workspace", "dashboard", "-ManifestPath", "configs\workspace.recipes.example.json") `
+    -ExitCode 0 `
+    -Patterns @("Workspace dashboard: recipe-workspace", "frontend-browser-acceptance", "backend-validation-pass", "broad-agent-refactor", "snapshot required: True", "execution: blocked by snapshot gate")
 
 Assert-Command `
     -Name "workspace task prepare" `
@@ -170,6 +188,18 @@ Assert-Command `
     -Arguments @("workspace", "task", "validate", "before-large-agent-task", "-ManifestPath", "configs\workspace.example.json") `
     -ExitCode 0 `
     -Patterns @("Workspace task validate: before-large-agent-task", "Validation plan:", "git status --short", "pnpm test")
+
+Assert-Command `
+    -Name "workspace task validate frontend browser recipe" `
+    -Arguments @("workspace", "task", "validate", "frontend-browser-acceptance", "-ManifestPath", "configs\workspace.recipes.example.json") `
+    -ExitCode 0 `
+    -Patterns @("Workspace task validate: frontend-browser-acceptance", "Validation plan:", "pnpm install", "pnpm exec playwright test")
+
+Assert-Command `
+    -Name "workspace task run broad agent recipe" `
+    -Arguments @("workspace", "task", "run", "broad-agent-refactor", "-ManifestPath", "configs\workspace.recipes.example.json") `
+    -ExitCode 0 `
+    -Patterns @("Workspace task run: broad-agent-refactor", "Snapshot-first gate before broad agent work", "BLOCKED: create checkpoint first", "adp snapshot create agent before-broad-agent-refactor")
 
 Assert-Command `
     -Name "workspace task review" `

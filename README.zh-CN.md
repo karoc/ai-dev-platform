@@ -176,6 +176,16 @@ git clone <project-url> my-project
 
 目标项目布局和 ADP-OS dogfooding 指南见[工作区](docs/zh-CN/workspaces.md)。
 
+ADP-OS 还提供一个多场景 workspace recipes manifest，用于常见 agent-native workflow：
+
+```powershell
+.\cli\adp.ps1 workspace show -ManifestPath configs\workspace.recipes.example.json
+.\cli\adp.ps1 workspace plan -ManifestPath configs\workspace.recipes.example.json
+.\cli\adp.ps1 workspace dashboard -ManifestPath configs\workspace.recipes.example.json
+```
+
+这些 recipes 覆盖低风险维护、frontend 浏览器验收、backend 验证，以及带 snapshot-first gate 的高风险 agent 工作。它们只是 planning examples；workspace 命令不会安装 packages、下载浏览器、创建快照、运行验证或 commit 文件。
+
 ## 命令参考
 
 ```powershell
