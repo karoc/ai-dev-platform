@@ -46,6 +46,52 @@ VM 中会看到：
 .\cli\adp.ps1 snapshot create agent before-large-agent-task
 ```
 
+## Workspace Manifest
+
+ADP-OS 可以用一个轻量的 workspace manifest 记录目标项目。这个 manifest 会记录项目路径、期望运行时、同步意图、验证命令和任务快照名称。
+
+从公开示例创建 manifest：
+
+```powershell
+.\cli\adp.ps1 workspace init
+```
+
+如果当前平台 checkout 中还没有 `adp-workspace.json`，该命令会创建一个。平台仓库会忽略这个生成文件，避免本地实验内容被误提交。如果你在自己的应用仓库中使用类似 manifest，是否提交应由该应用仓库自己决定。
+
+查看 manifest：
+
+```powershell
+.\cli\adp.ps1 workspace show
+```
+
+预览建议的运行时、同步、快照和验证流程：
+
+```powershell
+.\cli\adp.ps1 workspace plan
+```
+
+`workspace plan` 有意保持非破坏性：它不会 clone 项目、启动或停止 VM、修改 Mutagen session、创建快照，也不会运行验证命令。它只会把 manifest 转换成操作计划。
+
+公开示例位于：
+
+```text
+configs/workspace.example.json
+```
+
+初始 manifest schema 有意保持精简：
+
+- `name`：workspace 名称。
+- `version`：manifest 格式版本。
+- `description`：可选的人类可读说明。
+- `projects`：映射到 ADP 运行时的目标项目。
+- `projects[].path`：相对于 workspace root 的项目路径。
+- `projects[].runtime`：`frontend`、`backend` 或 `agent`。
+- `projects[].sync`：该项目是否预期使用 ADP sync。
+- `projects[].validation`：人类或 agent 应为项目运行的验证命令。
+- `tasks`：可选的具名任务计划。
+- `tasks[].snapshot`：任务开始前建议创建的快照名称。
+- `tasks[].validation`：进入 review 或 commit 前预期运行的验证命令。
+
 ## Dogfooding ADP-OS
 
 使用 ADP-OS 开发 ADP-OS 自身时，建议使用单独的 workspace clone，而不是直接使用维护用 checkout：

@@ -42,6 +42,7 @@ jobs:
           Get-Content configs\topology.json -Raw | ConvertFrom-Json | Out-Null
           Get-Content configs\sync-profiles.json -Raw | ConvertFrom-Json | Out-Null
           Get-Content configs\local.example.json -Raw | ConvertFrom-Json | Out-Null
+          Get-Content configs\workspace.example.json -Raw | ConvertFrom-Json | Out-Null
 
       - name: Check CLI parameter contracts
         shell: pwsh

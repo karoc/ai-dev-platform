@@ -46,6 +46,52 @@ The `agent` runtime is intentionally larger and higher-IO than the other profile
 .\cli\adp.ps1 snapshot create agent before-large-agent-task
 ```
 
+## Workspace Manifest
+
+ADP-OS can keep a lightweight workspace manifest for target projects. The manifest records project paths, the intended runtime, sync intent, validation commands, and task snapshot names.
+
+Create one from the public example:
+
+```powershell
+.\cli\adp.ps1 workspace init
+```
+
+This creates `adp-workspace.json` in the current platform checkout if it does not already exist. The platform repository ignores that generated file so local experiments do not get committed by accident. If you use a similar manifest inside your own application repository, decide there whether it should be committed.
+
+Inspect the manifest:
+
+```powershell
+.\cli\adp.ps1 workspace show
+```
+
+Preview the suggested runtime, sync, snapshot, and validation flow:
+
+```powershell
+.\cli\adp.ps1 workspace plan
+```
+
+`workspace plan` is intentionally non-destructive: it does not clone projects, start or stop VMs, change Mutagen sessions, create snapshots, or run validation commands. It only turns the manifest into an operating plan.
+
+The public example lives at:
+
+```text
+configs/workspace.example.json
+```
+
+The initial manifest schema is intentionally small:
+
+- `name`: workspace name.
+- `version`: manifest format version.
+- `description`: optional human-readable summary.
+- `projects`: target projects mapped to ADP runtimes.
+- `projects[].path`: project path relative to the workspace root.
+- `projects[].runtime`: `frontend`, `backend`, or `agent`.
+- `projects[].sync`: whether the project is expected to use ADP sync.
+- `projects[].validation`: commands a human or agent should run for the project.
+- `tasks`: optional named task plans.
+- `tasks[].snapshot`: recommended snapshot name before starting the task.
+- `tasks[].validation`: commands expected before review or commit.
+
 ## Dogfooding ADP-OS
 
 When using ADP-OS to develop ADP-OS itself, prefer a separate workspace clone instead of the maintainer checkout:

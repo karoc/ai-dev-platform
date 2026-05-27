@@ -182,6 +182,9 @@ git clone <project-url> my-project
 .\cli\adp.ps1 up <frontend|backend|agent> [-IsoPath <path>] [-Plan] [-NoProvision] [-NoBootstrap]
 .\cli\adp.ps1 stop <frontend|backend|agent>
 .\cli\adp.ps1 sync status
+.\cli\adp.ps1 workspace init
+.\cli\adp.ps1 workspace show
+.\cli\adp.ps1 workspace plan
 .\cli\adp.ps1 sync start <frontend|backend|agent>
 .\cli\adp.ps1 sync stop <frontend|backend|agent>
 .\cli\adp.ps1 network apply <frontend|backend|agent|all> [-Plan]

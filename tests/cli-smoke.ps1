@@ -106,6 +106,41 @@ Assert-Command `
     -Patterns @("Unknown runtime: not-a-runtime", "frontend, backend, agent")
 
 Assert-Command `
+    -Name "workspace show example manifest" `
+    -Arguments @("workspace", "show", "-ManifestPath", "configs\workspace.example.json") `
+    -ExitCode 0 `
+    -Patterns @("Workspace: example-project", "Projects:", "app:\s+app -> agent")
+
+Assert-Command `
+    -Name "workspace plan example manifest" `
+    -Arguments @("workspace", "plan", "-ManifestPath", "configs\workspace.example.json") `
+    -ExitCode 0 `
+    -Patterns @("Plan only: no projects will be cloned", "adp up agent -Plan", "adp snapshot create agent before-large-agent-task")
+
+Assert-Command `
+    -Name "workspace unknown subcommand" `
+    -Arguments @("workspace", "nope", "-ManifestPath", "configs\workspace.example.json") `
+    -ExitCode 1 `
+    -Patterns @("Unknown workspace command: nope", "Valid: init, show, plan")
+
+$workspaceManifest = Join-Path ([System.IO.Path]::GetTempPath()) ("adp-workspace-test-{0}.json" -f ([guid]::NewGuid().ToString("N")))
+try {
+    Assert-Command `
+        -Name "workspace init temp manifest" `
+        -Arguments @("workspace", "init", "-ManifestPath", $workspaceManifest) `
+        -ExitCode 0 `
+        -Patterns @("Workspace manifest created:", "Edit project paths")
+
+    if (-not (Test-Path -LiteralPath $workspaceManifest)) {
+        throw "workspace init did not create manifest: $workspaceManifest"
+    }
+
+    Get-Content -LiteralPath $workspaceManifest -Raw | ConvertFrom-Json | Out-Null
+} finally {
+    Remove-Item -LiteralPath $workspaceManifest -Force -ErrorAction SilentlyContinue
+}
+
+Assert-Command `
     -Name "logs unknown runtime" `
     -Arguments @("logs", "not-a-runtime") `
     -ExitCode 1 `

@@ -13,6 +13,7 @@
 - 新增 CLI 参数契约 CI 验证，用于检查已接收的开关是否贯通到实际执行路径。
 - 新增非破坏性 CLI smoke tests，覆盖命令分发、预览输出和输入错误边界。
 - 新增更强的首次使用依赖诊断，覆盖 VMware disk manager、WSL、`xorriso`、ISO remaster、Mutagen 版本和 ISO 基本形态。
+- 新增 workspace manifest 示例，以及非破坏性的 `adp workspace init/show/plan` 命令。
 - 新增 `adp doctor -FirstRun`，提供首次使用检查清单。
 - 新增 `adp up`、`adp network apply` 和 `adp destroy` 的 `-Plan` 预览。
 - 新增公开 `SECURITY.md` 和 `SECURITY.zh-CN.md`。

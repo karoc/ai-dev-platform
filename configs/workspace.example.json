@@ -1,0 +1,28 @@
+{
+  "name": "example-project",
+  "version": 1,
+  "description": "Example ADP workspace manifest for mapping a target project to runtimes and validation.",
+  "projects": [
+    {
+      "name": "app",
+      "path": "app",
+      "runtime": "agent",
+      "sync": true,
+      "validation": [
+        "pnpm test",
+        "pnpm exec playwright test"
+      ]
+    }
+  ],
+  "tasks": [
+    {
+      "name": "before-large-agent-task",
+      "runtime": "agent",
+      "snapshot": "before-large-agent-task",
+      "validation": [
+        "git status --short",
+        "pnpm test"
+      ]
+    }
+  ]
+}
