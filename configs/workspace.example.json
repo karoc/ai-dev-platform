@@ -18,6 +18,8 @@
     {
       "name": "before-large-agent-task",
       "runtime": "agent",
+      "risk": "high",
+      "requires_snapshot": true,
       "snapshot": "before-large-agent-task",
       "validation": [
         "git status --short",

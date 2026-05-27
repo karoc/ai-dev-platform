@@ -121,13 +121,13 @@ Assert-Command `
     -Name "workspace status example manifest" `
     -Arguments @("workspace", "status", "-ManifestPath", "configs\workspace.example.json") `
     -ExitCode 0 `
-    -Patterns @("Workspace readiness: example-project", "Status only: no projects will be cloned", "Manifest:", "Projects:", "runtime agent", "validation commands")
+    -Patterns @("Workspace readiness: example-project", "Status only: no projects will be cloned", "Manifest:", "Projects:", "runtime agent", "risk \(high; requires snapshot: True\)", "snapshot-first gate", "validation commands")
 
 Assert-Command `
     -Name "workspace dashboard example manifest" `
     -Arguments @("workspace", "dashboard", "-ManifestPath", "configs\workspace.example.json") `
     -ExitCode 0 `
-    -Patterns @("Workspace dashboard: example-project", "Dashboard only: no projects will be cloned", "Project readiness:", "Task lifecycle:", "execution:", "rollback:", "commit:")
+    -Patterns @("Workspace dashboard: example-project", "Dashboard only: no projects will be cloned", "Project readiness:", "Task lifecycle:", "snapshot required: True", "checkpoint:", "execution:", "rollback:", "commit:")
 
 Assert-Command `
     -Name "workspace task prepare" `
@@ -139,13 +139,13 @@ Assert-Command `
     -Name "workspace task snapshot" `
     -Arguments @("workspace", "task", "snapshot", "before-large-agent-task", "-ManifestPath", "configs\workspace.example.json") `
     -ExitCode 0 `
-    -Patterns @("Workspace task snapshot: before-large-agent-task", "Checkpoint:", "adp snapshot create agent before-large-agent-task")
+    -Patterns @("Workspace task snapshot: before-large-agent-task", "Risk:\s+high", "Snapshot required:\s+True", "Checkpoint:", "snapshot-first gate", "adp snapshot create agent before-large-agent-task")
 
 Assert-Command `
     -Name "workspace task run" `
     -Arguments @("workspace", "task", "run", "before-large-agent-task", "-ManifestPath", "configs\workspace.example.json") `
     -ExitCode 0 `
-    -Patterns @("Workspace task run: before-large-agent-task", "Execution boundary:", "ssh adp-os-adp-agent", "Run the agent or task command manually")
+    -Patterns @("Workspace task run: before-large-agent-task", "Execution boundary:", "Snapshot-first gate before broad agent work", "adp workspace task mark before-large-agent-task checkpointed", "ssh adp-os-adp-agent", "Run the agent or task command manually")
 
 Assert-Command `
     -Name "workspace task validate" `
@@ -157,7 +157,7 @@ Assert-Command `
     -Name "workspace task review" `
     -Arguments @("workspace", "task", "review", "before-large-agent-task", "-ManifestPath", "configs\workspace.example.json") `
     -ExitCode 0 `
-    -Patterns @("Workspace task review: before-large-agent-task", "Human review bundle:", "rollback, revise, or commit")
+    -Patterns @("Workspace task review: before-large-agent-task", "Human review bundle:", "snapshot-first gate is ready", "rollback, revise, or commit")
 
 Assert-Command `
     -Name "workspace task rollback" `
@@ -196,6 +196,43 @@ try {
         -Patterns @("Workspace dashboard: example-project", "state: prepared at", "before-large-agent-task")
 } finally {
     Remove-Item -LiteralPath $workspaceState -Force -ErrorAction SilentlyContinue
+}
+
+$snapshotGateManifest = Join-Path ([System.IO.Path]::GetTempPath()) ("adp-workspace-snapshot-gate-{0}.json" -f ([guid]::NewGuid().ToString("N")))
+$snapshotName = "adp-test-missing-snapshot-$([guid]::NewGuid().ToString("N"))"
+try {
+    @"
+{
+  "name": "snapshot-gate-workspace",
+  "version": 1,
+  "tasks": [
+    {
+      "name": "risky-agent-task",
+      "runtime": "agent",
+      "risk": "high",
+      "requires_snapshot": true,
+      "snapshot": "$snapshotName",
+      "validation": [
+        "git status --short"
+      ]
+    }
+  ]
+}
+"@ | Set-Content -LiteralPath $snapshotGateManifest -Encoding utf8
+
+    Assert-Command `
+        -Name "workspace dashboard blocks missing high-risk snapshot" `
+        -Arguments @("workspace", "dashboard", "-ManifestPath", $snapshotGateManifest) `
+        -ExitCode 0 `
+        -Patterns @("Workspace dashboard: snapshot-gate-workspace", "snapshot required: True", "checkpoint: blocked", "execution: blocked by snapshot gate")
+
+    Assert-Command `
+        -Name "workspace task run blocks missing high-risk snapshot" `
+        -Arguments @("workspace", "task", "run", "risky-agent-task", "-ManifestPath", $snapshotGateManifest) `
+        -ExitCode 0 `
+        -Patterns @("Workspace task run: risky-agent-task", "Snapshot-first gate before broad agent work", "BLOCKED: create checkpoint first", "adp snapshot create agent $snapshotName")
+} finally {
+    Remove-Item -LiteralPath $snapshotGateManifest -Force -ErrorAction SilentlyContinue
 }
 
 Assert-Command `

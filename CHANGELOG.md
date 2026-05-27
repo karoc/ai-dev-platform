@@ -17,6 +17,7 @@ The project does not yet publish versioned releases. Entries are grouped by date
 - Added non-destructive `adp workspace status` readiness output for manifest projects, runtimes, sync, snapshots, and validation commands.
 - Added non-destructive `adp workspace dashboard` rollups for project readiness and task lifecycle state.
 - Added ignored local `adp-workspace.state.json` lifecycle state recording through `adp workspace task mark`.
+- Added snapshot-first task gating for high-risk workspace tasks through `tasks[].risk` and `tasks[].requires_snapshot`.
 - Added plan-only workspace task lifecycle commands: `prepare`, `snapshot`, `validate`, and `review`.
 - Extended plan-only workspace task lifecycle boundaries with `run`, `rollback`, and `commit`.
 - Added `adp doctor -FirstRun` for first-run checklist guidance.

@@ -80,6 +80,8 @@ Check workspace readiness:
 
 `workspace status` is also non-destructive. It reports whether the manifest is loaded, project paths exist, configured runtimes are known and created, expected sync sessions are present, task snapshots already exist or are recommended, and validation commands are declared. It does not create directories, start sync, create snapshots, or run validation commands.
 
+For task entries that declare `requires_snapshot: true` or a high-risk `risk` value, `workspace status` also shows a snapshot-first gate. The gate is informational and non-destructive, but it should be treated as a hard operating boundary before broad agent work.
+
 View the workspace dashboard:
 
 ```powershell
@@ -87,6 +89,8 @@ View the workspace dashboard:
 ```
 
 `workspace dashboard` is a non-destructive rollup. It summarizes project readiness and task lifecycle state in one place, including path, runtime, sync, checkpoint, execution, validation, review, rollback, and commit gates. It does not run Git commands, validation commands, sync commands, snapshot commands, or runtime commands.
+
+For high-risk tasks, the dashboard marks execution as blocked by the snapshot gate until the configured checkpoint exists. This makes rollback readiness visible before an agent starts large, uncertain, or destructive work.
 
 ## Task Lifecycle
 
@@ -105,10 +109,10 @@ Workspace tasks are the first agent-native workflow surface in ADP-OS. They turn
 The task lifecycle commands are plan-only. They do not start runtimes, change sync sessions, create snapshots, run Git commands, or run validation commands. They print the exact commands and review checklist a human or agent should use next.
 
 - `prepare`: summarizes the task and prints the readiness, runtime, sync, checkpoint, and validation preparation flow.
-- `snapshot`: checks whether the recommended snapshot exists and prints the explicit snapshot command to run when ready.
-- `run`: prints the explicit execution boundary for readiness, checkpoint, runtime entry, manual agent execution, validation, and review handoff.
+- `snapshot`: checks whether the recommended snapshot exists, evaluates the snapshot-first gate, and prints the explicit snapshot command to run when ready.
+- `run`: prints the explicit execution boundary for readiness, snapshot-first gating, runtime entry, manual agent execution, validation, and review handoff.
 - `validate`: prints the task validation commands from the manifest.
-- `review`: prints a human review bundle for readiness, checkpoint, validation, source diff inspection, and final rollback/revise/commit decision.
+- `review`: prints a human review bundle for readiness, checkpoint, validation, source diff inspection, and final rollback/revise/commit decision. Tasks that require snapshots should not be accepted until the checkpoint gate is ready or explicitly waived outside ADP-OS.
 - `rollback`: prints the VM snapshot restore command and separate Git source rollback checks without running them.
 - `commit`: prints the review, validation, diff inspection, staging, and commit boundary without staging or committing files.
 
@@ -137,6 +141,8 @@ The initial manifest schema is intentionally small:
 - `projects[].sync`: whether the project is expected to use ADP sync.
 - `projects[].validation`: commands a human or agent should run for the project.
 - `tasks`: optional named task plans.
+- `tasks[].risk`: optional task risk marker. `high`, `broad`, `destructive`, and `uncertain` imply snapshot-first gating unless overridden.
+- `tasks[].requires_snapshot`: optional boolean that explicitly requires a snapshot-first gate before execution.
 - `tasks[].snapshot`: recommended snapshot name before starting the task.
 - `tasks[].validation`: commands expected before review or commit.
 

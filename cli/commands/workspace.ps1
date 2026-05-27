@@ -108,6 +108,73 @@ function Get-WorkspaceTaskState {
     return $null
 }
 
+function Get-WorkspaceTaskRisk {
+    param([object]$Task)
+
+    if ($Task.PSObject.Properties.Name -contains "risk" -and -not [string]::IsNullOrWhiteSpace([string]$Task.risk)) {
+        return ([string]$Task.risk).ToLowerInvariant()
+    }
+
+    return "normal"
+}
+
+function Test-WorkspaceTaskRequiresSnapshot {
+    param([object]$Task)
+
+    if ($Task.PSObject.Properties.Name -contains "requires_snapshot") {
+        return [bool]$Task.requires_snapshot
+    }
+
+    $risk = Get-WorkspaceTaskRisk -Task $Task
+    return ($risk -in @("high", "broad", "destructive", "uncertain"))
+}
+
+function Get-WorkspaceSnapshotGate {
+    param(
+        [object]$Task,
+        [object]$SnapshotStatus = $null
+    )
+
+    $requiresSnapshot = Test-WorkspaceTaskRequiresSnapshot -Task $Task
+    if (-not $requiresSnapshot) {
+        return [pscustomobject]@{
+            Level    = "INFO"
+            Status   = "optional"
+            Detail   = "task does not require a snapshot gate"
+            Blocking = $false
+        }
+    }
+
+    if ([string]::IsNullOrWhiteSpace([string]$Task.runtime) -or [string]::IsNullOrWhiteSpace([string]$Task.snapshot)) {
+        return [pscustomobject]@{
+            Level    = "FAIL"
+            Status   = "blocked"
+            Detail   = "set tasks[].runtime and tasks[].snapshot"
+            Blocking = $true
+        }
+    }
+
+    if ($null -eq $SnapshotStatus) {
+        $SnapshotStatus = Get-WorkspaceSnapshotStatus -RuntimeName $Task.runtime -SnapshotName $Task.snapshot
+    }
+
+    if ($SnapshotStatus.Level -eq "OK") {
+        return [pscustomobject]@{
+            Level    = "OK"
+            Status   = "ready"
+            Detail   = "checkpoint present: $($Task.snapshot)"
+            Blocking = $false
+        }
+    }
+
+    return [pscustomobject]@{
+        Level    = "WARN"
+        Status   = "blocked"
+        Detail   = "create checkpoint first: adp snapshot create $($Task.runtime) $($Task.snapshot)"
+        Blocking = $true
+    }
+}
+
 function Set-WorkspaceTaskState {
     param(
         [object]$State,
@@ -469,8 +536,13 @@ function Write-WorkspaceStatus {
         foreach ($task in $tasks) {
             $taskName = if ($task.name) { $task.name } else { "(unnamed)" }
             Write-Host "  - $taskName" -ForegroundColor DarkGray
+            $risk = Get-WorkspaceTaskRisk -Task $task
+            $requiresSnapshot = Test-WorkspaceTaskRequiresSnapshot -Task $task
+            Write-WorkspaceCheck -Level "INFO" -Name "risk" -Detail "($risk; requires snapshot: $requiresSnapshot)"
             $snapshotStatus = Get-WorkspaceSnapshotStatus -RuntimeName $task.runtime -SnapshotName $task.snapshot
             Write-WorkspaceCheck -Level $snapshotStatus.Level -Name "snapshot" -Detail "($($snapshotStatus.Status)$(if ($snapshotStatus.Detail) { ': ' + $snapshotStatus.Detail }))"
+            $snapshotGate = Get-WorkspaceSnapshotGate -Task $task -SnapshotStatus $snapshotStatus
+            Write-WorkspaceCheck -Level $snapshotGate.Level -Name "snapshot-first gate" -Detail "($($snapshotGate.Status): $($snapshotGate.Detail))"
 
             $validationCommands = Get-WorkspaceArray $task.validation
             if ($validationCommands.Count -gt 0) {
@@ -558,11 +630,14 @@ function Write-WorkspaceDashboard {
         $taskName = if ($task.name) { $task.name } else { "(unnamed)" }
         $runtimeStatus = Get-WorkspaceRuntimeStatus -RuntimeName $task.runtime
         $snapshotStatus = Get-WorkspaceSnapshotStatus -RuntimeName $task.runtime -SnapshotName $task.snapshot
+        $snapshotGate = Get-WorkspaceSnapshotGate -Task $task -SnapshotStatus $snapshotStatus
         $validationCommands = Get-WorkspaceArray $task.validation
         $validationLevel = if ($validationCommands.Count -gt 0) { "OK" } else { "WARN" }
-        $taskLevel = Select-WorstWorkspaceLevel -Levels @($runtimeStatus.Level, $snapshotStatus.Level, $validationLevel)
+        $taskLevel = Select-WorstWorkspaceLevel -Levels @($runtimeStatus.Level, $snapshotStatus.Level, $snapshotGate.Level, $validationLevel)
 
-        $executionState = if ($runtimeStatus.Level -eq "OK" -and $snapshotStatus.Level -eq "OK" -and $validationCommands.Count -gt 0) {
+        $executionState = if ($snapshotGate.Blocking) {
+            "blocked by snapshot gate"
+        } elseif ($runtimeStatus.Level -eq "OK" -and $snapshotStatus.Level -eq "OK" -and $validationCommands.Count -gt 0) {
             "ready"
         } elseif ($runtimeStatus.Level -eq "FAIL" -or $validationCommands.Count -eq 0) {
             "blocked"
@@ -571,6 +646,8 @@ function Write-WorkspaceDashboard {
         }
         $rollbackState = if ($task.runtime -and $task.snapshot) { $snapshotStatus.Status } else { "not configured" }
         $commitState = if ($validationCommands.Count -gt 0) { "review gated" } else { "blocked" }
+        $risk = Get-WorkspaceTaskRisk -Task $task
+        $requiresSnapshot = Test-WorkspaceTaskRequiresSnapshot -Task $task
         $recordedState = Get-WorkspaceTaskState -State $state -TaskName $taskName
         $recordedStateTime = if ($recordedState -and $recordedState.updated_at -is [datetime]) {
             $recordedState.updated_at.ToUniversalTime().ToString("o")
@@ -581,7 +658,7 @@ function Write-WorkspaceDashboard {
         }
         $recordedStateText = if ($recordedState) { "$($recordedState.state) at $recordedStateTime" } else { "not recorded" }
 
-        Write-WorkspaceCheck -Level $taskLevel -Name $taskName -Detail "(state: $recordedStateText; runtime: $($runtimeStatus.Status); checkpoint: $($snapshotStatus.Status); execution: $executionState; validation: $($validationCommands.Count); review: gated; rollback: $rollbackState; commit: $commitState)"
+        Write-WorkspaceCheck -Level $taskLevel -Name $taskName -Detail "(state: $recordedStateText; risk: $risk; snapshot required: $requiresSnapshot; checkpoint: $($snapshotGate.Status); runtime: $($runtimeStatus.Status); execution: $executionState; validation: $($validationCommands.Count); review: gated; rollback: $rollbackState; commit: $commitState)"
         Write-Host "      prepare: adp workspace task prepare $taskName -ManifestPath $ManifestPath" -ForegroundColor DarkGray
         Write-Host "      run:     adp workspace task run $taskName -ManifestPath $ManifestPath" -ForegroundColor DarkGray
         Write-Host "      review:  adp workspace task review $taskName -ManifestPath $ManifestPath" -ForegroundColor DarkGray
@@ -627,10 +704,14 @@ function Write-TaskSummary {
 
     $runtime = if ($Task.runtime) { $Task.runtime } else { "not configured" }
     $snapshot = if ($Task.snapshot) { $Task.snapshot } else { "not configured" }
+    $risk = Get-WorkspaceTaskRisk -Task $Task
+    $requiresSnapshot = Test-WorkspaceTaskRequiresSnapshot -Task $Task
 
     Write-Host "Task:" -ForegroundColor Yellow
     Write-Host "  Name:      $($Task.name)" -ForegroundColor DarkGray
     Write-Host "  Runtime:   $runtime" -ForegroundColor DarkGray
+    Write-Host "  Risk:      $risk" -ForegroundColor DarkGray
+    Write-Host "  Snapshot required: $requiresSnapshot" -ForegroundColor DarkGray
     Write-Host "  Snapshot:  $snapshot" -ForegroundColor DarkGray
 
     $validationCommands = Get-WorkspaceArray $Task.validation
@@ -682,9 +763,11 @@ function Write-WorkspaceTaskSnapshot {
     Write-TaskSummary -Task $Task
 
     $snapshotStatus = Get-WorkspaceSnapshotStatus -RuntimeName $Task.runtime -SnapshotName $Task.snapshot
+    $snapshotGate = Get-WorkspaceSnapshotGate -Task $Task -SnapshotStatus $snapshotStatus
     Write-Host ""
     Write-Host "Checkpoint:" -ForegroundColor Yellow
     Write-WorkspaceCheck -Level $snapshotStatus.Level -Name "snapshot" -Detail "($($snapshotStatus.Status)$(if ($snapshotStatus.Detail) { ': ' + $snapshotStatus.Detail }))"
+    Write-WorkspaceCheck -Level $snapshotGate.Level -Name "snapshot-first gate" -Detail "($($snapshotGate.Status): $($snapshotGate.Detail))"
 
     if ($Task.runtime -and $Task.snapshot) {
         Write-Host ""
@@ -732,9 +815,17 @@ function Write-WorkspaceTaskRun {
     Write-Host "  1. Confirm readiness:" -ForegroundColor DarkGray
     Write-Host "     adp workspace status -ManifestPath $ManifestPath" -ForegroundColor DarkGray
 
+    $snapshotStatus = Get-WorkspaceSnapshotStatus -RuntimeName $Task.runtime -SnapshotName $Task.snapshot
+    $snapshotGate = Get-WorkspaceSnapshotGate -Task $Task -SnapshotStatus $snapshotStatus
     if ($Task.runtime -and $Task.snapshot) {
-        Write-Host "  2. Confirm checkpoint plan before broad agent work:" -ForegroundColor DarkGray
+        Write-Host "  2. Snapshot-first gate before broad agent work:" -ForegroundColor DarkGray
         Write-Host "     adp workspace task snapshot $($Task.name) -ManifestPath $ManifestPath" -ForegroundColor DarkGray
+        if ($snapshotGate.Blocking) {
+            Write-Host "     BLOCKED: $($snapshotGate.Detail)" -ForegroundColor Yellow
+        } else {
+            Write-Host "     READY: $($snapshotGate.Detail)" -ForegroundColor DarkGray
+        }
+        Write-Host "     adp workspace task mark $($Task.name) checkpointed" -ForegroundColor DarkGray
     } else {
         Write-Host "  2. Add tasks[].runtime and tasks[].snapshot before using rollback-capable agent task execution." -ForegroundColor DarkGray
     }
@@ -770,6 +861,9 @@ function Write-WorkspaceTaskReview {
     Write-Host "     adp workspace status -ManifestPath $ManifestPath" -ForegroundColor DarkGray
     Write-Host "  2. Confirm checkpoint state:" -ForegroundColor DarkGray
     Write-Host "     adp workspace task snapshot $($Task.name) -ManifestPath $ManifestPath" -ForegroundColor DarkGray
+    if (Test-WorkspaceTaskRequiresSnapshot -Task $Task) {
+        Write-Host "     Review should not accept broad agent work until the snapshot-first gate is ready or explicitly waived outside ADP-OS." -ForegroundColor DarkGray
+    }
     Write-Host "  3. Run or inspect validation commands:" -ForegroundColor DarkGray
     Write-Host "     adp workspace task validate $($Task.name) -ManifestPath $ManifestPath" -ForegroundColor DarkGray
     Write-Host "  4. Inspect source changes in the target project:" -ForegroundColor DarkGray
