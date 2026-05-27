@@ -32,6 +32,7 @@ $logs = Read-Text "cli\commands\logs.ps1"
 $sync = Read-Text "cli\commands\sync.ps1"
 
 Assert-Contains -Name "CLI help defined before use" -Text $cli -Pattern 'function\s+Show-Help[\s\S]*if\s*\(-not\s+\$Command\s+-or\s+\$Command\s+-eq\s+"help"\)'
+Assert-Contains -Name "CLI propagates command exit codes" -Text $cli -Pattern 'Invoke-CommandFile[\s\S]*if\s*\(\$LASTEXITCODE\)\s*\{[\s\S]*exit\s+\$LASTEXITCODE'
 Assert-Contains -Name "up -IsoPath propagation" -Text $up -Pattern 'New-RuntimeVM[\s\S]*-IsoPath\s+\$IsoPath'
 Assert-Contains -Name "vm factory IsoPath parameter" -Text $factory -Pattern 'function\s+New-RuntimeVM[\s\S]*\[string\]\$IsoPath'
 Assert-Contains -Name "vm factory IsoPath resolution" -Text $factory -Pattern '\$resolvedIsoPath\s*=\s*if\s*\(\$IsoPath\)'

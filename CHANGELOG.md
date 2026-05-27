@@ -11,6 +11,7 @@ The project does not yet publish versioned releases. Entries are grouped by date
 ### Added
 
 - Added CI validation for CLI parameter contracts so accepted switches are checked against their execution paths.
+- Added non-destructive CLI smoke tests for command dispatch, preview output, and input error boundaries.
 - Added `adp doctor -FirstRun` for first-run checklist guidance.
 - Added `-Plan` previews for `adp up`, `adp network apply`, and `adp destroy`.
 - Added public `SECURITY.md` and `SECURITY.zh-CN.md`.
@@ -32,6 +33,8 @@ The project does not yet publish versioned releases. Entries are grouped by date
 
 - Fixed `adp init <runtime> -SkipProvision` so it now propagates to `adp up -NoProvision` instead of only skipping bootstrap.
 - Fixed `adp up <runtime> -NoProvision` so it stops after VM definition creation instead of continuing into bootstrap readiness checks.
+- Updated `adp up <runtime> -Plan` so preview output can run without VMware installed when no VM status lookup is needed.
+- Fixed CLI process exit code propagation from subcommands so automation and CI can detect command failures.
 - Fixed `adp help` so help is defined before the CLI dispatch path calls it.
 - Fixed nested command logging so command-to-command execution does not fail when log level state is looked up.
 - Fixed `adp logs`, `adp sync start`, and `adp sync stop` to reject unknown runtime names at the command boundary.

@@ -29,9 +29,12 @@ All checks passed. Platform is healthy.
 运行集成检查：
 
 ```powershell
+.\tests\cli-smoke.ps1
 .\test-integration.ps1
 .\deploy-check.ps1
 ```
+
+`cli-smoke.ps1` 会检查命令分发、非破坏性预览和输入错误边界。它不会创建、启动、停止、同步或销毁 VM。
 
 Installer 排障开关：
 

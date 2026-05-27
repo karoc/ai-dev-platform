@@ -23,8 +23,6 @@ if (-not (Test-RuntimeExists $RuntimeName)) {
 
 Write-InfoLog -Message "adp up $RuntimeName (Phase 2)" -Component "cli.up"
 
-Initialize-VMware | Out-Null
-
 $rt = Get-RuntimeConfig $RuntimeName
 $config = Get-PlatformConfig
 $vmStore = Resolve-Path "vm_store"
@@ -111,7 +109,15 @@ if ($Plan) {
     $isoName = if ($config.defaults.iso_path) { $config.defaults.iso_path } else { $config.defaults.ubuntu_iso }
     $plannedIsoPath = if ($IsoPath) { $IsoPath } else { Join-Path $isoCache $isoName }
     $exists = Test-Path $vmxPath
-    $status = if ($exists) { Get-VMStatus $vmxPath } else { "not-created" }
+    $status = "not-created"
+    if ($exists) {
+        if (Test-VMwareAvailable) {
+            Initialize-VMware | Out-Null
+            $status = Get-VMStatus $vmxPath
+        } else {
+            $status = "exists-vmware-unavailable"
+        }
+    }
     Write-Host "Plan only: no VM will be created, started, provisioned, or bootstrapped." -ForegroundColor Cyan
     Write-Host "  Runtime:      $RuntimeName" -ForegroundColor DarkGray
     Write-Host "  VMX:          $vmxPath" -ForegroundColor DarkGray
@@ -128,6 +134,8 @@ if ($Plan) {
     }
     return
 }
+
+Initialize-VMware | Out-Null
 
 # --- Case 1: VM exists ---
 if (Test-Path $vmxPath) {

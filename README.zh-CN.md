@@ -109,6 +109,14 @@ adp-frontend-browser-install chromium
 .\cli\adp.ps1 sync status
 ```
 
+运行非破坏性验证：
+
+```powershell
+.\tests\cli-smoke.ps1
+.\test-integration.ps1
+.\deploy-check.ps1
+```
+
 创建干净快照：
 
 ```powershell

@@ -29,9 +29,12 @@ For first-run guidance, include the checklist:
 Run integration checks:
 
 ```powershell
+.\tests\cli-smoke.ps1
 .\test-integration.ps1
 .\deploy-check.ps1
 ```
+
+`cli-smoke.ps1` checks command dispatch, non-destructive previews, and input error boundaries. It does not create, start, stop, sync, or destroy VMs.
 
 Installer troubleshooting switches:
 

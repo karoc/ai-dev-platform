@@ -48,6 +48,11 @@ jobs:
         run: |
           .\tests\cli-parameter-contracts.ps1
 
+      - name: Run CLI smoke tests
+        shell: pwsh
+        run: |
+          .\tests\cli-smoke.ps1
+
       - name: Check bootstrap shell syntax
         shell: bash
         run: |

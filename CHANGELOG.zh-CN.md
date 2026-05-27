@@ -11,6 +11,7 @@
 ### 新增
 
 - 新增 CLI 参数契约 CI 验证，用于检查已接收的开关是否贯通到实际执行路径。
+- 新增非破坏性 CLI smoke tests，覆盖命令分发、预览输出和输入错误边界。
 - 新增 `adp doctor -FirstRun`，提供首次使用检查清单。
 - 新增 `adp up`、`adp network apply` 和 `adp destroy` 的 `-Plan` 预览。
 - 新增公开 `SECURITY.md` 和 `SECURITY.zh-CN.md`。
@@ -32,6 +33,8 @@
 
 - 修复 `adp init <runtime> -SkipProvision`，现在会传递到 `adp up -NoProvision`，不再只是跳过 bootstrap。
 - 修复 `adp up <runtime> -NoProvision`，现在创建 VM 定义后会停止，不再继续进入 bootstrap readiness checks。
+- 更新 `adp up <runtime> -Plan`，当不需要查询 VM 状态时，预览输出可在未安装 VMware 的环境中运行。
+- 修复 CLI 子命令退出码传播，使自动化和 CI 能正确识别命令失败。
 - 修复 `adp help`，现在 help 定义会在 CLI dispatch 路径调用前加载。
 - 修复嵌套命令日志状态查询，避免命令调用命令时因日志级别状态查找失败。
 - 修复 `adp logs`、`adp sync start` 和 `adp sync stop`，现在会在命令边界拒绝未知 runtime 名称。

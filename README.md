@@ -109,6 +109,14 @@ Check health:
 .\cli\adp.ps1 sync status
 ```
 
+Run non-destructive validation:
+
+```powershell
+.\tests\cli-smoke.ps1
+.\test-integration.ps1
+.\deploy-check.ps1
+```
+
 Create clean snapshots:
 
 ```powershell
