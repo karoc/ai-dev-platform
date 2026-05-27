@@ -86,7 +86,10 @@ function Invoke-BootstrapIfReady {
     try {
         $ip = Get-RuntimeConnectionIP -TargetRuntime $TargetRuntime -TargetVmxPath $TargetVmxPath
         $rtConfig = Get-RuntimeConfig $TargetRuntime
-        Invoke-RuntimeBootstrap -RuntimeName $TargetRuntime -SSHHost $ip -Port $rtConfig.ssh_port
+        $bootstrapSucceeded = Invoke-RuntimeBootstrap -RuntimeName $TargetRuntime -SSHHost $ip -Port $rtConfig.ssh_port
+        if (-not $bootstrapSucceeded) {
+            Write-WarnLog -Message "Bootstrap did not complete cleanly. Try: adp doctor" -Component "cli.up"
+        }
     } catch {
         Write-WarnLog -Message "Bootstrap had issues but VM is running. Try: adp doctor" -Component "cli.up"
     }
