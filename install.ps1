@@ -25,12 +25,73 @@ Write-Host ""
 . "$script:ProjectRoot\adapters\windows\filesystem\filesystem.ps1"
 . "$script:ProjectRoot\adapters\windows\vmware\vmware.ps1"
 . "$script:ProjectRoot\adapters\windows\mutagen\mutagen.ps1"
+. "$script:ProjectRoot\runtimes\vmware\vm-factory.ps1"
 
 # --- Initialize ---
 Initialize-Config -ProjectRoot $script:ProjectRoot
 Initialize-Logging -LogDirectory (Join-Path $script:ProjectRoot "logs") -Level "INFO"
 Write-InfoLog -Message "ADP-OS Install starting..." -Component "install"
 Write-InfoLog -Message "Project root: $script:ProjectRoot" -Component "install"
+
+function Add-DependencyResult {
+    param(
+        [string]$Name,
+        [string]$Status,
+        [string]$Path = "",
+        [string]$Remediation = ""
+    )
+
+    $script:deps += @{
+        Name        = $Name
+        Status      = $Status
+        Path        = $Path
+        Remediation = $Remediation
+    }
+}
+
+function Write-DependencyLine {
+    param(
+        [string]$Name,
+        [string]$Status,
+        [string]$Detail = "",
+        [string]$Remediation = ""
+    )
+
+    $color = switch ($Status) {
+        "OK" { "Green" }
+        "WARN" { "Yellow" }
+        "MISSING" { "Red" }
+        default { "DarkGray" }
+    }
+    $suffix = if ($Detail) { " — $Detail" } else { "" }
+    Write-Host "  $Name [$Status]$suffix" -ForegroundColor $color
+    if ($Remediation) {
+        Write-Host "    $Remediation" -ForegroundColor DarkGray
+    }
+}
+
+function Test-WSLCommand {
+    param([string]$Command)
+
+    $wsl = Get-Command wsl.exe -ErrorAction SilentlyContinue
+    if (-not $wsl) {
+        return $false
+    }
+
+    & $wsl.Source bash -lc "command -v $Command >/dev/null 2>&1" 2>$null
+    return $LASTEXITCODE -eq 0
+}
+
+function Test-ISOReasonable {
+    param([string]$Path)
+
+    if (-not (Test-Path $Path)) {
+        return $false
+    }
+
+    $item = Get-Item $Path
+    return ($item.Length -ge 1GB -and $item.Extension -ieq ".iso")
+}
 
 # =============================================
 # Step 1: Platform Detection
@@ -62,7 +123,7 @@ Write-Host "  Platform: Windows (supported)" -ForegroundColor Green
 Write-Host "`n[2/6] Checking dependencies..." -ForegroundColor Yellow
 Write-InfoLog -Message "Dependency check starting" -Component "install"
 
-$deps = @()
+$script:deps = @()
 
 if ($SkipDependencyCheck) {
     Write-Host "  Dependency checks skipped by -SkipDependencyCheck." -ForegroundColor Yellow
@@ -70,45 +131,92 @@ if ($SkipDependencyCheck) {
     # PowerShell 7+
     $psVersion = $PSVersionTable.PSVersion
     if ($psVersion.Major -ge 7) {
-        Write-Host "  PowerShell $psVersion [OK]" -ForegroundColor Green
-        $deps += @{ Name = "PowerShell 7+"; Status = "OK" }
+        Write-DependencyLine -Name "PowerShell 7+" -Status "OK" -Detail "v$psVersion"
+        Add-DependencyResult -Name "PowerShell 7+" -Status "OK"
     } else {
-        Write-Host "  PowerShell $psVersion [WARN] — PowerShell 7+ recommended" -ForegroundColor Yellow
-        $deps += @{ Name = "PowerShell 7+"; Status = "WARN" }
+        $remediation = "Install PowerShell 7 or newer."
+        Write-DependencyLine -Name "PowerShell 7+" -Status "WARN" -Detail "v$psVersion" -Remediation $remediation
+        Add-DependencyResult -Name "PowerShell 7+" -Status "WARN" -Remediation $remediation
     }
 
     # VMware Workstation / vmrun
     $vmwareStatus = Test-VMwareAvailable
     if ($vmwareStatus) {
         $vmrunPath = Find-Vmrun
-        Write-Host "  VMware Workstation (vmrun) [OK] — $vmrunPath" -ForegroundColor Green
-        $deps += @{ Name = "VMware Workstation"; Status = "OK"; Path = $vmrunPath }
+        Write-DependencyLine -Name "VMware Workstation (vmrun)" -Status "OK" -Detail $vmrunPath
+        Add-DependencyResult -Name "VMware Workstation (vmrun)" -Status "OK" -Path $vmrunPath
     } else {
-        Write-Host "  VMware Workstation [MISSING] — vmrun.exe not found" -ForegroundColor Red
-        Write-Host "    Install from: https://www.vmware.com/products/workstation-pro.html" -ForegroundColor DarkGray
-        $deps += @{ Name = "VMware Workstation"; Status = "MISSING" }
+        $remediation = "Install VMware Workstation Pro and ensure vmrun.exe is available."
+        Write-DependencyLine -Name "VMware Workstation (vmrun)" -Status "MISSING" -Detail "vmrun.exe not found" -Remediation $remediation
+        Add-DependencyResult -Name "VMware Workstation (vmrun)" -Status "MISSING" -Remediation $remediation
+    }
+
+    $diskManager = Find-VmwareDiskManager
+    if ($diskManager) {
+        Write-DependencyLine -Name "VMware disk manager" -Status "OK" -Detail $diskManager
+        Add-DependencyResult -Name "VMware disk manager" -Status "OK" -Path $diskManager
+    } else {
+        $remediation = "Install VMware Workstation Pro with vmware-vdiskmanager.exe."
+        Write-DependencyLine -Name "VMware disk manager" -Status "MISSING" -Detail "vmware-vdiskmanager.exe not found" -Remediation $remediation
+        Add-DependencyResult -Name "VMware disk manager" -Status "MISSING" -Remediation $remediation
+    }
+
+    $wsl = Get-Command wsl.exe -ErrorAction SilentlyContinue
+    if ($wsl) {
+        Write-DependencyLine -Name "WSL" -Status "OK" -Detail $wsl.Source
+        Add-DependencyResult -Name "WSL" -Status "OK" -Path $wsl.Source
+    } else {
+        $remediation = "Install or enable WSL before remastering Ubuntu autoinstall ISOs."
+        Write-DependencyLine -Name "WSL" -Status "MISSING" -Detail "wsl.exe not found" -Remediation $remediation
+        Add-DependencyResult -Name "WSL" -Status "MISSING" -Remediation $remediation
+    }
+
+    if (Test-WSLCommand -Command "xorriso") {
+        Write-DependencyLine -Name "WSL xorriso" -Status "OK"
+        Add-DependencyResult -Name "WSL xorriso" -Status "OK"
+    } else {
+        $remediation = "Install with: wsl -u root bash -lc `"apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y xorriso`""
+        Write-DependencyLine -Name "WSL xorriso" -Status "MISSING" -Detail "required for Ubuntu autoinstall ISO remastering" -Remediation $remediation
+        Add-DependencyResult -Name "WSL xorriso" -Status "MISSING" -Remediation $remediation
+    }
+
+    $isoRemasterTool = Find-ISORemasterTool
+    if ($isoRemasterTool) {
+        Write-DependencyLine -Name "ISO remaster tool" -Status "OK" -Detail "$($isoRemasterTool.Type): $($isoRemasterTool.Path)"
+        Add-DependencyResult -Name "ISO remaster tool" -Status "OK" -Path $isoRemasterTool.Path
+    } else {
+        $remediation = "Install xorriso natively or in WSL."
+        Write-DependencyLine -Name "ISO remaster tool" -Status "MISSING" -Detail "xorriso not found" -Remediation $remediation
+        Add-DependencyResult -Name "ISO remaster tool" -Status "MISSING" -Remediation $remediation
     }
 
     # Mutagen
     $mutagen = Find-Mutagen -ProjectRoot $script:ProjectRoot
     if ($mutagen) {
-        Write-Host "  Mutagen [OK] — $mutagen" -ForegroundColor Green
-        $deps += @{ Name = "Mutagen"; Status = "OK" }
+        $mutagenVersion = (& $mutagen version 2>$null | Select-Object -First 1)
+        if ("$mutagenVersion" -match '^0\.18\.') {
+            Write-DependencyLine -Name "Mutagen" -Status "OK" -Detail "$mutagenVersion at $mutagen"
+            Add-DependencyResult -Name "Mutagen" -Status "OK" -Path $mutagen
+        } else {
+            $remediation = "ADP-OS is tested with Mutagen 0.18.x."
+            Write-DependencyLine -Name "Mutagen" -Status "WARN" -Detail "$mutagenVersion at $mutagen" -Remediation $remediation
+            Add-DependencyResult -Name "Mutagen" -Status "WARN" -Path $mutagen -Remediation $remediation
+        }
     } else {
-        Write-Host "  Mutagen [MISSING] — will be needed for Phase 3 sync" -ForegroundColor Yellow
-        Write-Host "    Download: https://github.com/mutagen-io/mutagen/releases" -ForegroundColor DarkGray
-        Write-Host "    Place:    .tools\mutagen\mutagen.exe" -ForegroundColor DarkGray
-        $deps += @{ Name = "Mutagen"; Status = "MISSING" }
+        $remediation = "Download Mutagen 0.18.x, place mutagen.exe at .tools\mutagen\mutagen.exe, or add it to PATH."
+        Write-DependencyLine -Name "Mutagen" -Status "MISSING" -Detail "needed for workspace sync" -Remediation $remediation
+        Add-DependencyResult -Name "Mutagen" -Status "MISSING" -Remediation $remediation
     }
 
     # OpenSSH Client
     $ssh = Get-Command ssh -ErrorAction SilentlyContinue
     if ($ssh) {
-        Write-Host "  OpenSSH Client [OK]" -ForegroundColor Green
-        $deps += @{ Name = "OpenSSH Client"; Status = "OK" }
+        Write-DependencyLine -Name "OpenSSH Client" -Status "OK" -Detail $ssh.Source
+        Add-DependencyResult -Name "OpenSSH Client" -Status "OK" -Path $ssh.Source
     } else {
-        Write-Host "  OpenSSH Client [MISSING]" -ForegroundColor Yellow
-        $deps += @{ Name = "OpenSSH Client"; Status = "MISSING" }
+        $remediation = "Install the Windows OpenSSH Client optional feature."
+        Write-DependencyLine -Name "OpenSSH Client" -Status "MISSING" -Remediation $remediation
+        Add-DependencyResult -Name "OpenSSH Client" -Status "MISSING" -Remediation $remediation
     }
 }
 
@@ -144,11 +252,18 @@ if ($IsoPath) {
     if (-not (Test-Path $IsoPath)) {
         throw "Specified ISO not found: $IsoPath"
     }
+    if (-not (Test-ISOReasonable -Path $IsoPath)) {
+        Write-Host "  ISO warning: file should be a .iso and usually larger than 1 GB: $IsoPath" -ForegroundColor Yellow
+    }
     if (-not (Test-Path $isoCache)) { New-Item -ItemType Directory -Path $isoCache -Force | Out-Null }
     Copy-Item $IsoPath $storedIso -Force
     Write-Host "  ISO copied to cache: $storedIso" -ForegroundColor Green
 } elseif (Test-Path $storedIso) {
-    Write-Host "  ISO found in cache: $storedIso" -ForegroundColor Green
+    $isoSize = [math]::Round((Get-Item $storedIso).Length / 1GB, 1)
+    Write-Host "  ISO found in cache: $storedIso ($isoSize GB)" -ForegroundColor Green
+    if (-not (Test-ISOReasonable -Path $storedIso)) {
+        Write-Host "  ISO warning: file should be a .iso and usually larger than 1 GB." -ForegroundColor Yellow
+    }
     Write-InfoLog -Message "ISO found in cache" -Component "install"
 } else {
     Write-Host "  ISO not found. Please download a supported Linux ISO:" -ForegroundColor Yellow
@@ -211,16 +326,38 @@ Write-Host "  ADP-OS Phase 1 Bootstrap Complete" -ForegroundColor Green
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
-$missing = $deps | Where-Object { $_.Status -eq "MISSING" }
+$missing = $script:deps | Where-Object { $_.Status -eq "MISSING" }
+$warnings = $script:deps | Where-Object { $_.Status -eq "WARN" }
 if ($SkipDependencyCheck) {
     Write-Host "Dependency checks were skipped." -ForegroundColor Yellow
 } elseif ($missing) {
     Write-Host "Missing dependencies:" -ForegroundColor Yellow
     foreach ($m in $missing) {
         Write-Host "  - $($m.Name)" -ForegroundColor Yellow
+        if ($m.Remediation) {
+            Write-Host "    $($m.Remediation)" -ForegroundColor DarkGray
+        }
+    }
+    if ($warnings) {
+        Write-Host ""
+        Write-Host "Warnings:" -ForegroundColor Yellow
+        foreach ($w in $warnings) {
+            Write-Host "  - $($w.Name)" -ForegroundColor Yellow
+            if ($w.Remediation) {
+                Write-Host "    $($w.Remediation)" -ForegroundColor DarkGray
+            }
+        }
     }
     Write-Host ""
     Write-Host "Install missing items then re-run install.ps1" -ForegroundColor DarkGray
+} elseif ($warnings) {
+    Write-Host "Dependency warnings:" -ForegroundColor Yellow
+    foreach ($w in $warnings) {
+        Write-Host "  - $($w.Name)" -ForegroundColor Yellow
+        if ($w.Remediation) {
+            Write-Host "    $($w.Remediation)" -ForegroundColor DarkGray
+        }
+    }
 } else {
     Write-Host "All dependencies satisfied." -ForegroundColor Green
 }

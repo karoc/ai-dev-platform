@@ -109,6 +109,8 @@ adp-frontend-browser-install chromium
 .\cli\adp.ps1 sync status
 ```
 
+`install.ps1` 和 `doctor` 会检查 VMware 工具、`vmware-vdiskmanager.exe`、WSL、WSL `xorriso`、Mutagen 0.18.x、OpenSSH、ISO 是否存在以及 ISO 基本形态。它们会输出修复命令或放置路径提示，但默认不会下载大型二进制文件。
+
 运行非破坏性验证：
 
 ```powershell

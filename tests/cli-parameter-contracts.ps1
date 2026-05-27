@@ -30,6 +30,7 @@ $cli = Read-Text "cli\adp.ps1"
 $logger = Read-Text "core\logging\logger.ps1"
 $logs = Read-Text "cli\commands\logs.ps1"
 $sync = Read-Text "cli\commands\sync.ps1"
+$doctor = Read-Text "cli\commands\doctor.ps1"
 
 Assert-Contains -Name "CLI help defined before use" -Text $cli -Pattern 'function\s+Show-Help[\s\S]*if\s*\(-not\s+\$Command\s+-or\s+\$Command\s+-eq\s+"help"\)'
 Assert-Contains -Name "CLI propagates command exit codes" -Text $cli -Pattern 'Invoke-CommandFile[\s\S]*if\s*\(\$LASTEXITCODE\)\s*\{[\s\S]*exit\s+\$LASTEXITCODE'
@@ -42,10 +43,15 @@ Assert-Contains -Name "up -NoProvision skips bootstrap after creation" -Text $up
 Assert-Contains -Name "install -SkipDependencyCheck behavior" -Text $install -Pattern 'if\s*\(\$SkipDependencyCheck\)\s*\{[\s\S]*Dependency checks skipped'
 Assert-Contains -Name "install -SkipVMValidation behavior" -Text $install -Pattern 'if\s*\(\$SkipVMValidation\)\s*\{[\s\S]*VMware validation skipped'
 Assert-Contains -Name "install skipped dependency summary" -Text $install -Pattern 'if\s*\(\$SkipDependencyCheck\)\s*\{[\s\S]*Dependency checks were skipped'
+Assert-Contains -Name "install checks WSL xorriso" -Text $install -Pattern 'Test-WSLCommand[\s\S]*WSL xorriso'
+Assert-Contains -Name "install checks VMware disk manager" -Text $install -Pattern 'Find-VmwareDiskManager[\s\S]*VMware disk manager'
+Assert-Contains -Name "install checks ISO shape" -Text $install -Pattern 'Test-ISOReasonable[\s\S]*ISO warning'
 Assert-Contains -Name "logger levels use script scope" -Text $logger -Pattern '\$script:LogLevels[\s\S]*\$levels\s*=\s*if\s*\(\$script:LogLevels\)'
 Assert-Contains -Name "logs validates runtime" -Text $logs -Pattern 'Test-RuntimeExists\s+\$RuntimeName'
 Assert-Contains -Name "sync start validates runtime" -Text $sync -Pattern '"start"[\s\S]*Test-RuntimeExists\s+\$RuntimeName'
 Assert-Contains -Name "sync stop validates runtime" -Text $sync -Pattern '"stop"[\s\S]*Test-RuntimeExists\s+\$RuntimeName'
 Assert-Contains -Name "sync validates subcommand before mutagen" -Text $sync -Pattern '\$validSubCommands[\s\S]*Unknown sync command[\s\S]*Initialize-Mutagen'
+Assert-Contains -Name "doctor checks WSL xorriso" -Text $doctor -Pattern 'WSL xorriso'
+Assert-Contains -Name "doctor checks ISO shape" -Text $doctor -Pattern 'ISO shape'
 
 Write-Output "CLI parameter contracts OK"

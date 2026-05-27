@@ -45,6 +45,18 @@ Installer troubleshooting switches:
 
 These switches are intended for controlled troubleshooting and CI-like validation paths. Normal first-run setup should not use them.
 
+`install.ps1` and `doctor` check the host prerequisites needed for first runtime creation:
+
+- VMware `vmrun.exe`.
+- VMware `vmware-vdiskmanager.exe`.
+- WSL and WSL `xorriso`.
+- An ISO remaster tool.
+- Mutagen 0.18.x.
+- OpenSSH Client.
+- ISO presence and basic shape.
+
+The checks print remediation guidance. They do not download VMware, Mutagen, browsers, ISO images, or other large binaries by default.
+
 ## Start Runtimes
 
 ```powershell

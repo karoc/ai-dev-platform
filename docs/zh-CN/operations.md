@@ -45,6 +45,18 @@ Installer 排障开关：
 
 这些开关主要用于受控排障和类似 CI 的验证路径。正常首次安装不建议使用。
 
+`install.ps1` 和 `doctor` 会检查首次创建运行时所需的主机前置条件：
+
+- VMware `vmrun.exe`。
+- VMware `vmware-vdiskmanager.exe`。
+- WSL 和 WSL `xorriso`。
+- ISO remaster 工具。
+- Mutagen 0.18.x。
+- OpenSSH Client。
+- ISO 是否存在以及基本形态。
+
+这些检查会输出修复建议。默认不会下载 VMware、Mutagen、浏览器、ISO 镜像或其他大型二进制文件。
+
 ## 启动运行时
 
 ```powershell

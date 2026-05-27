@@ -109,6 +109,8 @@ Check health:
 .\cli\adp.ps1 sync status
 ```
 
+`install.ps1` and `doctor` check VMware tooling, `vmware-vdiskmanager.exe`, WSL, WSL `xorriso`, Mutagen 0.18.x, OpenSSH, ISO presence, and basic ISO shape. They print remediation commands or placement guidance, but do not download large binaries by default.
+
 Run non-destructive validation:
 
 ```powershell

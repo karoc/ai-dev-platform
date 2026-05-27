@@ -113,6 +113,29 @@ function Test-RuntimeSSHReachable {
     return ($LASTEXITCODE -eq 0 -and $result -eq "ok")
 }
 
+function Test-WSLCommand {
+    param([string]$Command)
+
+    $wsl = Get-Command wsl.exe -ErrorAction SilentlyContinue
+    if (-not $wsl) {
+        return $false
+    }
+
+    & $wsl.Source bash -lc "command -v $Command >/dev/null 2>&1" 2>$null
+    return $LASTEXITCODE -eq 0
+}
+
+function Test-ISOReasonable {
+    param([string]$Path)
+
+    if (-not (Test-Path $Path)) {
+        return $false
+    }
+
+    $item = Get-Item $Path
+    return ($item.Length -ge 1GB -and $item.Extension -ieq ".iso")
+}
+
 # --- Platform ---
 Write-Host "Platform:" -ForegroundColor Yellow
 $platform = Get-Platform
@@ -180,6 +203,10 @@ if ($vmwareOk) {
     $isoRemasterTool = Find-ISORemasterTool
     $isoRemasterDetail = if ($isoRemasterTool) { "$($isoRemasterTool.Type): $($isoRemasterTool.Path)" } else { "missing" }
     Test-Check -Name "install ISO remaster" -Condition ($null -ne $isoRemasterTool) -Detail "($isoRemasterDetail)"
+    if (-not $isoRemasterTool) {
+        Write-Host "  [INFO]  Install xorriso natively or in WSL:" -ForegroundColor DarkGray
+        Write-Host "          wsl -u root bash -lc `"apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y xorriso`"" -ForegroundColor DarkGray
+    }
 
     try {
         $vms = Get-RegisteredVMs
@@ -188,6 +215,10 @@ if ($vmwareOk) {
         Test-Check -Name "VMware accessible" -Condition $false -Detail "($_)"
     }
 }
+
+$wsl = Get-Command wsl.exe -ErrorAction SilentlyContinue
+Test-Check -Name "WSL" -Condition ($null -ne $wsl) -Detail "$(if ($wsl) { '(' + $wsl.Source + ')' } else { '(wsl.exe not found)' })"
+Test-Check -Name "WSL xorriso" -Condition (Test-WSLCommand -Command "xorriso") -Detail "(required for Ubuntu autoinstall ISO remastering)"
 
 # --- Mutagen ---
 Write-Host ""
@@ -225,6 +256,7 @@ $isoPath = Join-Path $isoCache $isoName
 if (Test-Path $isoPath) {
     $isoSize = [math]::Round((Get-Item $isoPath).Length / 1GB, 1)
     Test-Check -Name "ISO present" -Condition $true -Detail "($isoSize GB)"
+    Test-Check -Name "ISO shape" -Condition (Test-ISOReasonable -Path $isoPath) -Detail "(.iso and >= 1 GB)"
 } else {
     Test-Check -Name "ISO present" -Condition $false -Detail "(not found at $isoPath)"
 }
