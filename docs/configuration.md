@@ -90,11 +90,64 @@ Supported sync modes depend on the installed Mutagen version. The project has be
 
 ## Local Overrides
 
-The following files are ignored and reserved for local secrets or future local override support:
+`configs\local.json` is an ignored, machine-local override file. Use it for host paths, the ISO filename used inside the ISO cache, local VM sizing, static IPs, credentials for local bootstrap, and sync ignore changes that should not be committed.
 
-```text
-configs/local.json
-configs/secrets.json
+Start from the example:
+
+```powershell
+Copy-Item configs\local.example.json configs\local.json
 ```
 
-The current MVP reads the main config files directly. Local override merging is not implemented yet.
+Example:
+
+```json
+{
+  "platform": {
+    "paths": {
+      "workspace_root": "D:\\ADP\\workspaces",
+      "iso_cache": "D:\\ADP\\iso",
+      "vm_store": "D:\\ADP\\vms"
+    },
+    "defaults": {
+      "iso_path": "ubuntu-26.04-live-server-amd64.iso",
+      "admin_user": "adp",
+      "admin_password": "change-this-local-password"
+    },
+    "network": {
+      "vmware_nat": {
+        "cidr": "192.168.242.0/24",
+        "gateway": "192.168.242.2"
+      }
+    }
+  },
+  "topology": {
+    "frontend": {
+      "memory": 12288,
+      "static_ip": "192.168.242.131"
+    },
+    "agent": {
+      "memory": 24576,
+      "disk": 240
+    }
+  },
+  "sync_profiles": {
+    "frontend": {
+      "ignore": ["node_modules", ".next", "dist", "build", ".cache"]
+    }
+  }
+}
+```
+
+Supported top-level sections:
+
+- `platform`: merged into `configs\platform.json`.
+- `topology`: merged into `configs\topology.json`.
+- `sync_profiles`: merged into `configs\sync-profiles.json`.
+
+Merging is recursive for JSON objects. Arrays and scalar values replace the default value. Empty `configs\local.json` files are ignored.
+
+`platform.defaults.iso_path` is resolved inside `platform.paths.iso_cache`. To import an ISO from any location, run `.\install.ps1 -IsoPath C:\path\to\ubuntu-26.04-live-server-amd64.iso`; the installer copies it into the configured ISO cache.
+
+Do not commit `configs\local.json`; commit shared defaults to the main config files instead.
+
+`configs\secrets.json` is also ignored and reserved for future secret-specific support. It is not read by the current MVP.

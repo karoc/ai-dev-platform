@@ -22,6 +22,7 @@ The project does not yet publish versioned releases. Entries are grouped by date
   - `adp-frontend-browser-check`
   - `adp-frontend-browser-install`
 - Added browser testing documentation.
+- Added `configs/local.example.json` and local config override support for machine-specific paths, VM sizing, networking, credentials, and sync profile changes.
 
 ### Changed
 

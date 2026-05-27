@@ -90,11 +90,64 @@ Sync profiles 配置 Mutagen 行为和忽略列表。
 
 ## 本地覆盖
 
-以下文件已被忽略，保留给本地 secrets 或未来的本地覆盖支持：
+`configs\local.json` 是已被忽略的本机覆盖文件。它适合存放主机路径、ISO cache 中使用的 ISO 文件名、本机 VM 规格、静态 IP、本地 bootstrap 凭据，以及不应该提交的同步忽略规则调整。
 
-```text
-configs/local.json
-configs/secrets.json
+从示例开始：
+
+```powershell
+Copy-Item configs\local.example.json configs\local.json
 ```
 
-当前 MVP 直接读取主配置文件，尚未实现本地覆盖合并。
+示例：
+
+```json
+{
+  "platform": {
+    "paths": {
+      "workspace_root": "D:\\ADP\\workspaces",
+      "iso_cache": "D:\\ADP\\iso",
+      "vm_store": "D:\\ADP\\vms"
+    },
+    "defaults": {
+      "iso_path": "ubuntu-26.04-live-server-amd64.iso",
+      "admin_user": "adp",
+      "admin_password": "change-this-local-password"
+    },
+    "network": {
+      "vmware_nat": {
+        "cidr": "192.168.242.0/24",
+        "gateway": "192.168.242.2"
+      }
+    }
+  },
+  "topology": {
+    "frontend": {
+      "memory": 12288,
+      "static_ip": "192.168.242.131"
+    },
+    "agent": {
+      "memory": 24576,
+      "disk": 240
+    }
+  },
+  "sync_profiles": {
+    "frontend": {
+      "ignore": ["node_modules", ".next", "dist", "build", ".cache"]
+    }
+  }
+}
+```
+
+支持的顶层字段：
+
+- `platform`：合并到 `configs\platform.json`。
+- `topology`：合并到 `configs\topology.json`。
+- `sync_profiles`：合并到 `configs\sync-profiles.json`。
+
+JSON object 会递归合并。数组和标量值会替换默认值。空的 `configs\local.json` 会被忽略。
+
+`platform.defaults.iso_path` 会在 `platform.paths.iso_cache` 内解析。如果要从任意位置导入 ISO，请运行 `.\install.ps1 -IsoPath C:\path\to\ubuntu-26.04-live-server-amd64.iso`；安装脚本会把它复制到配置的 ISO cache。
+
+不要提交 `configs\local.json`；共享默认值应提交到主配置文件。
+
+`configs\secrets.json` 同样已被忽略，保留给未来专门的 secret 支持。当前 MVP 不会读取它。

@@ -62,6 +62,14 @@ Or pass it during initialization:
 .\install.ps1 -IsoPath C:\path\to\ubuntu-26.04-live-server-amd64.iso
 ```
 
+For machine-specific paths, VM sizing, static IPs, or local bootstrap credentials, copy the ignored local override example:
+
+```powershell
+Copy-Item configs\local.example.json configs\local.json
+```
+
+See [Configuration](docs/configuration.md#local-overrides) for supported local override sections.
+
 Initialize the platform:
 
 ```powershell

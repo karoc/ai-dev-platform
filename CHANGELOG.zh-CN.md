@@ -22,6 +22,7 @@
   - `adp-frontend-browser-check`
   - `adp-frontend-browser-install`
 - 新增浏览器测试文档。
+- 新增 `configs/local.example.json` 和本地配置覆盖支持，用于本机路径、VM 规格、网络、凭据和同步 profile 调整。
 
 ### 变更
 

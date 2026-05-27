@@ -7,6 +7,74 @@ $script:PlatformConfig = $null
 $script:TopologyConfig = $null
 $script:SyncProfiles = $null
 
+function Read-JsonConfig {
+    param([string]$Path)
+
+    $raw = Get-Content $Path -Raw
+    if ([string]::IsNullOrWhiteSpace($raw)) {
+        return $null
+    }
+
+    return $raw | ConvertFrom-Json
+}
+
+function Merge-ConfigObject {
+    param(
+        [Parameter(Mandatory = $true)]
+        [pscustomobject]$Base,
+        [Parameter(Mandatory = $true)]
+        [pscustomobject]$Override
+    )
+
+    foreach ($property in $Override.PSObject.Properties) {
+        $name = $property.Name
+        $overrideValue = $property.Value
+
+        if ($Base.PSObject.Properties.Name -contains $name) {
+            $baseValue = $Base.$name
+            $baseIsObject = $baseValue -is [pscustomobject]
+            $overrideIsObject = $overrideValue -is [pscustomobject]
+
+            if ($baseIsObject -and $overrideIsObject) {
+                Merge-ConfigObject -Base $baseValue -Override $overrideValue
+            } else {
+                $Base.$name = $overrideValue
+            }
+        } else {
+            $Base | Add-Member -NotePropertyName $name -NotePropertyValue $overrideValue
+        }
+    }
+}
+
+function Apply-LocalConfig {
+    param([string]$ProjectRoot)
+
+    $localConfigPath = Join-Path $ProjectRoot "configs\local.json"
+    if (-not (Test-Path $localConfigPath)) {
+        return
+    }
+
+    $localConfig = Read-JsonConfig $localConfigPath
+    if (-not $localConfig) {
+        Write-Verbose "ADP-OS local config exists but is empty: $localConfigPath"
+        return
+    }
+
+    if ($localConfig.PSObject.Properties.Name -contains "platform" -and $localConfig.platform) {
+        Merge-ConfigObject -Base $script:PlatformConfig -Override $localConfig.platform
+    }
+
+    if ($localConfig.PSObject.Properties.Name -contains "topology" -and $localConfig.topology) {
+        Merge-ConfigObject -Base $script:TopologyConfig -Override $localConfig.topology
+    }
+
+    if ($localConfig.PSObject.Properties.Name -contains "sync_profiles" -and $localConfig.sync_profiles) {
+        Merge-ConfigObject -Base $script:SyncProfiles -Override $localConfig.sync_profiles
+    }
+
+    Write-Verbose "ADP-OS local config applied from: $localConfigPath"
+}
+
 function Initialize-Config {
     param(
         [string]$ProjectRoot
@@ -14,9 +82,10 @@ function Initialize-Config {
 
     $script:_ProjectRoot = $ProjectRoot
 
-    $script:PlatformConfig = Get-Content (Join-Path $ProjectRoot "configs\platform.json") -Raw | ConvertFrom-Json
-    $script:TopologyConfig = Get-Content (Join-Path $ProjectRoot "configs\topology.json") -Raw | ConvertFrom-Json
-    $script:SyncProfiles = Get-Content (Join-Path $ProjectRoot "configs\sync-profiles.json") -Raw | ConvertFrom-Json
+    $script:PlatformConfig = Read-JsonConfig (Join-Path $ProjectRoot "configs\platform.json")
+    $script:TopologyConfig = Read-JsonConfig (Join-Path $ProjectRoot "configs\topology.json")
+    $script:SyncProfiles = Read-JsonConfig (Join-Path $ProjectRoot "configs\sync-profiles.json")
+    Apply-LocalConfig -ProjectRoot $ProjectRoot
 
     Write-Verbose "ADP-OS Config initialized from: $ProjectRoot"
 }

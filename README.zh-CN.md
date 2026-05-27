@@ -62,6 +62,14 @@ cd ai-dev-platform
 .\install.ps1 -IsoPath C:\path\to\ubuntu-26.04-live-server-amd64.iso
 ```
 
+如需设置本机路径、VM 规格、静态 IP 或本地 bootstrap 凭据，可以复制已被忽略的本地覆盖示例：
+
+```powershell
+Copy-Item configs\local.example.json configs\local.json
+```
+
+支持的本地覆盖字段见[配置说明](docs/zh-CN/configuration.md#本地覆盖)。
+
 初始化平台：
 
 ```powershell

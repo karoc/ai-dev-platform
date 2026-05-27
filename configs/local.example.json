@@ -1,0 +1,56 @@
+{
+  "platform": {
+    "paths": {
+      "workspace_root": "${env:USERPROFILE}\\adp-workspaces",
+      "iso_cache": "${env:USERPROFILE}\\adp-iso",
+      "vm_store": "${env:USERPROFILE}\\adp-vms"
+    },
+    "defaults": {
+      "iso_path": "ubuntu-26.04-live-server-amd64.iso",
+      "admin_user": "adp",
+      "admin_password": "adp"
+    },
+    "network": {
+      "vmware_nat": {
+        "cidr": "192.168.242.0/24",
+        "prefix": 24,
+        "gateway": "192.168.242.2",
+        "dns": [
+          "192.168.242.2",
+          "1.1.1.1"
+        ],
+        "interface_match": "en*"
+      }
+    }
+  },
+  "topology": {
+    "frontend": {
+      "cpu": 4,
+      "memory": 8192,
+      "disk": 80,
+      "static_ip": "192.168.242.131"
+    },
+    "backend": {
+      "cpu": 4,
+      "memory": 8192,
+      "disk": 120,
+      "static_ip": "192.168.242.133"
+    },
+    "agent": {
+      "cpu": 6,
+      "memory": 16384,
+      "disk": 160,
+      "static_ip": "192.168.242.135"
+    }
+  },
+  "sync_profiles": {
+    "frontend": {
+      "ignore": [
+        "node_modules",
+        ".next",
+        "dist",
+        "build"
+      ]
+    }
+  }
+}
