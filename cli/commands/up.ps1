@@ -12,7 +12,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 if (-not $RuntimeName) {
-    Write-ErrorLog -Message "Usage: adp up <runtime> (frontend|backend|agent) [-Plan] [-NoBootstrap] [-NoProvision]" -Component "cli.up"
+    Write-ErrorLog -Message "Usage: adp up <runtime> (frontend|backend|agent) [-IsoPath <path>] [-Plan] [-NoBootstrap] [-NoProvision]" -Component "cli.up"
     exit 1
 }
 
@@ -197,7 +197,7 @@ if (-not (Test-Path $isoPath)) {
 
 # Create the VM with full autoinstall
 try {
-    $vmxPath = New-RuntimeVM -RuntimeName $RuntimeName -StartAfterCreate:(!$NoProvision) -SkipProvision:$NoProvision
+    $vmxPath = New-RuntimeVM -RuntimeName $RuntimeName -IsoPath $IsoPath -StartAfterCreate:(!$NoProvision) -SkipProvision:$NoProvision
 } catch {
     Write-ErrorLog -Message "VM creation failed: $_" -Component "cli.up"
     exit 1

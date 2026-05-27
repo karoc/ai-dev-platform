@@ -51,6 +51,14 @@ All checks passed. Platform is healthy.
 .\cli\adp.ps1 up agent -Plan
 ```
 
+首次创建运行时时，可以从任意位置传入 ISO：
+
+```powershell
+.\cli\adp.ps1 up agent -IsoPath D:\Share\ubuntu-26.04-live-server-amd64.iso
+```
+
+`-IsoPath` 会直接用于 VM 创建，不需要位于配置的 ISO cache 中。
+
 ## 停止运行时
 
 ```powershell

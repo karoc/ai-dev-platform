@@ -29,6 +29,7 @@
 
 ### 变更
 
+- 修复 `adp up <runtime> -IsoPath <path>`，现在传入的 ISO 路径会正确传递给 VM 创建流程，不再回退到配置的 ISO cache。
 - 更新 README 语言导航。
 - 更新 frontend bootstrap，使其安装轻量浏览器辅助命令，但默认不下载浏览器。
 - 更新同步和 Git ignore 规则，忽略浏览器测试报告和 Playwright 产物。

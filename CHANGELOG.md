@@ -29,6 +29,7 @@ The project does not yet publish versioned releases. Entries are grouped by date
 
 ### Changed
 
+- Fixed `adp up <runtime> -IsoPath <path>` so the supplied ISO path is passed through to VM creation instead of falling back to the configured ISO cache.
 - Updated README language navigation.
 - Updated frontend bootstrap to install lightweight browser helper commands without downloading browsers by default.
 - Updated sync and Git ignore rules for browser test reports and Playwright artifacts.

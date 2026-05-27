@@ -168,7 +168,7 @@ git clone <project-url> my-project
 
 ```powershell
 .\cli\adp.ps1 init
-.\cli\adp.ps1 up <frontend|backend|agent> [-Plan]
+.\cli\adp.ps1 up <frontend|backend|agent> [-IsoPath <path>] [-Plan]
 .\cli\adp.ps1 stop <frontend|backend|agent>
 .\cli\adp.ps1 sync status
 .\cli\adp.ps1 sync start <frontend|backend|agent>

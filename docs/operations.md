@@ -51,6 +51,14 @@ Preview startup without creating, starting, provisioning, or bootstrapping a VM:
 .\cli\adp.ps1 up agent -Plan
 ```
 
+When creating a runtime for the first time, you can pass an ISO from any location:
+
+```powershell
+.\cli\adp.ps1 up agent -IsoPath D:\Share\ubuntu-26.04-live-server-amd64.iso
+```
+
+`-IsoPath` is used directly for VM creation. It does not need to be inside the configured ISO cache.
+
 ## Stop Runtimes
 
 ```powershell

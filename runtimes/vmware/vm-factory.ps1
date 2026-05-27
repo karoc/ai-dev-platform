@@ -147,7 +147,8 @@ function New-VirtualDisk {
 
 function Test-RuntimeProvisioningPlan {
     param(
-        [string]$RuntimeName
+        [string]$RuntimeName,
+        [string]$IsoPath
     )
 
     $checks = [System.Collections.Generic.List[object]]::new()
@@ -177,8 +178,8 @@ function Test-RuntimeProvisioningPlan {
     Add-PlanCheck -Name "SSH port" -Passed ($rt.ssh_port -eq 22) -Detail "port $($rt.ssh_port)"
 
     $isoName = if ($config.defaults.iso_path) { $config.defaults.iso_path } else { $config.defaults.ubuntu_iso }
-    $isoPath = Join-Path $script:VmFactoryState.IsoCache $isoName
-    Add-PlanCheck -Name "OS ISO" -Passed (Test-Path $isoPath) -Detail $isoPath
+    $resolvedIsoPath = if ($IsoPath) { $IsoPath } else { Join-Path $script:VmFactoryState.IsoCache $isoName }
+    Add-PlanCheck -Name "OS ISO" -Passed (Test-Path $resolvedIsoPath) -Detail $resolvedIsoPath
 
     $diskManager = Find-VmwareDiskManager
     Add-PlanCheck -Name "VMDK creator" -Passed ($null -ne $diskManager) -Detail $diskManager
@@ -783,6 +784,7 @@ function Generate-PasswordHash {
 function New-RuntimeVM {
     param(
         [string]$RuntimeName,
+        [string]$IsoPath,
         [switch]$SkipProvision,
         [switch]$StartAfterCreate
     )
@@ -814,12 +816,12 @@ function New-RuntimeVM {
     # Check OS ISO
     $isoCache = $script:VmFactoryState.IsoCache
     $isoName = if ($config.defaults.iso_path) { $config.defaults.iso_path } else { $config.defaults.ubuntu_iso }
-    $isoPath = Join-Path $isoCache $isoName
-    if (-not (Test-Path $isoPath)) {
-        throw "OS ISO not found: $isoPath. Place the ISO there or use -IsoPath parameter."
+    $resolvedIsoPath = if ($IsoPath) { $IsoPath } else { Join-Path $isoCache $isoName }
+    if (-not (Test-Path $resolvedIsoPath)) {
+        throw "OS ISO not found: $resolvedIsoPath. Place the ISO there or use -IsoPath parameter."
     }
 
-    Write-Host "OS ISO: $isoPath" -ForegroundColor Green
+    Write-Host "OS ISO: $resolvedIsoPath" -ForegroundColor Green
 
     # Initialize SSH keys
     . (Join-Path $script:VmFactoryState.ProjectRoot "adapters\windows\ssh\ssh.ps1")
@@ -837,11 +839,11 @@ function New-RuntimeVM {
 
     $seedSourceDir = Join-Path $script:VmFactoryState.SeedDir $RuntimeName
     $profile = Get-OSProfile -OSName $rt.os
-    $installIsoPath = $isoPath
+    $installIsoPath = $resolvedIsoPath
     if ($profile.seedType -eq "cloud-init") {
         Write-Host "  Creating autoinstall ISO..." -ForegroundColor Yellow
         $installIsoPath = New-AutoinstallISO -RuntimeName $RuntimeName `
-            -SourceIsoPath $isoPath -SeedSourceDir $seedSourceDir -BootArgs $profile.bootArgs
+            -SourceIsoPath $resolvedIsoPath -SeedSourceDir $seedSourceDir -BootArgs $profile.bootArgs
         Write-Host "  Install ISO: $installIsoPath" -ForegroundColor Green
     }
 

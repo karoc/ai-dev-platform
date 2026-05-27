@@ -80,7 +80,7 @@ function Show-Help {
     Write-Host ""
     Write-Host "Commands:" -ForegroundColor Yellow
     Write-Host "  adp init                       Initialize platform and VM factory"
-    Write-Host "  adp up <runtime> [-Plan]       Start a runtime (frontend|backend|agent)"
+    Write-Host "  adp up <runtime> [-IsoPath <path>] [-Plan]  Start a runtime"
     Write-Host "  adp stop <runtime>             Stop a runtime"
     Write-Host "  adp sync status                Show workspace sync status"
     Write-Host "  adp network apply <rt|all> [-Plan]  Apply configured static IP networking"
