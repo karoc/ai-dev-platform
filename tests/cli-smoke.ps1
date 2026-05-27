@@ -124,6 +124,12 @@ Assert-Command `
     -Patterns @("Workspace readiness: example-project", "Status only: no projects will be cloned", "Manifest:", "Projects:", "runtime agent", "validation commands")
 
 Assert-Command `
+    -Name "workspace dashboard example manifest" `
+    -Arguments @("workspace", "dashboard", "-ManifestPath", "configs\workspace.example.json") `
+    -ExitCode 0 `
+    -Patterns @("Workspace dashboard: example-project", "Dashboard only: no projects will be cloned", "Project readiness:", "Task lifecycle:", "execution:", "rollback:", "commit:")
+
+Assert-Command `
     -Name "workspace task prepare" `
     -Arguments @("workspace", "task", "prepare", "before-large-agent-task", "-ManifestPath", "configs\workspace.example.json") `
     -ExitCode 0 `
@@ -181,7 +187,7 @@ Assert-Command `
     -Name "workspace unknown subcommand" `
     -Arguments @("workspace", "nope", "-ManifestPath", "configs\workspace.example.json") `
     -ExitCode 1 `
-    -Patterns @("Unknown workspace command: nope", "Valid: init, show, plan, status, task")
+    -Patterns @("Unknown workspace command: nope", "Valid: init, show, plan, status, dashboard, task")
 
 $workspaceManifest = Join-Path ([System.IO.Path]::GetTempPath()) ("adp-workspace-test-{0}.json" -f ([guid]::NewGuid().ToString("N")))
 try {

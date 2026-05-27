@@ -80,6 +80,14 @@ ADP-OS 可以用一个轻量的 workspace manifest 记录目标项目。这个 m
 
 `workspace status` 同样保持非破坏性。它会报告 manifest 是否已加载、项目路径是否存在、配置的运行时是否已知且已创建、预期 sync session 是否存在、任务快照是已存在还是建议创建，以及 validation 命令是否已声明。它不会创建目录、启动同步、创建快照，也不会运行验证命令。
 
+查看 workspace dashboard：
+
+```powershell
+.\cli\adp.ps1 workspace dashboard
+```
+
+`workspace dashboard` 是非破坏性的汇总视图。它会在一个位置汇总 project readiness 和 task lifecycle state，包括路径、运行时、同步、检查点、执行、验证、review、回滚和提交 gate。它不会运行 Git 命令、验证命令、同步命令、快照命令或运行时命令。
+
 ## Task Lifecycle
 
 Workspace task 是 ADP-OS 的第一个 agent-native workflow 入口。它会把 manifest 里的 task 条目转换成明确的准备、检查点、执行、验证、review、回滚和提交边界：

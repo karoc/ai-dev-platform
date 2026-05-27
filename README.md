@@ -186,6 +186,7 @@ See [Workspaces](docs/workspaces.md) for target-project layout and ADP-OS dogfoo
 .\cli\adp.ps1 workspace show
 .\cli\adp.ps1 workspace plan
 .\cli\adp.ps1 workspace status
+.\cli\adp.ps1 workspace dashboard
 .\cli\adp.ps1 workspace task <prepare|snapshot|run|validate|review|rollback|commit> <task-name>
 .\cli\adp.ps1 sync start <frontend|backend|agent>
 .\cli\adp.ps1 sync stop <frontend|backend|agent>

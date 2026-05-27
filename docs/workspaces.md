@@ -80,6 +80,14 @@ Check workspace readiness:
 
 `workspace status` is also non-destructive. It reports whether the manifest is loaded, project paths exist, configured runtimes are known and created, expected sync sessions are present, task snapshots already exist or are recommended, and validation commands are declared. It does not create directories, start sync, create snapshots, or run validation commands.
 
+View the workspace dashboard:
+
+```powershell
+.\cli\adp.ps1 workspace dashboard
+```
+
+`workspace dashboard` is a non-destructive rollup. It summarizes project readiness and task lifecycle state in one place, including path, runtime, sync, checkpoint, execution, validation, review, rollback, and commit gates. It does not run Git commands, validation commands, sync commands, snapshot commands, or runtime commands.
+
 ## Task Lifecycle
 
 Workspace tasks are the first agent-native workflow surface in ADP-OS. They turn a task entry from the manifest into explicit preparation, checkpoint, execution, validation, review, rollback, and commit boundaries:

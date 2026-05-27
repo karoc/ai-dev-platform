@@ -11,7 +11,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 function Show-WorkspaceUsage {
-    Write-ErrorLog -Message "Usage: adp workspace <init|show|plan|status|task> [-ManifestPath <path>]" -Component "cli.workspace"
+    Write-ErrorLog -Message "Usage: adp workspace <init|show|plan|status|dashboard|task> [-ManifestPath <path>]" -Component "cli.workspace"
     Write-Host "  adp workspace task <prepare|snapshot|run|validate|review|rollback|commit> <task-name> [-ManifestPath <path>]" -ForegroundColor DarkGray
 }
 
@@ -381,6 +381,99 @@ function Write-WorkspaceStatus {
     }
 }
 
+function Get-WorkspaceLevelRank {
+    param([string]$Level)
+
+    switch ($Level) {
+        "FAIL" { return 3 }
+        "WARN" { return 2 }
+        "INFO" { return 1 }
+        "OK" { return 0 }
+        default { return 1 }
+    }
+}
+
+function Select-WorstWorkspaceLevel {
+    param([string[]]$Levels)
+
+    $worst = "OK"
+    foreach ($level in $Levels) {
+        if ((Get-WorkspaceLevelRank $level) -gt (Get-WorkspaceLevelRank $worst)) {
+            $worst = $level
+        }
+    }
+
+    return $worst
+}
+
+function Write-WorkspaceDashboard {
+    param(
+        [object]$Manifest,
+        [string]$ManifestPath
+    )
+
+    Write-Host "Workspace dashboard: $($Manifest.name)" -ForegroundColor Cyan
+    Write-Host "Dashboard only: no projects will be cloned, no sync sessions will be changed, no snapshots will be created, no validation commands will be run, and no Git commands will be run." -ForegroundColor DarkGray
+
+    $projects = Get-WorkspaceArray $Manifest.projects
+    $tasks = Get-WorkspaceArray $Manifest.tasks
+
+    Write-Host ""
+    Write-Host "Overview:" -ForegroundColor Yellow
+    Write-WorkspaceCheck -Level "OK" -Name "manifest" -Detail "(projects: $($projects.Count), tasks: $($tasks.Count), path: $ManifestPath)"
+
+    Write-Host ""
+    Write-Host "Project readiness:" -ForegroundColor Yellow
+    if ($projects.Count -eq 0) {
+        Write-WorkspaceCheck -Level "WARN" -Name "projects" -Detail "(none configured)"
+    }
+
+    foreach ($project in $projects) {
+        $projectName = if ($project.name) { $project.name } else { "(unnamed)" }
+        $projectPath = Resolve-ProjectWorkspacePath -Project $project
+        $pathLevel = if ($project.path -and (Test-Path -LiteralPath $projectPath)) { "OK" } elseif ($project.path) { "WARN" } else { "FAIL" }
+        $runtimeStatus = Get-WorkspaceRuntimeStatus -RuntimeName $project.runtime
+        $syncExpected = ($null -ne $project.sync -and [bool]$project.sync)
+        $syncStatus = Get-WorkspaceSyncStatus -RuntimeName $project.runtime -Expected $syncExpected
+        $validationCommands = Get-WorkspaceArray $project.validation
+        $validationLevel = if ($validationCommands.Count -gt 0) { "OK" } else { "WARN" }
+        $projectLevel = Select-WorstWorkspaceLevel -Levels @($pathLevel, $runtimeStatus.Level, $syncStatus.Level, $validationLevel)
+
+        $pathDetail = if ($projectPath) { $projectPath } else { "missing" }
+        Write-WorkspaceCheck -Level $projectLevel -Name $projectName -Detail "(path: $pathDetail; runtime: $($runtimeStatus.Status); sync: $($syncStatus.Status); validation: $($validationCommands.Count))"
+    }
+
+    Write-Host ""
+    Write-Host "Task lifecycle:" -ForegroundColor Yellow
+    if ($tasks.Count -eq 0) {
+        Write-WorkspaceCheck -Level "WARN" -Name "tasks" -Detail "(none configured)"
+    }
+
+    foreach ($task in $tasks) {
+        $taskName = if ($task.name) { $task.name } else { "(unnamed)" }
+        $runtimeStatus = Get-WorkspaceRuntimeStatus -RuntimeName $task.runtime
+        $snapshotStatus = Get-WorkspaceSnapshotStatus -RuntimeName $task.runtime -SnapshotName $task.snapshot
+        $validationCommands = Get-WorkspaceArray $task.validation
+        $validationLevel = if ($validationCommands.Count -gt 0) { "OK" } else { "WARN" }
+        $taskLevel = Select-WorstWorkspaceLevel -Levels @($runtimeStatus.Level, $snapshotStatus.Level, $validationLevel)
+
+        $executionState = if ($runtimeStatus.Level -eq "OK" -and $snapshotStatus.Level -eq "OK" -and $validationCommands.Count -gt 0) {
+            "ready"
+        } elseif ($runtimeStatus.Level -eq "FAIL" -or $validationCommands.Count -eq 0) {
+            "blocked"
+        } else {
+            "gated"
+        }
+        $rollbackState = if ($task.runtime -and $task.snapshot) { $snapshotStatus.Status } else { "not configured" }
+        $commitState = if ($validationCommands.Count -gt 0) { "review gated" } else { "blocked" }
+
+        Write-WorkspaceCheck -Level $taskLevel -Name $taskName -Detail "(runtime: $($runtimeStatus.Status); checkpoint: $($snapshotStatus.Status); execution: $executionState; validation: $($validationCommands.Count); review: gated; rollback: $rollbackState; commit: $commitState)"
+        Write-Host "      prepare: adp workspace task prepare $taskName -ManifestPath $ManifestPath" -ForegroundColor DarkGray
+        Write-Host "      run:     adp workspace task run $taskName -ManifestPath $ManifestPath" -ForegroundColor DarkGray
+        Write-Host "      review:  adp workspace task review $taskName -ManifestPath $ManifestPath" -ForegroundColor DarkGray
+    }
+}
+
 function Find-WorkspaceTask {
     param(
         [object]$Manifest,
@@ -710,12 +803,16 @@ switch ($SubCommand) {
         $manifest = Read-WorkspaceManifest -Path $ManifestPath
         Write-WorkspaceStatus -Manifest $manifest
     }
+    "dashboard" {
+        $manifest = Read-WorkspaceManifest -Path $ManifestPath
+        Write-WorkspaceDashboard -Manifest $manifest -ManifestPath $ManifestPath
+    }
     "task" {
         $manifest = Read-WorkspaceManifest -Path $ManifestPath
         Invoke-WorkspaceTask -Manifest $manifest -Command $TaskCommand -Name $TaskName -Path $ManifestPath
     }
     default {
-        Write-ErrorLog -Message "Unknown workspace command: $SubCommand. Valid: init, show, plan, status, task" -Component "cli.workspace"
+        Write-ErrorLog -Message "Unknown workspace command: $SubCommand. Valid: init, show, plan, status, dashboard, task" -Component "cli.workspace"
         exit 1
     }
 }
