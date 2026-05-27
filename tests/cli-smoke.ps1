@@ -136,6 +136,12 @@ Assert-Command `
     -Patterns @("Workspace task snapshot: before-large-agent-task", "Checkpoint:", "adp snapshot create agent before-large-agent-task")
 
 Assert-Command `
+    -Name "workspace task run" `
+    -Arguments @("workspace", "task", "run", "before-large-agent-task", "-ManifestPath", "configs\workspace.example.json") `
+    -ExitCode 0 `
+    -Patterns @("Workspace task run: before-large-agent-task", "Execution boundary:", "ssh adp-os-adp-agent", "Run the agent or task command manually")
+
+Assert-Command `
     -Name "workspace task validate" `
     -Arguments @("workspace", "task", "validate", "before-large-agent-task", "-ManifestPath", "configs\workspace.example.json") `
     -ExitCode 0 `
@@ -148,6 +154,18 @@ Assert-Command `
     -Patterns @("Workspace task review: before-large-agent-task", "Human review bundle:", "rollback, revise, or commit")
 
 Assert-Command `
+    -Name "workspace task rollback" `
+    -Arguments @("workspace", "task", "rollback", "before-large-agent-task", "-ManifestPath", "configs\workspace.example.json") `
+    -ExitCode 0 `
+    -Patterns @("Workspace task rollback: before-large-agent-task", "Rollback boundary:", "adp restore agent before-large-agent-task", "git restore <paths>")
+
+Assert-Command `
+    -Name "workspace task commit" `
+    -Arguments @("workspace", "task", "commit", "before-large-agent-task", "-ManifestPath", "configs\workspace.example.json") `
+    -ExitCode 0 `
+    -Patterns @("Workspace task commit: before-large-agent-task", "Commit boundary:", "git add <paths>", "git commit -m")
+
+Assert-Command `
     -Name "workspace task unknown task" `
     -Arguments @("workspace", "task", "prepare", "not-a-task", "-ManifestPath", "configs\workspace.example.json") `
     -ExitCode 1 `
@@ -157,7 +175,7 @@ Assert-Command `
     -Name "workspace task unknown command" `
     -Arguments @("workspace", "task", "deploy", "before-large-agent-task", "-ManifestPath", "configs\workspace.example.json") `
     -ExitCode 1 `
-    -Patterns @("Unknown workspace task command: deploy", "Valid: prepare, snapshot, validate, review")
+    -Patterns @("Unknown workspace task command: deploy", "Valid: prepare, snapshot, run, validate, review, rollback, commit")
 
 Assert-Command `
     -Name "workspace unknown subcommand" `

@@ -16,6 +16,7 @@ The project does not yet publish versioned releases. Entries are grouped by date
 - Added an example workspace manifest and non-destructive `adp workspace init/show/plan` commands.
 - Added non-destructive `adp workspace status` readiness output for manifest projects, runtimes, sync, snapshots, and validation commands.
 - Added plan-only workspace task lifecycle commands: `prepare`, `snapshot`, `validate`, and `review`.
+- Extended plan-only workspace task lifecycle boundaries with `run`, `rollback`, and `commit`.
 - Added `adp doctor -FirstRun` for first-run checklist guidance.
 - Added `-Plan` previews for `adp up`, `adp network apply`, and `adp destroy`.
 - Added public `SECURITY.md` and `SECURITY.zh-CN.md`.

@@ -186,7 +186,7 @@ git clone <project-url> my-project
 .\cli\adp.ps1 workspace show
 .\cli\adp.ps1 workspace plan
 .\cli\adp.ps1 workspace status
-.\cli\adp.ps1 workspace task <prepare|snapshot|validate|review> <task-name>
+.\cli\adp.ps1 workspace task <prepare|snapshot|run|validate|review|rollback|commit> <task-name>
 .\cli\adp.ps1 sync start <frontend|backend|agent>
 .\cli\adp.ps1 sync stop <frontend|backend|agent>
 .\cli\adp.ps1 network apply <frontend|backend|agent|all> [-Plan]

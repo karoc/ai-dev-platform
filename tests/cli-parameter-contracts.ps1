@@ -66,7 +66,10 @@ Assert-Contains -Name "workspace status checks snapshot readiness" -Text $worksp
 Assert-Contains -Name "workspace task lifecycle is plan-only" -Text $workspace -Pattern 'Task lifecycle output is plan-only\. No VM, sync, snapshot, file, Git, or validation command will be changed or run'
 Assert-Contains -Name "workspace task lifecycle supports prepare" -Text $workspace -Pattern '"prepare"[\s\S]*Write-WorkspaceTaskPrepare'
 Assert-Contains -Name "workspace task lifecycle supports snapshot" -Text $workspace -Pattern '"snapshot"[\s\S]*Write-WorkspaceTaskSnapshot'
+Assert-Contains -Name "workspace task lifecycle supports run" -Text $workspace -Pattern '"run"[\s\S]*Write-WorkspaceTaskRun'
 Assert-Contains -Name "workspace task lifecycle supports validate" -Text $workspace -Pattern '"validate"[\s\S]*Write-WorkspaceTaskValidate'
 Assert-Contains -Name "workspace task lifecycle supports review" -Text $workspace -Pattern '"review"[\s\S]*Write-WorkspaceTaskReview'
+Assert-Contains -Name "workspace task lifecycle supports rollback" -Text $workspace -Pattern '"rollback"[\s\S]*Write-WorkspaceTaskRollback'
+Assert-Contains -Name "workspace task lifecycle supports commit" -Text $workspace -Pattern '"commit"[\s\S]*Write-WorkspaceTaskCommit'
 
 Write-Output "CLI parameter contracts OK"

@@ -82,21 +82,27 @@ ADP-OS 可以用一个轻量的 workspace manifest 记录目标项目。这个 m
 
 ## Task Lifecycle
 
-Workspace task 是 ADP-OS 的第一个 agent-native workflow 入口。它会把 manifest 里的 task 条目转换成明确的准备、检查点、验证和 review 步骤：
+Workspace task 是 ADP-OS 的第一个 agent-native workflow 入口。它会把 manifest 里的 task 条目转换成明确的准备、检查点、执行、验证、review、回滚和提交边界：
 
 ```powershell
 .\cli\adp.ps1 workspace task prepare before-large-agent-task
 .\cli\adp.ps1 workspace task snapshot before-large-agent-task
+.\cli\adp.ps1 workspace task run before-large-agent-task
 .\cli\adp.ps1 workspace task validate before-large-agent-task
 .\cli\adp.ps1 workspace task review before-large-agent-task
+.\cli\adp.ps1 workspace task rollback before-large-agent-task
+.\cli\adp.ps1 workspace task commit before-large-agent-task
 ```
 
 这些 task lifecycle 命令都是 plan-only。它们不会启动运行时、修改 sync session、创建快照、运行 Git 命令，也不会运行验证命令。它们只会打印人类或 agent 下一步应该显式执行的命令和 review checklist。
 
 - `prepare`：汇总任务，并打印 readiness、运行时、同步、检查点和验证准备流程。
 - `snapshot`：检查建议快照是否存在，并打印准备好之后要显式运行的快照命令。
+- `run`：打印显式执行边界，覆盖 readiness、检查点、运行时进入、手动 agent 执行、验证和 review handoff。
 - `validate`：打印 manifest 中配置的任务验证命令。
 - `review`：打印 human review bundle，覆盖 readiness、检查点、验证、源码 diff 检查，以及最终 rollback/revise/commit 决策。
+- `rollback`：打印 VM snapshot restore 命令和独立的 Git 源码回滚检查，但不会执行。
+- `commit`：打印 review、验证、diff 检查、暂存和提交边界，但不会 stage 或 commit 文件。
 
 公开示例位于：
 

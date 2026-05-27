@@ -12,7 +12,7 @@ $ErrorActionPreference = "Stop"
 
 function Show-WorkspaceUsage {
     Write-ErrorLog -Message "Usage: adp workspace <init|show|plan|status|task> [-ManifestPath <path>]" -Component "cli.workspace"
-    Write-Host "  adp workspace task <prepare|snapshot|validate|review> <task-name> [-ManifestPath <path>]" -ForegroundColor DarkGray
+    Write-Host "  adp workspace task <prepare|snapshot|run|validate|review|rollback|commit> <task-name> [-ManifestPath <path>]" -ForegroundColor DarkGray
 }
 
 function Read-WorkspaceManifest {
@@ -388,7 +388,7 @@ function Find-WorkspaceTask {
     )
 
     if ([string]::IsNullOrWhiteSpace($Name)) {
-        throw "Task name is required. Usage: adp workspace task <prepare|snapshot|validate|review> <task-name>"
+        throw "Task name is required. Usage: adp workspace task <prepare|snapshot|run|validate|review|rollback|commit> <task-name>"
     }
 
     $tasks = Get-WorkspaceArray $Manifest.tasks
@@ -511,6 +511,43 @@ function Write-WorkspaceTaskValidate {
     }
 }
 
+function Write-WorkspaceTaskRun {
+    param(
+        [object]$Task,
+        [string]$ManifestPath
+    )
+
+    Write-TaskHeader -Action "run" -Task $Task
+    Write-TaskSummary -Task $Task
+
+    Write-Host ""
+    Write-Host "Execution boundary:" -ForegroundColor Yellow
+    Write-Host "  1. Confirm readiness:" -ForegroundColor DarkGray
+    Write-Host "     adp workspace status -ManifestPath $ManifestPath" -ForegroundColor DarkGray
+
+    if ($Task.runtime -and $Task.snapshot) {
+        Write-Host "  2. Confirm checkpoint plan before broad agent work:" -ForegroundColor DarkGray
+        Write-Host "     adp workspace task snapshot $($Task.name) -ManifestPath $ManifestPath" -ForegroundColor DarkGray
+    } else {
+        Write-Host "  2. Add tasks[].runtime and tasks[].snapshot before using rollback-capable agent task execution." -ForegroundColor DarkGray
+    }
+
+    if ($Task.runtime) {
+        Write-Host "  3. Enter or target the runtime explicitly:" -ForegroundColor DarkGray
+        Write-Host "     adp up $($Task.runtime) -Plan" -ForegroundColor DarkGray
+        Write-Host "     adp sync start $($Task.runtime)" -ForegroundColor DarkGray
+        Write-Host "     ssh adp-os-adp-$($Task.runtime)" -ForegroundColor DarkGray
+    } else {
+        Write-Host "  3. Add tasks[].runtime before selecting an execution runtime." -ForegroundColor DarkGray
+    }
+
+    Write-Host "  4. Run the agent or task command manually inside the selected workspace." -ForegroundColor DarkGray
+    Write-Host "  5. Validate before review:" -ForegroundColor DarkGray
+    Write-Host "     adp workspace task validate $($Task.name) -ManifestPath $ManifestPath" -ForegroundColor DarkGray
+    Write-Host "  6. Move to review:" -ForegroundColor DarkGray
+    Write-Host "     adp workspace task review $($Task.name) -ManifestPath $ManifestPath" -ForegroundColor DarkGray
+}
+
 function Write-WorkspaceTaskReview {
     param(
         [object]$Task,
@@ -535,6 +572,52 @@ function Write-WorkspaceTaskReview {
     Write-Host "  5. Decide explicitly: rollback, revise, or commit." -ForegroundColor DarkGray
 }
 
+function Write-WorkspaceTaskRollback {
+    param([object]$Task)
+
+    Write-TaskHeader -Action "rollback" -Task $Task
+    Write-TaskSummary -Task $Task
+
+    Write-Host ""
+    Write-Host "Rollback boundary:" -ForegroundColor Yellow
+    if ($Task.runtime -and $Task.snapshot) {
+        Write-Host "  VM snapshot rollback command:" -ForegroundColor DarkGray
+        Write-Host "     adp restore $($Task.runtime) $($Task.snapshot)" -ForegroundColor DarkGray
+    } else {
+        Write-Host "  Add tasks[].runtime and tasks[].snapshot before planning VM snapshot rollback." -ForegroundColor DarkGray
+    }
+
+    Write-Host "  Source rollback remains a separate Git decision inside the target project:" -ForegroundColor DarkGray
+    Write-Host "     git status --short" -ForegroundColor DarkGray
+    Write-Host "     git diff --stat" -ForegroundColor DarkGray
+    Write-Host "     git restore <paths>" -ForegroundColor DarkGray
+    Write-Host "  Do not run restore commands until the human reviewer has chosen rollback." -ForegroundColor DarkGray
+}
+
+function Write-WorkspaceTaskCommit {
+    param(
+        [object]$Task,
+        [string]$ManifestPath
+    )
+
+    Write-TaskHeader -Action "commit" -Task $Task
+    Write-TaskSummary -Task $Task
+
+    Write-Host ""
+    Write-Host "Commit boundary:" -ForegroundColor Yellow
+    Write-Host "  1. Confirm review bundle:" -ForegroundColor DarkGray
+    Write-Host "     adp workspace task review $($Task.name) -ManifestPath $ManifestPath" -ForegroundColor DarkGray
+    Write-Host "  2. Confirm validation expectations:" -ForegroundColor DarkGray
+    Write-Host "     adp workspace task validate $($Task.name) -ManifestPath $ManifestPath" -ForegroundColor DarkGray
+    Write-Host "  3. Inspect source changes in the target project:" -ForegroundColor DarkGray
+    Write-Host "     git status --short" -ForegroundColor DarkGray
+    Write-Host "     git diff --stat" -ForegroundColor DarkGray
+    Write-Host "     git diff" -ForegroundColor DarkGray
+    Write-Host "  4. Commit only after the human reviewer accepts the task result:" -ForegroundColor DarkGray
+    Write-Host "     git add <paths>" -ForegroundColor DarkGray
+    Write-Host "     git commit -m ""<message>""" -ForegroundColor DarkGray
+}
+
 function Invoke-WorkspaceTask {
     param(
         [object]$Manifest,
@@ -543,7 +626,7 @@ function Invoke-WorkspaceTask {
         [string]$Path
     )
 
-    $validTaskCommands = @("prepare", "snapshot", "validate", "review")
+    $validTaskCommands = @("prepare", "snapshot", "run", "validate", "review", "rollback", "commit")
     if ([string]::IsNullOrWhiteSpace($Command) -or $Command -notin $validTaskCommands) {
         Write-ErrorLog -Message "Unknown workspace task command: $Command. Valid: $($validTaskCommands -join ', ')" -Component "cli.workspace"
         exit 1
@@ -558,11 +641,20 @@ function Invoke-WorkspaceTask {
         "snapshot" {
             Write-WorkspaceTaskSnapshot -Task $task
         }
+        "run" {
+            Write-WorkspaceTaskRun -Task $task -ManifestPath $Path
+        }
         "validate" {
             Write-WorkspaceTaskValidate -Task $task
         }
         "review" {
             Write-WorkspaceTaskReview -Task $task -ManifestPath $Path
+        }
+        "rollback" {
+            Write-WorkspaceTaskRollback -Task $task
+        }
+        "commit" {
+            Write-WorkspaceTaskCommit -Task $task -ManifestPath $Path
         }
     }
 }

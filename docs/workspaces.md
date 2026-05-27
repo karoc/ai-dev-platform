@@ -82,21 +82,27 @@ Check workspace readiness:
 
 ## Task Lifecycle
 
-Workspace tasks are the first agent-native workflow surface in ADP-OS. They turn a task entry from the manifest into explicit preparation, checkpoint, validation, and review steps:
+Workspace tasks are the first agent-native workflow surface in ADP-OS. They turn a task entry from the manifest into explicit preparation, checkpoint, execution, validation, review, rollback, and commit boundaries:
 
 ```powershell
 .\cli\adp.ps1 workspace task prepare before-large-agent-task
 .\cli\adp.ps1 workspace task snapshot before-large-agent-task
+.\cli\adp.ps1 workspace task run before-large-agent-task
 .\cli\adp.ps1 workspace task validate before-large-agent-task
 .\cli\adp.ps1 workspace task review before-large-agent-task
+.\cli\adp.ps1 workspace task rollback before-large-agent-task
+.\cli\adp.ps1 workspace task commit before-large-agent-task
 ```
 
 The task lifecycle commands are plan-only. They do not start runtimes, change sync sessions, create snapshots, run Git commands, or run validation commands. They print the exact commands and review checklist a human or agent should use next.
 
 - `prepare`: summarizes the task and prints the readiness, runtime, sync, checkpoint, and validation preparation flow.
 - `snapshot`: checks whether the recommended snapshot exists and prints the explicit snapshot command to run when ready.
+- `run`: prints the explicit execution boundary for readiness, checkpoint, runtime entry, manual agent execution, validation, and review handoff.
 - `validate`: prints the task validation commands from the manifest.
 - `review`: prints a human review bundle for readiness, checkpoint, validation, source diff inspection, and final rollback/revise/commit decision.
+- `rollback`: prints the VM snapshot restore command and separate Git source rollback checks without running them.
+- `commit`: prints the review, validation, diff inspection, staging, and commit boundary without staging or committing files.
 
 The public example lives at:
 
