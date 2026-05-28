@@ -490,6 +490,95 @@ function Write-WorkspaceReviewDecision {
     Write-Host "     next: $($Decision.NextStep)" -ForegroundColor DarkGray
 }
 
+function Get-WorkspaceRecordedTaskStateName {
+    param([object]$RecordedState)
+
+    if ($RecordedState -and $RecordedState.PSObject.Properties.Name -contains "state" -and -not [string]::IsNullOrWhiteSpace([string]$RecordedState.state)) {
+        return ([string]$RecordedState.state).ToLowerInvariant()
+    }
+
+    return "missing"
+}
+
+function Get-WorkspaceCommitDecision {
+    param(
+        [object]$Task,
+        [object]$RecordedState,
+        [object]$SnapshotGate,
+        [int]$ValidationCommandCount
+    )
+
+    if ($SnapshotGate.Blocking) {
+        return [pscustomobject]@{
+            Level    = "WARN"
+            Verdict  = "blocked by snapshot gate"
+            Detail   = $SnapshotGate.Detail
+            NextStep = "create or explicitly waive the checkpoint before commit"
+        }
+    }
+
+    if ($ValidationCommandCount -eq 0) {
+        return [pscustomobject]@{
+            Level    = "WARN"
+            Verdict  = "validation not configured"
+            Detail   = "commit should not proceed without a declared validation gate"
+            NextStep = "add tasks[].validation and run review again"
+        }
+    }
+
+    $validationStatus = Get-WorkspaceValidationStatus -RecordedState $RecordedState
+    if ($validationStatus -eq "failed") {
+        return [pscustomobject]@{
+            Level    = "FAIL"
+            Verdict  = "blocked by validation"
+            Detail   = "latest recorded validation failed"
+            NextStep = "revise and re-run validation, or rollback"
+        }
+    }
+
+    if ($validationStatus -ne "passed") {
+        return [pscustomobject]@{
+            Level    = "WARN"
+            Verdict  = "validation result missing"
+            Detail   = "no passing validation result is recorded in local workspace state"
+            NextStep = "run adp workspace task validate $($Task.name) -Execute before commit"
+        }
+    }
+
+    $recordedTaskState = Get-WorkspaceRecordedTaskStateName -RecordedState $RecordedState
+    if ($recordedTaskState -eq "committed") {
+        return [pscustomobject]@{
+            Level    = "OK"
+            Verdict  = "already marked committed"
+            Detail   = "local workspace state says the commit boundary was completed"
+            NextStep = "confirm repository history in the target project"
+        }
+    }
+
+    if ($recordedTaskState -eq "reviewed") {
+        return [pscustomobject]@{
+            Level    = "OK"
+            Verdict  = "commit ready"
+            Detail   = "validation passed and human review is recorded"
+            NextStep = "inspect final diff, then stage and commit inside the target project"
+        }
+    }
+
+    return [pscustomobject]@{
+        Level    = "WARN"
+        Verdict  = "review not recorded"
+        Detail   = "validation passed, but the task is not marked reviewed"
+        NextStep = "run adp workspace task review $($Task.name), then mark reviewed when accepted"
+    }
+}
+
+function Write-WorkspaceCommitDecision {
+    param([object]$Decision)
+
+    Write-WorkspaceCheck -Level $Decision.Level -Name "commit readiness" -Detail "($($Decision.Verdict): $($Decision.Detail))"
+    Write-Host "     next: $($Decision.NextStep)" -ForegroundColor DarkGray
+}
+
 function Write-WorkspaceValidationDetailLines {
     param([object]$RecordedState)
 
@@ -950,9 +1039,12 @@ function Write-WorkspaceDashboard {
         $requiresSnapshot = Test-WorkspaceTaskRequiresSnapshot -Task $task
         $recordedState = Get-WorkspaceTaskState -State $state -TaskName $taskName
         $validationStatus = Get-WorkspaceValidationStatus -RecordedState $recordedState
+        $recordedTaskState = Get-WorkspaceRecordedTaskStateName -RecordedState $recordedState
         $rollbackState = if ($task.runtime -and $task.snapshot) { $snapshotStatus.Status } else { "not configured" }
-        $commitState = if ($validationStatus -eq "passed") {
-            "review ready"
+        $commitState = if ($validationStatus -eq "passed" -and $recordedTaskState -in @("reviewed", "committed")) {
+            "ready"
+        } elseif ($validationStatus -eq "passed") {
+            "blocked by review"
         } elseif ($validationStatus -eq "failed") {
             "blocked by validation"
         } elseif ($validationCommands.Count -gt 0) {
@@ -1342,14 +1434,30 @@ function Write-WorkspaceTaskRollback {
 function Write-WorkspaceTaskCommit {
     param(
         [object]$Task,
-        [string]$ManifestPath
+        [string]$ManifestPath,
+        [string]$StatePath
     )
 
     Write-TaskHeader -Action "commit" -Task $Task
     Write-TaskSummary -Task $Task
+    $resolvedStatePath = Resolve-WorkspaceStatePath -Path $StatePath
+    $state = Read-WorkspaceState -Path $resolvedStatePath
+    $recordedState = Get-WorkspaceTaskState -State $state -TaskName $Task.name
+    $validationStateText = Format-WorkspaceValidationState -RecordedState $recordedState
+    $recordedTaskState = Get-WorkspaceRecordedTaskStateName -RecordedState $recordedState
+    $snapshotStatus = Get-WorkspaceSnapshotStatus -RuntimeName $Task.runtime -SnapshotName $Task.snapshot
+    $snapshotGate = Get-WorkspaceSnapshotGate -Task $Task -SnapshotStatus $snapshotStatus
+    $validationCommands = Get-WorkspaceArray $Task.validation
+    $commitDecision = Get-WorkspaceCommitDecision -Task $Task -RecordedState $recordedState -SnapshotGate $snapshotGate -ValidationCommandCount $validationCommands.Count
 
     Write-Host ""
     Write-Host "Commit boundary:" -ForegroundColor Yellow
+    Write-Host "  0. Commit readiness gate:" -ForegroundColor DarkGray
+    Write-WorkspaceCommitDecision -Decision $commitDecision
+    Write-Host "     recorded task state: $recordedTaskState" -ForegroundColor DarkGray
+    Write-Host "     recorded validation: $validationStateText" -ForegroundColor DarkGray
+    Write-WorkspaceValidationDetailLines -RecordedState $recordedState
+    Write-Host "     state file: $resolvedStatePath" -ForegroundColor DarkGray
     Write-Host "  1. Confirm review bundle:" -ForegroundColor DarkGray
     Write-Host "     adp workspace task review $($Task.name) -ManifestPath $ManifestPath" -ForegroundColor DarkGray
     Write-Host "  2. Confirm validation expectations:" -ForegroundColor DarkGray
@@ -1439,7 +1547,7 @@ function Invoke-WorkspaceTask {
             Write-WorkspaceTaskRollback -Task $task -StatePath $LocalStatePath
         }
         "commit" {
-            Write-WorkspaceTaskCommit -Task $task -ManifestPath $Path
+            Write-WorkspaceTaskCommit -Task $task -ManifestPath $Path -StatePath $LocalStatePath
         }
         "mark" {
             Write-WorkspaceTaskMark -Task $task -StateName $StateName -Path $LocalStatePath

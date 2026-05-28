@@ -260,7 +260,7 @@ try {
   "tasks": [
     {
       "name": "frontend-browser-acceptance",
-      "state": "validated",
+      "state": "reviewed",
       "updated_at": "2026-05-28T00:00:00.0000000Z",
       "validation": {
         "status": "passed",
@@ -276,6 +276,26 @@ try {
         "failed_command": "",
         "started_at": "2026-05-28T00:00:00.0000000Z",
         "completed_at": "2026-05-28T00:01:00.0000000Z"
+      }
+    },
+    {
+      "name": "docs-copy-edit",
+      "state": "validated",
+      "updated_at": "2026-05-28T00:01:30.0000000Z",
+      "validation": {
+        "status": "passed",
+        "runtime": "agent",
+        "project": "agent-workspace",
+        "remote_path": "/home/adp/workspace/agent-workspace",
+        "command_count": 2,
+        "commands": [
+          "git diff --check",
+          "git status --short"
+        ],
+        "exit_code": 0,
+        "failed_command": "",
+        "started_at": "2026-05-28T00:01:00.0000000Z",
+        "completed_at": "2026-05-28T00:01:30.0000000Z"
       }
     },
     {
@@ -307,7 +327,7 @@ try {
         -Name "workspace dashboard shows validation result state" `
         -Arguments @("workspace", "dashboard", "-ManifestPath", "configs\workspace.recipes.example.json", "-StatePath", $workspaceValidationState) `
         -ExitCode 0 `
-        -Patterns @("Workspace dashboard: recipe-workspace", "frontend-browser-acceptance", "state: validated at", "validation result: passed at 2026-05-28T00:01:00.0000000Z; project: frontend-app; exit: 0", "backend-validation-pass", "commit: blocked by validation")
+        -Patterns @("Workspace dashboard: recipe-workspace", "frontend-browser-acceptance", "state: reviewed at", "validation result: passed at 2026-05-28T00:01:00.0000000Z; project: frontend-app; exit: 0", "docs-copy-edit", "commit: blocked by review", "backend-validation-pass", "commit: blocked by validation")
 
     Assert-Command `
         -Name "workspace review shows validation result state" `
@@ -326,6 +346,24 @@ try {
         -Arguments @("workspace", "task", "rollback", "backend-validation-pass", "-ManifestPath", "configs\workspace.recipes.example.json", "-StatePath", $workspaceValidationState) `
         -ExitCode 0 `
         -Patterns @("Workspace task rollback: backend-validation-pass", "Decision context:", "review verdict \(validation failed", "recorded validation: failed at 2026-05-28T00:03:00.0000000Z; project: backend-api; exit: 1", "failed command: uv run pytest", "git restore <paths>")
+
+    Assert-Command `
+        -Name "workspace commit shows readiness when reviewed" `
+        -Arguments @("workspace", "task", "commit", "frontend-browser-acceptance", "-ManifestPath", "configs\workspace.recipes.example.json", "-StatePath", $workspaceValidationState) `
+        -ExitCode 0 `
+        -Patterns @("Workspace task commit: frontend-browser-acceptance", "Commit readiness gate:", "commit readiness \(commit ready", "recorded task state: reviewed", "recorded validation: passed at 2026-05-28T00:01:00.0000000Z; project: frontend-app; exit: 0", "git add <paths>", "git commit -m")
+
+    Assert-Command `
+        -Name "workspace commit blocks missing review state" `
+        -Arguments @("workspace", "task", "commit", "docs-copy-edit", "-ManifestPath", "configs\workspace.recipes.example.json", "-StatePath", $workspaceValidationState) `
+        -ExitCode 0 `
+        -Patterns @("Workspace task commit: docs-copy-edit", "Commit readiness gate:", "commit readiness \(review not recorded", "recorded task state: validated", "run adp workspace task review docs-copy-edit")
+
+    Assert-Command `
+        -Name "workspace commit blocks failed validation" `
+        -Arguments @("workspace", "task", "commit", "backend-validation-pass", "-ManifestPath", "configs\workspace.recipes.example.json", "-StatePath", $workspaceValidationState) `
+        -ExitCode 0 `
+        -Patterns @("Workspace task commit: backend-validation-pass", "Commit readiness gate:", "commit readiness \(blocked by validation", "recorded task state: validation_failed", "failed command: uv run pytest")
 } finally {
     Remove-Item -LiteralPath $workspaceValidationState -Force -ErrorAction SilentlyContinue
 }
