@@ -123,7 +123,15 @@ Validation execution is intentionally narrow:
 .\cli\adp.ps1 workspace task validate frontend-browser-acceptance -Execute -ManifestPath configs\workspace.recipes.example.json
 ```
 
-`-Execute -Plan` prints the SSH commands that would run. `-Execute` connects to the task runtime, changes into `/home/adp/workspace/<project-path>`, and runs each `tasks[].validation` command in order. ADP-OS does not create snapshots, start sync, install hidden dependencies, download browser binaries beyond what the declared command itself does, stage files, commit files, or mark the task as validated. Review remains an explicit separate step.
+`-Execute -Plan` prints the readiness gate and SSH commands that would run. `-Execute` connects to the task runtime, changes into `/home/adp/workspace/<project-path>`, and runs each `tasks[].validation` command in order. Before execution, ADP-OS displays runtime, sync, snapshot gate, project path, and SSH target readiness. ADP-OS does not create snapshots, start sync, install hidden dependencies, download browser binaries beyond what the declared command itself does, stage files, or commit files. Review remains an explicit separate step.
+
+When validation is executed, the result is recorded in the ignored local state file:
+
+```text
+adp-workspace.state.json
+```
+
+The recorded result includes status, runtime, project, remote path, command count, commands, exit code, failed command when present, start time, and completion time. `workspace dashboard` and `workspace task review` show the latest recorded validation result so a reviewer can decide whether to rollback, revise, or commit. Failed validation is recorded as `validation_failed`; successful validation is recorded as `validated`.
 
 For validation execution, set `tasks[].project` when a task should target a specific project. If omitted, ADP-OS will only infer the project when exactly one manifest project uses the task runtime. Absolute paths and `.` or `..` path segments are rejected before remote execution.
 
@@ -133,7 +141,7 @@ Record a local lifecycle decision:
 .\cli\adp.ps1 workspace task mark before-large-agent-task prepared
 ```
 
-`task mark` records local task state only. It writes `adp-workspace.state.json`, which the platform repository ignores by default. The state file lets `workspace dashboard` show that a human or agent has marked a task as `prepared`, `checkpointed`, `running`, `validated`, `reviewed`, `rollback`, or `committed`. Marking state does not run the task, create snapshots, run validation, restore snapshots, stage files, or commit changes.
+`task mark` records local task state only. It writes `adp-workspace.state.json`, which the platform repository ignores by default. The state file lets `workspace dashboard` show that a human or agent has marked a task as `prepared`, `checkpointed`, `running`, `validated`, `reviewed`, `rollback`, or `committed`. Executed validation also writes validation result details to the same ignored state file. Marking state does not run the task, create snapshots, run validation, restore snapshots, stage files, or commit changes.
 
 The public example lives at:
 

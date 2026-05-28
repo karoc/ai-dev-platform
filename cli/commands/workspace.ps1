@@ -317,6 +317,103 @@ function Set-WorkspaceTaskState {
     return $State
 }
 
+function Set-WorkspaceTaskValidationResult {
+    param(
+        [object]$State,
+        [string]$TaskName,
+        [object]$Validation
+    )
+
+    $tasks = [System.Collections.Generic.List[object]]::new()
+    $updated = $false
+    $timestamp = (Get-Date).ToUniversalTime().ToString("o")
+    $stateName = if ($Validation.status -eq "passed") { "validated" } else { "validation_failed" }
+
+    foreach ($taskState in (Get-WorkspaceArray $State.tasks)) {
+        if ($taskState.name -eq $TaskName) {
+            $taskState | Add-Member -NotePropertyName "state" -NotePropertyValue $stateName -Force
+            $taskState | Add-Member -NotePropertyName "updated_at" -NotePropertyValue $timestamp -Force
+            $taskState | Add-Member -NotePropertyName "validation" -NotePropertyValue $Validation -Force
+            $updated = $true
+        }
+        $tasks.Add($taskState) | Out-Null
+    }
+
+    if (-not $updated) {
+        $tasks.Add([pscustomobject]@{
+            name       = $TaskName
+            state      = $stateName
+            updated_at = $timestamp
+            validation = $Validation
+        }) | Out-Null
+    }
+
+    $State.tasks = @($tasks.ToArray())
+    $State | Add-Member -NotePropertyName "updated_at" -NotePropertyValue $timestamp -Force
+    return $State
+}
+
+function New-WorkspaceValidationResult {
+    param(
+        [object]$Task,
+        [object]$Project,
+        [string]$RemotePath,
+        [string]$Status,
+        [string]$StartedAt,
+        [string]$CompletedAt,
+        [string[]]$Commands,
+        [int]$ExitCode,
+        [string]$FailedCommand = ""
+    )
+
+    return [pscustomobject]@{
+        status         = $Status
+        runtime        = [string]$Task.runtime
+        project        = [string]$Project.name
+        remote_path    = $RemotePath
+        command_count  = @($Commands).Count
+        commands       = @($Commands)
+        exit_code      = $ExitCode
+        failed_command = $FailedCommand
+        started_at     = $StartedAt
+        completed_at   = $CompletedAt
+    }
+}
+
+function Write-WorkspaceValidationResult {
+    param(
+        [string]$StatePath,
+        [object]$Task,
+        [object]$Validation
+    )
+
+    $resolvedStatePath = Resolve-WorkspaceStatePath -Path $StatePath
+    $state = Read-WorkspaceState -Path $resolvedStatePath
+    $state = Set-WorkspaceTaskValidationResult -State $state -TaskName $Task.name -Validation $Validation
+    Write-WorkspaceState -State $state -Path $resolvedStatePath
+    return $resolvedStatePath
+}
+
+function Format-WorkspaceValidationState {
+    param([object]$RecordedState)
+
+    if (-not $RecordedState -or -not ($RecordedState.PSObject.Properties.Name -contains "validation") -or -not $RecordedState.validation) {
+        return "not recorded"
+    }
+
+    $validation = $RecordedState.validation
+    $exitCode = if ($validation.PSObject.Properties.Name -contains "exit_code") { $validation.exit_code } else { "unknown" }
+    $completedAt = if ($validation.PSObject.Properties.Name -contains "completed_at" -and $validation.completed_at -is [datetime]) {
+        $validation.completed_at.ToUniversalTime().ToString("o")
+    } elseif ($validation.PSObject.Properties.Name -contains "completed_at") {
+        $validation.completed_at
+    } else {
+        "unknown time"
+    }
+    $project = if ($validation.PSObject.Properties.Name -contains "project") { $validation.project } else { "unknown project" }
+    return "$($validation.status) at $completedAt; project: $project; exit: $exitCode"
+}
+
 function Write-WorkspaceSummary {
     param([object]$Manifest)
 
@@ -766,8 +863,9 @@ function Write-WorkspaceDashboard {
             $null
         }
         $recordedStateText = if ($recordedState) { "$($recordedState.state) at $recordedStateTime" } else { "not recorded" }
+        $validationStateText = Format-WorkspaceValidationState -RecordedState $recordedState
 
-        Write-WorkspaceCheck -Level $taskLevel -Name $taskName -Detail "(state: $recordedStateText; risk: $risk; snapshot required: $requiresSnapshot; checkpoint: $($snapshotGate.Status); runtime: $($runtimeStatus.Status); execution: $executionState; validation: $($validationCommands.Count); review: gated; rollback: $rollbackState; commit: $commitState)"
+        Write-WorkspaceCheck -Level $taskLevel -Name $taskName -Detail "(state: $recordedStateText; risk: $risk; snapshot required: $requiresSnapshot; checkpoint: $($snapshotGate.Status); runtime: $($runtimeStatus.Status); execution: $executionState; validation: $($validationCommands.Count); validation result: $validationStateText; review: gated; rollback: $rollbackState; commit: $commitState)"
         Write-Host "      prepare: adp workspace task prepare $taskName -ManifestPath $ManifestPath" -ForegroundColor DarkGray
         Write-Host "      run:     adp workspace task run $taskName -ManifestPath $ManifestPath" -ForegroundColor DarkGray
         Write-Host "      review:  adp workspace task review $taskName -ManifestPath $ManifestPath" -ForegroundColor DarkGray
@@ -897,6 +995,7 @@ function Write-WorkspaceTaskValidate {
     param(
         [object]$Manifest,
         [object]$Task,
+        [string]$StatePath,
         [switch]$ExecuteValidation,
         [switch]$PlanOnly
     )
@@ -931,9 +1030,35 @@ function Write-WorkspaceTaskValidate {
     $project = Find-WorkspaceProjectForTask -Manifest $Manifest -Task $Task
     $remotePath = Resolve-WorkspaceRemoteProjectPath -Project $project
     $sshTarget = Get-WorkspaceRuntimeSshTarget -RuntimeName $Task.runtime
+    $runtimeStatus = Get-WorkspaceRuntimeStatus -RuntimeName $Task.runtime
+    $syncExpected = ($null -ne $project.sync -and [bool]$project.sync)
+    $syncStatus = Get-WorkspaceSyncStatus -RuntimeName $Task.runtime -Expected $syncExpected
+    $snapshotStatus = Get-WorkspaceSnapshotStatus -RuntimeName $Task.runtime -SnapshotName $Task.snapshot
+    $snapshotGate = Get-WorkspaceSnapshotGate -Task $Task -SnapshotStatus $snapshotStatus
 
+    Write-Host ""
+    Write-Host "Readiness gate:" -ForegroundColor Yellow
     Write-WorkspaceCheck -Level "OK" -Name "project" -Detail "($($project.name): $remotePath)"
-    Write-WorkspaceCheck -Level "OK" -Name "runtime" -Detail "($($Task.runtime): $($sshTarget.User)@$($sshTarget.Host):$($sshTarget.Port))"
+    Write-WorkspaceCheck -Level $runtimeStatus.Level -Name "runtime $($Task.runtime)" -Detail "($($runtimeStatus.Status): $($runtimeStatus.Detail))"
+    Write-WorkspaceCheck -Level $syncStatus.Level -Name "sync" -Detail "($($syncStatus.Status)$(if ($syncStatus.Detail) { ': ' + $syncStatus.Detail }))"
+    Write-WorkspaceCheck -Level $snapshotGate.Level -Name "snapshot-first gate" -Detail "($($snapshotGate.Status): $($snapshotGate.Detail))"
+    Write-WorkspaceCheck -Level "OK" -Name "ssh target" -Detail "($($sshTarget.User)@$($sshTarget.Host):$($sshTarget.Port))"
+
+    if (-not $PlanOnly) {
+        $blockingReasons = @()
+        if ($runtimeStatus.Level -eq "FAIL") {
+            $blockingReasons += "runtime is blocked: $($runtimeStatus.Detail)"
+        }
+        if ($snapshotGate.Blocking) {
+            $blockingReasons += "snapshot-first gate is blocked: $($snapshotGate.Detail)"
+        }
+        if ($blockingReasons.Count -gt 0) {
+            foreach ($reason in $blockingReasons) {
+                Write-ErrorLog -Message $reason -Component "cli.workspace"
+            }
+            exit 1
+        }
+    }
 
     if ($PlanOnly) {
         Write-Host ""
@@ -944,6 +1069,8 @@ function Write-WorkspaceTaskValidate {
     }
 
     $index = 1
+    $startedAt = (Get-Date).ToUniversalTime().ToString("o")
+    $commands = @($validationCommands | ForEach-Object { [string]$_ })
     foreach ($command in $validationCommands) {
         $remoteCommand = "cd $(Quote-PosixSingleArgument $remotePath) && $command"
         if ($PlanOnly) {
@@ -954,6 +1081,11 @@ function Write-WorkspaceTaskValidate {
             Invoke-WorkspaceRemoteValidationCommand -SshTarget $sshTarget -RemoteCommand $remoteCommand
             $exitCode = $LASTEXITCODE
             if ($exitCode -ne 0) {
+                $completedAt = (Get-Date).ToUniversalTime().ToString("o")
+                $validation = New-WorkspaceValidationResult -Task $Task -Project $project -RemotePath $remotePath -Status "failed" -StartedAt $startedAt -CompletedAt $completedAt -Commands $commands -ExitCode $exitCode -FailedCommand ([string]$command)
+                $resolvedStatePath = Write-WorkspaceValidationResult -StatePath $StatePath -Task $Task -Validation $validation
+                Write-Host ""
+                Write-Host "Validation result recorded: $resolvedStatePath" -ForegroundColor DarkGray
                 Write-ErrorLog -Message "Workspace validation command failed with exit code $exitCode`: $command" -Component "cli.workspace"
                 exit $exitCode
             }
@@ -962,9 +1094,13 @@ function Write-WorkspaceTaskValidate {
     }
 
     if (-not $PlanOnly) {
+        $completedAt = (Get-Date).ToUniversalTime().ToString("o")
+        $validation = New-WorkspaceValidationResult -Task $Task -Project $project -RemotePath $remotePath -Status "passed" -StartedAt $startedAt -CompletedAt $completedAt -Commands $commands -ExitCode 0
+        $resolvedStatePath = Write-WorkspaceValidationResult -StatePath $StatePath -Task $Task -Validation $validation
         Write-Host ""
         Write-Host "Workspace validation complete: $($Task.name)" -ForegroundColor Green
-        Write-Host "  Review remains explicit; ADP-OS did not mark state, stage files, or commit changes." -ForegroundColor DarkGray
+        Write-Host "  Result recorded: $resolvedStatePath" -ForegroundColor DarkGray
+        Write-Host "  Review remains explicit; ADP-OS did not stage files or commit changes." -ForegroundColor DarkGray
     }
 }
 
@@ -1016,11 +1152,16 @@ function Write-WorkspaceTaskRun {
 function Write-WorkspaceTaskReview {
     param(
         [object]$Task,
-        [string]$ManifestPath
+        [string]$ManifestPath,
+        [string]$StatePath
     )
 
     Write-TaskHeader -Action "review" -Task $Task
     Write-TaskSummary -Task $Task
+    $resolvedStatePath = Resolve-WorkspaceStatePath -Path $StatePath
+    $state = Read-WorkspaceState -Path $resolvedStatePath
+    $recordedState = Get-WorkspaceTaskState -State $state -TaskName $Task.name
+    $validationStateText = Format-WorkspaceValidationState -RecordedState $recordedState
 
     Write-Host ""
     Write-Host "Human review bundle:" -ForegroundColor Yellow
@@ -1033,6 +1174,8 @@ function Write-WorkspaceTaskReview {
     }
     Write-Host "  3. Run or inspect validation commands:" -ForegroundColor DarkGray
     Write-Host "     adp workspace task validate $($Task.name) -ManifestPath $ManifestPath" -ForegroundColor DarkGray
+    Write-Host "     recorded validation: $validationStateText" -ForegroundColor DarkGray
+    Write-Host "     state file: $resolvedStatePath" -ForegroundColor DarkGray
     Write-Host "  4. Inspect source changes in the target project:" -ForegroundColor DarkGray
     Write-Host "     git status --short" -ForegroundColor DarkGray
     Write-Host "     git diff --stat" -ForegroundColor DarkGray
@@ -1153,10 +1296,10 @@ function Invoke-WorkspaceTask {
             Write-WorkspaceTaskRun -Task $task -ManifestPath $Path
         }
         "validate" {
-            Write-WorkspaceTaskValidate -Manifest $Manifest -Task $task -ExecuteValidation:$ExecuteValidation -PlanOnly:$PlanOnly
+            Write-WorkspaceTaskValidate -Manifest $Manifest -Task $task -StatePath $LocalStatePath -ExecuteValidation:$ExecuteValidation -PlanOnly:$PlanOnly
         }
         "review" {
-            Write-WorkspaceTaskReview -Task $task -ManifestPath $Path
+            Write-WorkspaceTaskReview -Task $task -ManifestPath $Path -StatePath $LocalStatePath
         }
         "rollback" {
             Write-WorkspaceTaskRollback -Task $task

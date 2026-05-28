@@ -123,7 +123,15 @@ Validation execution 有意保持很窄：
 .\cli\adp.ps1 workspace task validate frontend-browser-acceptance -Execute -ManifestPath configs\workspace.recipes.example.json
 ```
 
-`-Execute -Plan` 会打印将要运行的 SSH 命令。`-Execute` 会连接到 task runtime，进入 `/home/adp/workspace/<project-path>`，并按顺序运行每条 `tasks[].validation` 命令。ADP-OS 不会创建快照、启动同步、安装隐藏依赖、下载浏览器 binary（除非你声明的命令自己这么做）、stage 文件、commit 文件，也不会自动把 task 标记为 validated。Review 仍然是单独的显式步骤。
+`-Execute -Plan` 会打印 readiness gate 和将要运行的 SSH 命令。`-Execute` 会连接到 task runtime，进入 `/home/adp/workspace/<project-path>`，并按顺序运行每条 `tasks[].validation` 命令。执行前，ADP-OS 会显示 runtime、sync、snapshot gate、project path 和 SSH target readiness。ADP-OS 不会创建快照、启动同步、安装隐藏依赖、下载浏览器 binary（除非你声明的命令自己这么做）、stage 文件或 commit 文件。Review 仍然是单独的显式步骤。
+
+执行 validation 后，结果会记录到被忽略的本地 state 文件：
+
+```text
+adp-workspace.state.json
+```
+
+记录内容包括 status、runtime、project、remote path、command count、commands、exit code、失败命令（如果有）、开始时间和完成时间。`workspace dashboard` 和 `workspace task review` 会显示最近一次记录的 validation result，便于 reviewer 决定 rollback、revise 或 commit。失败的 validation 会记录为 `validation_failed`，成功的 validation 会记录为 `validated`。
 
 执行 validation 时，建议设置 `tasks[].project`，让 task 明确指向某个 project。如果省略，ADP-OS 只有在 manifest 中恰好只有一个 project 使用该 task runtime 时才会推断 project。远端执行前会拒绝绝对路径，以及包含 `.` 或 `..` segment 的路径。
 
@@ -133,7 +141,7 @@ Validation execution 有意保持很窄：
 .\cli\adp.ps1 workspace task mark before-large-agent-task prepared
 ```
 
-`task mark` 只记录本地 task state。它会写入 `adp-workspace.state.json`，平台仓库默认忽略这个文件。state 文件让 `workspace dashboard` 可以显示人类或 agent 已将任务标记为 `prepared`、`checkpointed`、`running`、`validated`、`reviewed`、`rollback` 或 `committed`。标记状态不会运行任务、创建快照、运行验证、恢复快照、stage 文件或 commit 改动。
+`task mark` 只记录本地 task state。它会写入 `adp-workspace.state.json`，平台仓库默认忽略这个文件。state 文件让 `workspace dashboard` 可以显示人类或 agent 已将任务标记为 `prepared`、`checkpointed`、`running`、`validated`、`reviewed`、`rollback` 或 `committed`。执行过的 validation 也会把 validation result 详情写到同一个被忽略的 state 文件。标记状态不会运行任务、创建快照、运行验证、恢复快照、stage 文件或 commit 改动。
 
 公开示例位于：
 

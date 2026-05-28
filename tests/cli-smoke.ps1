@@ -199,7 +199,7 @@ Assert-Command `
     -Name "workspace task validate execute plan frontend browser recipe" `
     -Arguments @("workspace", "task", "validate", "frontend-browser-acceptance", "-Execute", "-Plan", "-ManifestPath", "configs\workspace.recipes.example.json") `
     -ExitCode 0 `
-    -Patterns @("Workspace task validate: frontend-browser-acceptance", "Explicit execution mode", "Validation execution:", "project \(frontend-app: /home/adp/workspace/frontend-app\)", "runtime \(frontend: adp@192\.168\.242\.131:22\)", "Plan only: validation commands will not be executed", "ssh -i .*adp@192\.168\.242\.131", "pnpm exec playwright test")
+    -Patterns @("Workspace task validate: frontend-browser-acceptance", "Explicit execution mode", "Validation execution:", "Readiness gate:", "project \(frontend-app: /home/adp/workspace/frontend-app\)", "runtime frontend", "sync", "snapshot-first gate", "ssh target \(adp@192\.168\.242\.131:22\)", "Plan only: validation commands will not be executed", "ssh -i .*adp@192\.168\.242\.131", "pnpm exec playwright test")
 
 Assert-Command `
     -Name "workspace task run broad agent recipe" `
@@ -252,6 +252,51 @@ try {
     Remove-Item -LiteralPath $workspaceState -Force -ErrorAction SilentlyContinue
 }
 
+$workspaceValidationState = Join-Path ([System.IO.Path]::GetTempPath()) ("adp-workspace-validation-state-{0}.json" -f ([guid]::NewGuid().ToString("N")))
+try {
+    @"
+{
+  "version": 1,
+  "tasks": [
+    {
+      "name": "frontend-browser-acceptance",
+      "state": "validated",
+      "updated_at": "2026-05-28T00:00:00.0000000Z",
+      "validation": {
+        "status": "passed",
+        "runtime": "frontend",
+        "project": "frontend-app",
+        "remote_path": "/home/adp/workspace/frontend-app",
+        "command_count": 2,
+        "commands": [
+          "pnpm install",
+          "pnpm exec playwright test"
+        ],
+        "exit_code": 0,
+        "failed_command": "",
+        "started_at": "2026-05-28T00:00:00.0000000Z",
+        "completed_at": "2026-05-28T00:01:00.0000000Z"
+      }
+    }
+  ]
+}
+"@ | Set-Content -LiteralPath $workspaceValidationState -Encoding utf8
+
+    Assert-Command `
+        -Name "workspace dashboard shows validation result state" `
+        -Arguments @("workspace", "dashboard", "-ManifestPath", "configs\workspace.recipes.example.json", "-StatePath", $workspaceValidationState) `
+        -ExitCode 0 `
+        -Patterns @("Workspace dashboard: recipe-workspace", "frontend-browser-acceptance", "state: validated at", "validation result: passed at 2026-05-28T00:01:00.0000000Z; project: frontend-app; exit: 0")
+
+    Assert-Command `
+        -Name "workspace review shows validation result state" `
+        -Arguments @("workspace", "task", "review", "frontend-browser-acceptance", "-ManifestPath", "configs\workspace.recipes.example.json", "-StatePath", $workspaceValidationState) `
+        -ExitCode 0 `
+        -Patterns @("Workspace task review: frontend-browser-acceptance", "recorded validation: passed at 2026-05-28T00:01:00.0000000Z; project: frontend-app; exit: 0", "state file: .*adp-workspace-validation-state")
+} finally {
+    Remove-Item -LiteralPath $workspaceValidationState -Force -ErrorAction SilentlyContinue
+}
+
 $snapshotGateManifest = Join-Path ([System.IO.Path]::GetTempPath()) ("adp-workspace-snapshot-gate-{0}.json" -f ([guid]::NewGuid().ToString("N")))
 $snapshotName = "adp-test-missing-snapshot-$([guid]::NewGuid().ToString("N"))"
 try {
@@ -259,9 +304,21 @@ try {
 {
   "name": "snapshot-gate-workspace",
   "version": 1,
+  "projects": [
+    {
+      "name": "agent-workspace",
+      "path": "agent-workspace",
+      "runtime": "agent",
+      "sync": true,
+      "validation": [
+        "git status --short"
+      ]
+    }
+  ],
   "tasks": [
     {
       "name": "risky-agent-task",
+      "project": "agent-workspace",
       "runtime": "agent",
       "risk": "high",
       "requires_snapshot": true,
@@ -285,6 +342,12 @@ try {
         -Arguments @("workspace", "task", "run", "risky-agent-task", "-ManifestPath", $snapshotGateManifest) `
         -ExitCode 0 `
         -Patterns @("Workspace task run: risky-agent-task", "Snapshot-first gate before broad agent work", "BLOCKED: create checkpoint first", "adp snapshot create agent $snapshotName")
+
+    Assert-Command `
+        -Name "workspace task validate execute blocks missing high-risk snapshot" `
+        -Arguments @("workspace", "task", "validate", "risky-agent-task", "-Execute", "-ManifestPath", $snapshotGateManifest) `
+        -ExitCode 1 `
+        -Patterns @("Workspace task validate: risky-agent-task", "Readiness gate:", "snapshot-first gate \(blocked: create checkpoint first", "snapshot-first gate is blocked: create checkpoint first")
 } finally {
     Remove-Item -LiteralPath $snapshotGateManifest -Force -ErrorAction SilentlyContinue
 }
