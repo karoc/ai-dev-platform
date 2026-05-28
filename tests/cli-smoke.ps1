@@ -94,6 +94,24 @@ Assert-Command `
     -Patterns @("Plan only: no VM will be created", "Runtime:\s+agent", "ISO:\s+D:\\Share\\ubuntu-26\.04-live-server-amd64\.iso")
 
 Assert-Command `
+    -Name "status all runtimes" `
+    -Arguments @("status") `
+    -ExitCode 0 `
+    -Patterns @("ADP-OS Status", "Status only: no VMs", "Local config:", "Network:\s+192\.168\.242\.0/24", "frontend", "configured IP:\s+192\.168\.242\.131", "connect:\s+ssh -i .*adp@192\.168\.242\.131", "backend", "agent")
+
+Assert-Command `
+    -Name "status single runtime" `
+    -Arguments @("status", "agent") `
+    -ExitCode 0 `
+    -Patterns @("ADP-OS Status", "agent", "configured IP:\s+192\.168\.242\.135", "alias:\s+ssh adp-os-adp-agent")
+
+Assert-Command `
+    -Name "status unknown runtime" `
+    -Arguments @("status", "not-a-runtime") `
+    -ExitCode 1 `
+    -Patterns @("Unknown runtime: not-a-runtime", "frontend, backend, agent")
+
+Assert-Command `
     -Name "sync unknown subcommand" `
     -Arguments @("sync", "nope") `
     -ExitCode 1 `
@@ -164,6 +182,12 @@ Assert-Command `
     -Arguments @("workspace", "dashboard", "-ManifestPath", "configs\workspace.recipes.example.json") `
     -ExitCode 0 `
     -Patterns @("Workspace dashboard: recipe-workspace", "frontend-browser-acceptance", "backend-validation-pass", "broad-agent-refactor", "snapshot required: True", "execution: blocked by snapshot gate")
+
+Assert-Command `
+    -Name "workspace report recipes manifest" `
+    -Arguments @("workspace", "report", "-ManifestPath", "configs\workspace.recipes.example.json") `
+    -ExitCode 0 `
+    -Patterns @("Workspace report: recipe-workspace", "Report only: no projects will be cloned", "Release handoff summary:", "release gate: blocked by snapshot gate", "blocked tasks: .*frontend-browser-acceptance.*backend-validation-pass.*broad-agent-refactor", "Task reports:", "frontend-browser-acceptance", "review bundle:", "project: frontend-app", "runtime: frontend", "validation commands: 2", "validation result: not recorded", "review: validation result missing", "commit: validation result missing", "checklist:", "validation: confirm the latest recorded result", "source: inspect git status", "rollback: confirm the VM checkpoint", "commit: commit only after validation", "handoff:", "adp workspace task review frontend-browser-acceptance", "inspect:  git status --short; git diff --stat; git diff")
 
 Assert-Command `
     -Name "workspace task prepare" `
@@ -248,6 +272,12 @@ try {
         -Arguments @("workspace", "dashboard", "-ManifestPath", "configs\workspace.example.json", "-StatePath", $workspaceState) `
         -ExitCode 0 `
         -Patterns @("Workspace dashboard: example-project", "state: prepared at", "before-large-agent-task")
+
+    Assert-Command `
+        -Name "workspace report with state" `
+        -Arguments @("workspace", "report", "-ManifestPath", "configs\workspace.example.json", "-StatePath", $workspaceState) `
+        -ExitCode 0 `
+        -Patterns @("Workspace report: example-project", "Release handoff summary:", "release gate: blocked by snapshot gate", "blocked tasks: before-large-agent-task", "state: prepared", "review bundle:", "project: not set", "checkpoint: before-large-agent-task", "validation result: not recorded", "commit: blocked by snapshot gate", "checklist:")
 } finally {
     Remove-Item -LiteralPath $workspaceState -Force -ErrorAction SilentlyContinue
 }
@@ -328,6 +358,12 @@ try {
         -Arguments @("workspace", "dashboard", "-ManifestPath", "configs\workspace.recipes.example.json", "-StatePath", $workspaceValidationState) `
         -ExitCode 0 `
         -Patterns @("Workspace dashboard: recipe-workspace", "frontend-browser-acceptance", "state: reviewed at", "validation result: passed at 2026-05-28T00:01:00.0000000Z; project: frontend-app; exit: 0", "docs-copy-edit", "commit: blocked by review", "backend-validation-pass", "commit: blocked by validation")
+
+    Assert-Command `
+        -Name "workspace report shows validation result state" `
+        -Arguments @("workspace", "report", "-ManifestPath", "configs\workspace.recipes.example.json", "-StatePath", $workspaceValidationState) `
+        -ExitCode 0 `
+        -Patterns @("Workspace report: recipe-workspace", "Release handoff summary:", "release gate: blocked by validation", "validation passed: 2; failed: 1; missing: 1", "ready for review: docs-copy-edit", "ready to commit: frontend-browser-acceptance", "frontend-browser-acceptance", "project: frontend-app", "validation result: passed at 2026-05-28T00:01:00.0000000Z; project: frontend-app; exit: 0", "commit: commit ready", "docs-copy-edit", "commit: review not recorded", "backend-validation-pass", "failed command: uv run pytest", "commit: blocked by validation", "adp workspace task rollback backend-validation-pass")
 
     Assert-Command `
         -Name "workspace review shows validation result state" `
@@ -451,7 +487,7 @@ Assert-Command `
     -Name "workspace unknown subcommand" `
     -Arguments @("workspace", "nope", "-ManifestPath", "configs\workspace.example.json") `
     -ExitCode 1 `
-    -Patterns @("Unknown workspace command: nope", "Valid: init, show, plan, status, dashboard, task")
+    -Patterns @("Unknown workspace command: nope", "Valid: init, show, plan, status, dashboard, report, task")
 
 $workspaceManifest = Join-Path ([System.IO.Path]::GetTempPath()) ("adp-workspace-test-{0}.json" -f ([guid]::NewGuid().ToString("N")))
 try {
@@ -508,3 +544,4 @@ Assert-Command `
     -Patterns @("Unknown runtime: not-a-runtime")
 
 Write-Output "CLI smoke tests OK"
+

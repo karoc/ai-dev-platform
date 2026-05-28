@@ -85,6 +85,13 @@ Copy-Item configs\local.example.json configs\local.json
 .\cli\adp.ps1 up agent
 ```
 
+查看运行时状态和连接信息：
+
+```powershell
+.\cli\adp.ps1 status
+.\cli\adp.ps1 status agent
+```
+
 启动工作区同步：
 
 ```powershell
@@ -182,9 +189,10 @@ ADP-OS 还提供一个多场景 workspace recipes manifest，用于常见 agent-
 .\cli\adp.ps1 workspace show -ManifestPath configs\workspace.recipes.example.json
 .\cli\adp.ps1 workspace plan -ManifestPath configs\workspace.recipes.example.json
 .\cli\adp.ps1 workspace dashboard -ManifestPath configs\workspace.recipes.example.json
+.\cli\adp.ps1 workspace report -ManifestPath configs\workspace.recipes.example.json
 ```
 
-这些 recipes 覆盖低风险维护、frontend 浏览器验收、backend 验证，以及带 snapshot-first gate 的高风险 agent 工作。它们只是 planning examples；workspace 命令不会安装 packages、下载浏览器、创建快照、运行验证或 commit 文件。
+这些 recipes 覆盖低风险维护、frontend 浏览器验收、backend 验证，以及带 snapshot-first gate 的高风险 agent 工作。`workspace report` 还会打印 release handoff summary，用于统计 validation result、列出 blockers、显示 ready for review 或 ready to commit 的 task，并标明当前 release gate。这些 recipes 只是 planning examples；workspace 命令不会安装 packages、下载浏览器、创建快照、运行验证或 commit 文件。
 
 Validation 可以从 task recipe 中显式执行：
 
@@ -201,6 +209,7 @@ Validation 可以从 task recipe 中显式执行：
 .\cli\adp.ps1 init
 .\cli\adp.ps1 init <frontend|backend|agent> [-IsoPath <path>] [-SkipProvision]
 .\cli\adp.ps1 up <frontend|backend|agent> [-IsoPath <path>] [-Plan] [-NoProvision] [-NoBootstrap]
+.\cli\adp.ps1 status [frontend|backend|agent]
 .\cli\adp.ps1 stop <frontend|backend|agent>
 .\cli\adp.ps1 sync status
 .\cli\adp.ps1 workspace init
@@ -208,6 +217,7 @@ Validation 可以从 task recipe 中显式执行：
 .\cli\adp.ps1 workspace plan
 .\cli\adp.ps1 workspace status
 .\cli\adp.ps1 workspace dashboard
+.\cli\adp.ps1 workspace report
 .\cli\adp.ps1 workspace task <prepare|snapshot|run|validate|review|rollback|commit> <task-name>
 .\cli\adp.ps1 workspace task validate <task-name> [-Execute] [-Plan]
 .\cli\adp.ps1 workspace task mark <task-name> <prepared|checkpointed|running|validated|reviewed|rollback|committed>
@@ -244,3 +254,4 @@ Validation 可以从 task recipe 中显式执行：
 ## 许可证
 
 MIT。参见 [LICENSE](LICENSE)。
+

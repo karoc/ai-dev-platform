@@ -10,6 +10,10 @@
 
 ### 新增
 
+- 新增顶层 `adp status [runtime]` 输出，用于查看 runtime state、local config 状态、配置的 static IP、VMware 探测 IP、SSH 可达性、sync session 是否存在，以及具体连接命令。
+- 新增由 CI 执行的文档语言上下文链接检查，确保存在翻译版本时，已选择语言的文档不会意外跳回另一种语言。
+- 新增由 CI 执行的配置 schema 检查，覆盖已提交的 platform、topology、sync profile、local example 和 workspace manifest 结构。
+- 新增非破坏性的 `adp workspace report` 输出，用于查看 release handoff summary、task validation result、review decision、rollback context、commit readiness、review bundle fields、source-review checklist 和 handoff commands。
 - 新增 `configs/workspace.recipes.example.json`，提供可复制的 workspace recipes，覆盖低风险维护、frontend 浏览器验收、backend 验证，以及带 snapshot-first gate 的高风险 agent 工作。
 - 新增显式 `adp workspace task validate <task> -Execute`，用于通过 SSH 在 task project 中运行已声明的 validation commands，并支持 `-Execute -Plan` 预览。
 - 新增 executable workspace validation 的 readiness gate 输出，以及被忽略的本地 validation result 记录。
@@ -54,6 +58,9 @@
 
 ### 变更
 
+- 更新 `adp up` 和首次 provisioning 输出，启动后会打印连接信息，包括 SSH 命令、SSH alias、workspace path、sync 命令和 `adp status` 后续检查命令。
+- 更新 autoinstall readiness checks，优先尝试合并后的 topology/local config 中配置的 static IP，再回退到 VMware 探测到的 IP，确保本机 NAT 网段覆盖配置会被一致使用。
+
 - 修复 `adp init <runtime> -SkipProvision`，现在会传递到 `adp up -NoProvision`，不再只是跳过 bootstrap。
 - 修复 `adp up <runtime> -NoProvision`，现在创建 VM 定义后会停止，不再继续进入 bootstrap readiness checks。
 - 更新 `adp up <runtime> -Plan`，当不需要查询 VM 状态时，预览输出可在未安装 VMware 的环境中运行。
@@ -84,3 +91,4 @@
 - SSH bootstrap。
 - Diagnostics、deployment pre-check、snapshot、restore、stop、logs 和 destroy 命令。
 - 公开 README、架构文档、配置文档、操作文档、网络文档、贡献指南和 MIT license。
+

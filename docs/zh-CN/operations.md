@@ -84,6 +84,8 @@ Installer 排障开关：
 
 如果 VM 已存在且正在运行，ADP 会报告当前 IP 并跳过创建。
 
+启动后，ADP 会打印配置中的连接目标、SSH 命令、SSH alias、workspace path、sync 命令和 status 命令。连接目标来自合并后的配置；如果存在 `configs\local.json`，也会包含其中的覆盖值。
+
 `agent` 运行时可能会打印 high-IO profile 提示。这不是错误；它表示该运行时面向 AI agent 工作负载配置，执行破坏性或大范围任务前建议先创建快照。
 
 不创建、不启动、不 provisioning、不 bootstrap VM，只预览启动计划：
@@ -120,13 +122,40 @@ Installer 排障开关：
 
 该命令会先尝试 soft stop，必要时再 hard stop。
 
+## 运行时状态
+
+查看所有运行时状态和连接信息：
+
+```powershell
+.\cli\adp.ps1 status
+```
+
+查看单个运行时：
+
+```powershell
+.\cli\adp.ps1 status frontend
+```
+
+`status` 是非破坏性的。它不会创建、启动、停止、同步、创建快照，也不会编辑 guest 文件。它会报告：
+
+- `configs\local.json` 是不存在、为空、已应用，还是使用了不支持的字段。
+- 配置的 VMware NAT CIDR 和 gateway。
+- 每个运行时的 VM 状态。
+- 合并后的 topology 中配置的 static IP。
+- VMware 可探测到的 IP（如果可用）。
+- 运行中 VM 的 SSH 可达性。
+- Mutagen sync session 是否存在。
+- 具体 SSH 命令、SSH alias、workspace path 和下一步命令。
+
+如果 VMware 探测到的 IP 与配置的 static IP 不同，ADP 仍会把配置的 static IP 显示为连接目标。这是静态网络的预期行为，也能让你在编辑 `configs\local.json` 修改本机 NAT 网段后直接看到实际使用的地址。
+
 ## SSH 访问
 
 ```powershell
 ssh -i $env:USERPROFILE\.ssh\adp-os\adp-os adp@192.168.242.131
 ```
 
-默认地址见 [网络说明](networking.md)。
+默认地址见[网络说明](networking.md)。如果你用 `configs\local.json` 覆盖了 `topology.<runtime>.static_ip`，启动后运行 `.\cli\adp.ps1 status <runtime>`，然后连接输出中显示的地址。
 
 ## 工作区同步
 
@@ -221,7 +250,7 @@ pnpm exec playwright test
 .\cli\adp.ps1 network apply all
 ```
 
-编辑 `configs\platform.json` 或 `configs\topology.json` 后使用此命令。
+编辑 `configs\platform.json`、`configs\topology.json`，或 `configs\local.json` 中受支持的 `platform`/`topology` 字段后使用此命令。
 
 可以先预览 guest 网络改动：
 

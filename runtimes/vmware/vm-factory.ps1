@@ -889,7 +889,7 @@ function New-RuntimeVM {
 
     # Wait for autoinstall to complete
     Write-Host "[5/5] Waiting for autoinstall to complete..." -ForegroundColor Yellow
-    $ready = Wait-AutoinstallComplete -VmxPath $vmxPath -TimeoutMinutes 60
+    $ready = Wait-AutoinstallComplete -VmxPath $vmxPath -RuntimeName $RuntimeName -TimeoutMinutes 60
 
     if ($ready) {
         Write-Host ""
@@ -897,13 +897,26 @@ function New-RuntimeVM {
         Write-Host "  Runtime '$RuntimeName' provisioned!" -ForegroundColor Green
         Write-Host "========================================" -ForegroundColor Green
 
+        $configuredIp = Get-RuntimeStaticIP $RuntimeName
+        $detectedIp = $null
         try {
-            $ip = Get-VMIP $vmxPath
+            $detectedIp = Get-VMIP $vmxPath
+        } catch {}
+
+        $ip = if ($configuredIp) { $configuredIp } else { $detectedIp }
+        if ($ip) {
             Write-Host "  IP: $ip" -ForegroundColor Cyan
+            if ($configuredIp -and $detectedIp -and $configuredIp -ne $detectedIp) {
+                Write-Host "  VMware detected IP: $detectedIp" -ForegroundColor DarkGray
+                Write-Host "  Using configured static IP from topology/local config." -ForegroundColor DarkGray
+            }
             Write-Host "  SSH: ssh -i $sshKeyPath $($config.defaults.admin_user)@$ip" -ForegroundColor DarkGray
+            Write-Host "  Status: .\cli\adp.ps1 status $RuntimeName" -ForegroundColor DarkGray
+            Write-Host "  Sync:   .\cli\adp.ps1 sync start $RuntimeName" -ForegroundColor DarkGray
             $script:VmFactoryState."${RuntimeName}_ip" = $ip
-        } catch {
+        } else {
             Write-Host "  IP will be available after first reboot." -ForegroundColor Yellow
+            Write-Host "  Check: .\cli\adp.ps1 status $RuntimeName" -ForegroundColor DarkGray
         }
     } else {
         Write-WarnLog -Message "Autoinstall may still be in progress. Check VMware console." -Component "vm-factory"
@@ -915,6 +928,7 @@ function New-RuntimeVM {
 function Wait-AutoinstallComplete {
     param(
         [string]$VmxPath,
+        [string]$RuntimeName,
         [int]$TimeoutMinutes = 45,
         [int]$CheckIntervalSeconds = 30
     )
@@ -928,16 +942,25 @@ function Wait-AutoinstallComplete {
         Start-Sleep -Seconds $CheckIntervalSeconds
 
         try {
-            $ip = Get-VMIP $vmxPath
-            if ($ip -and $ip -ne "0.0.0.0" -and $ip -notmatch "unknown") {
-                Write-Host "  VM has IP: $ip — testing SSH..." -ForegroundColor DarkGray
+            $configuredIp = if ($RuntimeName) { Get-RuntimeStaticIP $RuntimeName } else { $null }
+            $detectedIp = $null
+            try {
+                $detectedIp = Get-VMIP $vmxPath
+            } catch {}
 
-                # Try SSH connection and require the provisioning marker from late-commands.
+            $candidateIps = @($configuredIp, $detectedIp) | Where-Object { $_ -and $_ -ne "0.0.0.0" -and $_ -notmatch "unknown" } | Select-Object -Unique
+            foreach ($ip in $candidateIps) {
+                if ($configuredIp -and $ip -eq $configuredIp) {
+                    Write-Host "  Testing configured static IP: $ip..." -ForegroundColor DarkGray
+                } else {
+                    Write-Host "  Testing VMware-detected IP: $ip..." -ForegroundColor DarkGray
+                }
+
                 $sshKeyPath = Join-Path "$env:USERPROFILE\.ssh\adp-os" "adp-os"
                 if (Test-Path $sshKeyPath) {
                     $sshTest = ssh -i $sshKeyPath -o StrictHostKeyChecking=no -o IdentitiesOnly=yes -o UserKnownHostsFile=NUL -o ConnectTimeout=5 -o BatchMode=yes adp@$ip "cat /home/adp/.adp-provisioned" 2>$null
                     if ($LASTEXITCODE -eq 0 -and $sshTest) {
-                        Write-Host "  Provisioning confirmed!" -ForegroundColor Green
+                        Write-Host "  Provisioning confirmed at $ip!" -ForegroundColor Green
                         return $true
                     }
                 }
@@ -972,12 +995,24 @@ function Test-AutoinstallReady {
     }
 
     try {
-        $ip = Get-VMIP $vmxPath
-        if (-not $ip) { return $false }
+        $configuredIp = Get-RuntimeStaticIP $RuntimeName
+        $detectedIp = $null
+        try {
+            $detectedIp = Get-VMIP $vmxPath
+        } catch {}
+
+        $candidateIps = @($configuredIp, $detectedIp) | Where-Object { $_ -and $_ -ne "0.0.0.0" -and $_ -notmatch "unknown" } | Select-Object -Unique
+        if ($candidateIps.Count -eq 0) { return $false }
 
         $sshKeyPath = Join-Path "$env:USERPROFILE\.ssh\adp-os" "adp-os"
-        ssh -i $sshKeyPath -o StrictHostKeyChecking=no -o IdentitiesOnly=yes -o UserKnownHostsFile=NUL -o ConnectTimeout=5 -o BatchMode=yes adp@$ip "test -f /home/adp/.adp-provisioned" 2>$null | Out-Null
-        return $LASTEXITCODE -eq 0
+        foreach ($ip in $candidateIps) {
+            ssh -i $sshKeyPath -o StrictHostKeyChecking=no -o IdentitiesOnly=yes -o UserKnownHostsFile=NUL -o ConnectTimeout=5 -o BatchMode=yes adp@$ip "test -f /home/adp/.adp-provisioned" 2>$null | Out-Null
+            if ($LASTEXITCODE -eq 0) {
+                return $true
+            }
+        }
+
+        return $false
     } catch {
         return $false
     }

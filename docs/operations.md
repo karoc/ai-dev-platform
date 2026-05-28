@@ -84,6 +84,8 @@ The checks print remediation guidance. They do not download VMware, Mutagen, bro
 
 If a VM exists and is already running, ADP reports the current IP and skips creation.
 
+After startup, ADP prints the configured connection target, SSH command, SSH alias, workspace path, sync command, and status command. The connection target comes from the merged configuration, including `configs\local.json` when present.
+
 The `agent` runtime may print a high-IO profile notice. This is not an error; it means the runtime is sized for AI agent workloads and snapshots are recommended before destructive or large-scale tasks.
 
 Preview startup without creating, starting, provisioning, or bootstrapping a VM:
@@ -120,13 +122,40 @@ When creating a runtime for the first time, you can pass an ISO from any locatio
 
 The command tries a soft stop first, then a hard stop if needed.
 
+## Runtime Status
+
+Show all runtime states and connection details:
+
+```powershell
+.\cli\adp.ps1 status
+```
+
+Show one runtime:
+
+```powershell
+.\cli\adp.ps1 status frontend
+```
+
+`status` is non-destructive. It does not create, start, stop, sync, snapshot, or edit guest files. It reports:
+
+- Whether `configs\local.json` is missing, empty, applied, or unsupported.
+- The configured VMware NAT CIDR and gateway.
+- Each runtime's VM status.
+- The configured static IP from the merged topology.
+- The VMware-detected IP when available.
+- SSH reachability for running VMs.
+- Mutagen sync session presence.
+- The exact SSH command, SSH alias, workspace path, and next commands.
+
+If the VMware-detected IP differs from the configured static IP, ADP still shows the configured static IP as the connection target. This is intentional for static networking and makes local NAT subnet overrides visible after editing `configs\local.json`.
+
 ## SSH Access
 
 ```powershell
 ssh -i $env:USERPROFILE\.ssh\adp-os\adp-os adp@192.168.242.131
 ```
 
-Default addresses are documented in `docs\networking.md`.
+Default addresses are documented in `docs\networking.md`. If you use `configs\local.json` to override `topology.<runtime>.static_ip`, use `.\cli\adp.ps1 status <runtime>` after startup and connect to the address shown there.
 
 ## Workspace Sync
 
@@ -221,7 +250,7 @@ Preview the deletion first:
 .\cli\adp.ps1 network apply all
 ```
 
-Use this after editing `configs\platform.json` or `configs\topology.json`.
+Use this after editing `configs\platform.json`, `configs\topology.json`, or the supported `platform`/`topology` sections in `configs\local.json`.
 
 Preview the guest networking changes first:
 

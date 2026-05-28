@@ -48,6 +48,47 @@ function Get-RuntimeConnectionIP {
     return Get-VMIP $TargetVmxPath
 }
 
+function Write-RuntimeConnectionSummary {
+    param(
+        [string]$TargetRuntime,
+        [string]$TargetVmxPath
+    )
+
+    $rtConfig = Get-RuntimeConfig $TargetRuntime
+    $config = Get-PlatformConfig
+    $staticIp = Get-RuntimeStaticIP $TargetRuntime
+    $detectedIp = $null
+    try {
+        $detectedIp = Get-VMIP $TargetVmxPath
+    } catch {}
+
+    $ip = if ($staticIp) { $staticIp } else { $detectedIp }
+    $port = if ($rtConfig.PSObject.Properties.Name -contains "ssh_port" -and $rtConfig.ssh_port) { [int]$rtConfig.ssh_port } else { 22 }
+    $user = if ($config.defaults.admin_user) { [string]$config.defaults.admin_user } else { "adp" }
+    $keyPath = Join-Path "$env:USERPROFILE\.ssh\adp-os" "adp-os"
+    $workspaceRoot = Resolve-Path "workspace_root"
+    $workspacePath = Join-Path $workspaceRoot $rtConfig.workspace
+    $alias = "adp-os-adp-$TargetRuntime"
+
+    Write-Host ""
+    Write-Host "Connection details:" -ForegroundColor Cyan
+    if ($ip) {
+        Write-Host "  IP:        $ip" -ForegroundColor Cyan
+        if ($staticIp -and $detectedIp -and $staticIp -ne $detectedIp) {
+            Write-Host "  Detected:  $detectedIp (VMware reported this, but ADP-OS is using configured static IP)" -ForegroundColor Yellow
+        }
+        Write-Host "  SSH:       ssh -i $keyPath -p $port $user@$ip" -ForegroundColor DarkGray
+        Write-Host "  Alias:     ssh $alias" -ForegroundColor DarkGray
+    } else {
+        Write-Host "  IP:        unavailable yet" -ForegroundColor Yellow
+        Write-Host "  SSH:       run adp status $TargetRuntime after the guest finishes booting" -ForegroundColor DarkGray
+    }
+    Write-Host "  Workspace: $workspacePath" -ForegroundColor DarkGray
+    Write-Host "  Sync:      adp sync start $TargetRuntime" -ForegroundColor DarkGray
+    Write-Host "  Status:    adp status $TargetRuntime" -ForegroundColor DarkGray
+    Write-Host "  Doctor:    adp doctor" -ForegroundColor DarkGray
+}
+
 function Invoke-BootstrapIfReady {
     param(
         [string]$TargetRuntime,
@@ -56,6 +97,9 @@ function Invoke-BootstrapIfReady {
     )
 
     if ($NoBootstrap) {
+        Write-Host ""
+        Write-Host "Bootstrap skipped." -ForegroundColor Yellow
+        Write-RuntimeConnectionSummary -TargetRuntime $TargetRuntime -TargetVmxPath $TargetVmxPath
         return
     }
 
@@ -64,7 +108,7 @@ function Invoke-BootstrapIfReady {
         if ($WaitForProvisioning) {
             Write-Host ""
             Write-Host "VM is still provisioning. Continuing to wait..." -ForegroundColor Yellow
-            $ready = Wait-AutoinstallComplete -VmxPath $TargetVmxPath -TimeoutMinutes 60
+            $ready = Wait-AutoinstallComplete -VmxPath $TargetVmxPath -RuntimeName $TargetRuntime -TimeoutMinutes 60
         }
     }
 
@@ -73,6 +117,7 @@ function Invoke-BootstrapIfReady {
         Write-Host "VM is still provisioning. Once ready, run:" -ForegroundColor Yellow
         Write-Host "  adp up $TargetRuntime" -ForegroundColor DarkGray
         Write-Host "  (it will detect the VM and skip creation)" -ForegroundColor DarkGray
+        Write-Host "  adp status $TargetRuntime" -ForegroundColor DarkGray
         return
     }
 
@@ -92,6 +137,8 @@ function Invoke-BootstrapIfReady {
     } catch {
         Write-WarnLog -Message "Bootstrap had issues but VM is running. Try: adp doctor" -Component "cli.up"
     }
+
+    Write-RuntimeConnectionSummary -TargetRuntime $TargetRuntime -TargetVmxPath $TargetVmxPath
 }
 
 Write-Host ""
@@ -149,13 +196,6 @@ if (Test-Path $vmxPath) {
 
     if ($status -match "running") {
         Write-Host "Runtime '$RuntimeName' is already running." -ForegroundColor Green
-        try {
-            $ip = Get-RuntimeConnectionIP -TargetRuntime $RuntimeName -TargetVmxPath $vmxPath
-            Write-Host "  IP: $ip" -ForegroundColor Cyan
-            Write-Host "  SSH: ssh -i ~/.ssh/adp-os/adp-os adp@$ip" -ForegroundColor DarkGray
-        } catch {
-            Write-Host "  IP not yet available." -ForegroundColor Yellow
-        }
         Invoke-BootstrapIfReady -TargetRuntime $RuntimeName -TargetVmxPath $vmxPath -WaitForProvisioning
         return
     }
@@ -170,13 +210,6 @@ if (Test-Path $vmxPath) {
     Write-Host "  VM started." -ForegroundColor Green
     Start-Sleep -Seconds 15
 
-    try {
-        $ip = Get-RuntimeConnectionIP -TargetRuntime $RuntimeName -TargetVmxPath $vmxPath
-        Write-Host "  IP: $ip" -ForegroundColor Cyan
-        Write-Host "  SSH: ssh -i ~/.ssh/adp-os/adp-os adp@$ip" -ForegroundColor DarkGray
-    } catch {
-        Write-Host "  Waiting for IP..." -ForegroundColor Yellow
-    }
     Invoke-BootstrapIfReady -TargetRuntime $RuntimeName -TargetVmxPath $vmxPath -WaitForProvisioning
     return
 }
@@ -214,6 +247,8 @@ try {
 if ($NoProvision) {
     Write-Host ""
     Write-Host "Runtime '$RuntimeName' definition is ready. Provisioning, startup, and bootstrap were skipped." -ForegroundColor Yellow
+    Write-Host "  Start later: adp up $RuntimeName" -ForegroundColor DarkGray
+    Write-Host "  Status:      adp status $RuntimeName" -ForegroundColor DarkGray
     return
 }
 

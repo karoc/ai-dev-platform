@@ -10,6 +10,10 @@ The project does not yet publish versioned releases. Entries are grouped by date
 
 ### Added
 
+- Added top-level `adp status [runtime]` output for runtime state, local config status, configured static IPs, VMware-detected IPs, SSH reachability, sync session presence, and exact connection commands.
+- Added CI-backed documentation language-context link checks so translated docs stay in the selected language when translated equivalents exist.
+- Added CI-backed configuration schema checks for committed platform, topology, sync profile, local example, and workspace manifest shapes.
+- Added non-destructive `adp workspace report` output for release handoff summaries, task validation results, review decisions, rollback context, commit readiness, review bundle fields, a source-review checklist, and handoff commands.
 - Added `configs/workspace.recipes.example.json` with copyable workspace recipes for low-risk maintenance, frontend browser acceptance, backend validation, and high-risk agent work with a snapshot-first gate.
 - Added explicit `adp workspace task validate <task> -Execute` support for running declared validation commands in the task project over SSH, with `-Execute -Plan` preview.
 - Added validation readiness gate output and ignored local validation result recording for executable workspace validation.
@@ -54,6 +58,9 @@ The project does not yet publish versioned releases. Entries are grouped by date
 
 ### Changed
 
+- Updated `adp up` and first-provisioning output to print connection details, including SSH command, SSH alias, workspace path, sync command, and `adp status` follow-up.
+- Updated autoinstall readiness checks to try the configured static IP from merged topology/local config before falling back to VMware-detected IPs, so local NAT subnet overrides are used consistently.
+
 - Fixed `adp init <runtime> -SkipProvision` so it now propagates to `adp up -NoProvision` instead of only skipping bootstrap.
 - Fixed `adp up <runtime> -NoProvision` so it stops after VM definition creation instead of continuing into bootstrap readiness checks.
 - Updated `adp up <runtime> -Plan` so preview output can run without VMware installed when no VM status lookup is needed.
@@ -84,3 +91,4 @@ The project does not yet publish versioned releases. Entries are grouped by date
 - SSH bootstrap.
 - Diagnostics, deployment pre-check, snapshot, restore, stop, logs, and destroy commands.
 - Public README, architecture docs, configuration docs, operations docs, networking docs, contributing guide, and MIT license.
+

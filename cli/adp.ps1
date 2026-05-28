@@ -1,5 +1,5 @@
 # ADP-OS CLI Entry Point
-# Subcommand routing: init, up, stop, sync, snapshot, logs, doctor, destroy
+# Subcommand routing: init, up, status, stop, sync, snapshot, logs, doctor, destroy
 # .SYNOPSIS
 #   adp.ps1 <command> [args...]
 
@@ -23,7 +23,7 @@ Initialize-Config -ProjectRoot $script:ProjectRoot
 Initialize-Logging -LogDirectory (Join-Path $script:ProjectRoot "logs")
 
 # --- Command Router ---
-$validCommands = @("init", "up", "stop", "sync", "snapshot", "restore", "logs", "doctor", "destroy", "network", "workspace", "help")
+$validCommands = @("init", "up", "status", "stop", "sync", "snapshot", "restore", "logs", "doctor", "destroy", "network", "workspace", "help")
 
 function Quote-PowerShellArgument {
     param([string]$Value)
@@ -58,9 +58,10 @@ function Show-Help {
     Write-Host "  adp init                       Initialize platform and VM factory"
     Write-Host "  adp init <runtime> [-IsoPath <path>] [-SkipProvision]  Initialize and prepare a runtime"
     Write-Host "  adp up <runtime> [-IsoPath <path>] [-Plan] [-NoProvision] [-NoBootstrap]  Start a runtime"
+    Write-Host "  adp status [runtime]           Show runtime status and connection details"
     Write-Host "  adp stop <runtime>             Stop a runtime"
     Write-Host "  adp sync status                Show workspace sync status"
-    Write-Host "  adp workspace <init|show|plan|status|dashboard|task>  Manage workspace manifests"
+    Write-Host "  adp workspace <init|show|plan|status|dashboard|report|task>  Manage workspace manifests"
     Write-Host "  adp network apply <rt|all> [-Plan]  Apply configured static IP networking"
     Write-Host "  adp snapshot create <rt> <name>  Create runtime snapshot"
     Write-Host "  adp restore <rt> <name>        Restore runtime snapshot"
