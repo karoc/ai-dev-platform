@@ -193,7 +193,7 @@ Validation can be executed explicitly from a task recipe:
 .\cli\adp.ps1 workspace task validate frontend-browser-acceptance -Execute -ManifestPath configs\workspace.recipes.example.json
 ```
 
-`-Execute -Plan` previews the readiness gate and remote SSH commands. `-Execute` runs only the declared `tasks[].validation` commands in the target project directory and records the result in ignored local workspace state. Review and rollback commands read that recorded result to show a decision gate, but staging, restore, and commit remain separate explicit steps.
+`-Execute -Plan` previews the readiness gate and remote SSH commands. `-Execute` runs only the declared `tasks[].validation` commands in the target project directory and records the result in ignored local workspace state. Review, rollback, and commit commands read that recorded result to show decision gates, but staging, restore, and commit execution remain separate explicit steps.
 
 ## Command Reference
 

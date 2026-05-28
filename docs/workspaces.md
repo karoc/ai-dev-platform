@@ -114,7 +114,7 @@ The task lifecycle commands are plan-only. They do not start runtimes, change sy
 - `validate`: prints the task validation commands from the manifest. With `-Execute`, it runs only those declared validation commands over SSH in the task's target project directory. Add `-Plan` with `-Execute` to preview the remote SSH commands without running them.
 - `review`: prints a human review bundle for readiness, checkpoint, validation, source diff inspection, and final rollback/revise/commit decision. It also reads the ignored local validation result and prints a decision gate: validation passed, validation failed, validation missing, or blocked by the snapshot gate. Tasks that require snapshots should not be accepted until the checkpoint gate is ready or explicitly waived outside ADP-OS.
 - `rollback`: prints the VM snapshot restore command, the latest recorded validation context, and separate Git source rollback checks without running them.
-- `commit`: prints the review, validation, diff inspection, staging, and commit boundary without staging or committing files.
+- `commit`: prints a commit-readiness gate, validation context, review state, diff inspection, staging, and commit boundary without staging or committing files. A task is commit-ready only when validation passed, the snapshot gate is not blocking, and local task state is marked `reviewed` or `committed`.
 
 Validation execution is intentionally narrow:
 
@@ -131,7 +131,7 @@ When validation is executed, the result is recorded in the ignored local state f
 adp-workspace.state.json
 ```
 
-The recorded result includes status, runtime, project, remote path, command count, commands, exit code, failed command when present, start time, and completion time. `workspace dashboard`, `workspace task review`, and `workspace task rollback` show the latest recorded validation result so a reviewer can decide whether to rollback, revise, or commit. Failed validation is recorded as `validation_failed`; successful validation is recorded as `validated`. The dashboard marks commit as `review ready` after a passed validation result and `blocked by validation` after a failed one.
+The recorded result includes status, runtime, project, remote path, command count, commands, exit code, failed command when present, start time, and completion time. `workspace dashboard`, `workspace task review`, `workspace task rollback`, and `workspace task commit` show the latest recorded validation result so a reviewer can decide whether to rollback, revise, or commit. Failed validation is recorded as `validation_failed`; successful validation is recorded as `validated`. The dashboard marks commit as `ready` only after validation passed and local state is marked `reviewed` or `committed`; it marks passed-but-unreviewed work as `blocked by review` and failed validation as `blocked by validation`.
 
 For validation execution, set `tasks[].project` when a task should target a specific project. If omitted, ADP-OS will only infer the project when exactly one manifest project uses the task runtime. Absolute paths and `.` or `..` path segments are rejected before remote execution.
 

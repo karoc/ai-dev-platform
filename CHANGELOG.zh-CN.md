@@ -14,6 +14,7 @@
 - 新增显式 `adp workspace task validate <task> -Execute`，用于通过 SSH 在 task project 中运行已声明的 validation commands，并支持 `-Execute -Plan` 预览。
 - 新增 executable workspace validation 的 readiness gate 输出，以及被忽略的本地 validation result 记录。
 - 新增基于已记录 validation result 的 workspace review decision gate 和 rollback validation context。
+- 新增基于已记录 validation、review state 和 snapshot-first gate state 的 workspace commit-readiness gate。
 - 新增 workspace recipes manifest 的 CI 和 CLI smoke 覆盖。
 - 在英文和简体中文 README、workspace 文档中补充 workspace recipes 说明。
 

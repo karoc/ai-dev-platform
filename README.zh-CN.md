@@ -193,7 +193,7 @@ Validation 可以从 task recipe 中显式执行：
 .\cli\adp.ps1 workspace task validate frontend-browser-acceptance -Execute -ManifestPath configs\workspace.recipes.example.json
 ```
 
-`-Execute -Plan` 会预览 readiness gate 和远端 SSH 命令。`-Execute` 只会在目标项目目录中运行已声明的 `tasks[].validation` 命令，并把结果记录到已忽略的本地 workspace state。Review 和 rollback 命令会读取这个记录并显示 decision gate，但 stage、restore 和 commit 仍然是独立的显式步骤。
+`-Execute -Plan` 会预览 readiness gate 和远端 SSH 命令。`-Execute` 只会在目标项目目录中运行已声明的 `tasks[].validation` 命令，并把结果记录到已忽略的本地 workspace state。Review、rollback 和 commit 命令会读取这个记录并显示 decision gate，但 stage、restore 和真正执行 commit 仍然是独立的显式步骤。
 
 ## 命令参考
 

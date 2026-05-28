@@ -14,6 +14,7 @@ The project does not yet publish versioned releases. Entries are grouped by date
 - Added explicit `adp workspace task validate <task> -Execute` support for running declared validation commands in the task project over SSH, with `-Execute -Plan` preview.
 - Added validation readiness gate output and ignored local validation result recording for executable workspace validation.
 - Added workspace review decision gates and rollback validation context based on recorded validation results.
+- Added workspace commit-readiness gates based on recorded validation, review state, and snapshot-first gate state.
 - Added CI and CLI smoke coverage for the workspace recipes manifest.
 - Documented the workspace recipes in English and Simplified Chinese README and workspace docs.
 
