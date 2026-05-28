@@ -414,6 +414,102 @@ function Format-WorkspaceValidationState {
     return "$($validation.status) at $completedAt; project: $project; exit: $exitCode"
 }
 
+function Get-WorkspaceValidationStatus {
+    param([object]$RecordedState)
+
+    if (-not $RecordedState -or -not ($RecordedState.PSObject.Properties.Name -contains "validation") -or -not $RecordedState.validation) {
+        return "missing"
+    }
+
+    if ($RecordedState.validation.PSObject.Properties.Name -contains "status" -and -not [string]::IsNullOrWhiteSpace([string]$RecordedState.validation.status)) {
+        return ([string]$RecordedState.validation.status).ToLowerInvariant()
+    }
+
+    return "unknown"
+}
+
+function Get-WorkspaceReviewDecision {
+    param(
+        [object]$Task,
+        [object]$RecordedState,
+        [object]$SnapshotGate,
+        [int]$ValidationCommandCount
+    )
+
+    if ($SnapshotGate.Blocking) {
+        return [pscustomobject]@{
+            Level    = "WARN"
+            Verdict  = "blocked by snapshot gate"
+            Detail   = $SnapshotGate.Detail
+            NextStep = "create or explicitly waive the checkpoint before accepting broad agent work"
+        }
+    }
+
+    if ($ValidationCommandCount -eq 0) {
+        return [pscustomobject]@{
+            Level    = "WARN"
+            Verdict  = "validation not configured"
+            Detail   = "add tasks[].validation before using this task as a review gate"
+            NextStep = "revise the workspace manifest before commit"
+        }
+    }
+
+    $validationStatus = Get-WorkspaceValidationStatus -RecordedState $RecordedState
+    switch ($validationStatus) {
+        "passed" {
+            return [pscustomobject]@{
+                Level    = "OK"
+                Verdict  = "validation passed"
+                Detail   = "source review can decide whether to commit"
+                NextStep = "inspect diff, then mark reviewed or move to commit"
+            }
+        }
+        "failed" {
+            return [pscustomobject]@{
+                Level    = "FAIL"
+                Verdict  = "validation failed"
+                Detail   = "commit is blocked until the task is revised or rolled back"
+                NextStep = "revise and re-run validation, or use rollback guidance"
+            }
+        }
+        default {
+            return [pscustomobject]@{
+                Level    = "WARN"
+                Verdict  = "validation result missing"
+                Detail   = "no executed validation result is recorded in local workspace state"
+                NextStep = "run adp workspace task validate $($Task.name) -Execute or explicitly review outside ADP-OS"
+            }
+        }
+    }
+}
+
+function Write-WorkspaceReviewDecision {
+    param([object]$Decision)
+
+    Write-WorkspaceCheck -Level $Decision.Level -Name "review verdict" -Detail "($($Decision.Verdict): $($Decision.Detail))"
+    Write-Host "     next: $($Decision.NextStep)" -ForegroundColor DarkGray
+}
+
+function Write-WorkspaceValidationDetailLines {
+    param([object]$RecordedState)
+
+    if (-not $RecordedState -or -not ($RecordedState.PSObject.Properties.Name -contains "validation") -or -not $RecordedState.validation) {
+        Write-Host "     validation detail: no recorded execution result" -ForegroundColor DarkGray
+        return
+    }
+
+    $validation = $RecordedState.validation
+    if ($validation.PSObject.Properties.Name -contains "failed_command" -and -not [string]::IsNullOrWhiteSpace([string]$validation.failed_command)) {
+        Write-Host "     failed command: $($validation.failed_command)" -ForegroundColor DarkGray
+    }
+    if ($validation.PSObject.Properties.Name -contains "remote_path" -and -not [string]::IsNullOrWhiteSpace([string]$validation.remote_path)) {
+        Write-Host "     remote path: $($validation.remote_path)" -ForegroundColor DarkGray
+    }
+    if ($validation.PSObject.Properties.Name -contains "command_count") {
+        Write-Host "     command count: $($validation.command_count)" -ForegroundColor DarkGray
+    }
+}
+
 function Write-WorkspaceSummary {
     param([object]$Manifest)
 
@@ -850,11 +946,20 @@ function Write-WorkspaceDashboard {
         } else {
             "gated"
         }
-        $rollbackState = if ($task.runtime -and $task.snapshot) { $snapshotStatus.Status } else { "not configured" }
-        $commitState = if ($validationCommands.Count -gt 0) { "review gated" } else { "blocked" }
         $risk = Get-WorkspaceTaskRisk -Task $task
         $requiresSnapshot = Test-WorkspaceTaskRequiresSnapshot -Task $task
         $recordedState = Get-WorkspaceTaskState -State $state -TaskName $taskName
+        $validationStatus = Get-WorkspaceValidationStatus -RecordedState $recordedState
+        $rollbackState = if ($task.runtime -and $task.snapshot) { $snapshotStatus.Status } else { "not configured" }
+        $commitState = if ($validationStatus -eq "passed") {
+            "review ready"
+        } elseif ($validationStatus -eq "failed") {
+            "blocked by validation"
+        } elseif ($validationCommands.Count -gt 0) {
+            "review gated"
+        } else {
+            "blocked"
+        }
         $recordedStateTime = if ($recordedState -and $recordedState.updated_at -is [datetime]) {
             $recordedState.updated_at.ToUniversalTime().ToString("o")
         } elseif ($recordedState) {
@@ -1162,9 +1267,15 @@ function Write-WorkspaceTaskReview {
     $state = Read-WorkspaceState -Path $resolvedStatePath
     $recordedState = Get-WorkspaceTaskState -State $state -TaskName $Task.name
     $validationStateText = Format-WorkspaceValidationState -RecordedState $recordedState
+    $snapshotStatus = Get-WorkspaceSnapshotStatus -RuntimeName $Task.runtime -SnapshotName $Task.snapshot
+    $snapshotGate = Get-WorkspaceSnapshotGate -Task $Task -SnapshotStatus $snapshotStatus
+    $validationCommands = Get-WorkspaceArray $Task.validation
+    $reviewDecision = Get-WorkspaceReviewDecision -Task $Task -RecordedState $recordedState -SnapshotGate $snapshotGate -ValidationCommandCount $validationCommands.Count
 
     Write-Host ""
     Write-Host "Human review bundle:" -ForegroundColor Yellow
+    Write-Host "  0. Review decision gate:" -ForegroundColor DarkGray
+    Write-WorkspaceReviewDecision -Decision $reviewDecision
     Write-Host "  1. Confirm readiness before review:" -ForegroundColor DarkGray
     Write-Host "     adp workspace status -ManifestPath $ManifestPath" -ForegroundColor DarkGray
     Write-Host "  2. Confirm checkpoint state:" -ForegroundColor DarkGray
@@ -1175,25 +1286,48 @@ function Write-WorkspaceTaskReview {
     Write-Host "  3. Run or inspect validation commands:" -ForegroundColor DarkGray
     Write-Host "     adp workspace task validate $($Task.name) -ManifestPath $ManifestPath" -ForegroundColor DarkGray
     Write-Host "     recorded validation: $validationStateText" -ForegroundColor DarkGray
+    Write-WorkspaceValidationDetailLines -RecordedState $recordedState
     Write-Host "     state file: $resolvedStatePath" -ForegroundColor DarkGray
     Write-Host "  4. Inspect source changes in the target project:" -ForegroundColor DarkGray
     Write-Host "     git status --short" -ForegroundColor DarkGray
     Write-Host "     git diff --stat" -ForegroundColor DarkGray
     Write-Host "     git diff" -ForegroundColor DarkGray
-    Write-Host "  5. Decide explicitly: rollback, revise, or commit." -ForegroundColor DarkGray
+    Write-Host "  5. Decide explicitly:" -ForegroundColor DarkGray
+    Write-Host "     rollback: adp workspace task rollback $($Task.name) -ManifestPath $ManifestPath" -ForegroundColor DarkGray
+    Write-Host "     revise:   fix the task result and re-run validation" -ForegroundColor DarkGray
+    Write-Host "     commit:   adp workspace task commit $($Task.name) -ManifestPath $ManifestPath" -ForegroundColor DarkGray
 }
 
 function Write-WorkspaceTaskRollback {
-    param([object]$Task)
+    param(
+        [object]$Task,
+        [string]$StatePath
+    )
 
     Write-TaskHeader -Action "rollback" -Task $Task
     Write-TaskSummary -Task $Task
+    $resolvedStatePath = Resolve-WorkspaceStatePath -Path $StatePath
+    $state = Read-WorkspaceState -Path $resolvedStatePath
+    $recordedState = Get-WorkspaceTaskState -State $state -TaskName $Task.name
+    $validationStateText = Format-WorkspaceValidationState -RecordedState $recordedState
+    $snapshotStatus = Get-WorkspaceSnapshotStatus -RuntimeName $Task.runtime -SnapshotName $Task.snapshot
+    $snapshotGate = Get-WorkspaceSnapshotGate -Task $Task -SnapshotStatus $snapshotStatus
+    $validationCommands = Get-WorkspaceArray $Task.validation
+    $reviewDecision = Get-WorkspaceReviewDecision -Task $Task -RecordedState $recordedState -SnapshotGate $snapshotGate -ValidationCommandCount $validationCommands.Count
 
     Write-Host ""
     Write-Host "Rollback boundary:" -ForegroundColor Yellow
+    Write-Host "  Decision context:" -ForegroundColor DarkGray
+    Write-WorkspaceReviewDecision -Decision $reviewDecision
+    Write-Host "     recorded validation: $validationStateText" -ForegroundColor DarkGray
+    Write-WorkspaceValidationDetailLines -RecordedState $recordedState
+    Write-Host "     state file: $resolvedStatePath" -ForegroundColor DarkGray
     if ($Task.runtime -and $Task.snapshot) {
         Write-Host "  VM snapshot rollback command:" -ForegroundColor DarkGray
         Write-Host "     adp restore $($Task.runtime) $($Task.snapshot)" -ForegroundColor DarkGray
+        if ($snapshotGate.Blocking) {
+            Write-Host "     Snapshot rollback is not ready: $($snapshotGate.Detail)" -ForegroundColor Yellow
+        }
     } else {
         Write-Host "  Add tasks[].runtime and tasks[].snapshot before planning VM snapshot rollback." -ForegroundColor DarkGray
     }
@@ -1302,7 +1436,7 @@ function Invoke-WorkspaceTask {
             Write-WorkspaceTaskReview -Task $task -ManifestPath $Path -StatePath $LocalStatePath
         }
         "rollback" {
-            Write-WorkspaceTaskRollback -Task $task
+            Write-WorkspaceTaskRollback -Task $task -StatePath $LocalStatePath
         }
         "commit" {
             Write-WorkspaceTaskCommit -Task $task -ManifestPath $Path

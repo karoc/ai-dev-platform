@@ -112,8 +112,8 @@ Workspace task 是 ADP-OS 的第一个 agent-native workflow 入口。它会把 
 - `snapshot`：检查建议快照是否存在，评估 snapshot-first gate，并打印准备好之后要显式运行的快照命令。
 - `run`：打印显式执行边界，覆盖 readiness、snapshot-first gate、运行时进入、手动 agent 执行、验证和 review handoff。
 - `validate`：打印 manifest 中配置的任务验证命令。带 `-Execute` 时，它只会通过 SSH 在 task 的目标项目目录中运行这些已声明的验证命令。与 `-Execute` 一起加 `-Plan` 可只预览远端 SSH 命令，不会执行。
-- `review`：打印 human review bundle，覆盖 readiness、检查点、验证、源码 diff 检查，以及最终 rollback/revise/commit 决策。要求快照的 task 在 checkpoint gate ready 前不应被接受，除非在 ADP-OS 外部显式豁免。
-- `rollback`：打印 VM snapshot restore 命令和独立的 Git 源码回滚检查，但不会执行。
+- `review`：打印 human review bundle，覆盖 readiness、检查点、验证、源码 diff 检查，以及最终 rollback/revise/commit 决策。它还会读取被忽略的本地 validation result，并打印 decision gate：validation passed、validation failed、validation missing，或 blocked by snapshot gate。要求快照的 task 在 checkpoint gate ready 前不应被接受，除非在 ADP-OS 外部显式豁免。
+- `rollback`：打印 VM snapshot restore 命令、最近一次记录的 validation context，以及独立的 Git 源码回滚检查，但不会执行。
 - `commit`：打印 review、验证、diff 检查、暂存和提交边界，但不会 stage 或 commit 文件。
 
 Validation execution 有意保持很窄：
@@ -131,7 +131,7 @@ Validation execution 有意保持很窄：
 adp-workspace.state.json
 ```
 
-记录内容包括 status、runtime、project、remote path、command count、commands、exit code、失败命令（如果有）、开始时间和完成时间。`workspace dashboard` 和 `workspace task review` 会显示最近一次记录的 validation result，便于 reviewer 决定 rollback、revise 或 commit。失败的 validation 会记录为 `validation_failed`，成功的 validation 会记录为 `validated`。
+记录内容包括 status、runtime、project、remote path、command count、commands、exit code、失败命令（如果有）、开始时间和完成时间。`workspace dashboard`、`workspace task review` 和 `workspace task rollback` 会显示最近一次记录的 validation result，便于 reviewer 决定 rollback、revise 或 commit。失败的 validation 会记录为 `validation_failed`，成功的 validation 会记录为 `validated`。Dashboard 会在验证通过后把 commit 标记为 `review ready`，在验证失败后标记为 `blocked by validation`。
 
 执行 validation 时，建议设置 `tasks[].project`，让 task 明确指向某个 project。如果省略，ADP-OS 只有在 manifest 中恰好只有一个 project 使用该 task runtime 时才会推断 project。远端执行前会拒绝绝对路径，以及包含 `.` 或 `..` segment 的路径。
 

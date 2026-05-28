@@ -13,6 +13,7 @@
 - 新增 `configs/workspace.recipes.example.json`，提供可复制的 workspace recipes，覆盖低风险维护、frontend 浏览器验收、backend 验证，以及带 snapshot-first gate 的高风险 agent 工作。
 - 新增显式 `adp workspace task validate <task> -Execute`，用于通过 SSH 在 task project 中运行已声明的 validation commands，并支持 `-Execute -Plan` 预览。
 - 新增 executable workspace validation 的 readiness gate 输出，以及被忽略的本地 validation result 记录。
+- 新增基于已记录 validation result 的 workspace review decision gate 和 rollback validation context。
 - 新增 workspace recipes manifest 的 CI 和 CLI smoke 覆盖。
 - 在英文和简体中文 README、workspace 文档中补充 workspace recipes 说明。
 

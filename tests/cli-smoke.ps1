@@ -211,13 +211,13 @@ Assert-Command `
     -Name "workspace task review" `
     -Arguments @("workspace", "task", "review", "before-large-agent-task", "-ManifestPath", "configs\workspace.example.json") `
     -ExitCode 0 `
-    -Patterns @("Workspace task review: before-large-agent-task", "Human review bundle:", "snapshot-first gate is ready", "rollback, revise, or commit")
+    -Patterns @("Workspace task review: before-large-agent-task", "Human review bundle:", "Review decision gate:", "review verdict", "snapshot-first gate is ready", "rollback: adp workspace task rollback before-large-agent-task")
 
 Assert-Command `
     -Name "workspace task rollback" `
     -Arguments @("workspace", "task", "rollback", "before-large-agent-task", "-ManifestPath", "configs\workspace.example.json") `
     -ExitCode 0 `
-    -Patterns @("Workspace task rollback: before-large-agent-task", "Rollback boundary:", "adp restore agent before-large-agent-task", "git restore <paths>")
+    -Patterns @("Workspace task rollback: before-large-agent-task", "Rollback boundary:", "Decision context:", "recorded validation: not recorded", "adp restore agent before-large-agent-task", "git restore <paths>")
 
 Assert-Command `
     -Name "workspace task commit" `
@@ -277,6 +277,27 @@ try {
         "started_at": "2026-05-28T00:00:00.0000000Z",
         "completed_at": "2026-05-28T00:01:00.0000000Z"
       }
+    },
+    {
+      "name": "backend-validation-pass",
+      "state": "validation_failed",
+      "updated_at": "2026-05-28T00:03:00.0000000Z",
+      "validation": {
+        "status": "failed",
+        "runtime": "backend",
+        "project": "backend-api",
+        "remote_path": "/home/adp/workspace/backend-api",
+        "command_count": 3,
+        "commands": [
+          "uv sync",
+          "uv run pytest",
+          "uv run ruff check ."
+        ],
+        "exit_code": 1,
+        "failed_command": "uv run pytest",
+        "started_at": "2026-05-28T00:02:00.0000000Z",
+        "completed_at": "2026-05-28T00:03:00.0000000Z"
+      }
     }
   ]
 }
@@ -286,13 +307,25 @@ try {
         -Name "workspace dashboard shows validation result state" `
         -Arguments @("workspace", "dashboard", "-ManifestPath", "configs\workspace.recipes.example.json", "-StatePath", $workspaceValidationState) `
         -ExitCode 0 `
-        -Patterns @("Workspace dashboard: recipe-workspace", "frontend-browser-acceptance", "state: validated at", "validation result: passed at 2026-05-28T00:01:00.0000000Z; project: frontend-app; exit: 0")
+        -Patterns @("Workspace dashboard: recipe-workspace", "frontend-browser-acceptance", "state: validated at", "validation result: passed at 2026-05-28T00:01:00.0000000Z; project: frontend-app; exit: 0", "backend-validation-pass", "commit: blocked by validation")
 
     Assert-Command `
         -Name "workspace review shows validation result state" `
         -Arguments @("workspace", "task", "review", "frontend-browser-acceptance", "-ManifestPath", "configs\workspace.recipes.example.json", "-StatePath", $workspaceValidationState) `
         -ExitCode 0 `
-        -Patterns @("Workspace task review: frontend-browser-acceptance", "recorded validation: passed at 2026-05-28T00:01:00.0000000Z; project: frontend-app; exit: 0", "state file: .*adp-workspace-validation-state")
+        -Patterns @("Workspace task review: frontend-browser-acceptance", "review verdict \(validation passed", "recorded validation: passed at 2026-05-28T00:01:00.0000000Z; project: frontend-app; exit: 0", "remote path: /home/adp/workspace/frontend-app", "command count: 2", "state file: .*adp-workspace-validation-state")
+
+    Assert-Command `
+        -Name "workspace review shows failed validation decision" `
+        -Arguments @("workspace", "task", "review", "backend-validation-pass", "-ManifestPath", "configs\workspace.recipes.example.json", "-StatePath", $workspaceValidationState) `
+        -ExitCode 0 `
+        -Patterns @("Workspace task review: backend-validation-pass", "review verdict \(validation failed", "recorded validation: failed at 2026-05-28T00:03:00.0000000Z; project: backend-api; exit: 1", "failed command: uv run pytest", "revise and re-run validation, or use rollback guidance")
+
+    Assert-Command `
+        -Name "workspace rollback shows failed validation context" `
+        -Arguments @("workspace", "task", "rollback", "backend-validation-pass", "-ManifestPath", "configs\workspace.recipes.example.json", "-StatePath", $workspaceValidationState) `
+        -ExitCode 0 `
+        -Patterns @("Workspace task rollback: backend-validation-pass", "Decision context:", "review verdict \(validation failed", "recorded validation: failed at 2026-05-28T00:03:00.0000000Z; project: backend-api; exit: 1", "failed command: uv run pytest", "git restore <paths>")
 } finally {
     Remove-Item -LiteralPath $workspaceValidationState -Force -ErrorAction SilentlyContinue
 }
