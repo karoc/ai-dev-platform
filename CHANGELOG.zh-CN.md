@@ -10,6 +10,7 @@
 
 ### 新增
 
+- 新增更清晰的首次 autoinstall 进度输出，包含已用时间、剩余 timeout 时间、预期耗时说明，并在 SSH 已打开但安装后系统的用户/key 尚未 ready 时明确显示 `auth-pending`。
 - 新增 VMware NAT host-match 诊断，`doctor` 会在可探测时比对配置的 NAT 设置和 host `VMnet8` 网络。
 - 新增已有 runtime 的 seed network drift 诊断，`status` 和 `doctor` 可以报告某个 VM 是否是用比当前合并配置更旧的 autoinstall static IP 创建的。
 - 新增 `tests\validate.ps1`，作为 CI 和本地贡献者共用的非破坏性仓库验证入口，并提供 `-Quick` 与定向 skip 开关用于本地迭代。
@@ -27,6 +28,7 @@
 
 ### 变更
 
+- 更新 `adp status` 的 SSH 状态报告，区分 `auth-pending` 与 `unreachable`，减少 Ubuntu autoinstall 和 first boot 期间的误解。
 - 更新 `adp up <runtime>`，当配置的 VMware NAT CIDR 明显不匹配 host `VMnet8` 网络时，会在首次创建 VM 前阻断，避免新 VM 被安装到不可达的 static IP 上。
 - 更新英文和简体中文网络、操作、排障文档，说明 NAT host matching、seed network drift，以及使用旧网络配置创建出的 VM 应如何重建或修复 guest 网络。
 - 将根目录 `build.md` 调整为历史实现简报，并新增简体中文对应文件，让原始架构意图以公开文档形式呈现，而不是像旧 prompt。

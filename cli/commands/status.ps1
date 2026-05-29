@@ -90,7 +90,7 @@ function Test-StatusSSHReachable {
         return "key-missing"
     }
 
-    & ssh -i $keyPath `
+    $sshOutput = & ssh -i $keyPath `
         -o StrictHostKeyChecking=no `
         -o UserKnownHostsFile=NUL `
         -o IdentitiesOnly=yes `
@@ -98,10 +98,16 @@ function Test-StatusSSHReachable {
         -o BatchMode=yes `
         -p $Port `
         "adp@$HostAddress" `
-        "echo ok" 2>$null | Out-Null
+        "echo ok" 2>&1
 
-    if ($LASTEXITCODE -eq 0) {
+    $sshExit = $LASTEXITCODE
+    $sshText = ($sshOutput | Where-Object { $_ }) -join "`n"
+
+    if ($sshExit -eq 0) {
         return "reachable"
+    }
+    if ($sshExit -eq 255 -and $sshText -match "Permission denied") {
+        return "auth-pending"
     }
 
     return "unreachable"
@@ -203,6 +209,9 @@ function Write-StatusRuntime {
         Write-Host "  remediation:   rebuild this runtime or update guest networking from the seed-era address" -ForegroundColor Yellow
     }
     Write-Host "  ssh:           $sshState" -ForegroundColor DarkGray
+    if ($sshState -eq "auth-pending") {
+        Write-Host "  note:          SSH port is open, but the ADP key is not accepted yet. During autoinstall this usually means the installer or first boot is still preparing the target user." -ForegroundColor Yellow
+    }
     Write-Host "  sync:          $syncState" -ForegroundColor DarkGray
     Write-Host "  workspace:     $workspacePath" -ForegroundColor DarkGray
     Write-Host "  VMX:           $($state.VmxPath)" -ForegroundColor DarkGray

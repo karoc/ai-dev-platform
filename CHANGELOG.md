@@ -10,6 +10,7 @@ The project does not yet publish versioned releases. Entries are grouped by date
 
 ### Added
 
+- Added clearer first-time autoinstall progress output with elapsed and remaining timeout time, expected duration guidance, and explicit `auth-pending` wording when SSH is open but the installed-system user/key is not ready.
 - Added VMware NAT host-match diagnostics so `doctor` compares configured NAT settings with the host `VMnet8` network when detectable.
 - Added existing-runtime seed network drift diagnostics so `status` and `doctor` can report when a VM was created with an older autoinstall static IP than the current merged configuration.
 - Added `tests\validate.ps1` as the shared non-destructive repository validation entry used by CI and local contributors, with `-Quick` and targeted skip switches for local iteration.
@@ -27,6 +28,7 @@ The project does not yet publish versioned releases. Entries are grouped by date
 
 ### Changed
 
+- Updated `adp status` SSH reporting to distinguish `auth-pending` from `unreachable`, reducing confusion during Ubuntu autoinstall and first boot.
 - Updated `adp up <runtime>` to block first-time VM creation when the configured VMware NAT CIDR clearly does not match the host `VMnet8` network, preventing new VMs from being installed with unreachable static IPs.
 - Updated networking, operations, and troubleshooting documentation in English and Simplified Chinese to explain NAT host matching, seed network drift, and the rebuild or guest-network remediation path for VMs created with stale network settings.
 - Reframed the root `build.md` file as a historical implementation brief and added a Simplified Chinese counterpart so the original architecture intent is public-facing instead of prompt-like.

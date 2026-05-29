@@ -934,45 +934,76 @@ function Wait-AutoinstallComplete {
     )
 
     $deadline = (Get-Date).AddMinutes($TimeoutMinutes)
-    $bootCount = 0
+    $startedAt = Get-Date
+    $lastDetail = ""
+    $sshKeyPath = Join-Path "$env:USERPROFILE\.ssh\adp-os" "adp-os"
 
-    Write-Host "  Waiting for autoinstall (timeout: ${TimeoutMinutes}min)..." -ForegroundColor DarkGray
+    Write-Host "  Waiting for Ubuntu autoinstall to finish (timeout: ${TimeoutMinutes}min)..." -ForegroundColor DarkGray
+    Write-Host "  This is a long-running OS install. Typical duration is 15-45 minutes." -ForegroundColor DarkGray
+    Write-Host "  ADP will poll SSH and confirm /home/adp/.adp-provisioned after the installed system reboots." -ForegroundColor DarkGray
 
     while ((Get-Date) -lt $deadline) {
         Start-Sleep -Seconds $CheckIntervalSeconds
 
+        $configuredIp = if ($RuntimeName) { Get-RuntimeStaticIP $RuntimeName } else { $null }
+        $detectedIp = $null
+        $candidateIps = @()
+        $probeDetails = [System.Collections.Generic.List[string]]::new()
+
         try {
-            $configuredIp = if ($RuntimeName) { Get-RuntimeStaticIP $RuntimeName } else { $null }
-            $detectedIp = $null
             try {
                 $detectedIp = Get-VMIP $vmxPath
             } catch {}
 
             $candidateIps = @($configuredIp, $detectedIp) | Where-Object { $_ -and $_ -ne "0.0.0.0" -and $_ -notmatch "unknown" } | Select-Object -Unique
             foreach ($ip in $candidateIps) {
-                if ($configuredIp -and $ip -eq $configuredIp) {
-                    Write-Host "  Testing configured static IP: $ip..." -ForegroundColor DarkGray
-                } else {
-                    Write-Host "  Testing VMware-detected IP: $ip..." -ForegroundColor DarkGray
-                }
+                $label = if ($configuredIp -and $ip -eq $configuredIp) { "configured" } else { "VMware-detected" }
 
-                $sshKeyPath = Join-Path "$env:USERPROFILE\.ssh\adp-os" "adp-os"
                 if (Test-Path $sshKeyPath) {
-                    $sshTest = ssh -i $sshKeyPath -o StrictHostKeyChecking=no -o IdentitiesOnly=yes -o UserKnownHostsFile=NUL -o ConnectTimeout=5 -o BatchMode=yes adp@$ip "cat /home/adp/.adp-provisioned" 2>$null
-                    if ($LASTEXITCODE -eq 0 -and $sshTest) {
+                    $sshOutput = ssh -i $sshKeyPath -o StrictHostKeyChecking=no -o IdentitiesOnly=yes -o UserKnownHostsFile=NUL -o ConnectTimeout=5 -o BatchMode=yes adp@$ip "cat /home/adp/.adp-provisioned" 2>&1
+                    $sshExit = $LASTEXITCODE
+                    $sshTest = ($sshOutput | Where-Object { $_ }) -join "`n"
+                    if ($sshExit -eq 0 -and $sshTest) {
                         Write-Host "  Provisioning confirmed at $ip!" -ForegroundColor Green
                         return $true
                     }
+
+                    if ($sshExit -eq 255 -and $sshTest -match "Permission denied") {
+                        $probeDetails.Add("$label ${ip}: SSH is up, waiting for installed-system user/key and provision marker") | Out-Null
+                    } elseif ($sshExit -eq 255) {
+                        $probeDetails.Add("$label ${ip}: SSH not ready yet") | Out-Null
+                    } else {
+                        $probeDetails.Add("$label ${ip}: provision marker not ready yet") | Out-Null
+                    }
+                } else {
+                    $probeDetails.Add("$label ${ip}: SSH key missing at $sshKeyPath") | Out-Null
                 }
             }
         } catch {
-            # Still waiting
+            $probeDetails.Add("guest status probe unavailable while installer is running") | Out-Null
         }
 
-        $elapsed = [math]::Round(((Get-Date) - $deadline).TotalMinutes + $TimeoutMinutes, 1)
-        Write-Host "  Still waiting... (${elapsed}min elapsed)" -ForegroundColor DarkGray
+        if ($candidateIps.Count -eq 0) {
+            $probeDetails.Add("waiting for VMware Tools, DHCP, or static networking to report an address") | Out-Null
+        }
+
+        $elapsed = [math]::Round(((Get-Date) - $startedAt).TotalMinutes, 1)
+        $remaining = [math]::Max(0, [math]::Round(($deadline - (Get-Date)).TotalMinutes, 1))
+        $detail = (@($probeDetails) | Select-Object -Unique) -join "; "
+        if ([string]::IsNullOrWhiteSpace($detail)) {
+            $detail = "installer is still running"
+        }
+
+        if ($detail -ne $lastDetail) {
+            Write-Host "  Autoinstall in progress (${elapsed}min elapsed, ${remaining}min remaining): $detail" -ForegroundColor DarkGray
+            $lastDetail = $detail
+        } else {
+            Write-Host "  Autoinstall still in progress (${elapsed}min elapsed, ${remaining}min remaining)." -ForegroundColor DarkGray
+        }
     }
 
+    Write-Host "  Autoinstall confirmation timed out after ${TimeoutMinutes}min." -ForegroundColor Yellow
+    Write-Host "  The VM may still be installing. Check VMware console, then run: adp status $RuntimeName" -ForegroundColor DarkGray
     return $false
 }
 

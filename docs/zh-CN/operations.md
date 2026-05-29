@@ -97,6 +97,8 @@ Installer 排障开关：
 
 `agent` 运行时可能会打印 high-IO profile 提示。这不是错误；它表示该运行时面向 AI agent 工作负载配置，执行破坏性或大范围任务前建议先创建快照。
 
+首次创建 VM 时包含较长的 Ubuntu autoinstall 阶段。ADP 会把它显示为 `Autoinstall in progress`，并显示已用时间和剩余 timeout 时间。在这个阶段，SSH 22 端口可能先变为可达，但安装后的系统还没有接受 ADP key，也还没有写入 `/home/adp/.adp-provisioned`；这种中间态会显示为 `auth-pending`，不代表 runtime 已完成。
+
 不创建、不启动、不 provisioning、不 bootstrap VM，只预览启动计划：
 
 ```powershell
@@ -155,13 +157,15 @@ Installer 排障开关：
 - 合并后的 topology 中配置的 static IP。
 - VMware 可探测到的 IP（如果可用）。
 - 已有 autoinstall seed 仍包含旧 static IP 时的 network drift。
-- 运行中 VM 的 SSH 可达性。
+- 运行中 VM 的 SSH 状态：`reachable`、`auth-pending`、`unreachable`，或 `key-missing` 等本地前置条件状态。
 - Mutagen sync session 是否存在。
 - 具体 SSH 命令、SSH alias、workspace path 和下一步命令。
 
 如果 VMware 探测到的 IP 与配置的 static IP 不同，ADP 仍会把配置的 static IP 显示为连接目标。这是静态网络的预期行为，也能让你在编辑 `configs\local.json` 修改本机 NAT 网段后直接看到实际使用的地址。
 
 如果 `status` 报告 `network drift`，说明该 VM 是用比当前配置更旧的 seed 网络创建的。VM 创建完成后再编辑 `configs\local.json` 不会自动重写 guest 内部网络。请重建该 runtime，或先通过 seed-era 地址进入 guest，再应用目标 netplan 改动。
+
+如果 `status` 报告 `auth-pending`，说明 SSH 端口已经打开，但 ADP key 还没有被接受。首次 autoinstall 期间这通常表示 installer 或 first boot 仍在准备目标用户。请等待到 timeout，或者在该状态长时间不变化时检查 VMware console。
 
 ## SSH 访问
 

@@ -97,6 +97,8 @@ After startup, ADP prints the configured connection target, SSH command, SSH ali
 
 The `agent` runtime may print a high-IO profile notice. This is not an error; it means the runtime is sized for AI agent workloads and snapshots are recommended before destructive or large-scale tasks.
 
+First-time VM creation includes a long Ubuntu autoinstall phase. ADP reports this as `Autoinstall in progress` and shows elapsed and remaining timeout time. During this phase, SSH port 22 may become reachable before the installed system has accepted the ADP key or written `/home/adp/.adp-provisioned`; that intermediate state is reported as `auth-pending`, not as a finished runtime.
+
 Preview startup without creating, starting, provisioning, or bootstrapping a VM:
 
 ```powershell
@@ -155,13 +157,15 @@ Show one runtime:
 - The configured static IP from the merged topology.
 - The VMware-detected IP when available.
 - Network drift when an existing autoinstall seed still contains an older static IP than the current merged configuration.
-- SSH reachability for running VMs.
+- SSH state for running VMs: `reachable`, `auth-pending`, `unreachable`, or a local prerequisite state such as `key-missing`.
 - Mutagen sync session presence.
 - The exact SSH command, SSH alias, workspace path, and next commands.
 
 If the VMware-detected IP differs from the configured static IP, ADP still shows the configured static IP as the connection target. This is intentional for static networking and makes local NAT subnet overrides visible after editing `configs\local.json`.
 
 If `status` reports `network drift`, the VM was created with an older seed network than the current configuration. Editing `configs\local.json` after VM creation does not rewrite guest networking. Rebuild the runtime, or reach the guest through the seed-era address and apply the desired netplan change.
+
+If `status` reports `auth-pending`, the SSH port is open but the ADP key is not accepted yet. During first-time autoinstall this usually means the installer or first boot is still preparing the target user. Keep waiting until the timeout, or inspect the VMware console if the state does not change.
 
 ## SSH Access
 
