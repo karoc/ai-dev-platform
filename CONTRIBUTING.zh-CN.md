@@ -4,6 +4,8 @@
 
 感谢你帮助改进 AI Dev Platform OS。
 
+支持问题、可复现 bug reports、feature requests 和 diagnostics 预期见[支持说明](SUPPORT.zh-CN.md)。
+
 ## 开发要求
 
 - Windows 11。
@@ -15,14 +17,18 @@
 
 ## 提交变更前
 
+Workspace task templates、release-readiness expectations 和维护者 review flow 见[贡献者工作流](docs/zh-CN/contributor-workflows.md)与[发布就绪](docs/zh-CN/release-readiness.md)。
+
 运行：
 
 ```powershell
-pwsh -NoProfile -Command '$failed = $false; Get-ChildItem -Recurse -Filter *.ps1 | ForEach-Object { $errors = $null; [System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$null, [ref]$errors) > $null; if ($errors) { $failed = $true; $path = $_.FullName; $errors | ForEach-Object { "{0}:{1}: {2}" -f $path, $_.Extent.StartLineNumber, $_.Message } } }; if ($failed) { exit 1 }'
+.\tests\validate.ps1
 .\test-integration.ps1
 .\deploy-check.ps1
 .\cli\adp.ps1 doctor
 ```
+
+本地迭代时可先运行 `.\tests\validate.ps1 -Quick`，提交前再运行完整 validation gate。
 
 对于 bootstrap shell 脚本：
 
@@ -30,7 +36,7 @@ pwsh -NoProfile -Command '$failed = $false; Get-ChildItem -Recurse -Filter *.ps1
 $repo = (Get-Location).Path -replace '\\', '/'
 $drive = $repo.Substring(0, 1).ToLowerInvariant()
 $path = "/mnt/$drive" + $repo.Substring(2)
-wsl bash -lc "bash -n '$path/bootstrap/base/setup-base.sh' '$path/bootstrap/frontend/setup-frontend.sh' '$path/bootstrap/frontend/browser-tools.sh' '$path/bootstrap/backend/setup-backend.sh' '$path/bootstrap/agent/setup-agent.sh'"
+wsl bash -lc "bash -n '$path/bootstrap/base/setup-base.sh' '$path/bootstrap/frontend/setup-frontend.sh' '$path/bootstrap/frontend/browser-tools.sh' '$path/bootstrap/backend/setup-backend.sh' '$path/bootstrap/agent/setup-agent.sh' '$path/bootstrap/common/common.sh'"
 ```
 
 ## 编码规范
@@ -51,6 +57,13 @@ vmware: make guest IP detection resilient
 network: add static IP apply command
 docs: add configuration guide
 ```
+
+## Pull Request 就绪
+
+- 说明使用的 workspace task shape；如果没有适用 task，说明原因。
+- 当变更影响 workflow、runtime behavior、validation、documentation 或 release readiness 时，包含 `workspace report -Markdown` release evidence。
+- README 或用户可见文档变更时，保持 README 和简体中文文档同步。
+- 高风险 agent work 在没有 snapshot gate 或维护者显式豁免前，不应标记 ready。
 
 ## 安全
 

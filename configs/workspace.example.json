@@ -8,6 +8,7 @@
       "path": "app",
       "runtime": "agent",
       "sync": true,
+      "devcontainer": "optional",
       "validation": [
         "pnpm test",
         "pnpm exec playwright test"
@@ -19,6 +20,9 @@
       "name": "before-large-agent-task",
       "runtime": "agent",
       "risk": "high",
+      "owner": "platform-maintainer",
+      "review_cadence": "per-task",
+      "due": "2099-12-31",
       "requires_snapshot": true,
       "snapshot": "before-large-agent-task",
       "validation": [

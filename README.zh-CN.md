@@ -122,6 +122,18 @@ adp-frontend-browser-install chromium
 运行非破坏性验证：
 
 ```powershell
+.\tests\validate.ps1
+```
+
+本地快速迭代时可运行：
+
+```powershell
+.\tests\validate.ps1 -Quick
+```
+
+如需运行单项验证：
+
+```powershell
 .\tests\cli-smoke.ps1
 .\tests\install-smoke.ps1
 .\test-integration.ps1
@@ -181,7 +193,7 @@ git clone <project-url> my-project
 %USERPROFILE%\adp-workspaces\agent     <->  agent:/home/adp/workspace
 ```
 
-目标项目布局和 ADP-OS dogfooding 指南见[工作区](docs/zh-CN/workspaces.md)。
+目标项目布局和 ADP-OS dogfooding 指南见[工作区](docs/zh-CN/workspaces.md)。Workspace orchestration、agent-native development 和 runtime expansion 的公开产品方向见[路线图](docs/zh-CN/roadmap.md)。Release decision policy、stale-task remediation flow 和维护者 checklist 见[发布就绪](docs/zh-CN/release-readiness.md)。Validation、evidence、safety checks 和 publication boundaries 见[发布流程](docs/zh-CN/release-process.md)。Task templates、维护者 review ritual 和 pull request expectations 见[贡献者工作流](docs/zh-CN/contributor-workflows.md)。
 
 ADP-OS 还提供一个多场景 workspace recipes manifest，用于常见 agent-native workflow：
 
@@ -190,9 +202,10 @@ ADP-OS 还提供一个多场景 workspace recipes manifest，用于常见 agent-
 .\cli\adp.ps1 workspace plan -ManifestPath configs\workspace.recipes.example.json
 .\cli\adp.ps1 workspace dashboard -ManifestPath configs\workspace.recipes.example.json
 .\cli\adp.ps1 workspace report -ManifestPath configs\workspace.recipes.example.json
+.\cli\adp.ps1 workspace report -Markdown -ManifestPath configs\workspace.recipes.example.json
 ```
 
-这些 recipes 覆盖低风险维护、frontend 浏览器验收、backend 验证，以及带 snapshot-first gate 的高风险 agent 工作。`workspace report` 还会打印 release handoff summary，用于统计 validation result、列出 blockers、显示 ready for review 或 ready to commit 的 task，并标明当前 release gate。这些 recipes 只是 planning examples；workspace 命令不会安装 packages、下载浏览器、创建快照、运行验证或 commit 文件。
+这些 recipes 覆盖低风险维护、frontend 浏览器验收、backend 验证，以及带 snapshot-first gate 的高风险 agent 工作。`workspace report` 还会打印 release handoff summary，用于统计 validation result、列出 blockers、显示 ready for review 或 ready to commit 的 task、标明当前 release gate，并暴露 owner、review cadence、due date 等 task governance 字段。它还会按 owner queue、review cadence queue、attention queue 和 decision queues 聚合 task，用于周期性 review，并给出 validate、review、revise、snapshot 或 commit 等下一步动作分类，同时输出 release decision policy 和 stale-task remediation guidance。添加 `-Markdown` 可以生成可复制到 PR 或 release 的 evidence，并保持同一套 decision state。这些 recipes 只是 planning examples；workspace 命令不会安装 packages、下载浏览器、创建快照、运行验证或 commit 文件。
 
 Validation 可以从 task recipe 中显式执行：
 
@@ -218,6 +231,7 @@ Validation 可以从 task recipe 中显式执行：
 .\cli\adp.ps1 workspace status
 .\cli\adp.ps1 workspace dashboard
 .\cli\adp.ps1 workspace report
+.\cli\adp.ps1 workspace report [-Markdown]
 .\cli\adp.ps1 workspace task <prepare|snapshot|run|validate|review|rollback|commit> <task-name>
 .\cli\adp.ps1 workspace task validate <task-name> [-Execute] [-Plan]
 .\cli\adp.ps1 workspace task mark <task-name> <prepared|checkpointed|running|validated|reviewed|rollback|committed>
@@ -238,10 +252,17 @@ Validation 可以从 task recipe 中显式执行：
 - [架构说明](docs/zh-CN/architecture.md)
 - [配置说明](docs/zh-CN/configuration.md)
 - [工作区](docs/zh-CN/workspaces.md)
+- [路线图](docs/zh-CN/roadmap.md)
+- [发布就绪](docs/zh-CN/release-readiness.md)
+- [发布流程](docs/zh-CN/release-process.md)
+- [贡献者工作流](docs/zh-CN/contributor-workflows.md)
 - [操作指南](docs/zh-CN/operations.md)
+- [排障](docs/zh-CN/troubleshooting.md)
 - [网络说明](docs/zh-CN/networking.md)
 - [浏览器测试](docs/zh-CN/browser-testing.md)
+- [历史实现简报](build.zh-CN.md)
 - [贡献指南](CONTRIBUTING.zh-CN.md)
+- [支持说明](SUPPORT.zh-CN.md)
 - [安全策略](SECURITY.zh-CN.md)
 - [变更日志](CHANGELOG.zh-CN.md)
 
@@ -254,4 +275,3 @@ Validation 可以从 task recipe 中显式执行：
 ## 许可证
 
 MIT。参见 [LICENSE](LICENSE)。
-

@@ -9,13 +9,15 @@ param(
     [string]$ManifestPath = "adp-workspace.json",
     [string]$StatePath,
     [switch]$Execute,
-    [switch]$Plan
+    [switch]$Plan,
+    [switch]$Markdown
 )
 
 $ErrorActionPreference = "Stop"
 
 function Show-WorkspaceUsage {
-    Write-ErrorLog -Message "Usage: adp workspace <init|show|plan|status|dashboard|task> [-ManifestPath <path>]" -Component "cli.workspace"
+    Write-ErrorLog -Message "Usage: adp workspace <init|show|plan|status|dashboard|report|task> [-ManifestPath <path>]" -Component "cli.workspace"
+    Write-Host "  adp workspace report [-Markdown] [-ManifestPath <path>]" -ForegroundColor DarkGray
     Write-Host "  adp workspace task <prepare|snapshot|run|validate|review|rollback|commit> <task-name> [-ManifestPath <path>]" -ForegroundColor DarkGray
     Write-Host "  adp workspace task validate <task-name> [-Execute] [-Plan] [-ManifestPath <path>]" -ForegroundColor DarkGray
     Write-Host "  adp workspace task mark <task-name> <prepared|checkpointed|running|validated|reviewed|rollback|committed> [-StatePath <path>]" -ForegroundColor DarkGray
@@ -613,6 +615,9 @@ function Write-WorkspaceSummary {
         $runtime = if ($project.runtime) { $project.runtime } else { "not configured" }
         $sync = if ($null -ne $project.sync) { $project.sync } else { "not configured" }
         Write-Host "  - $($project.name): $($project.path) -> $runtime (sync: $sync)" -ForegroundColor DarkGray
+        $projectPath = Resolve-ProjectWorkspacePath -Project $project
+        $devContainerStatus = Get-WorkspaceDevContainerStatus -ProjectPath $projectPath
+        Write-Host "      devcontainer: $($devContainerStatus.Status)$(if ($devContainerStatus.Detail) { ' - ' + $devContainerStatus.Detail })" -ForegroundColor DarkGray
         foreach ($command in (Get-WorkspaceArray $project.validation)) {
             Write-Host "      validate: $command" -ForegroundColor DarkGray
         }
@@ -668,6 +673,50 @@ function Resolve-ProjectWorkspacePath {
     }
 
     return [System.IO.Path]::GetFullPath($Project.path)
+}
+
+function Get-WorkspaceDevContainerStatus {
+    param([string]$ProjectPath)
+
+    if ([string]::IsNullOrWhiteSpace($ProjectPath)) {
+        return [pscustomobject]@{
+            Level  = "INFO"
+            Status = "not checked"
+            Detail = "project path missing"
+        }
+    }
+
+    if (-not (Test-Path -LiteralPath $ProjectPath)) {
+        return [pscustomobject]@{
+            Level  = "INFO"
+            Status = "not checked"
+            Detail = "project path missing"
+        }
+    }
+
+    $nested = Join-Path (Join-Path $ProjectPath ".devcontainer") "devcontainer.json"
+    if (Test-Path -LiteralPath $nested) {
+        return [pscustomobject]@{
+            Level  = "OK"
+            Status = "found"
+            Detail = ".devcontainer/devcontainer.json"
+        }
+    }
+
+    $root = Join-Path $ProjectPath ".devcontainer.json"
+    if (Test-Path -LiteralPath $root) {
+        return [pscustomobject]@{
+            Level  = "OK"
+            Status = "found"
+            Detail = ".devcontainer.json"
+        }
+    }
+
+    return [pscustomobject]@{
+        Level  = "INFO"
+        Status = "not found"
+        Detail = "Docker/dev container metadata can still be used inside the ADP runtime"
+    }
 }
 
 function Get-RuntimeVmxPath {
@@ -897,6 +946,8 @@ function Write-WorkspaceStatus {
             $pathLevel = if (Test-Path -LiteralPath $projectPath) { "OK" } else { "WARN" }
             $pathStatus = if ($pathLevel -eq "OK") { "exists" } else { "missing" }
             Write-WorkspaceCheck -Level $pathLevel -Name "project path" -Detail ("({0}: {1})" -f $pathStatus, $projectPath)
+            $devContainerStatus = Get-WorkspaceDevContainerStatus -ProjectPath $projectPath
+            Write-WorkspaceCheck -Level $devContainerStatus.Level -Name "devcontainer" -Detail "($($devContainerStatus.Status): $($devContainerStatus.Detail))"
         }
 
         if (-not $project.runtime) {
@@ -1005,10 +1056,11 @@ function Write-WorkspaceDashboard {
         $syncStatus = Get-WorkspaceSyncStatus -RuntimeName $project.runtime -Expected $syncExpected
         $validationCommands = Get-WorkspaceArray $project.validation
         $validationLevel = if ($validationCommands.Count -gt 0) { "OK" } else { "WARN" }
+        $devContainerStatus = Get-WorkspaceDevContainerStatus -ProjectPath $projectPath
         $projectLevel = Select-WorstWorkspaceLevel -Levels @($pathLevel, $runtimeStatus.Level, $syncStatus.Level, $validationLevel)
 
         $pathDetail = if ($projectPath) { $projectPath } else { "missing" }
-        Write-WorkspaceCheck -Level $projectLevel -Name $projectName -Detail "(path: $pathDetail; runtime: $($runtimeStatus.Status); sync: $($syncStatus.Status); validation: $($validationCommands.Count))"
+        Write-WorkspaceCheck -Level $projectLevel -Name $projectName -Detail "(path: $pathDetail; runtime: $($runtimeStatus.Status); sync: $($syncStatus.Status); validation: $($validationCommands.Count); devcontainer: $($devContainerStatus.Status))"
     }
 
     Write-Host ""
@@ -1066,6 +1118,582 @@ function Write-WorkspaceDashboard {
         Write-Host "      prepare: adp workspace task prepare $taskName -ManifestPath $ManifestPath" -ForegroundColor DarkGray
         Write-Host "      run:     adp workspace task run $taskName -ManifestPath $ManifestPath" -ForegroundColor DarkGray
         Write-Host "      review:  adp workspace task review $taskName -ManifestPath $ManifestPath" -ForegroundColor DarkGray
+    }
+}
+
+function New-WorkspaceReportItem {
+    param(
+        [object]$Task,
+        [object]$State
+    )
+
+    $taskName = if ($Task.name) { [string]$Task.name } else { "(unnamed)" }
+    $recordedState = Get-WorkspaceTaskState -State $State -TaskName $taskName
+    $recordedTaskState = Get-WorkspaceRecordedTaskStateName -RecordedState $recordedState
+    $validationCommands = Get-WorkspaceArray $Task.validation
+    $snapshotStatus = Get-WorkspaceSnapshotStatus -RuntimeName $Task.runtime -SnapshotName $Task.snapshot
+    $snapshotGate = Get-WorkspaceSnapshotGate -Task $Task -SnapshotStatus $snapshotStatus
+    $reviewDecision = Get-WorkspaceReviewDecision -Task $Task -RecordedState $recordedState -SnapshotGate $snapshotGate -ValidationCommandCount $validationCommands.Count
+    $commitDecision = Get-WorkspaceCommitDecision -Task $Task -RecordedState $recordedState -SnapshotGate $snapshotGate -ValidationCommandCount $validationCommands.Count
+    $validationStatus = Get-WorkspaceValidationStatus -RecordedState $recordedState
+    $risk = Get-WorkspaceTaskRisk -Task $Task
+    $requiresSnapshot = Test-WorkspaceTaskRequiresSnapshot -Task $Task
+    $projectName = if ($Task.PSObject.Properties.Name -contains "project" -and -not [string]::IsNullOrWhiteSpace([string]$Task.project)) { [string]$Task.project } else { "not set" }
+    $runtimeName = if ($Task.runtime) { [string]$Task.runtime } else { "not configured" }
+    $snapshotName = if ($Task.snapshot) { [string]$Task.snapshot } else { "not configured" }
+    $ownerName = if ($Task.PSObject.Properties.Name -contains "owner" -and -not [string]::IsNullOrWhiteSpace([string]$Task.owner)) { [string]$Task.owner } else { "not set" }
+    $reviewCadence = if ($Task.PSObject.Properties.Name -contains "review_cadence" -and -not [string]::IsNullOrWhiteSpace([string]$Task.review_cadence)) { [string]$Task.review_cadence } else { "not set" }
+    $dueDateText = if ($Task.PSObject.Properties.Name -contains "due" -and -not [string]::IsNullOrWhiteSpace([string]$Task.due)) { [string]$Task.due } else { "not set" }
+    $dueStatus = if ($dueDateText -eq "not set") {
+        "not set"
+    } else {
+        try {
+            $dueDate = [datetime]::Parse($dueDateText).Date
+            $today = (Get-Date).Date
+            if ($dueDate -lt $today) {
+                "overdue"
+            } elseif ($dueDate -le $today.AddDays(7)) {
+                "due soon"
+            } else {
+                "scheduled"
+            }
+        } catch {
+            "invalid"
+        }
+    }
+    $rollbackState = if ($Task.runtime -and $Task.snapshot) { $snapshotStatus.Status } else { "not configured" }
+    $action = if ($snapshotGate.Blocking) {
+        "create snapshot"
+    } elseif ($validationStatus -eq "failed") {
+        "rollback or revise"
+    } elseif ($validationStatus -ne "passed") {
+        "validate now"
+    } elseif ($commitDecision.Verdict -eq "review not recorded") {
+        "review now"
+    } elseif ($commitDecision.Verdict -in @("commit ready", "already marked committed")) {
+        "ready to commit"
+    } else {
+        "inspect"
+    }
+    $releaseReadiness = if ($commitDecision.Verdict -in @("commit ready", "already marked committed")) {
+        "release candidate"
+    } elseif ($snapshotGate.Blocking -or $validationStatus -eq "failed") {
+        "release blocked"
+    } elseif ($validationStatus -ne "passed") {
+        "validation required"
+    } elseif ($commitDecision.Verdict -eq "review not recorded") {
+        "review required"
+    } else {
+        "not ready"
+    }
+    if ($dueStatus -in @("overdue", "due soon") -and $releaseReadiness -eq "release candidate") {
+        $releaseReadiness = "release candidate with timing attention"
+    }
+    $taskLevel = Select-WorstWorkspaceLevel -Levels @($snapshotGate.Level, $reviewDecision.Level, $commitDecision.Level)
+
+    return [pscustomobject]@{
+        TaskName           = $taskName
+        Task               = $Task
+        RecordedState      = $recordedState
+        RecordedTaskState  = $recordedTaskState
+        ValidationCommands = $validationCommands
+        ValidationStatus   = $validationStatus
+        ValidationStateText = Format-WorkspaceValidationState -RecordedState $recordedState
+        SnapshotStatus     = $snapshotStatus
+        SnapshotGate       = $snapshotGate
+        ReviewDecision     = $reviewDecision
+        CommitDecision     = $commitDecision
+        Risk               = $risk
+        RequiresSnapshot   = $requiresSnapshot
+        ProjectName        = $projectName
+        RuntimeName        = $runtimeName
+        SnapshotName       = $snapshotName
+        OwnerName          = $ownerName
+        ReviewCadence      = $reviewCadence
+        DueDate            = $dueDateText
+        DueStatus          = $dueStatus
+        RollbackState      = $rollbackState
+        Action             = $action
+        ReleaseReadiness   = $releaseReadiness
+        Level              = $taskLevel
+        SnapshotBlocked    = [bool]$snapshotGate.Blocking
+        CommitReady        = ($commitDecision.Verdict -in @("commit ready", "already marked committed"))
+        ReviewReady        = ($reviewDecision.Verdict -eq "validation passed")
+    }
+}
+
+function Write-WorkspaceReportSummary {
+    param([object[]]$Items)
+
+    $total = $Items.Count
+    $passed = @($Items | Where-Object { $_.ValidationStatus -eq "passed" }).Count
+    $failed = @($Items | Where-Object { $_.ValidationStatus -eq "failed" }).Count
+    $missing = @($Items | Where-Object { $_.ValidationStatus -notin @("passed", "failed") }).Count
+    $snapshotBlocked = @($Items | Where-Object { $_.SnapshotBlocked }).Count
+    $reviewReady = @($Items | Where-Object { $_.ReviewReady }).Count
+    $commitReady = @($Items | Where-Object { $_.CommitReady }).Count
+    $reviewNeeded = @($Items | Where-Object { $_.CommitDecision.Verdict -eq "review not recorded" }).Count
+    $validationBlocked = @($Items | Where-Object { $_.CommitDecision.Verdict -eq "blocked by validation" }).Count
+    $owned = @($Items | Where-Object { $_.OwnerName -ne "not set" }).Count
+    $cadenced = @($Items | Where-Object { $_.ReviewCadence -ne "not set" }).Count
+    $overdue = @($Items | Where-Object { $_.DueStatus -eq "overdue" }).Count
+    $dueSoon = @($Items | Where-Object { $_.DueStatus -eq "due soon" }).Count
+    $highestLevel = Select-WorstWorkspaceLevel -Levels @($Items | ForEach-Object { $_.Level })
+
+    $handoffState = if ($total -eq 0) {
+        "empty"
+    } elseif ($failed -gt 0 -or $validationBlocked -gt 0) {
+        "blocked by validation"
+    } elseif ($snapshotBlocked -gt 0) {
+        "blocked by snapshot gate"
+    } elseif ($missing -gt 0) {
+        "needs validation"
+    } elseif ($reviewNeeded -gt 0) {
+        "needs review"
+    } elseif ($commitReady -eq $total) {
+        "ready to commit"
+    } else {
+        "needs review"
+    }
+
+    $blockedTasks = @($Items | Where-Object { $_.SnapshotBlocked -or $_.CommitDecision.Verdict -in @("blocked by validation", "validation result missing", "validation not configured") } | ForEach-Object { $_.TaskName })
+    $reviewTasks = @($Items | Where-Object { $_.ReviewReady -and -not $_.CommitReady } | ForEach-Object { $_.TaskName })
+    $commitTasks = @($Items | Where-Object { $_.CommitReady } | ForEach-Object { $_.TaskName })
+    $ownerGaps = @($Items | Where-Object { $_.OwnerName -eq "not set" } | ForEach-Object { $_.TaskName })
+    $cadenceGaps = @($Items | Where-Object { $_.ReviewCadence -eq "not set" } | ForEach-Object { $_.TaskName })
+    $dueTasks = @($Items | Where-Object { $_.DueStatus -in @("overdue", "due soon") } | ForEach-Object { "$($_.TaskName) ($($_.DueStatus))" })
+
+    Write-Host ""
+    Write-Host "Release handoff summary:" -ForegroundColor Yellow
+    Write-WorkspaceCheck -Level $highestLevel -Name "handoff" -Detail "($handoffState; tasks: $total; validation passed: $passed; failed: $failed; missing: $missing; snapshot blocked: $snapshotBlocked; review ready: $reviewReady; commit ready: $commitReady; owned: $owned; cadence set: $cadenced; overdue: $overdue; due soon: $dueSoon)"
+    Write-Host "     blocked tasks: $(if ($blockedTasks.Count -gt 0) { $blockedTasks -join ', ' } else { 'none' })" -ForegroundColor DarkGray
+    Write-Host "     ready for review: $(if ($reviewTasks.Count -gt 0) { $reviewTasks -join ', ' } else { 'none' })" -ForegroundColor DarkGray
+    Write-Host "     ready to commit: $(if ($commitTasks.Count -gt 0) { $commitTasks -join ', ' } else { 'none' })" -ForegroundColor DarkGray
+    Write-Host "     owner gaps: $(if ($ownerGaps.Count -gt 0) { $ownerGaps -join ', ' } else { 'none' })" -ForegroundColor DarkGray
+    Write-Host "     cadence gaps: $(if ($cadenceGaps.Count -gt 0) { $cadenceGaps -join ', ' } else { 'none' })" -ForegroundColor DarkGray
+    Write-Host "     due attention: $(if ($dueTasks.Count -gt 0) { $dueTasks -join ', ' } else { 'none' })" -ForegroundColor DarkGray
+    Write-Host "     release gate: $handoffState" -ForegroundColor DarkGray
+}
+
+function Write-WorkspaceGovernanceLoop {
+    param([object[]]$Items)
+
+    $ownerGroups = @($Items | Group-Object -Property OwnerName | Sort-Object Name)
+    $cadenceGroups = @($Items | Group-Object -Property ReviewCadence | Sort-Object Name)
+    $attentionTasks = @($Items | Where-Object {
+            $_.SnapshotBlocked -or
+            $_.DueStatus -in @("overdue", "due soon") -or
+            $_.CommitDecision.Verdict -in @("blocked by validation", "validation result missing", "validation not configured", "review not recorded")
+        } | ForEach-Object {
+            "$($_.TaskName) [$($_.CommitDecision.Verdict); due: $($_.DueStatus)]"
+        })
+
+    Write-Host ""
+    Write-Host "Governance loop:" -ForegroundColor Yellow
+    Write-Host "     owner queues:" -ForegroundColor DarkGray
+    foreach ($group in $ownerGroups) {
+        $tasks = @($group.Group | ForEach-Object { $_.TaskName })
+        Write-Host "       $($group.Name): $($tasks -join ', ')" -ForegroundColor DarkGray
+    }
+
+    Write-Host "     review cadence:" -ForegroundColor DarkGray
+    foreach ($group in $cadenceGroups) {
+        $tasks = @($group.Group | ForEach-Object { $_.TaskName })
+        Write-Host "       $($group.Name): $($tasks -join ', ')" -ForegroundColor DarkGray
+    }
+
+    Write-Host "     attention queue: $(if ($attentionTasks.Count -gt 0) { $attentionTasks -join '; ' } else { 'none' })" -ForegroundColor DarkGray
+}
+
+function Write-WorkspaceDecisionQueues {
+    param([object[]]$Items)
+
+    $actionGroups = @($Items | Group-Object -Property Action | Sort-Object Name)
+    $releaseGroups = @($Items | Group-Object -Property ReleaseReadiness | Sort-Object Name)
+
+    Write-Host ""
+    Write-Host "Decision queues:" -ForegroundColor Yellow
+    Write-Host "     actions:" -ForegroundColor DarkGray
+    foreach ($group in $actionGroups) {
+        $tasks = @($group.Group | ForEach-Object { $_.TaskName })
+        Write-Host "       $($group.Name): $($tasks -join ', ')" -ForegroundColor DarkGray
+    }
+
+    Write-Host "     release readiness:" -ForegroundColor DarkGray
+    foreach ($group in $releaseGroups) {
+        $tasks = @($group.Group | ForEach-Object { $_.TaskName })
+        Write-Host "       $($group.Name): $($tasks -join ', ')" -ForegroundColor DarkGray
+    }
+}
+
+function Write-WorkspaceReleasePolicy {
+    param([object[]]$Items)
+
+    $releaseBlocked = @($Items | Where-Object { $_.ReleaseReadiness -eq "release blocked" } | ForEach-Object { $_.TaskName })
+    $validationRequired = @($Items | Where-Object { $_.ReleaseReadiness -eq "validation required" } | ForEach-Object { $_.TaskName })
+    $reviewRequired = @($Items | Where-Object { $_.ReleaseReadiness -eq "review required" } | ForEach-Object { $_.TaskName })
+    $releaseCandidates = @($Items | Where-Object { $_.ReleaseReadiness -like "release candidate*" } | ForEach-Object { $_.TaskName })
+    $ownerGaps = @($Items | Where-Object { $_.OwnerName -eq "not set" } | ForEach-Object { $_.TaskName })
+    $cadenceGaps = @($Items | Where-Object { $_.ReviewCadence -eq "not set" } | ForEach-Object { $_.TaskName })
+
+    $decision = if ($Items.Count -eq 0) {
+        "no tasks configured"
+    } elseif ($releaseBlocked.Count -gt 0) {
+        "release blocked"
+    } elseif ($validationRequired.Count -gt 0) {
+        "validation required"
+    } elseif ($reviewRequired.Count -gt 0) {
+        "review required"
+    } elseif ($ownerGaps.Count -gt 0 -or $cadenceGaps.Count -gt 0) {
+        "governance incomplete"
+    } elseif ($releaseCandidates.Count -eq $Items.Count) {
+        "release candidate"
+    } else {
+        "not ready"
+    }
+
+    Write-Host ""
+    Write-Host "Release decision policy:" -ForegroundColor Yellow
+    Write-Host "     decision: $decision" -ForegroundColor DarkGray
+    Write-Host "     blockers: $(if ($releaseBlocked.Count -gt 0) { $releaseBlocked -join ', ' } else { 'none' })" -ForegroundColor DarkGray
+    Write-Host "     validation required: $(if ($validationRequired.Count -gt 0) { $validationRequired -join ', ' } else { 'none' })" -ForegroundColor DarkGray
+    Write-Host "     review required: $(if ($reviewRequired.Count -gt 0) { $reviewRequired -join ', ' } else { 'none' })" -ForegroundColor DarkGray
+    Write-Host "     release candidates: $(if ($releaseCandidates.Count -gt 0) { $releaseCandidates -join ', ' } else { 'none' })" -ForegroundColor DarkGray
+    Write-Host "     governance gaps: $(if ($ownerGaps.Count -gt 0 -or $cadenceGaps.Count -gt 0) { (@($ownerGaps + $cadenceGaps) | Select-Object -Unique) -join ', ' } else { 'none' })" -ForegroundColor DarkGray
+}
+
+function Write-WorkspaceStaleTaskRemediation {
+    param([object[]]$Items)
+
+    $staleTasks = @($Items | Where-Object {
+            $_.DueStatus -in @("overdue", "due soon") -or
+            $_.OwnerName -eq "not set" -or
+            $_.ReviewCadence -eq "not set" -or
+            $_.Action -in @("create snapshot", "validate now", "review now", "rollback or revise")
+        })
+
+    Write-Host ""
+    Write-Host "Stale-task remediation:" -ForegroundColor Yellow
+    if ($staleTasks.Count -eq 0) {
+        Write-Host "     queue: none" -ForegroundColor DarkGray
+        return
+    }
+
+    foreach ($item in $staleTasks) {
+        $owner = if ($item.OwnerName -ne "not set") { $item.OwnerName } else { "assign owner" }
+        $cadence = if ($item.ReviewCadence -ne "not set") { $item.ReviewCadence } else { "set cadence" }
+        $timing = if ($item.DueStatus -in @("overdue", "due soon")) { "$($item.DueDate) ($($item.DueStatus))" } else { "not urgent" }
+        Write-Host "     $($item.TaskName): owner=$owner; cadence=$cadence; timing=$timing; action=$($item.Action); release=$($item.ReleaseReadiness)" -ForegroundColor DarkGray
+    }
+}
+
+function Format-WorkspaceMarkdownValue {
+    param([object]$Value)
+
+    if ($null -eq $Value) {
+        return ""
+    }
+
+    $text = [string]$Value
+    $text = $text -replace "\r?\n", " "
+    $text = $text -replace "\|", "\|"
+    return $text.Trim()
+}
+
+function Join-WorkspaceMarkdownList {
+    param([object[]]$Values)
+
+    $items = @($Values | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_) } | ForEach-Object { Format-WorkspaceMarkdownValue $_ })
+    if ($items.Count -eq 0) {
+        return "none"
+    }
+
+    return ($items -join ", ")
+}
+
+function Format-WorkspaceEvidencePath {
+    param([string]$Path)
+
+    if ([string]::IsNullOrWhiteSpace($Path)) {
+        return ""
+    }
+
+    $projectRoot = Get-ProjectRoot
+    try {
+        $fullPath = [System.IO.Path]::GetFullPath($Path)
+        $rootPath = [System.IO.Path]::GetFullPath($projectRoot)
+        if (-not $rootPath.EndsWith([System.IO.Path]::DirectorySeparatorChar)) {
+            $rootPath = $rootPath + [System.IO.Path]::DirectorySeparatorChar
+        }
+
+        if ($fullPath.StartsWith($rootPath, [System.StringComparison]::OrdinalIgnoreCase)) {
+            return $fullPath.Substring($rootPath.Length)
+        }
+
+        $leaf = [System.IO.Path]::GetFileName($fullPath)
+        if (-not [string]::IsNullOrWhiteSpace($leaf)) {
+            return "outside repository: $leaf"
+        }
+    } catch {
+        return $Path
+    }
+
+    return $Path
+}
+
+function Get-WorkspaceReleaseDecisionSummary {
+    param([object[]]$Items)
+
+    $releaseBlocked = @($Items | Where-Object { $_.ReleaseReadiness -eq "release blocked" } | ForEach-Object { $_.TaskName })
+    $validationRequired = @($Items | Where-Object { $_.ReleaseReadiness -eq "validation required" } | ForEach-Object { $_.TaskName })
+    $reviewRequired = @($Items | Where-Object { $_.ReleaseReadiness -eq "review required" } | ForEach-Object { $_.TaskName })
+    $releaseCandidates = @($Items | Where-Object { $_.ReleaseReadiness -like "release candidate*" } | ForEach-Object { $_.TaskName })
+    $ownerGaps = @($Items | Where-Object { $_.OwnerName -eq "not set" } | ForEach-Object { $_.TaskName })
+    $cadenceGaps = @($Items | Where-Object { $_.ReviewCadence -eq "not set" } | ForEach-Object { $_.TaskName })
+    $governanceGaps = @(@($ownerGaps + $cadenceGaps) | Select-Object -Unique)
+
+    $decision = if ($Items.Count -eq 0) {
+        "no tasks configured"
+    } elseif ($releaseBlocked.Count -gt 0) {
+        "release blocked"
+    } elseif ($validationRequired.Count -gt 0) {
+        "validation required"
+    } elseif ($reviewRequired.Count -gt 0) {
+        "review required"
+    } elseif ($governanceGaps.Count -gt 0) {
+        "governance incomplete"
+    } elseif ($releaseCandidates.Count -eq $Items.Count) {
+        "release candidate"
+    } else {
+        "not ready"
+    }
+
+    return [pscustomobject]@{
+        Decision           = $decision
+        ReleaseBlocked     = $releaseBlocked
+        ValidationRequired = $validationRequired
+        ReviewRequired     = $reviewRequired
+        ReleaseCandidates  = $releaseCandidates
+        GovernanceGaps     = $governanceGaps
+    }
+}
+
+function Write-WorkspaceReportMarkdown {
+    param(
+        [object]$Manifest,
+        [string]$ManifestPath,
+        [string]$StatePath
+    )
+
+    $tasks = Get-WorkspaceArray $Manifest.tasks
+    $resolvedStatePath = Resolve-WorkspaceStatePath -Path $StatePath
+    $state = Read-WorkspaceState -Path $resolvedStatePath
+    $reportItems = @($tasks | ForEach-Object { New-WorkspaceReportItem -Task $_ -State $state })
+    $policy = Get-WorkspaceReleaseDecisionSummary -Items $reportItems
+
+    $total = $reportItems.Count
+    $passed = @($reportItems | Where-Object { $_.ValidationStatus -eq "passed" }).Count
+    $failed = @($reportItems | Where-Object { $_.ValidationStatus -eq "failed" }).Count
+    $missing = @($reportItems | Where-Object { $_.ValidationStatus -notin @("passed", "failed") }).Count
+    $snapshotBlocked = @($reportItems | Where-Object { $_.SnapshotBlocked }).Count
+    $reviewReady = @($reportItems | Where-Object { $_.ReviewReady }).Count
+    $commitReady = @($reportItems | Where-Object { $_.CommitReady }).Count
+    $ownerGaps = @($reportItems | Where-Object { $_.OwnerName -eq "not set" } | ForEach-Object { $_.TaskName })
+    $cadenceGaps = @($reportItems | Where-Object { $_.ReviewCadence -eq "not set" } | ForEach-Object { $_.TaskName })
+    $dueTasks = @($reportItems | Where-Object { $_.DueStatus -in @("overdue", "due soon") } | ForEach-Object { "$($_.TaskName) ($($_.DueStatus))" })
+    $actionGroups = @($reportItems | Group-Object -Property Action | Sort-Object Name)
+    $releaseGroups = @($reportItems | Group-Object -Property ReleaseReadiness | Sort-Object Name)
+    $attentionTasks = @($reportItems | Where-Object {
+            $_.SnapshotBlocked -or
+            $_.DueStatus -in @("overdue", "due soon") -or
+            $_.CommitDecision.Verdict -in @("blocked by validation", "validation result missing", "validation not configured", "review not recorded")
+        } | ForEach-Object {
+            "$($_.TaskName) [$($_.CommitDecision.Verdict); due: $($_.DueStatus)]"
+        })
+
+    Write-Output "# Workspace Release Evidence: $($Manifest.name)"
+    Write-Output ""
+    Write-Output "> Markdown report only. No projects were cloned, no sync sessions changed, no snapshots created, no validation commands run, and no Git commands run."
+    Write-Output ""
+    Write-Output "## Sources"
+    Write-Output ""
+    Write-Output "| Source | Path |"
+    Write-Output "| --- | --- |"
+    Write-Output "| Manifest | $(Format-WorkspaceMarkdownValue (Format-WorkspaceEvidencePath $ManifestPath)) |"
+    Write-Output "| Local state | $(Format-WorkspaceMarkdownValue (Format-WorkspaceEvidencePath $resolvedStatePath)) |"
+    Write-Output ""
+    Write-Output "## Release Decision"
+    Write-Output ""
+    Write-Output "| Field | Value |"
+    Write-Output "| --- | --- |"
+    Write-Output "| Decision | $(Format-WorkspaceMarkdownValue $policy.Decision) |"
+    Write-Output "| Blockers | $(Join-WorkspaceMarkdownList $policy.ReleaseBlocked) |"
+    Write-Output "| Validation required | $(Join-WorkspaceMarkdownList $policy.ValidationRequired) |"
+    Write-Output "| Review required | $(Join-WorkspaceMarkdownList $policy.ReviewRequired) |"
+    Write-Output "| Release candidates | $(Join-WorkspaceMarkdownList $policy.ReleaseCandidates) |"
+    Write-Output "| Governance gaps | $(Join-WorkspaceMarkdownList $policy.GovernanceGaps) |"
+    Write-Output ""
+    Write-Output "## Handoff Summary"
+    Write-Output ""
+    Write-Output "| Metric | Value |"
+    Write-Output "| --- | ---: |"
+    Write-Output "| Tasks | $total |"
+    Write-Output "| Validation passed | $passed |"
+    Write-Output "| Validation failed | $failed |"
+    Write-Output "| Validation missing | $missing |"
+    Write-Output "| Snapshot blocked | $snapshotBlocked |"
+    Write-Output "| Ready for review | $reviewReady |"
+    Write-Output "| Ready to commit | $commitReady |"
+    Write-Output ""
+    Write-Output "| Queue | Items |"
+    Write-Output "| --- | --- |"
+    Write-Output "| Owner gaps | $(Join-WorkspaceMarkdownList $ownerGaps) |"
+    Write-Output "| Cadence gaps | $(Join-WorkspaceMarkdownList $cadenceGaps) |"
+    Write-Output "| Due attention | $(Join-WorkspaceMarkdownList $dueTasks) |"
+    Write-Output "| Attention queue | $(Join-WorkspaceMarkdownList $attentionTasks) |"
+    Write-Output ""
+    Write-Output "## Decision Queues"
+    Write-Output ""
+    Write-Output "| Queue | Tasks |"
+    Write-Output "| --- | --- |"
+    foreach ($group in $actionGroups) {
+        Write-Output "| Action: $(Format-WorkspaceMarkdownValue $group.Name) | $(Join-WorkspaceMarkdownList @($group.Group | ForEach-Object { $_.TaskName })) |"
+    }
+    foreach ($group in $releaseGroups) {
+        Write-Output "| Release: $(Format-WorkspaceMarkdownValue $group.Name) | $(Join-WorkspaceMarkdownList @($group.Group | ForEach-Object { $_.TaskName })) |"
+    }
+
+    Write-Output ""
+    Write-Output "## Task Evidence"
+    Write-Output ""
+    if ($reportItems.Count -eq 0) {
+        Write-Output "No tasks are configured."
+        return
+    }
+
+    Write-Output "| Task | Owner | Runtime | Risk | Validation | Review | Commit | Release | Next action |"
+    Write-Output "| --- | --- | --- | --- | --- | --- | --- | --- | --- |"
+    foreach ($item in $reportItems) {
+        Write-Output "| $(Format-WorkspaceMarkdownValue $item.TaskName) | $(Format-WorkspaceMarkdownValue $item.OwnerName) | $(Format-WorkspaceMarkdownValue $item.RuntimeName) | $(Format-WorkspaceMarkdownValue $item.Risk) | $(Format-WorkspaceMarkdownValue $item.ValidationStateText) | $(Format-WorkspaceMarkdownValue $item.ReviewDecision.Verdict) | $(Format-WorkspaceMarkdownValue $item.CommitDecision.Verdict) | $(Format-WorkspaceMarkdownValue $item.ReleaseReadiness) | $(Format-WorkspaceMarkdownValue $item.Action) |"
+    }
+
+    Write-Output ""
+    Write-Output "## Task Details"
+    foreach ($item in $reportItems) {
+        Write-Output ""
+        Write-Output "### $($item.TaskName)"
+        Write-Output ""
+        Write-Output "- Project: $($item.ProjectName)"
+        Write-Output "- Runtime: $($item.RuntimeName)"
+        Write-Output "- Owner: $($item.OwnerName)"
+        Write-Output "- Review cadence: $($item.ReviewCadence)"
+        Write-Output "- Due: $($item.DueDate) ($($item.DueStatus))"
+        Write-Output "- Snapshot: $($item.SnapshotName); required: $($item.RequiresSnapshot); gate: $($item.SnapshotGate.Status)"
+        Write-Output "- Validation: $($item.ValidationStateText)"
+        if ($item.RecordedState -and $item.RecordedState.PSObject.Properties.Name -contains "validation" -and $item.RecordedState.validation) {
+            $validation = $item.RecordedState.validation
+            if ($validation.PSObject.Properties.Name -contains "failed_command" -and -not [string]::IsNullOrWhiteSpace([string]$validation.failed_command)) {
+                Write-Output "- Failed command: $($validation.failed_command)"
+            }
+            if ($validation.PSObject.Properties.Name -contains "remote_path" -and -not [string]::IsNullOrWhiteSpace([string]$validation.remote_path)) {
+                Write-Output "- Remote path: $($validation.remote_path)"
+            }
+            if ($validation.PSObject.Properties.Name -contains "command_count") {
+                Write-Output "- Command count: $($validation.command_count)"
+            }
+        }
+        Write-Output "- Review: $($item.ReviewDecision.Verdict) - $($item.ReviewDecision.Detail)"
+        Write-Output "- Rollback: $($item.RollbackState)"
+        Write-Output "- Commit: $($item.CommitDecision.Verdict) - $($item.CommitDecision.Detail)"
+        Write-Output "- Next: $($item.CommitDecision.NextStep)"
+        Write-Output ""
+        Write-Output "Handoff commands:"
+        Write-Output ""
+        Write-Output '```powershell'
+        Write-Output "adp workspace task review $($item.TaskName) -ManifestPath $ManifestPath"
+        Write-Output "adp workspace task rollback $($item.TaskName) -ManifestPath $ManifestPath"
+        Write-Output "adp workspace task commit $($item.TaskName) -ManifestPath $ManifestPath"
+        Write-Output '```'
+    }
+
+    Write-Output ""
+    Write-Output "## Maintainer Checklist"
+    Write-Output ""
+    Write-Output "- Confirm the latest recorded validation result matches the output being reviewed."
+    Write-Output "- Inspect source status, diff stat, and full diff in the target project."
+    Write-Output "- Confirm snapshot and rollback path before accepting risky work."
+    Write-Output "- Commit only after validation and human review are both accepted."
+}
+
+function Write-WorkspaceReport {
+    param(
+        [object]$Manifest,
+        [string]$ManifestPath,
+        [string]$StatePath,
+        [switch]$Markdown
+    )
+
+    if ($Markdown) {
+        Write-WorkspaceReportMarkdown -Manifest $Manifest -ManifestPath $ManifestPath -StatePath $StatePath
+        return
+    }
+
+    Write-Host "Workspace report: $($Manifest.name)" -ForegroundColor Cyan
+    Write-Host "Report only: no projects will be cloned, no sync sessions will be changed, no snapshots will be created, no validation commands will be run, and no Git commands will be run." -ForegroundColor DarkGray
+
+    $tasks = Get-WorkspaceArray $Manifest.tasks
+    $resolvedStatePath = Resolve-WorkspaceStatePath -Path $StatePath
+    $state = Read-WorkspaceState -Path $resolvedStatePath
+
+    Write-Host ""
+    Write-Host "Sources:" -ForegroundColor Yellow
+    Write-WorkspaceCheck -Level "OK" -Name "manifest" -Detail "($ManifestPath)"
+    Write-WorkspaceCheck -Level "INFO" -Name "state" -Detail "($resolvedStatePath)"
+
+    if ($tasks.Count -eq 0) {
+        Write-Host ""
+        Write-Host "Task reports:" -ForegroundColor Yellow
+        Write-WorkspaceCheck -Level "WARN" -Name "tasks" -Detail "(none configured)"
+        return
+    }
+
+    $reportItems = @($tasks | ForEach-Object { New-WorkspaceReportItem -Task $_ -State $state })
+    Write-WorkspaceReportSummary -Items $reportItems
+    Write-WorkspaceGovernanceLoop -Items $reportItems
+    Write-WorkspaceDecisionQueues -Items $reportItems
+    Write-WorkspaceReleasePolicy -Items $reportItems
+    Write-WorkspaceStaleTaskRemediation -Items $reportItems
+
+    Write-Host ""
+    Write-Host "Task reports:" -ForegroundColor Yellow
+    foreach ($item in $reportItems) {
+        Write-WorkspaceCheck -Level $item.Level -Name $item.TaskName -Detail "(state: $($item.RecordedTaskState); risk: $($item.Risk); snapshot required: $($item.RequiresSnapshot))"
+        Write-Host "     review bundle:" -ForegroundColor DarkGray
+        Write-Host "       project: $($item.ProjectName)" -ForegroundColor DarkGray
+        Write-Host "       owner: $($item.OwnerName)" -ForegroundColor DarkGray
+        Write-Host "       review cadence: $($item.ReviewCadence)" -ForegroundColor DarkGray
+        Write-Host "       due: $($item.DueDate) ($($item.DueStatus))" -ForegroundColor DarkGray
+        Write-Host "       runtime: $($item.RuntimeName)" -ForegroundColor DarkGray
+        Write-Host "       checkpoint: $($item.SnapshotName)" -ForegroundColor DarkGray
+        Write-Host "       validation commands: $($item.ValidationCommands.Count)" -ForegroundColor DarkGray
+        Write-Host "       action: $($item.Action)" -ForegroundColor DarkGray
+        Write-Host "       release readiness: $($item.ReleaseReadiness)" -ForegroundColor DarkGray
+        Write-Host "     validation result: $($item.ValidationStateText)" -ForegroundColor DarkGray
+        Write-WorkspaceValidationDetailLines -RecordedState $item.RecordedState
+        Write-Host "     review: $($item.ReviewDecision.Verdict) - $($item.ReviewDecision.Detail)" -ForegroundColor DarkGray
+        Write-Host "     rollback: $($item.RollbackState)" -ForegroundColor DarkGray
+        Write-Host "     commit: $($item.CommitDecision.Verdict) - $($item.CommitDecision.Detail)" -ForegroundColor DarkGray
+        Write-Host "     next: $($item.CommitDecision.NextStep)" -ForegroundColor DarkGray
+        Write-Host "     checklist:" -ForegroundColor DarkGray
+        Write-Host "       validation: confirm the latest recorded result matches the task output being reviewed" -ForegroundColor DarkGray
+        Write-Host "       source: inspect git status, diff stat, and full diff in the target project" -ForegroundColor DarkGray
+        Write-Host "       rollback: confirm the VM checkpoint and Git rollback path before accepting risky work" -ForegroundColor DarkGray
+        Write-Host "       commit: commit only after validation and human review are both accepted" -ForegroundColor DarkGray
+        Write-Host "     handoff:" -ForegroundColor DarkGray
+        Write-Host "       review:   adp workspace task review $($item.TaskName) -ManifestPath $ManifestPath" -ForegroundColor DarkGray
+        Write-Host "       rollback: adp workspace task rollback $($item.TaskName) -ManifestPath $ManifestPath" -ForegroundColor DarkGray
+        Write-Host "       commit:   adp workspace task commit $($item.TaskName) -ManifestPath $ManifestPath" -ForegroundColor DarkGray
+        Write-Host "       inspect:  git status --short; git diff --stat; git diff" -ForegroundColor DarkGray
     }
 }
 
@@ -1610,12 +2238,16 @@ switch ($SubCommand) {
         $manifest = Read-WorkspaceManifest -Path $ManifestPath
         Write-WorkspaceDashboard -Manifest $manifest -ManifestPath $ManifestPath -StatePath $StatePath
     }
+    "report" {
+        $manifest = Read-WorkspaceManifest -Path $ManifestPath
+        Write-WorkspaceReport -Manifest $manifest -ManifestPath $ManifestPath -StatePath $StatePath -Markdown:$Markdown
+    }
     "task" {
         $manifest = Read-WorkspaceManifest -Path $ManifestPath
         Invoke-WorkspaceTask -Manifest $manifest -Command $TaskCommand -Name $TaskName -StateName $TaskState -Path $ManifestPath -LocalStatePath $StatePath -ExecuteValidation:$Execute -PlanOnly:$Plan
     }
     default {
-        Write-ErrorLog -Message "Unknown workspace command: $SubCommand. Valid: init, show, plan, status, dashboard, task" -Component "cli.workspace"
+        Write-ErrorLog -Message "Unknown workspace command: $SubCommand. Valid: init, show, plan, status, dashboard, report, task" -Component "cli.workspace"
         exit 1
     }
 }

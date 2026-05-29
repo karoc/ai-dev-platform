@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for reporting a problem. Do not include secrets, private keys, tokens, VM disks, ISO files, or private local paths that should not be public.
+        Thanks for reporting a reproducible problem. For usage questions, use the Usage question template instead. For vulnerabilities, follow SECURITY.md and do not publish exploit details. Do not include secrets, private keys, tokens, VM disks, ISO files, large logs, or private local paths that should not be public. See SUPPORT.md for diagnostics and scope boundaries.
   - type: textarea
     id: summary
     attributes:
@@ -26,6 +26,8 @@ body:
         - bootstrap
         - sync
         - browser-testing
+        - workspace
+        - validation
         - documentation
         - other
     validations:
@@ -41,6 +43,12 @@ body:
     attributes:
       label: Host environment
       placeholder: Windows 11, PowerShell 7.6, VMware Workstation Pro
+  - type: input
+    id: local_config
+    attributes:
+      label: Local config sections
+      description: If `configs\local.json` exists, list only the supported top-level sections present. Do not paste private paths or secrets.
+      placeholder: platform, topology
   - type: textarea
     id: steps
     attributes:
@@ -72,11 +80,13 @@ body:
       render: text
       placeholder: |
         .\cli\adp.ps1 doctor
+        .\cli\adp.ps1 status
         .\cli\adp.ps1 sync status
+        .\tests\validate.ps1 -Quick
   - type: checkboxes
     id: safety
     attributes:
       label: Safety check
       options:
-        - label: I removed secrets, private keys, tokens, VM disks, ISO files, and private local paths from this report.
+        - label: I removed secrets, private keys, tokens, VM disks, ISO files, large logs, and private local paths from this report.
           required: true

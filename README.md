@@ -122,6 +122,18 @@ Check health:
 Run non-destructive validation:
 
 ```powershell
+.\tests\validate.ps1
+```
+
+For faster local iteration, run:
+
+```powershell
+.\tests\validate.ps1 -Quick
+```
+
+For targeted validation:
+
+```powershell
 .\tests\cli-smoke.ps1
 .\tests\install-smoke.ps1
 .\test-integration.ps1
@@ -182,6 +194,7 @@ Examples:
 ```
 
 See [Workspaces](docs/workspaces.md) for target-project layout and ADP-OS dogfooding guidance.
+See [Roadmap](docs/roadmap.md) for the public product direction across workspace orchestration, agent-native development, and runtime expansion. See [Release Readiness](docs/release-readiness.md) for the release decision policy, stale-task remediation flow, and maintainer checklist. See [Release Process](docs/release-process.md) for validation, evidence, safety checks, and publication boundaries. See [Contributor Workflows](docs/contributor-workflows.md) for task templates, maintainer review ritual, and pull request expectations.
 
 ADP-OS also includes a multi-scenario workspace recipes manifest for common agent-native workflows:
 
@@ -190,9 +203,10 @@ ADP-OS also includes a multi-scenario workspace recipes manifest for common agen
 .\cli\adp.ps1 workspace plan -ManifestPath configs\workspace.recipes.example.json
 .\cli\adp.ps1 workspace dashboard -ManifestPath configs\workspace.recipes.example.json
 .\cli\adp.ps1 workspace report -ManifestPath configs\workspace.recipes.example.json
+.\cli\adp.ps1 workspace report -Markdown -ManifestPath configs\workspace.recipes.example.json
 ```
 
-The recipes cover low-risk maintenance, frontend browser acceptance, backend validation, and high-risk agent work with a snapshot-first gate. `workspace report` also prints a release handoff summary that counts validation results, lists blockers, shows tasks ready for review or commit, and names the current release gate. The recipes are planning examples only; the workspace commands do not install packages, download browsers, create snapshots, run validation, or commit files.
+The recipes cover low-risk maintenance, frontend browser acceptance, backend validation, and high-risk agent work with a snapshot-first gate. `workspace report` also prints a release handoff summary that counts validation results, lists blockers, shows tasks ready for review or commit, names the current release gate, and exposes task governance fields such as owner, review cadence, and due date. It also groups tasks into owner queues, review cadence queues, an attention queue for recurring review, decision queues for actions such as validate, review, revise, snapshot, or commit, a release decision policy, and stale-task remediation guidance. Add `-Markdown` to generate copyable PR or release evidence with the same decision state. The recipes are planning examples only; the workspace commands do not install packages, download browsers, create snapshots, run validation, or commit files.
 
 Validation can be executed explicitly from a task recipe:
 
@@ -218,6 +232,7 @@ Validation can be executed explicitly from a task recipe:
 .\cli\adp.ps1 workspace status
 .\cli\adp.ps1 workspace dashboard
 .\cli\adp.ps1 workspace report
+.\cli\adp.ps1 workspace report [-Markdown]
 .\cli\adp.ps1 workspace task <prepare|snapshot|run|validate|review|rollback|commit> <task-name>
 .\cli\adp.ps1 workspace task validate <task-name> [-Execute] [-Plan]
 .\cli\adp.ps1 workspace task mark <task-name> <prepared|checkpointed|running|validated|reviewed|rollback|committed>
@@ -238,10 +253,17 @@ Validation can be executed explicitly from a task recipe:
 - [Architecture](docs/architecture.md)
 - [Configuration](docs/configuration.md)
 - [Workspaces](docs/workspaces.md)
+- [Roadmap](docs/roadmap.md)
+- [Release Readiness](docs/release-readiness.md)
+- [Release Process](docs/release-process.md)
+- [Contributor Workflows](docs/contributor-workflows.md)
 - [Operations](docs/operations.md)
+- [Troubleshooting](docs/troubleshooting.md)
 - [Networking](docs/networking.md)
 - [Browser Testing](docs/browser-testing.md)
+- [Historical Implementation Brief](build.md)
 - [Contributing](CONTRIBUTING.md)
+- [Support](SUPPORT.md)
 - [Security](SECURITY.md)
 - [Changelog](CHANGELOG.md)
 
@@ -254,4 +276,3 @@ Runtime secrets, VM disks, ISO images, logs, local tool binaries, and local assi
 ## License
 
 MIT. See [LICENSE](LICENSE).
-

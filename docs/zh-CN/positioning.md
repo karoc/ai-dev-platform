@@ -110,7 +110,7 @@ agent: 更高资源规格、IO 调优、agent sandbox 准备
 .\cli\adp.ps1 doctor
 ```
 
-### Agent-native 开发
+### Agent 原生开发
 
 AI agents 经常需要像开发者一样在机器里工作：
 

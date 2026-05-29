@@ -3,6 +3,10 @@ description: Suggest an improvement to ADP-OS.
 title: "[Feature]: "
 labels: ["enhancement"]
 body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this for product or workflow improvements. For usage questions, use the Usage question template. For vulnerabilities, follow SECURITY.md. Do not include secrets, private keys, tokens, VM disks, ISO files, large logs, or private local paths that should not be public. See SUPPORT.md for scope boundaries.
   - type: textarea
     id: problem
     attributes:
@@ -29,6 +33,11 @@ body:
         - bootstrap
         - sync
         - browser-testing
+        - workspace
+        - validation
+        - release-readiness
+        - agent-native-workflow
+        - docker-or-devcontainer
         - documentation
         - cross-platform
         - other
@@ -43,3 +52,10 @@ body:
     attributes:
       label: Additional context
       description: Do not include secrets, private keys, tokens, VM disks, ISO files, or private local paths that should not be public.
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety check
+      options:
+        - label: I removed secrets, private keys, tokens, VM disks, ISO files, large logs, and private local paths from this request.
+          required: true

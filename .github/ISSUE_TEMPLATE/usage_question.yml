@@ -1,0 +1,71 @@
+name: Usage question
+description: Ask a usage question that can create reusable public knowledge.
+title: "[Question]: "
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this for ADP-OS usage questions that can be discussed publicly. Do not include secrets, private keys, tokens, VM disks, ISO files, large logs, or private local paths that should not be public. See SUPPORT.md before submitting.
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+      description: What are you trying to do?
+      placeholder: I am trying to start the agent runtime, run a workspace validation recipe, inspect a sync issue, or understand a diagnostic message.
+    validations:
+      required: true
+  - type: dropdown
+    id: runtime
+    attributes:
+      label: Runtime
+      description: Which runtime is involved?
+      options:
+        - frontend
+        - backend
+        - agent
+        - all runtimes
+        - no runtime involved
+        - not sure
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - setup
+        - operation
+        - workspace-planning
+        - validation
+        - rollback
+        - release-readiness
+        - docker-or-devcontainer
+        - documentation
+        - other
+    validations:
+      required: true
+  - type: textarea
+    id: commands
+    attributes:
+      label: Commands and output
+      description: Paste the command sequence and relevant non-sensitive output that led to the question.
+      render: text
+      placeholder: |
+        .\cli\adp.ps1 doctor
+        .\cli\adp.ps1 status agent
+        .\cli\adp.ps1 workspace report -ManifestPath configs\workspace.recipes.example.json
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Add any public context that helps answer the question. Reduce private project details to ADP-OS command, manifest, runtime, or diagnostic behavior.
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety check
+      options:
+        - label: I removed secrets, private keys, tokens, VM disks, ISO files, large logs, and private local paths from this question.
+          required: true

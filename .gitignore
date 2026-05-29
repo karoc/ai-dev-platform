@@ -3,6 +3,7 @@
 
 # Local assistant/tool configuration
 .claude/
+.codex/
 
 # Snapshot state
 snapshots/

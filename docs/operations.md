@@ -43,11 +43,20 @@ Install the tested local Mutagen binary only after reviewing the plan:
 Run integration checks:
 
 ```powershell
+.\tests\validate.ps1
+```
+
+For targeted checks:
+
+```powershell
+.\tests\validate.ps1 -Quick
 .\tests\cli-smoke.ps1
 .\tests\install-smoke.ps1
 .\test-integration.ps1
 .\deploy-check.ps1
 ```
+
+`validate.ps1` is the local version of the CI repository validation. It runs PowerShell parsing, JSON parsing, CLI parameter contracts, config schema checks, artifact hygiene checks, CLI smoke tests, installer smoke tests, bootstrap shell syntax checks, Markdown local link checks, and documentation language-link checks. The documentation language check also enforces translated file pairs for root public docs and `docs/zh-CN`. Use `-Quick` for local iteration; it keeps parser, schema, contract, artifact hygiene, shell, Markdown, and documentation checks, but skips the slower CLI and installer smoke tests. Use `-SkipCliSmoke`, `-SkipInstallerSmoke`, or `-SkipShellSyntax` for narrower troubleshooting.
 
 `cli-smoke.ps1` checks command dispatch, non-destructive previews, and input error boundaries. It does not create, start, stop, sync, or destroy VMs.
 

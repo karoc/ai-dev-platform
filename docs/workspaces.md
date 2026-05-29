@@ -92,6 +92,15 @@ View the workspace dashboard:
 
 For high-risk tasks, the dashboard marks execution as blocked by the snapshot gate until the configured checkpoint exists. This makes rollback readiness visible before an agent starts large, uncertain, or destructive work.
 
+View a task delivery report:
+
+```powershell
+.\cli\adp.ps1 workspace report
+.\cli\adp.ps1 workspace report -Markdown
+```
+
+`workspace report` is also non-destructive. It reads the manifest and ignored local state file, then prints a release handoff summary, governance loop, decision queues, release decision policy, and stale-task remediation guidance before task-by-task validation results, review decisions, rollback context, commit readiness, review bundle fields, a source-review checklist, and handoff commands for review, rollback, commit, and source inspection. The summary counts passed, failed, and missing validation results; highlights snapshot or validation blockers; lists tasks ready for review or commit; prints the current release gate; and exposes task governance coverage for owner, review cadence, and due date. The governance loop groups tasks by owner, groups tasks by review cadence, and prints an attention queue for blocked, unreviewed, overdue, or near-term work. Decision queues classify tasks into next actions such as create snapshot, validate now, review now, rollback or revise, and ready to commit, plus release-readiness states such as validation required, review required, release blocked, and release candidate. The release decision policy turns those queues into an overall release decision and names blockers, validation work, review work, release candidates, and governance gaps. Stale-task remediation lists the owner, cadence, timing, action, and release state for tasks that need attention. Add `-Markdown` to print the same decision state as copyable PR or release evidence. Markdown evidence shows repository-relative manifest and state paths when possible; paths outside the repository are reduced to an `outside repository: <file>` marker so local machine directories are not copied into public review surfaces. Use the dashboard to scan overall health; use the report to inspect whether recorded task state is ready for review, rollback, or commit without re-running lifecycle commands. See [Release Readiness](release-readiness.md) for the maintainer checklist and contributor expectations.
+
 ## Task Lifecycle
 
 Workspace tasks are the first agent-native workflow surface in ADP-OS. They turn a task entry from the manifest into explicit preparation, checkpoint, execution, validation, review, rollback, and commit boundaries:
@@ -131,7 +140,7 @@ When validation is executed, the result is recorded in the ignored local state f
 adp-workspace.state.json
 ```
 
-The recorded result includes status, runtime, project, remote path, command count, commands, exit code, failed command when present, start time, and completion time. `workspace dashboard`, `workspace task review`, `workspace task rollback`, and `workspace task commit` show the latest recorded validation result so a reviewer can decide whether to rollback, revise, or commit. Failed validation is recorded as `validation_failed`; successful validation is recorded as `validated`. The dashboard marks commit as `ready` only after validation passed and local state is marked `reviewed` or `committed`; it marks passed-but-unreviewed work as `blocked by review` and failed validation as `blocked by validation`.
+The recorded result includes status, runtime, project, remote path, command count, commands, exit code, failed command when present, start time, and completion time. `workspace dashboard`, `workspace report`, `workspace task review`, `workspace task rollback`, and `workspace task commit` show the latest recorded validation result so a reviewer can decide whether to rollback, revise, or commit. Failed validation is recorded as `validation_failed`; successful validation is recorded as `validated`. The dashboard marks commit as `ready` only after validation passed and local state is marked `reviewed` or `committed`; it marks passed-but-unreviewed work as `blocked by review` and failed validation as `blocked by validation`.
 
 For validation execution, set `tasks[].project` when a task should target a specific project. If omitted, ADP-OS will only infer the project when exactly one manifest project uses the task runtime. Absolute paths and `.` or `..` path segments are rejected before remote execution.
 
@@ -168,6 +177,8 @@ Inspect the recipes without changing runtimes, sync sessions, snapshots, files, 
 .\cli\adp.ps1 workspace show -ManifestPath configs\workspace.recipes.example.json
 .\cli\adp.ps1 workspace plan -ManifestPath configs\workspace.recipes.example.json
 .\cli\adp.ps1 workspace dashboard -ManifestPath configs\workspace.recipes.example.json
+.\cli\adp.ps1 workspace report -ManifestPath configs\workspace.recipes.example.json
+.\cli\adp.ps1 workspace report -Markdown -ManifestPath configs\workspace.recipes.example.json
 ```
 
 Use task-specific planning commands to make the operating boundary explicit:
@@ -189,9 +200,13 @@ The initial manifest schema is intentionally small:
 - `projects[].path`: project path relative to the workspace root.
 - `projects[].runtime`: `frontend`, `backend`, or `agent`.
 - `projects[].sync`: whether the project is expected to use ADP sync.
+- `projects[].devcontainer`: optional hint for projects that use dev container metadata. ADP-OS detects `.devcontainer/devcontainer.json` or `.devcontainer.json` in local project paths and reports it as runtime-internal project metadata; it does not build, start, or install dev containers.
 - `projects[].validation`: commands a human or agent should run for the project.
 - `tasks`: optional named task plans.
 - `tasks[].project`: optional project name from `projects[].name`; recommended for validation execution.
+- `tasks[].owner`: optional owner or review role for release handoff and source review.
+- `tasks[].review_cadence`: optional review rhythm, such as `per-change`, `per-task`, or `weekly`.
+- `tasks[].due`: optional due date used by `workspace report` to flag overdue or near-term attention.
 - `tasks[].risk`: optional task risk marker. `high`, `broad`, `destructive`, and `uncertain` imply snapshot-first gating unless overridden.
 - `tasks[].requires_snapshot`: optional boolean that explicitly requires a snapshot-first gate before execution.
 - `tasks[].snapshot`: recommended snapshot name before starting the task.

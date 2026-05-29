@@ -46,7 +46,7 @@ VM 中会看到：
 .\cli\adp.ps1 snapshot create agent before-large-agent-task
 ```
 
-## Workspace Manifest
+## 工作区 Manifest
 
 ADP-OS 可以用一个轻量的 workspace manifest 记录目标项目。这个 manifest 会记录项目路径、期望运行时、同步意图、验证命令和任务快照名称。
 
@@ -92,7 +92,16 @@ ADP-OS 可以用一个轻量的 workspace manifest 记录目标项目。这个 m
 
 对于高风险 task，dashboard 会在配置的 checkpoint 存在前把 execution 标记为 blocked by snapshot gate。这样 agent 开始执行大范围、不确定或破坏性工作前，rollback readiness 会先被明确暴露出来。
 
-## Task Lifecycle
+查看 task delivery report：
+
+```powershell
+.\cli\adp.ps1 workspace report
+.\cli\adp.ps1 workspace report -Markdown
+```
+
+`workspace report` 同样是非破坏性的。它会读取 manifest 和被忽略的本地 state 文件，先打印 release handoff summary、governance loop、decision queues、release decision policy 和 stale-task remediation guidance，再按 task 打印 validation result、review decision、rollback context、commit readiness、review bundle fields、source-review checklist，以及 review、rollback、commit 和 source inspection 的 handoff commands。Summary 会统计通过、失败和缺失的 validation result，突出 snapshot 或 validation blocker，列出 ready for review 或 ready to commit 的 task，打印当前 release gate，并暴露 owner、review cadence 和 due date 的 task governance 覆盖情况。Governance loop 会按 owner 分组、按 review cadence 分组，并打印 blocked、未 review、overdue 或近期到期工作的 attention queue。Decision queues 会把 task 分到 create snapshot、validate now、review now、rollback or revise、ready to commit 等下一步动作，以及 validation required、review required、release blocked、release candidate 等 release-readiness 状态。Release decision policy 会把这些队列汇总成整体 release decision，并列出 blockers、validation work、review work、release candidates 和 governance gaps。Stale-task remediation 会列出需要关注 task 的 owner、cadence、timing、action 和 release state。添加 `-Markdown` 可以用同一套 decision state 输出可复制到 PR 或 release 的 evidence。Markdown evidence 会尽量显示仓库相对的 manifest 和 state path；仓库外路径会缩减成 `outside repository: <file>` 标记，避免把本机目录复制到公开 review surface。Dashboard 用于快速扫描整体健康状态；report 用于在不重新运行 lifecycle 命令的情况下，检查已记录的 task state 是否可以进入 review、rollback 或 commit。维护者 checklist 和贡献者预期见 [Release Readiness](release-readiness.md)。
+
+## 任务生命周期
 
 Workspace task 是 ADP-OS 的第一个 agent-native workflow 入口。它会把 manifest 里的 task 条目转换成明确的准备、检查点、执行、验证、review、回滚和提交边界：
 
@@ -131,7 +140,7 @@ Validation execution 有意保持很窄：
 adp-workspace.state.json
 ```
 
-记录内容包括 status、runtime、project、remote path、command count、commands、exit code、失败命令（如果有）、开始时间和完成时间。`workspace dashboard`、`workspace task review`、`workspace task rollback` 和 `workspace task commit` 会显示最近一次记录的 validation result，便于 reviewer 决定 rollback、revise 或 commit。失败的 validation 会记录为 `validation_failed`，成功的 validation 会记录为 `validated`。Dashboard 只有在 validation 已通过且本地 state 标记为 `reviewed` 或 `committed` 后，才会把 commit 标记为 `ready`；已通过但未 review 的工作会标记为 `blocked by review`，验证失败会标记为 `blocked by validation`。
+记录内容包括 status、runtime、project、remote path、command count、commands、exit code、失败命令（如果有）、开始时间和完成时间。`workspace dashboard`、`workspace report`、`workspace task review`、`workspace task rollback` 和 `workspace task commit` 会显示最近一次记录的 validation result，便于 reviewer 决定 rollback、revise 或 commit。失败的 validation 会记录为 `validation_failed`，成功的 validation 会记录为 `validated`。Dashboard 只有在 validation 已通过且本地 state 标记为 `reviewed` 或 `committed` 后，才会把 commit 标记为 `ready`；已通过但未 review 的工作会标记为 `blocked by review`，验证失败会标记为 `blocked by validation`。
 
 执行 validation 时，建议设置 `tasks[].project`，让 task 明确指向某个 project。如果省略，ADP-OS 只有在 manifest 中恰好只有一个 project 使用该 task runtime 时才会推断 project。远端执行前会拒绝绝对路径，以及包含 `.` 或 `..` segment 的路径。
 
@@ -168,6 +177,8 @@ configs/workspace.recipes.example.json
 .\cli\adp.ps1 workspace show -ManifestPath configs\workspace.recipes.example.json
 .\cli\adp.ps1 workspace plan -ManifestPath configs\workspace.recipes.example.json
 .\cli\adp.ps1 workspace dashboard -ManifestPath configs\workspace.recipes.example.json
+.\cli\adp.ps1 workspace report -ManifestPath configs\workspace.recipes.example.json
+.\cli\adp.ps1 workspace report -Markdown -ManifestPath configs\workspace.recipes.example.json
 ```
 
 使用 task-specific planning commands，让操作边界更明确：
@@ -189,15 +200,19 @@ configs/workspace.recipes.example.json
 - `projects[].path`：相对于 workspace root 的项目路径。
 - `projects[].runtime`：`frontend`、`backend` 或 `agent`。
 - `projects[].sync`：该项目是否预期使用 ADP sync。
+- `projects[].devcontainer`：可选 hint，用于标记使用 dev container metadata 的项目。ADP-OS 会在本地项目路径中识别 `.devcontainer/devcontainer.json` 或 `.devcontainer.json`，并把它报告为 runtime 内部的项目 metadata；它不会 build、start 或 install dev container。
 - `projects[].validation`：人类或 agent 应为项目运行的验证命令。
 - `tasks`：可选的具名任务计划。
 - `tasks[].project`：可选的 project 名称，来自 `projects[].name`；执行 validation 时建议设置。
+- `tasks[].owner`：可选的 owner 或 review role，用于 release handoff 和 source review。
+- `tasks[].review_cadence`：可选的 review rhythm，例如 `per-change`、`per-task` 或 `weekly`。
+- `tasks[].due`：可选 due date，`workspace report` 会用它标记 overdue 或近期需要关注的 task。
 - `tasks[].risk`：可选的任务风险标记。`high`、`broad`、`destructive` 和 `uncertain` 默认触发 snapshot-first gate，除非显式覆盖。
 - `tasks[].requires_snapshot`：可选 boolean，用于显式要求执行前通过 snapshot-first gate。
 - `tasks[].snapshot`：任务开始前建议创建的快照名称。
 - `tasks[].validation`：进入 review 或 commit 前预期运行的验证命令。
 
-## Dogfooding ADP-OS
+## 用 ADP-OS 自举开发
 
 使用 ADP-OS 开发 ADP-OS 自身时，建议使用单独的 workspace clone，而不是直接使用维护用 checkout：
 

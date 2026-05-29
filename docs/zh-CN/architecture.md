@@ -83,7 +83,7 @@ VM 创建由 `runtimes\vmware\vm-factory.ps1` 处理：
 - 创建 VMDK 和 VMX 文件。
 - 启动 VM provisioning 并等待 provisioning marker。
 
-## Bootstrap
+## 引导流程
 
 Bootstrap 编排由 `core\bootstrap\bootstrap.ps1` 实现。
 

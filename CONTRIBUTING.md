@@ -4,6 +4,8 @@
 
 Thank you for helping improve AI Dev Platform OS.
 
+For support questions, reproducible bug reports, feature requests, and diagnostic expectations, see [Support](SUPPORT.md).
+
 ## Development Requirements
 
 - Windows 11.
@@ -15,14 +17,18 @@ Thank you for helping improve AI Dev Platform OS.
 
 ## Before Submitting Changes
 
+For workspace task templates, release-readiness expectations, and maintainer review flow, see [Contributor Workflows](docs/contributor-workflows.md) and [Release Readiness](docs/release-readiness.md).
+
 Run:
 
 ```powershell
-pwsh -NoProfile -Command '$failed = $false; Get-ChildItem -Recurse -Filter *.ps1 | ForEach-Object { $errors = $null; [System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$null, [ref]$errors) > $null; if ($errors) { $failed = $true; $path = $_.FullName; $errors | ForEach-Object { "{0}:{1}: {2}" -f $path, $_.Extent.StartLineNumber, $_.Message } } }; if ($failed) { exit 1 }'
+.\tests\validate.ps1
 .\test-integration.ps1
 .\deploy-check.ps1
 .\cli\adp.ps1 doctor
 ```
+
+Use `.\tests\validate.ps1 -Quick` for local iteration before running the full validation gate.
 
 For bootstrap shell scripts:
 
@@ -30,7 +36,7 @@ For bootstrap shell scripts:
 $repo = (Get-Location).Path -replace '\\', '/'
 $drive = $repo.Substring(0, 1).ToLowerInvariant()
 $path = "/mnt/$drive" + $repo.Substring(2)
-wsl bash -lc "bash -n '$path/bootstrap/base/setup-base.sh' '$path/bootstrap/frontend/setup-frontend.sh' '$path/bootstrap/frontend/browser-tools.sh' '$path/bootstrap/backend/setup-backend.sh' '$path/bootstrap/agent/setup-agent.sh'"
+wsl bash -lc "bash -n '$path/bootstrap/base/setup-base.sh' '$path/bootstrap/frontend/setup-frontend.sh' '$path/bootstrap/frontend/browser-tools.sh' '$path/bootstrap/backend/setup-backend.sh' '$path/bootstrap/agent/setup-agent.sh' '$path/bootstrap/common/common.sh'"
 ```
 
 ## Coding Guidelines
@@ -51,6 +57,13 @@ vmware: make guest IP detection resilient
 network: add static IP apply command
 docs: add configuration guide
 ```
+
+## Pull Request Readiness
+
+- Include the workspace task shape used, or explain why no workspace task applies.
+- Include `workspace report -Markdown` release evidence when the change affects workflows, runtime behavior, validation, documentation, or release readiness.
+- Keep README and Simplified Chinese docs synchronized when README or user-facing docs change.
+- Do not mark high-risk agent work ready without a snapshot gate or explicit maintainer waiver.
 
 ## Security
 

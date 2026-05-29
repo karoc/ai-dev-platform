@@ -187,7 +187,24 @@ Assert-Command `
     -Name "workspace report recipes manifest" `
     -Arguments @("workspace", "report", "-ManifestPath", "configs\workspace.recipes.example.json") `
     -ExitCode 0 `
-    -Patterns @("Workspace report: recipe-workspace", "Report only: no projects will be cloned", "Release handoff summary:", "release gate: blocked by snapshot gate", "blocked tasks: .*frontend-browser-acceptance.*backend-validation-pass.*broad-agent-refactor", "Task reports:", "frontend-browser-acceptance", "review bundle:", "project: frontend-app", "runtime: frontend", "validation commands: 2", "validation result: not recorded", "review: validation result missing", "commit: validation result missing", "checklist:", "validation: confirm the latest recorded result", "source: inspect git status", "rollback: confirm the VM checkpoint", "commit: commit only after validation", "handoff:", "adp workspace task review frontend-browser-acceptance", "inspect:  git status --short; git diff --stat; git diff")
+    -Patterns @("Workspace report: recipe-workspace", "Report only: no projects will be cloned", "Release handoff summary:", "owned: 4; cadence set: 4", "owner gaps: none", "cadence gaps: none", "due attention: none", "release gate: blocked by snapshot gate", "blocked tasks: .*frontend-browser-acceptance.*backend-validation-pass.*broad-agent-refactor", "Governance loop:", "owner queues:", "frontend-reviewer: frontend-browser-acceptance", "review cadence:", "per-change: .*frontend-browser-acceptance.*backend-validation-pass", "attention queue: .*frontend-browser-acceptance.*validation result missing", "Decision queues:", "actions:", "validate now: .*frontend-browser-acceptance.*backend-validation-pass", "create snapshot: broad-agent-refactor", "release readiness:", "validation required: .*frontend-browser-acceptance.*backend-validation-pass", "release blocked: broad-agent-refactor", "Release decision policy:", "decision: release blocked", "blockers: broad-agent-refactor", "validation required: .*frontend-browser-acceptance.*backend-validation-pass", "release candidates: none", "Stale-task remediation:", "frontend-browser-acceptance: owner=frontend-reviewer; cadence=per-change; timing=not urgent; action=validate now; release=validation required", "Task reports:", "frontend-browser-acceptance", "review bundle:", "project: frontend-app", "owner: frontend-reviewer", "review cadence: per-change", "due: 2099-12-31 \(scheduled\)", "runtime: frontend", "validation commands: 2", "action: validate now", "release readiness: validation required", "validation result: not recorded", "review: validation result missing", "commit: validation result missing", "checklist:", "validation: confirm the latest recorded result", "source: inspect git status", "rollback: confirm the VM checkpoint", "commit: commit only after validation", "handoff:", "adp workspace task review frontend-browser-acceptance", "inspect:  git status --short; git diff --stat; git diff")
+
+Assert-Command `
+    -Name "workspace report markdown recipes manifest" `
+    -Arguments @("workspace", "report", "-Markdown", "-ManifestPath", "configs\workspace.recipes.example.json") `
+    -ExitCode 0 `
+    -Patterns @("# Workspace Release Evidence: recipe-workspace", "Markdown report only", "## Sources", "\| Manifest \| configs\\workspace\.recipes\.example\.json \|", "\| Local state \| adp-workspace\.state\.json \|", "## Release Decision", "\| Decision \| release blocked \|", "\| Blockers \| broad-agent-refactor \|", "## Handoff Summary", "\| Validation missing \| 4 \|", "## Decision Queues", "\| Action: validate now \| .*frontend-browser-acceptance.*backend-validation-pass", "\| Release: release blocked \| broad-agent-refactor \|", "## Task Evidence", "\| frontend-browser-acceptance \| frontend-reviewer \| frontend \| normal \| not recorded \| validation result missing \| validation result missing \| validation required \| validate now \|", "## Task Details", "### broad-agent-refactor", "Handoff commands:", "adp workspace task rollback broad-agent-refactor -ManifestPath configs\\workspace.recipes.example.json", "## Maintainer Checklist")
+
+$outsideStatePath = Join-Path ([System.IO.Path]::GetTempPath()) ("adp-workspace-outside-state-{0}.json" -f ([guid]::NewGuid().ToString("N")))
+try {
+    Assert-Command `
+        -Name "workspace report markdown redacts outside state path" `
+        -Arguments @("workspace", "report", "-Markdown", "-ManifestPath", "configs\workspace.recipes.example.json", "-StatePath", $outsideStatePath) `
+        -ExitCode 0 `
+        -Patterns @("\| Local state \| outside repository: .*adp-workspace-outside-state-.*\.json \|")
+} finally {
+    Remove-Item -LiteralPath $outsideStatePath -Force -ErrorAction SilentlyContinue
+}
 
 Assert-Command `
     -Name "workspace task prepare" `
@@ -277,7 +294,7 @@ try {
         -Name "workspace report with state" `
         -Arguments @("workspace", "report", "-ManifestPath", "configs\workspace.example.json", "-StatePath", $workspaceState) `
         -ExitCode 0 `
-        -Patterns @("Workspace report: example-project", "Release handoff summary:", "release gate: blocked by snapshot gate", "blocked tasks: before-large-agent-task", "state: prepared", "review bundle:", "project: not set", "checkpoint: before-large-agent-task", "validation result: not recorded", "commit: blocked by snapshot gate", "checklist:")
+        -Patterns @("Workspace report: example-project", "Release handoff summary:", "owned: 1; cadence set: 1", "owner gaps: none", "release gate: blocked by snapshot gate", "blocked tasks: before-large-agent-task", "Governance loop:", "platform-maintainer: before-large-agent-task", "attention queue: before-large-agent-task", "Decision queues:", "create snapshot: before-large-agent-task", "release blocked: before-large-agent-task", "Release decision policy:", "decision: release blocked", "blockers: before-large-agent-task", "Stale-task remediation:", "before-large-agent-task: owner=platform-maintainer; cadence=per-task; timing=not urgent; action=create snapshot; release=release blocked", "state: prepared", "review bundle:", "project: not set", "owner: platform-maintainer", "review cadence: per-task", "due: 2099-12-31 \(scheduled\)", "action: create snapshot", "release readiness: release blocked", "checkpoint: before-large-agent-task", "validation result: not recorded", "commit: blocked by snapshot gate", "checklist:")
 } finally {
     Remove-Item -LiteralPath $workspaceState -Force -ErrorAction SilentlyContinue
 }
@@ -363,7 +380,7 @@ try {
         -Name "workspace report shows validation result state" `
         -Arguments @("workspace", "report", "-ManifestPath", "configs\workspace.recipes.example.json", "-StatePath", $workspaceValidationState) `
         -ExitCode 0 `
-        -Patterns @("Workspace report: recipe-workspace", "Release handoff summary:", "release gate: blocked by validation", "validation passed: 2; failed: 1; missing: 1", "ready for review: docs-copy-edit", "ready to commit: frontend-browser-acceptance", "frontend-browser-acceptance", "project: frontend-app", "validation result: passed at 2026-05-28T00:01:00.0000000Z; project: frontend-app; exit: 0", "commit: commit ready", "docs-copy-edit", "commit: review not recorded", "backend-validation-pass", "failed command: uv run pytest", "commit: blocked by validation", "adp workspace task rollback backend-validation-pass")
+        -Patterns @("Workspace report: recipe-workspace", "Release handoff summary:", "release gate: blocked by validation", "validation passed: 2; failed: 1; missing: 1", "owned: 4; cadence set: 4", "ready for review: docs-copy-edit", "ready to commit: frontend-browser-acceptance", "Governance loop:", "attention queue: .*docs-copy-edit.*review not recorded.*backend-validation-pass.*blocked by validation", "Decision queues:", "ready to commit: frontend-browser-acceptance", "review now: docs-copy-edit", "rollback or revise: backend-validation-pass", "release candidate: frontend-browser-acceptance", "review required: docs-copy-edit", "release blocked: .*backend-validation-pass.*broad-agent-refactor", "Release decision policy:", "decision: release blocked", "blockers: .*backend-validation-pass.*broad-agent-refactor", "review required: docs-copy-edit", "release candidates: frontend-browser-acceptance", "Stale-task remediation:", "backend-validation-pass: owner=backend-reviewer; cadence=per-change; timing=not urgent; action=rollback or revise; release=release blocked", "frontend-browser-acceptance", "project: frontend-app", "owner: frontend-reviewer", "action: ready to commit", "release readiness: release candidate", "validation result: passed at 2026-05-28T00:01:00.0000000Z; project: frontend-app; exit: 0", "commit: commit ready", "docs-copy-edit", "commit: review not recorded", "backend-validation-pass", "failed command: uv run pytest", "commit: blocked by validation", "adp workspace task rollback backend-validation-pass")
 
     Assert-Command `
         -Name "workspace review shows validation result state" `
@@ -531,6 +548,54 @@ try {
     Remove-Item -LiteralPath $incompleteWorkspaceManifest -Force -ErrorAction SilentlyContinue
 }
 
+$devContainerWorkspaceRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("adp-devcontainer-workspace-{0}" -f ([guid]::NewGuid().ToString("N")))
+$devContainerProject = Join-Path $devContainerWorkspaceRoot "app"
+$devContainerManifest = Join-Path $devContainerWorkspaceRoot "adp-workspace.json"
+try {
+    New-Item -ItemType Directory -Path (Join-Path $devContainerProject ".devcontainer") -Force | Out-Null
+    '{"name":"adp-test"}' | Set-Content -LiteralPath (Join-Path (Join-Path $devContainerProject ".devcontainer") "devcontainer.json") -Encoding utf8
+    $escapedProjectPath = ($devContainerProject -replace '\\', '\\')
+    @"
+{
+  "name": "devcontainer-workspace",
+  "version": 1,
+  "projects": [
+    {
+      "name": "app",
+      "path": "$escapedProjectPath",
+      "runtime": "agent",
+      "sync": true,
+      "devcontainer": "optional",
+      "validation": [
+        "git status --short"
+      ]
+    }
+  ],
+  "tasks": []
+}
+"@ | Set-Content -LiteralPath $devContainerManifest -Encoding utf8
+
+    Assert-Command `
+        -Name "workspace show detects devcontainer metadata" `
+        -Arguments @("workspace", "show", "-ManifestPath", $devContainerManifest) `
+        -ExitCode 0 `
+        -Patterns @("Workspace: devcontainer-workspace", "devcontainer: found - \.devcontainer/devcontainer\.json")
+
+    Assert-Command `
+        -Name "workspace status detects devcontainer metadata" `
+        -Arguments @("workspace", "status", "-ManifestPath", $devContainerManifest) `
+        -ExitCode 0 `
+        -Patterns @("Workspace readiness: devcontainer-workspace", "devcontainer \(found: \.devcontainer/devcontainer\.json\)", "validation commands \(1 configured\)")
+
+    Assert-Command `
+        -Name "workspace dashboard detects devcontainer metadata" `
+        -Arguments @("workspace", "dashboard", "-ManifestPath", $devContainerManifest) `
+        -ExitCode 0 `
+        -Patterns @("Workspace dashboard: devcontainer-workspace", "devcontainer: found")
+} finally {
+    Remove-Item -LiteralPath $devContainerWorkspaceRoot -Recurse -Force -ErrorAction SilentlyContinue
+}
+
 Assert-Command `
     -Name "logs unknown runtime" `
     -Arguments @("logs", "not-a-runtime") `
@@ -544,4 +609,3 @@ Assert-Command `
     -Patterns @("Unknown runtime: not-a-runtime")
 
 Write-Output "CLI smoke tests OK"
-

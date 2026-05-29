@@ -6,6 +6,30 @@
 
 项目尚未发布版本化 release。在引入 release tags 前，变更按日期分组。
 
+## 2026-05-29
+
+### 新增
+
+- 新增 `tests\validate.ps1`，作为 CI 和本地贡献者共用的非破坏性仓库验证入口，并提供 `-Quick` 与定向 skip 开关用于本地迭代。
+- 新增由 CI 执行的翻译文档成对检查，覆盖根目录公开文档和 `docs/zh-CN`，避免英文和简体中文文档在文件层面漂移。
+- 新增由 CI 执行的 artifact hygiene 检查，覆盖被忽略的本地 assistant 设置、下载工具、日志、snapshot state、workspace state、VM artifacts、ISO files、浏览器测试 artifacts 和 Windows special files。
+- 新增由 CI 执行的 issue-template 检查，确保 support routing、security links、usage questions 和公开 safety prompts 持续存在。
+- 新增由 CI 执行的 Markdown anchor 验证，确保带 `#anchors` 的本地文档链接在目标 heading 缺失时会失败。
+- 新增双语 release process 文档，覆盖 validation、evidence、safety checks、commit 和 publication boundaries。
+- 新增双语 release readiness 文档，覆盖 release decision policy、stale-task remediation、维护者 checklist 和贡献者预期。
+- 新增双语 contributor workflow templates 和 pull request readiness guidance，覆盖 workspace task shapes、维护者 review ritual 和 release decisions。
+- 新增双语公开路线图，说明 workspace orchestration、agent-native development、runtime expansion、ecosystem alignment 和 release boundaries 的产品方向。
+- 新增双语支持说明，定义公开帮助通道、diagnostics 预期、安全报告边界、范围限制和维护者响应预期。
+- 新增双语排障文档，将常见症状映射到安全 diagnostics、preview commands、local override guidance、runtime operations 和 support escalation。
+- 新增 GitHub issue routing，覆盖 support/security links、usage questions、扩展 bug diagnostics 和 feature-request safety checks。
+
+### 变更
+
+- 将根目录 `build.md` 调整为历史实现简报，并新增简体中文对应文件，让原始架构意图以公开文档形式呈现，而不是像旧 prompt。
+- 新增 `adp workspace report -Markdown`，用于生成可复制到 pull request、release note 和维护者 handoff 的 evidence，并使用仓库相对 evidence path，仓库外路径会被脱敏。
+- 新增非破坏性的 workspace dev container metadata 识别，可发现 `.devcontainer/devcontainer.json` 和 `.devcontainer.json`，并将其作为 runtime 内部项目上下文展示。
+- 扩展非破坏性的 `adp workspace report` 输出，加入 governance loop queues、action decision queues、release decision policy、stale-task remediation guidance 和 task governance fields。
+
 ## 2026-05-28
 
 ### 新增
@@ -13,7 +37,7 @@
 - 新增顶层 `adp status [runtime]` 输出，用于查看 runtime state、local config 状态、配置的 static IP、VMware 探测 IP、SSH 可达性、sync session 是否存在，以及具体连接命令。
 - 新增由 CI 执行的文档语言上下文链接检查，确保存在翻译版本时，已选择语言的文档不会意外跳回另一种语言。
 - 新增由 CI 执行的配置 schema 检查，覆盖已提交的 platform、topology、sync profile、local example 和 workspace manifest 结构。
-- 新增非破坏性的 `adp workspace report` 输出，用于查看 release handoff summary、task validation result、review decision、rollback context、commit readiness、review bundle fields、source-review checklist 和 handoff commands。
+- 新增非破坏性的 `adp workspace report` 输出，用于查看 release handoff summary、governance loop queues、action decision queues、release decision policy、stale-task remediation guidance、task governance fields、task validation result、review decision、rollback context、commit readiness、review bundle fields、source-review checklist 和 handoff commands。
 - 新增 `configs/workspace.recipes.example.json`，提供可复制的 workspace recipes，覆盖低风险维护、frontend 浏览器验收、backend 验证，以及带 snapshot-first gate 的高风险 agent 工作。
 - 新增显式 `adp workspace task validate <task> -Execute`，用于通过 SSH 在 task project 中运行已声明的 validation commands，并支持 `-Execute -Plan` 预览。
 - 新增 executable workspace validation 的 readiness gate 输出，以及被忽略的本地 validation result 记录。
@@ -91,4 +115,3 @@
 - SSH bootstrap。
 - Diagnostics、deployment pre-check、snapshot、restore、stop、logs 和 destroy 命令。
 - 公开 README、架构文档、配置文档、操作文档、网络文档、贡献指南和 MIT license。
-

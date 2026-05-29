@@ -6,6 +6,30 @@ All notable public changes to AI Dev Platform OS are documented here.
 
 The project does not yet publish versioned releases. Entries are grouped by date until release tags are introduced.
 
+## 2026-05-29
+
+### Added
+
+- Added `tests\validate.ps1` as the shared non-destructive repository validation entry used by CI and local contributors, with `-Quick` and targeted skip switches for local iteration.
+- Added CI-backed translated-document pair checks for root public docs and `docs/zh-CN` so English and Simplified Chinese docs do not drift by file presence.
+- Added CI-backed artifact hygiene checks for ignored local assistant settings, downloaded tools, logs, snapshot state, workspace state, VM artifacts, ISO files, browser test artifacts, and Windows special files.
+- Added CI-backed issue-template checks so support routing, security links, usage questions, and public safety prompts remain present.
+- Added CI-backed Markdown anchor validation so local documentation links with `#anchors` fail validation when the target heading is missing.
+- Added bilingual release process documentation for validation, evidence, safety checks, commit, and publication boundaries.
+- Added bilingual release readiness documentation for release decision policy, stale-task remediation, maintainer checklist, and contributor expectations.
+- Added bilingual contributor workflow templates and pull request readiness guidance for workspace task shapes, maintainer review ritual, and release decisions.
+- Added a bilingual public roadmap that explains the product direction across workspace orchestration, agent-native development, runtime expansion, ecosystem alignment, and release boundaries.
+- Added bilingual support documentation that defines public help channels, diagnostic expectations, security-report boundaries, scope limits, and maintainer response expectations.
+- Added bilingual troubleshooting documentation that maps common symptoms to safe diagnostics, preview commands, local override guidance, runtime operations, and support escalation.
+- Added GitHub issue routing for support and security links, usage questions, expanded bug diagnostics, and feature-request safety checks.
+
+### Changed
+
+- Reframed the root `build.md` file as a historical implementation brief and added a Simplified Chinese counterpart so the original architecture intent is public-facing instead of prompt-like.
+- Added `adp workspace report -Markdown` for copyable pull request, release note, and maintainer handoff evidence, with repository-relative evidence paths and redaction for paths outside the repository.
+- Added non-destructive workspace detection for `.devcontainer/devcontainer.json` and `.devcontainer.json` so dev container metadata is visible as runtime-internal project context.
+- Expanded non-destructive `adp workspace report` output with governance loop queues, action decision queues, release decision policy, stale-task remediation guidance, and task governance fields.
+
 ## 2026-05-28
 
 ### Added
@@ -13,7 +37,7 @@ The project does not yet publish versioned releases. Entries are grouped by date
 - Added top-level `adp status [runtime]` output for runtime state, local config status, configured static IPs, VMware-detected IPs, SSH reachability, sync session presence, and exact connection commands.
 - Added CI-backed documentation language-context link checks so translated docs stay in the selected language when translated equivalents exist.
 - Added CI-backed configuration schema checks for committed platform, topology, sync profile, local example, and workspace manifest shapes.
-- Added non-destructive `adp workspace report` output for release handoff summaries, task validation results, review decisions, rollback context, commit readiness, review bundle fields, a source-review checklist, and handoff commands.
+- Added non-destructive `adp workspace report` output for release handoff summaries, governance loop queues, action decision queues, release decision policy, stale-task remediation guidance, task governance fields, task validation results, review decisions, rollback context, commit readiness, review bundle fields, a source-review checklist, and handoff commands.
 - Added `configs/workspace.recipes.example.json` with copyable workspace recipes for low-risk maintenance, frontend browser acceptance, backend validation, and high-risk agent work with a snapshot-first gate.
 - Added explicit `adp workspace task validate <task> -Execute` support for running declared validation commands in the task project over SSH, with `-Execute -Plan` preview.
 - Added validation readiness gate output and ignored local validation result recording for executable workspace validation.
@@ -91,4 +115,3 @@ The project does not yet publish versioned releases. Entries are grouped by date
 - SSH bootstrap.
 - Diagnostics, deployment pre-check, snapshot, restore, stop, logs, and destroy commands.
 - Public README, architecture docs, configuration docs, operations docs, networking docs, contributing guide, and MIT license.
-

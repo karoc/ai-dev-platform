@@ -8,6 +8,7 @@
       "path": "frontend-app",
       "runtime": "frontend",
       "sync": true,
+      "devcontainer": "optional",
       "validation": [
         "pnpm install",
         "pnpm test",
@@ -19,6 +20,7 @@
       "path": "backend-api",
       "runtime": "backend",
       "sync": true,
+      "devcontainer": "optional",
       "validation": [
         "uv sync",
         "uv run pytest",
@@ -30,6 +32,7 @@
       "path": "agent-workspace",
       "runtime": "agent",
       "sync": true,
+      "devcontainer": "optional",
       "validation": [
         "git status --short",
         "pnpm test"
@@ -42,6 +45,9 @@
       "project": "agent-workspace",
       "runtime": "agent",
       "risk": "low",
+      "owner": "docs-reviewer",
+      "review_cadence": "weekly",
+      "due": "2099-12-31",
       "requires_snapshot": false,
       "validation": [
         "git diff --check",
@@ -53,6 +59,9 @@
       "project": "frontend-app",
       "runtime": "frontend",
       "risk": "normal",
+      "owner": "frontend-reviewer",
+      "review_cadence": "per-change",
+      "due": "2099-12-31",
       "requires_snapshot": false,
       "validation": [
         "pnpm install",
@@ -64,6 +73,9 @@
       "project": "backend-api",
       "runtime": "backend",
       "risk": "normal",
+      "owner": "backend-reviewer",
+      "review_cadence": "per-change",
+      "due": "2099-12-31",
       "requires_snapshot": false,
       "validation": [
         "uv sync",
@@ -76,6 +88,9 @@
       "project": "agent-workspace",
       "runtime": "agent",
       "risk": "high",
+      "owner": "agent-reviewer",
+      "review_cadence": "per-task",
+      "due": "2099-12-31",
       "requires_snapshot": true,
       "snapshot": "before-broad-agent-refactor",
       "validation": [
