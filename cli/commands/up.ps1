@@ -89,6 +89,35 @@ function Write-RuntimeConnectionSummary {
     Write-Host "  Doctor:    adp doctor" -ForegroundColor DarkGray
 }
 
+function Assert-VMwareNatReadyForRuntimeCreate {
+    param([string]$TargetRuntime)
+
+    $config = Get-PlatformConfig
+    $nat = $config.network.vmware_nat
+    if (-not $nat) {
+        return
+    }
+
+    $hostNat = Test-VMwareNatConfigMatchesHost -ConfiguredNat $nat
+    if (-not $hostNat.Checked) {
+        Write-Host "VMware NAT preflight: $($hostNat.Reason). Continuing because host NAT could not be detected." -ForegroundColor Yellow
+        Write-Host "  Confirm VMnet8 in VMware Virtual Network Editor if provisioning later fails." -ForegroundColor DarkGray
+        return
+    }
+
+    if (-not $hostNat.Matches -or -not $hostNat.GatewayInHostCidr) {
+        Write-ErrorLog -Message "VMware NAT preflight failed for '$TargetRuntime': configured $($hostNat.ConfiguredCidr), host $($hostNat.HostCidr)." -Component "cli.up"
+        Write-Host ""
+        Write-Host "VMware NAT mismatch detected before VM creation." -ForegroundColor Red
+        Write-Host "  Configured: $($hostNat.ConfiguredCidr), gateway $($nat.gateway)" -ForegroundColor DarkGray
+        Write-Host "  Host VMnet8: $($hostNat.HostCidr) ($($hostNat.HostAddress), $($hostNat.HostSource))" -ForegroundColor DarkGray
+        Write-Host "  Fix configs\local.json so platform.network.vmware_nat and topology.$TargetRuntime.static_ip match host VMnet8." -ForegroundColor Yellow
+        Write-Host "  Then rerun: .\cli\adp.ps1 doctor -FirstRun" -ForegroundColor DarkGray
+        Write-Host "  No VM was created." -ForegroundColor DarkGray
+        exit 1
+    }
+}
+
 function Invoke-BootstrapIfReady {
     param(
         [string]$TargetRuntime,
@@ -217,6 +246,7 @@ if (Test-Path $vmxPath) {
 # --- Case 2: VM doesn't exist — auto-create with Phase 2 VM Factory ---
 Write-Host "VM does not exist. Phase 2: Auto-provisioning from ISO..." -ForegroundColor Yellow
 Write-Host ""
+Assert-VMwareNatReadyForRuntimeCreate -TargetRuntime $RuntimeName
 
 # Check ISO
 $isoName = if ($config.defaults.iso_path) { $config.defaults.iso_path } else { $config.defaults.ubuntu_iso }

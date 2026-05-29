@@ -139,7 +139,7 @@ Assert-Command `
     -Name "doctor reports VMware NAT prerequisites" `
     -Arguments @("doctor", "-FixMutagen", "-Plan") `
     -ExitCode 0 `
-    -Patterns @("VMware NAT config", "VMware NAT gateway range", "VMware NAT prerequisites", "Virtual Network Editor")
+    -Patterns @("VMware NAT config", "VMware NAT gateway range", "VMware NAT host match", "VMware NAT prerequisites", "VMnet8")
 
 Assert-Command `
     -Name "workspace show example manifest" `

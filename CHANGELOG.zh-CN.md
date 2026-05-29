@@ -10,6 +10,8 @@
 
 ### 新增
 
+- 新增 VMware NAT host-match 诊断，`doctor` 会在可探测时比对配置的 NAT 设置和 host `VMnet8` 网络。
+- 新增已有 runtime 的 seed network drift 诊断，`status` 和 `doctor` 可以报告某个 VM 是否是用比当前合并配置更旧的 autoinstall static IP 创建的。
 - 新增 `tests\validate.ps1`，作为 CI 和本地贡献者共用的非破坏性仓库验证入口，并提供 `-Quick` 与定向 skip 开关用于本地迭代。
 - 新增由 CI 执行的翻译文档成对检查，覆盖根目录公开文档和 `docs/zh-CN`，避免英文和简体中文文档在文件层面漂移。
 - 新增由 CI 执行的 artifact hygiene 检查，覆盖被忽略的本地 assistant 设置、下载工具、日志、snapshot state、workspace state、VM artifacts、ISO files、浏览器测试 artifacts 和 Windows special files。
@@ -25,6 +27,8 @@
 
 ### 变更
 
+- 更新 `adp up <runtime>`，当配置的 VMware NAT CIDR 明显不匹配 host `VMnet8` 网络时，会在首次创建 VM 前阻断，避免新 VM 被安装到不可达的 static IP 上。
+- 更新英文和简体中文网络、操作、排障文档，说明 NAT host matching、seed network drift，以及使用旧网络配置创建出的 VM 应如何重建或修复 guest 网络。
 - 将根目录 `build.md` 调整为历史实现简报，并新增简体中文对应文件，让原始架构意图以公开文档形式呈现，而不是像旧 prompt。
 - 新增 `adp workspace report -Markdown`，用于生成可复制到 pull request、release note 和维护者 handoff 的 evidence，并使用仓库相对 evidence path，仓库外路径会被脱敏。
 - 新增非破坏性的 workspace dev container metadata 识别，可发现 `.devcontainer/devcontainer.json` 和 `.devcontainer.json`，并将其作为 runtime 内部项目上下文展示。

@@ -128,6 +128,43 @@ function Get-StatusSyncState {
     }
 }
 
+function Get-StatusSeedNetwork {
+    param([string]$TargetRuntime)
+
+    $vmStore = Resolve-Path "vm_store"
+    $seedUserData = Join-Path $vmStore "seeds\$TargetRuntime\user-data"
+    if (-not (Test-Path -LiteralPath $seedUserData)) {
+        return $null
+    }
+
+    $text = Get-Content -LiteralPath $seedUserData -Raw -ErrorAction SilentlyContinue
+    if ([string]::IsNullOrWhiteSpace($text)) {
+        return $null
+    }
+
+    $address = ""
+    $prefix = ""
+    $gateway = ""
+    if ($text -match '(?m)^\s*-\s*((?:\d{1,3}\.){3}\d{1,3})/(\d{1,2})\s*$') {
+        $address = $matches[1]
+        $prefix = $matches[2]
+    }
+    if ($text -match '(?m)^\s*via:\s*((?:\d{1,3}\.){3}\d{1,3})\s*$') {
+        $gateway = $matches[1]
+    }
+
+    if (-not $address -and -not $gateway) {
+        return $null
+    }
+
+    return [pscustomobject]@{
+        Address = $address
+        Prefix  = $prefix
+        Gateway = $gateway
+        Path    = $seedUserData
+    }
+}
+
 function Write-StatusRuntime {
     param(
         [string]$TargetRuntime,
@@ -145,6 +182,7 @@ function Write-StatusRuntime {
     $port = if ($rt.PSObject.Properties.Name -contains "ssh_port" -and $rt.ssh_port) { [int]$rt.ssh_port } else { 22 }
     $sshState = if ($state.Status -match "running") { Test-StatusSSHReachable -HostAddress $connectIp -Port $port } else { "skipped" }
     $syncState = Get-StatusSyncState -TargetRuntime $TargetRuntime -MutagenAvailable $MutagenAvailable
+    $seedNetwork = Get-StatusSeedNetwork -TargetRuntime $TargetRuntime
     $alias = "adp-os-adp-$TargetRuntime"
     $workspaceRoot = Resolve-Path "workspace_root"
     $workspacePath = Join-Path $workspaceRoot $rt.workspace
@@ -159,6 +197,10 @@ function Write-StatusRuntime {
         }
     } elseif ($state.Status -match "running") {
         Write-Host "  detected IP:   unavailable" -ForegroundColor Yellow
+    }
+    if ($seedNetwork -and $configuredIp -and $seedNetwork.Address -and $seedNetwork.Address -ne $configuredIp) {
+        Write-Host "  network drift: seed uses $($seedNetwork.Address)/$($seedNetwork.Prefix), current config uses $configuredIp" -ForegroundColor Red
+        Write-Host "  remediation:   rebuild this runtime or update guest networking from the seed-era address" -ForegroundColor Yellow
     }
     Write-Host "  ssh:           $sshState" -ForegroundColor DarkGray
     Write-Host "  sync:          $syncState" -ForegroundColor DarkGray

@@ -47,10 +47,13 @@ agent     192.168.242.135
 
 - `VMware NAT config`：ADP 是否配置了 NAT CIDR、gateway 和 prefix。
 - `VMware NAT gateway range`：配置的 gateway 是否位于配置的 CIDR 内。
+- `VMware NAT host match`：如果可探测，ADP 配置的 CIDR 是否与 host `VMnet8` 网络一致。
+- `VMware NAT gateway host range`：如果可探测，ADP 配置的 gateway 是否位于 host `VMnet8` 网络内。
 - `<runtime> static IP range`：每个运行时 IP 是否位于配置的 CIDR 内。
-- `VMware NAT prerequisites`：提醒你把 ADP 配置与 VMware 实际的 `VMnet8` NAT 设置进行比对。
+- `<runtime> seed network drift`：对于已有 VM，生成过的 autoinstall seed 是否仍与当前 runtime static IP 一致。
+- `VMware NAT prerequisites`：说明 ADP 会在可探测时把配置的 NAT 与 host `VMnet8` 进行比对。
 
-ADP 无法以完全非破坏性的方式可靠读取或修改所有 VMware NAT 设置。请把 VMware Virtual Network Editor 视为实际 host NAT 子网的事实来源，然后让 ADP 配置与它保持一致。
+当 ADP 能探测到配置的 NAT CIDR 与 host `VMnet8` 网络不一致时，会在首次创建 VM 前阻断，避免生成一个静态 IP 不可达的 VM。如果 host NAT 无法探测，ADP 会继续执行但打印指引；请把 VMware Virtual Network Editor 视为实际 host NAT 子网的事实来源，然后让 ADP 配置与它保持一致。
 
 ## 配置网络
 
@@ -114,6 +117,10 @@ Copy-Item configs\local.example.json configs\local.json
 ## 新 VM 的静态网络
 
 对于新 provision 的 Ubuntu VM，ADP 会把静态网络注入 cloud-init autoinstall user data。这意味着新 VM 应直接使用配置的 `static_ip` 启动。
+
+创建新 VM 前，`adp up <runtime>` 会在 host 暴露相关信息时，比对配置的 VMware NAT 子网和 host `VMnet8` 网络。如果二者不一致，ADP 会在创建 VM 前退出，并提示你更新 `configs\local.json`。
+
+VM 创建完成后再修改 `configs\local.json`，不会自动重写 guest 内部网络。运行 `.\cli\adp.ps1 status <runtime>` 或 `.\cli\adp.ps1 doctor`；如果看到 `network drift` 或 `seed network drift`，请重建该 runtime，或从旧 seed-era 地址进入 guest 后更新网络。
 
 ## 排障
 

@@ -47,10 +47,13 @@ Run:
 
 - `VMware NAT config`: whether ADP has a configured NAT CIDR, gateway, and prefix.
 - `VMware NAT gateway range`: whether the configured gateway is inside the configured CIDR.
+- `VMware NAT host match`: when detectable, whether ADP's configured CIDR matches the host `VMnet8` network.
+- `VMware NAT gateway host range`: when detectable, whether ADP's configured gateway is inside the host `VMnet8` network.
 - `<runtime> static IP range`: whether each runtime IP is inside the configured CIDR.
-- `VMware NAT prerequisites`: a reminder to compare the ADP configuration with VMware's actual `VMnet8` NAT settings.
+- `<runtime> seed network drift`: for existing VMs, whether the generated autoinstall seed still matches the current runtime static IP.
+- `VMware NAT prerequisites`: a reminder that ADP compares the configured NAT with host `VMnet8` when it can detect it.
 
-ADP cannot reliably read or change every VMware NAT setting non-destructively. Treat VMware's Virtual Network Editor as the source of truth for the actual host NAT subnet, then update ADP configuration to match it.
+ADP blocks first-time VM creation when it can detect that the configured NAT CIDR does not match the host `VMnet8` network. This prevents creating a VM with an unreachable static IP. If host NAT detection is unavailable, ADP continues but prints guidance; treat VMware's Virtual Network Editor as the source of truth for the actual host NAT subnet, then update ADP configuration to match it.
 
 ## Configure the Network
 
@@ -114,6 +117,10 @@ This command:
 ## Static Networking for New VMs
 
 For newly provisioned Ubuntu VMs, ADP injects static networking into cloud-init autoinstall user data. This means newly created VMs should come up directly on their configured `static_ip`.
+
+Before creating a new VM, `adp up <runtime>` checks the configured VMware NAT subnet against the host `VMnet8` network when the host exposes that information. If they differ, ADP exits before creating the VM and tells you to update `configs\local.json`.
+
+Changing `configs\local.json` after a VM has already been created does not rewrite the guest network by itself. Run `.\cli\adp.ps1 status <runtime>` or `.\cli\adp.ps1 doctor`; if they report `network drift` or `seed network drift`, rebuild the runtime or update guest networking from the old seed-era address.
 
 ## Troubleshooting
 

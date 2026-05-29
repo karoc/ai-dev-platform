@@ -38,6 +38,8 @@ Do not publish secrets, tokens, private keys, VM disks, ISO files, downloaded ar
 | Mutagen is missing or wrong version | `.\cli\adp.ps1 doctor -FixMutagen -Plan` | local Mutagen remediation | [Operations](operations.md#health-checks) |
 | Runtime startup uses an unexpected ISO path | `.\cli\adp.ps1 up <runtime> -IsoPath <path> -Plan` | explicit ISO path, local config | [Operations](operations.md#start-runtimes) |
 | Runtime exists but connection fails | `.\cli\adp.ps1 status <runtime>` | VM state, static IP, SSH reachability | [Operations](operations.md#runtime-status), [Networking](networking.md) |
+| `up` stops with VMware NAT mismatch | `.\cli\adp.ps1 doctor -FirstRun` | host VMnet8 versus local config | [Networking](networking.md#prerequisites), [Configuration](configuration.md#local-overrides) |
+| `status` reports network drift | `.\cli\adp.ps1 doctor` | existing VM seed network versus current config | [Networking](networking.md#static-networking-for-new-vms) |
 | VMware IP differs from configured static IP | `.\cli\adp.ps1 status <runtime>` | static networking, local NAT overrides | [Networking](networking.md#prerequisites) |
 | Static IP is outside the NAT subnet | `.\cli\adp.ps1 doctor` | topology and platform config | [Configuration](configuration.md#local-overrides), [Networking](networking.md) |
 | Sync does not start or appears missing | `.\cli\adp.ps1 sync status` | Mutagen sessions, SSH aliases, workspace paths | [Operations](operations.md#workspace-sync) |
@@ -83,6 +85,8 @@ Run this after editing:
 .\cli\adp.ps1 doctor
 .\cli\adp.ps1 status
 ```
+
+Do this before creating VMs. If a VM already exists, changing `configs\local.json` changes ADP's target address but does not rewrite the guest network installed from the old autoinstall seed. If `status` reports `network drift`, rebuild the runtime or update guest networking from the seed-era address.
 
 Do not paste private local paths or credentials into public issues. If an issue depends on local config, list only the supported top-level sections, for example `platform` and `topology`.
 

@@ -178,6 +178,212 @@ function Test-ValidIPv4 {
     return ($text -ne "0.0.0.0" -and $text -notlike "169.254.*")
 }
 
+function ConvertTo-ADPIPv4UInt32 {
+    param([string]$Address)
+
+    $ip = $null
+    if (-not [System.Net.IPAddress]::TryParse($Address, [ref]$ip)) {
+        throw "Invalid IPv4 address: $Address"
+    }
+    if ($ip.AddressFamily -ne [System.Net.Sockets.AddressFamily]::InterNetwork) {
+        throw "Not an IPv4 address: $Address"
+    }
+
+    $bytes = $ip.GetAddressBytes()
+    [array]::Reverse($bytes)
+    return [BitConverter]::ToUInt32($bytes, 0)
+}
+
+function ConvertFrom-ADPIPv4UInt32 {
+    param([uint32]$Value)
+
+    $bytes = [BitConverter]::GetBytes($Value)
+    [array]::Reverse($bytes)
+    return ([System.Net.IPAddress]::new($bytes)).ToString()
+}
+
+function Get-ADPIPv4MaskUInt32 {
+    param([int]$PrefixLength)
+
+    if ($PrefixLength -lt 0 -or $PrefixLength -gt 32) {
+        throw "Invalid IPv4 prefix length: $PrefixLength"
+    }
+
+    if ($PrefixLength -eq 0) {
+        return [uint32]0
+    }
+
+    return [uint32]([uint32]::MaxValue -shl (32 - $PrefixLength))
+}
+
+function Get-ADPIPv4NetworkCidr {
+    param(
+        [string]$Address,
+        [int]$PrefixLength
+    )
+
+    $ipInt = ConvertTo-ADPIPv4UInt32 -Address $Address
+    $mask = Get-ADPIPv4MaskUInt32 -PrefixLength $PrefixLength
+    $network = $ipInt -band $mask
+    return "$(ConvertFrom-ADPIPv4UInt32 -Value $network)/$PrefixLength"
+}
+
+function Test-ADPIPv4InCidr {
+    param(
+        [string]$Address,
+        [string]$Cidr
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Address) -or [string]::IsNullOrWhiteSpace($Cidr)) {
+        return $false
+    }
+
+    $parts = $Cidr -split '/', 2
+    if ($parts.Count -ne 2) {
+        return $false
+    }
+
+    $prefix = 0
+    if (-not [int]::TryParse($parts[1], [ref]$prefix)) {
+        return $false
+    }
+
+    try {
+        $ipInt = ConvertTo-ADPIPv4UInt32 -Address $Address
+        $networkInt = ConvertTo-ADPIPv4UInt32 -Address $parts[0]
+        $mask = Get-ADPIPv4MaskUInt32 -PrefixLength $prefix
+        return (($ipInt -band $mask) -eq ($networkInt -band $mask))
+    } catch {
+        return $false
+    }
+}
+
+function Get-VMwareVMnet8HostNetwork {
+    if (-not $IsWindows) {
+        return $null
+    }
+
+    try {
+        $addresses = @(Get-NetIPAddress -AddressFamily IPv4 -ErrorAction Stop | Where-Object {
+            $_.InterfaceAlias -like "*VMnet8*" -and
+            $_.IPAddress -and
+            (Test-ValidIPv4 $_.IPAddress)
+        })
+
+        if ($addresses.Count -eq 0) {
+            return $null
+        }
+
+        $selected = $addresses | Sort-Object SkipAsSource, PrefixLength | Select-Object -First 1
+        $cidr = Get-ADPIPv4NetworkCidr -Address $selected.IPAddress -PrefixLength ([int]$selected.PrefixLength)
+
+        return [pscustomobject]@{
+            Source         = "host-adapter"
+            InterfaceAlias = $selected.InterfaceAlias
+            Address        = $selected.IPAddress
+            Prefix         = [int]$selected.PrefixLength
+            Cidr           = $cidr
+        }
+    } catch {
+        return $null
+    }
+}
+
+function Get-VMwareNatConfigNetwork {
+    $natConfig = "C:\ProgramData\VMware\vmnetnat.conf"
+    if (-not (Test-Path -LiteralPath $natConfig)) {
+        return $null
+    }
+
+    try {
+        $lines = Get-Content -LiteralPath $natConfig -ErrorAction Stop
+        $inVmnet8 = $false
+        foreach ($line in $lines) {
+            if ($line -match '^\s*\[host\s+VMnet8\]\s*$') {
+                $inVmnet8 = $true
+                continue
+            }
+
+            if ($inVmnet8 -and $line -match '^\s*\[host\s+') {
+                $inVmnet8 = $false
+            }
+
+            if ($inVmnet8 -and $line -match '^\s*ip\s*=\s*((?:\d{1,3}\.){3}\d{1,3})/(\d{1,2})\s*$') {
+                $gateway = $matches[1]
+                $prefix = [int]$matches[2]
+                return [pscustomobject]@{
+                    Source         = "vmnetnat.conf"
+                    InterfaceAlias = "VMnet8"
+                    Address        = $gateway
+                    Prefix         = $prefix
+                    Cidr           = Get-ADPIPv4NetworkCidr -Address $gateway -PrefixLength $prefix
+                }
+            }
+        }
+    } catch {
+        return $null
+    }
+
+    return $null
+}
+
+function Get-VMwareNatNetwork {
+    $hostNetwork = Get-VMwareVMnet8HostNetwork
+    if ($hostNetwork) {
+        return $hostNetwork
+    }
+
+    return Get-VMwareNatConfigNetwork
+}
+
+function Test-VMwareNatConfigMatchesHost {
+    param([object]$ConfiguredNat)
+
+    if (-not $ConfiguredNat -or [string]::IsNullOrWhiteSpace($ConfiguredNat.cidr)) {
+        return [pscustomobject]@{
+            Checked          = $false
+            Matches          = $false
+            Reason           = "missing configured VMware NAT CIDR"
+            ConfiguredCidr   = ""
+            HostCidr         = ""
+            HostSource       = ""
+            HostAddress      = ""
+            HostInterface    = ""
+            GatewayInHostCidr = $false
+        }
+    }
+
+    $hostNetwork = Get-VMwareNatNetwork
+    if (-not $hostNetwork) {
+        return [pscustomobject]@{
+            Checked          = $false
+            Matches          = $false
+            Reason           = "VMnet8 host network not detected"
+            ConfiguredCidr   = [string]$ConfiguredNat.cidr
+            HostCidr         = ""
+            HostSource       = ""
+            HostAddress      = ""
+            HostInterface    = ""
+            GatewayInHostCidr = $false
+        }
+    }
+
+    $gateway = if ($ConfiguredNat.gateway) { [string]$ConfiguredNat.gateway } else { "" }
+    $gatewayInHostCidr = if ($gateway) { Test-ADPIPv4InCidr -Address $gateway -Cidr $hostNetwork.Cidr } else { $false }
+
+    return [pscustomobject]@{
+        Checked          = $true
+        Matches          = ([string]$ConfiguredNat.cidr -eq [string]$hostNetwork.Cidr)
+        Reason           = ""
+        ConfiguredCidr   = [string]$ConfiguredNat.cidr
+        HostCidr         = [string]$hostNetwork.Cidr
+        HostSource       = [string]$hostNetwork.Source
+        HostAddress      = [string]$hostNetwork.Address
+        HostInterface    = [string]$hostNetwork.InterfaceAlias
+        GatewayInHostCidr = $gatewayInHostCidr
+    }
+}
+
 function Select-VMIPv4FromText {
     param([string]$Text)
 

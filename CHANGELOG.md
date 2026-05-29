@@ -10,6 +10,8 @@ The project does not yet publish versioned releases. Entries are grouped by date
 
 ### Added
 
+- Added VMware NAT host-match diagnostics so `doctor` compares configured NAT settings with the host `VMnet8` network when detectable.
+- Added existing-runtime seed network drift diagnostics so `status` and `doctor` can report when a VM was created with an older autoinstall static IP than the current merged configuration.
 - Added `tests\validate.ps1` as the shared non-destructive repository validation entry used by CI and local contributors, with `-Quick` and targeted skip switches for local iteration.
 - Added CI-backed translated-document pair checks for root public docs and `docs/zh-CN` so English and Simplified Chinese docs do not drift by file presence.
 - Added CI-backed artifact hygiene checks for ignored local assistant settings, downloaded tools, logs, snapshot state, workspace state, VM artifacts, ISO files, browser test artifacts, and Windows special files.
@@ -25,6 +27,8 @@ The project does not yet publish versioned releases. Entries are grouped by date
 
 ### Changed
 
+- Updated `adp up <runtime>` to block first-time VM creation when the configured VMware NAT CIDR clearly does not match the host `VMnet8` network, preventing new VMs from being installed with unreachable static IPs.
+- Updated networking, operations, and troubleshooting documentation in English and Simplified Chinese to explain NAT host matching, seed network drift, and the rebuild or guest-network remediation path for VMs created with stale network settings.
 - Reframed the root `build.md` file as a historical implementation brief and added a Simplified Chinese counterpart so the original architecture intent is public-facing instead of prompt-like.
 - Added `adp workspace report -Markdown` for copyable pull request, release note, and maintainer handoff evidence, with repository-relative evidence paths and redaction for paths outside the repository.
 - Added non-destructive workspace detection for `.devcontainer/devcontainer.json` and `.devcontainer.json` so dev container metadata is visible as runtime-internal project context.

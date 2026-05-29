@@ -24,7 +24,7 @@ For first-run guidance, include the checklist:
 .\cli\adp.ps1 doctor -FirstRun
 ```
 
-`doctor` checks platform prerequisites, configuration shape, local override status, VMware tooling, Mutagen version, ISO cache, runtime topology, static IP uniqueness, static IP ranges, VM status, SSH reachability for running VMs, and Mutagen sessions.
+`doctor` checks platform prerequisites, configuration shape, local override status, VMware tooling, VMware NAT host match when detectable, Mutagen version, ISO cache, runtime topology, static IP uniqueness, static IP ranges, existing-runtime seed network drift, VM status, SSH reachability for running VMs, and Mutagen sessions.
 
 Preview local Mutagen remediation:
 
@@ -123,6 +123,8 @@ When creating a runtime for the first time, you can pass an ISO from any locatio
 
 `-IsoPath` is used directly for VM creation. It does not need to be inside the configured ISO cache.
 
+Before creating a new VM, `adp up <runtime>` compares the configured VMware NAT CIDR with the host `VMnet8` network when the host exposes it. If they do not match, ADP exits before creating the VM and asks you to update `configs\local.json`. This prevents a new VM from being installed with a static IP that the host cannot reach.
+
 ## Stop Runtimes
 
 ```powershell
@@ -152,11 +154,14 @@ Show one runtime:
 - Each runtime's VM status.
 - The configured static IP from the merged topology.
 - The VMware-detected IP when available.
+- Network drift when an existing autoinstall seed still contains an older static IP than the current merged configuration.
 - SSH reachability for running VMs.
 - Mutagen sync session presence.
 - The exact SSH command, SSH alias, workspace path, and next commands.
 
 If the VMware-detected IP differs from the configured static IP, ADP still shows the configured static IP as the connection target. This is intentional for static networking and makes local NAT subnet overrides visible after editing `configs\local.json`.
+
+If `status` reports `network drift`, the VM was created with an older seed network than the current configuration. Editing `configs\local.json` after VM creation does not rewrite guest networking. Rebuild the runtime, or reach the guest through the seed-era address and apply the desired netplan change.
 
 ## SSH Access
 

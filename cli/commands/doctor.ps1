@@ -120,6 +120,43 @@ function Test-RuntimeSSHReachable {
     return ($LASTEXITCODE -eq 0 -and $result -eq "ok")
 }
 
+function Get-DoctorSeedNetwork {
+    param([string]$TargetRuntime)
+
+    $vmStore = Resolve-Path "vm_store"
+    $seedUserData = Join-Path $vmStore "seeds\$TargetRuntime\user-data"
+    if (-not (Test-Path -LiteralPath $seedUserData)) {
+        return $null
+    }
+
+    $text = Get-Content -LiteralPath $seedUserData -Raw -ErrorAction SilentlyContinue
+    if ([string]::IsNullOrWhiteSpace($text)) {
+        return $null
+    }
+
+    $address = ""
+    $prefix = ""
+    $gateway = ""
+    if ($text -match '(?m)^\s*-\s*((?:\d{1,3}\.){3}\d{1,3})/(\d{1,2})\s*$') {
+        $address = $matches[1]
+        $prefix = $matches[2]
+    }
+    if ($text -match '(?m)^\s*via:\s*((?:\d{1,3}\.){3}\d{1,3})\s*$') {
+        $gateway = $matches[1]
+    }
+
+    if (-not $address -and -not $gateway) {
+        return $null
+    }
+
+    return [pscustomobject]@{
+        Address = $address
+        Prefix  = $prefix
+        Gateway = $gateway
+        Path    = $seedUserData
+    }
+}
+
 function Test-WSLCommand {
     param([string]$Command)
 
@@ -187,7 +224,17 @@ if ($config.network.vmware_nat) {
     if ($nat.cidr -and $nat.gateway) {
         Test-Check -Name "VMware NAT gateway range" -Condition (Test-IPv4InCidr -Address $nat.gateway -Cidr $nat.cidr) -Detail "($($nat.gateway) in $($nat.cidr))"
     }
-    Write-InfoCheck -Name "VMware NAT prerequisites" -Detail "(confirm VMnet8/NAT subnet in VMware Virtual Network Editor; override configs\local.json if it differs)"
+    $hostNat = Test-VMwareNatConfigMatchesHost -ConfiguredNat $nat
+    if ($hostNat.Checked) {
+        Test-Check -Name "VMware NAT host match" -Condition $hostNat.Matches -Detail "(configured $($hostNat.ConfiguredCidr), host $($hostNat.HostCidr) via $($hostNat.HostSource))"
+        Test-Check -Name "VMware NAT gateway host range" -Condition $hostNat.GatewayInHostCidr -Detail "($($nat.gateway) in host $($hostNat.HostCidr))"
+        if (-not $hostNat.Matches) {
+            Write-Host "  [INFO]  Update configs\local.json before creating VMs, or rebuild runtimes created with the old subnet." -ForegroundColor DarkGray
+        }
+    } else {
+        Write-InfoCheck -Name "VMware NAT host match" -Detail "($($hostNat.Reason); confirm VMnet8/NAT subnet in VMware Virtual Network Editor)"
+    }
+    Write-InfoCheck -Name "VMware NAT prerequisites" -Detail "(ADP compares configured NAT with host VMnet8 when detectable; override configs\local.json if it differs)"
 }
 
 # --- VMware ---
@@ -343,6 +390,15 @@ foreach ($name in (Get-AllRuntimeNames)) {
     if (Test-Path $vmPath) {
         Test-Check -Name "$name VMX" -Condition (Test-Path $vmxPath) -Detail "($vmxPath)"
         Test-Check -Name "$name VMDK" -Condition (Test-Path $vmdkPath) -Detail "($vmdkPath)"
+        $seedNetwork = Get-DoctorSeedNetwork -TargetRuntime $name
+        if ($seedNetwork -and $rt.static_ip) {
+            Test-Check -Name "$name seed network drift" -Condition ($seedNetwork.Address -eq $rt.static_ip) -Detail "(seed $($seedNetwork.Address)/$($seedNetwork.Prefix), configured $($rt.static_ip))"
+            if ($seedNetwork.Address -ne $rt.static_ip) {
+                Write-Host "  [INFO]  Rebuild $name or update guest networking from the seed-era address before using SSH." -ForegroundColor DarkGray
+            }
+        } else {
+            Write-InfoCheck -Name "$name seed network drift" -Detail "(seed user-data not found or static IP missing)"
+        }
         $status = Get-VMStatus $vmxPath
         Test-Check -Name "$name VM status" -Condition ($status -match "running|stopped") -Detail "($status)"
         if ($status -match "running" -and $rt.static_ip) {

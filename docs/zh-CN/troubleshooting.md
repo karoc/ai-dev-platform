@@ -38,6 +38,8 @@
 | Mutagen 缺失或版本不对 | `.\cli\adp.ps1 doctor -FixMutagen -Plan` | local Mutagen remediation | [操作指南](operations.md#健康检查) |
 | Runtime startup 使用了非预期 ISO path | `.\cli\adp.ps1 up <runtime> -IsoPath <path> -Plan` | explicit ISO path、local config | [操作指南](operations.md#启动运行时) |
 | Runtime 已存在但无法连接 | `.\cli\adp.ps1 status <runtime>` | VM state、static IP、SSH reachability | [操作指南](operations.md#运行时状态)、[网络说明](networking.md) |
+| `up` 因 VMware NAT mismatch 停止 | `.\cli\adp.ps1 doctor -FirstRun` | host VMnet8 与 local config 不一致 | [网络说明](networking.md#前置条件)、[配置说明](configuration.md#本地覆盖) |
+| `status` 报告 network drift | `.\cli\adp.ps1 doctor` | 已有 VM seed 网络与当前配置不一致 | [网络说明](networking.md#新-vm-的静态网络) |
 | VMware IP 与配置的 static IP 不同 | `.\cli\adp.ps1 status <runtime>` | static networking、local NAT overrides | [网络说明](networking.md#前置条件) |
 | Static IP 不在 NAT subnet 内 | `.\cli\adp.ps1 doctor` | topology 和 platform config | [配置说明](configuration.md#本地覆盖)、[网络说明](networking.md) |
 | Sync 无法启动或缺失 | `.\cli\adp.ps1 sync status` | Mutagen sessions、SSH aliases、workspace paths | [操作指南](operations.md#工作区同步) |
@@ -83,6 +85,8 @@ Copy-Item configs\local.example.json configs\local.json
 .\cli\adp.ps1 doctor
 .\cli\adp.ps1 status
 ```
+
+请在创建 VM 前完成这些修改。如果 VM 已存在，修改 `configs\local.json` 只会改变 ADP 的目标地址，不会自动重写旧 autoinstall seed 已安装到 guest 内部的网络。如果 `status` 报告 `network drift`，请重建该 runtime，或从 seed-era 地址进入 guest 后更新网络。
 
 不要把 private local paths 或 credentials 粘贴到公开 issue。如果 issue 与 local config 有关，只列出受支持的 top-level sections，例如 `platform` 和 `topology`。
 
