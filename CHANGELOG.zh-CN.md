@@ -23,7 +23,7 @@
 
 ### 变更
 
-- 改进 `adp doctor -FixMutagen` 的 first-run 修复输出，安装时会显示明确阶段、下载 source/target、连接和 hard timeout、受控终止下载进程、临时 archive 下载、复用已有 archive、archive 无效时重新下载，以及下载失败时的手动恢复指引。
+- 改进 `adp doctor -FixMutagen` 的 first-run 修复输出，安装时会显示明确阶段、下载 source/target、连接和 hard timeout、受控终止下载进程、临时 archive 下载、复用已有 archive、archive 无效时重新下载、干净的失败输出，以及下载失败时的手动恢复指引。
 - 扩充默认 frontend、backend 和 agent sync profile ignore 列表，覆盖常见依赖目录、构建输出、框架缓存、浏览器测试输出、Python virtual environments、Python caches，以及本地 ADP/Codex 工具状态，降低用户自定义 profile 前同步生成物的概率。
 
 ## 2026-05-29

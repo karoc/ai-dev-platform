@@ -38,7 +38,7 @@ Install the tested local Mutagen binary only after reviewing the plan:
 .\cli\adp.ps1 doctor -FixMutagen
 ```
 
-`-FixMutagen` downloads the official Mutagen 0.18.x Windows AMD64 archive, extracts `mutagen.exe` to `.tools\mutagen\mutagen.exe`, and verifies the installed version. The install path prints explicit phases, download source/target, connection and hard timeout guidance, and a manual recovery path if the download fails. The `.tools` directory is ignored by Git, so downloaded archives and local binaries are not committed.
+`-FixMutagen` downloads the official Mutagen 0.18.x Windows AMD64 archive, extracts `mutagen.exe` to `.tools\mutagen\mutagen.exe`, and verifies the installed version. The install path prints explicit phases, download source/target, connection and hard timeout guidance, clean failure output, and a manual recovery path if the download fails. The `.tools` directory is ignored by Git, so downloaded archives and local binaries are not committed.
 
 Run integration checks:
 

@@ -318,8 +318,9 @@ if ($hasMutagen) {
 if ($FixMutagen) {
     Write-Host ""
     Write-Host "Mutagen remediation:" -ForegroundColor Cyan
-    $remediation = Install-LocalMutagen -ProjectRoot (Get-ProjectRoot) -Plan:$Plan
+    $remediationPlan = Install-LocalMutagen -ProjectRoot (Get-ProjectRoot) -Plan
     if ($Plan) {
+        $remediation = $remediationPlan
         Write-Host "  Plan only: no files will be downloaded, expanded, or overwritten." -ForegroundColor Yellow
         Write-Host "  Version: $($remediation.Version)" -ForegroundColor DarkGray
         Write-Host "  Download: $($remediation.Url)" -ForegroundColor DarkGray
@@ -327,6 +328,21 @@ if ($FixMutagen) {
         Write-Host "  Target:   $($remediation.TargetPath)" -ForegroundColor DarkGray
         Write-Host "  To install: .\cli\adp.ps1 doctor -FixMutagen" -ForegroundColor DarkGray
     } else {
+        try {
+            $remediation = Install-LocalMutagen -ProjectRoot (Get-ProjectRoot)
+        } catch {
+            $reason = $_.Exception.Message
+            Write-ErrorLog -Message "Mutagen remediation failed: $reason" -Component "cli.doctor"
+            Write-Host "  Mutagen remediation failed." -ForegroundColor Red
+            Write-Host "  Reason: $reason" -ForegroundColor Red
+            Write-Host "  Retry:  .\cli\adp.ps1 doctor -FixMutagen" -ForegroundColor DarkGray
+            Write-Host "  Manual: download $($remediationPlan.Url)" -ForegroundColor DarkGray
+            Write-Host "          place it at $($remediationPlan.ZipPath), then rerun the command." -ForegroundColor DarkGray
+            Write-Host "  Or place mutagen.exe directly at: $($remediationPlan.TargetPath)" -ForegroundColor DarkGray
+            Write-Host "  No VMs, sync sessions, SSH config, or configs\local.json were changed by this failed remediation." -ForegroundColor DarkGray
+            exit 1
+        }
+
         Write-Host "  Mutagen installed locally." -ForegroundColor Green
         Write-Host "  Version: $($remediation.VersionText)" -ForegroundColor DarkGray
         Write-Host "  Target:  $($remediation.TargetPath)" -ForegroundColor DarkGray
