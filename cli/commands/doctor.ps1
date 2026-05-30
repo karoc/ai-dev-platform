@@ -477,8 +477,17 @@ foreach ($name in (Get-AllRuntimeNames)) {
     if ($hasMutagen) {
         $sessionName = "adp-$name"
         try {
-            if (Test-SyncSessionExists -SessionName $sessionName) {
-                Test-Check -Name "$name Mutagen session" -Condition $true -Detail "($sessionName)"
+            $expectedLocalPath = Join-Path $workspaceRoot $rt.workspace
+            $expectedRemoteUrl = "adp-os-$sessionName`:/home/adp/workspace"
+            $syncSession = Get-SyncSessionInfo -SessionName $sessionName -ExpectedLocalPath $expectedLocalPath -ExpectedRemoteUrl $expectedRemoteUrl
+            if ($syncSession.Exists) {
+                $syncOk = ($syncSession.Health -in @("healthy", "present"))
+                Test-Check -Name "$name Mutagen session" -Condition $syncOk -Detail "($sessionName, $($syncSession.Health), $($syncSession.Detail))"
+                if (-not $syncOk) {
+                    Write-Host "  [INFO]  Remediation: .\cli\adp.ps1 sync stop $name; .\cli\adp.ps1 sync start $name" -ForegroundColor DarkGray
+                    Write-Host "  [INFO]  Current local: $($syncSession.AlphaUrl); expected: $expectedLocalPath" -ForegroundColor DarkGray
+                    Write-Host "  [INFO]  Current remote: $($syncSession.BetaUrl); expected: $expectedRemoteUrl" -ForegroundColor DarkGray
+                }
             } else {
                 Write-InfoCheck -Name "$name Mutagen session" -Detail "(not started: $sessionName)"
             }

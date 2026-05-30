@@ -117,7 +117,9 @@ function Test-StatusSSHReachable {
 function Get-StatusSyncState {
     param(
         [string]$TargetRuntime,
-        [bool]$MutagenAvailable
+        [bool]$MutagenAvailable,
+        [string]$ExpectedLocalPath,
+        [string]$ExpectedRemoteUrl
     )
 
     if (-not $MutagenAvailable) {
@@ -126,10 +128,17 @@ function Get-StatusSyncState {
 
     $sessionName = "adp-$TargetRuntime"
     try {
-        if (Test-SyncSessionExists -SessionName $sessionName) {
+        $session = Get-SyncSessionInfo -SessionName $sessionName -ExpectedLocalPath $ExpectedLocalPath -ExpectedRemoteUrl $ExpectedRemoteUrl
+        if (-not $session.Exists) {
+            return "not-started"
+        }
+        if ($session.Health -eq "healthy") {
+            return "healthy"
+        }
+        if ($session.Health -eq "present") {
             return "present"
         }
-        return "not-started"
+        return $session.Health
     } catch {
         return "unknown"
     }
@@ -201,11 +210,12 @@ function Write-StatusRuntime {
     $configuredIp = Get-RuntimeStaticIP $TargetRuntime
     $connectIp = if ($configuredIp) { $configuredIp } else { $state.DetectedIp }
     $port = if ($rt.PSObject.Properties.Name -contains "ssh_port" -and $rt.ssh_port) { [int]$rt.ssh_port } else { 22 }
-    $syncState = Get-StatusSyncState -TargetRuntime $TargetRuntime -MutagenAvailable $MutagenAvailable
     $seedNetwork = Get-StatusSeedNetwork -TargetRuntime $TargetRuntime
     $alias = "adp-os-adp-$TargetRuntime"
     $workspaceRoot = Resolve-Path "workspace_root"
     $workspacePath = Join-Path $workspaceRoot $rt.workspace
+    $expectedRemoteUrl = "${alias}:/home/adp/workspace"
+    $syncState = Get-StatusSyncState -TargetRuntime $TargetRuntime -MutagenAvailable $MutagenAvailable -ExpectedLocalPath $workspacePath -ExpectedRemoteUrl $expectedRemoteUrl
     $adpRunningVms = @()
     if ($VmwareAvailable) {
         $adpRunningVms = @(Get-ADPRunningRuntimeVMs -RunningVmxPaths $RunningVmxPaths -RuntimeName $TargetRuntime -ManagedVmxPath $state.VmxPath)
@@ -249,6 +259,10 @@ function Write-StatusRuntime {
         Write-Host "  remediation:   stop or rename the stale duplicate before diagnosing SSH or network issues" -ForegroundColor Yellow
     }
     Write-Host "  sync:          $syncState" -ForegroundColor DarkGray
+    if ($syncState -in @("wrong-local", "wrong-remote", "unhealthy")) {
+        Write-Host "  sync note:     existing Mutagen session is not usable for this checkout/runtime" -ForegroundColor Yellow
+        Write-Host "  sync fix:      adp sync stop $TargetRuntime; adp sync start $TargetRuntime" -ForegroundColor Yellow
+    }
     Write-Host "  workspace:     $workspacePath" -ForegroundColor DarkGray
     Write-Host "  VMX:           $($state.VmxPath)" -ForegroundColor DarkGray
     if ($connectIp) {

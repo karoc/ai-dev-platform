@@ -37,6 +37,46 @@ Write-Host ""
 
 . (Join-Path (Get-ProjectRoot) "adapters\windows\mutagen\mutagen.ps1")
 
+function Get-SyncExpectedEndpoints {
+    param([string]$TargetRuntime)
+
+    $rt = Get-RuntimeConfig $TargetRuntime
+    $workspaceRoot = Resolve-Path "workspace_root"
+    $localPath = Join-Path $workspaceRoot $rt.workspace
+    $sessionName = "adp-$TargetRuntime"
+    $remoteUrl = "adp-os-$sessionName`:/home/adp/workspace"
+    return [pscustomobject]@{
+        SessionName = $sessionName
+        LocalPath   = $localPath
+        RemoteUrl   = $remoteUrl
+    }
+}
+
+function Write-SyncRuntimeSummary {
+    param([string]$TargetRuntime)
+
+    $expected = Get-SyncExpectedEndpoints -TargetRuntime $TargetRuntime
+    try {
+        $session = Get-SyncSessionInfo -SessionName $expected.SessionName -ExpectedLocalPath $expected.LocalPath -ExpectedRemoteUrl $expected.RemoteUrl
+    } catch {
+        Write-Host "  ${TargetRuntime}: status unavailable ($_)" -ForegroundColor Yellow
+        return
+    }
+
+    if (-not $session.Exists) {
+        Write-Host "  ${TargetRuntime}: not-started — run adp sync start $TargetRuntime" -ForegroundColor Yellow
+        return
+    }
+
+    $color = if ($session.Health -in @("healthy", "present")) { "Green" } else { "Red" }
+    Write-Host "  ${TargetRuntime}: $($session.Health) — $($session.Detail)" -ForegroundColor $color
+    Write-Host "    local:  $($session.AlphaUrl)" -ForegroundColor DarkGray
+    Write-Host "    remote: $($session.BetaUrl)" -ForegroundColor DarkGray
+    if ($session.Health -notin @("healthy", "present")) {
+        Write-Host "    fix:    adp sync stop $TargetRuntime; adp sync start $TargetRuntime" -ForegroundColor Yellow
+    }
+}
+
 try {
     Initialize-Mutagen -ProjectRoot (Get-ProjectRoot) | Out-Null
 } catch {
@@ -50,6 +90,11 @@ try {
 
 switch ($SubCommand) {
     "status" {
+        Write-Host "ADP runtime sync summary:" -ForegroundColor Yellow
+        foreach ($name in (Get-AllRuntimeNames)) {
+            Write-SyncRuntimeSummary -TargetRuntime $name
+        }
+        Write-Host ""
         Write-Host "Sync status:" -ForegroundColor Yellow
         Invoke-Mutagen -Arguments @("sync", "list")
     }

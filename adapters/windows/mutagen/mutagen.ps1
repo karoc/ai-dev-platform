@@ -444,6 +444,92 @@ function Test-SyncSessionExists {
     return ($LASTEXITCODE -eq 0 -and (($output -join "`n") -match "Name:\s+$([regex]::Escape($SessionName))\b"))
 }
 
+function Get-SyncSessionInfo {
+    param(
+        [string]$SessionName,
+        [string]$ExpectedLocalPath,
+        [string]$ExpectedRemoteUrl
+    )
+
+    if (-not $script:MutagenPath) {
+        Initialize-Mutagen -ProjectRoot (Get-ProjectRoot) | Out-Null
+    }
+
+    $output = & $script:MutagenPath sync list $SessionName 2>$null
+    $exitCode = $LASTEXITCODE
+    $text = ($output | Where-Object { $_ }) -join "`n"
+    if ($exitCode -ne 0 -or $text -notmatch "Name:\s+$([regex]::Escape($SessionName))\b") {
+        return [pscustomobject]@{
+            Name           = $SessionName
+            Exists         = $false
+            Status         = "not-started"
+            AlphaUrl       = ""
+            BetaUrl        = ""
+            ExpectedLocal  = $ExpectedLocalPath
+            ExpectedRemote = $ExpectedRemoteUrl
+            Health         = "not-started"
+            Detail         = "Run: adp sync start $($SessionName -replace '^adp-', '')"
+        }
+    }
+
+    $alphaUrl = ""
+    $betaUrl = ""
+    $status = ""
+    if ($text -match '(?ms)Alpha:\s*.*?URL:\s*(?<url>[^\r\n]+)') {
+        $alphaUrl = $matches.url.Trim()
+    }
+    if ($text -match '(?ms)Beta:\s*.*?URL:\s*(?<url>[^\r\n]+)') {
+        $betaUrl = $matches.url.Trim()
+    }
+    if ($text -match '(?m)^Status:\s*(?<status>.+)$') {
+        $status = $matches.status.Trim()
+    }
+
+    $expectedLocalOk = $true
+    if (-not [string]::IsNullOrWhiteSpace($ExpectedLocalPath)) {
+        try {
+            $expectedFull = [System.IO.Path]::GetFullPath($ExpectedLocalPath)
+            $alphaFull = [System.IO.Path]::GetFullPath($alphaUrl)
+            $expectedLocalOk = $expectedFull.Equals($alphaFull, [System.StringComparison]::OrdinalIgnoreCase)
+        } catch {
+            $expectedLocalOk = ($alphaUrl -eq $ExpectedLocalPath)
+        }
+    }
+
+    $expectedRemoteOk = $true
+    if (-not [string]::IsNullOrWhiteSpace($ExpectedRemoteUrl)) {
+        $expectedRemoteOk = $betaUrl.Equals($ExpectedRemoteUrl, [System.StringComparison]::OrdinalIgnoreCase)
+    }
+
+    $health = "present"
+    $detail = $status
+    if (-not $expectedLocalOk) {
+        $health = "wrong-local"
+        $detail = "session local endpoint is $alphaUrl; expected $ExpectedLocalPath"
+    } elseif (-not $expectedRemoteOk) {
+        $health = "wrong-remote"
+        $detail = "session remote endpoint is $betaUrl; expected $ExpectedRemoteUrl"
+    } elseif ($status -match '(?i)\b(halted|error|failed|problem|conflict)\b') {
+        $health = "unhealthy"
+        $detail = $status
+    } elseif ($status -match '(?i)\b(watching|scan|connected|synchroniz)') {
+        $health = "healthy"
+        $detail = $status
+    }
+
+    return [pscustomobject]@{
+        Name           = $SessionName
+        Exists         = $true
+        Status         = $status
+        AlphaUrl       = $alphaUrl
+        BetaUrl        = $betaUrl
+        ExpectedLocal  = $ExpectedLocalPath
+        ExpectedRemote = $ExpectedRemoteUrl
+        Health         = $health
+        Detail         = $detail
+    }
+}
+
 function Set-MutagenSSHHostConfig {
     param(
         [string]$HostAlias,
@@ -511,28 +597,44 @@ function New-SyncSession {
         throw "SSHHost is required for Mutagen sync"
     }
 
-    if (Test-SyncSessionExists -SessionName $SessionName) {
-        Write-Host "  Sync session '$SessionName' already exists." -ForegroundColor Green
-        return
-    }
-
     if (-not (Test-Path $LocalPath)) {
         New-Item -ItemType Directory -Path $LocalPath -Force | Out-Null
     }
 
     $hostAlias = "adp-os-$SessionName"
-    $endpointHost = if ($SSHKeyPath) {
+    $endpointHost = if ($SSHKeyPath) { $hostAlias } else { "${SSHUser}@${SSHHost}" }
+
+    $sshUrl = "${endpointHost}:${RemotePath}"
+
+    $existingSession = Get-SyncSessionInfo -SessionName $SessionName -ExpectedLocalPath $LocalPath -ExpectedRemoteUrl $sshUrl
+    if ($existingSession.Exists) {
+        if ($existingSession.Health -in @("healthy", "present")) {
+            Write-Host "  Sync session '$SessionName' already exists." -ForegroundColor Green
+            Write-Host "  Status: $($existingSession.Status)" -ForegroundColor DarkGray
+            Write-Host "  Local:  $($existingSession.AlphaUrl)" -ForegroundColor DarkGray
+            Write-Host "  Remote: $($existingSession.BetaUrl)" -ForegroundColor DarkGray
+            return
+        }
+
+        Write-Host "  Existing sync session '$SessionName' is not usable for this runtime." -ForegroundColor Red
+        Write-Host "  Health: $($existingSession.Health)" -ForegroundColor Red
+        Write-Host "  Detail: $($existingSession.Detail)" -ForegroundColor Red
+        Write-Host "  Current local:  $($existingSession.AlphaUrl)" -ForegroundColor DarkGray
+        Write-Host "  Expected local: $LocalPath" -ForegroundColor DarkGray
+        Write-Host "  Current remote:  $($existingSession.BetaUrl)" -ForegroundColor DarkGray
+        Write-Host "  Expected remote: $sshUrl" -ForegroundColor DarkGray
+        Write-Host "  Remediation: adp sync stop $($SessionName -replace '^adp-', ''), then adp sync start $($SessionName -replace '^adp-', '')" -ForegroundColor Yellow
+        throw "Mutagen sync session '$SessionName' must be stopped and recreated before sync can start."
+    }
+
+    if ($SSHKeyPath) {
         Set-MutagenSSHHostConfig `
             -HostAlias $hostAlias `
             -SSHHost $SSHHost `
             -SSHUser $SSHUser `
             -SSHPort $SSHPort `
-            -SSHKeyPath $SSHKeyPath
-    } else {
-        "${SSHUser}@${SSHHost}"
+            -SSHKeyPath $SSHKeyPath | Out-Null
     }
-
-    $sshUrl = "${endpointHost}:${RemotePath}"
 
     $defaultIgnoreList = @(
         "node_modules", ".next", "dist", "build",

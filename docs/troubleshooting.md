@@ -45,7 +45,7 @@ Do not publish secrets, tokens, private keys, VM disks, ISO files, downloaded ar
 | `status` reports network drift | `.\cli\adp.ps1 doctor` and `.\cli\adp.ps1 network apply <runtime> -Plan` | existing VM seed network versus current config; rebuild, guest netplan fix, or host-route workaround | [Operations](operations.md#runtime-status), [Networking](networking.md#static-networking-for-new-vms) |
 | VMware IP differs from configured static IP | `.\cli\adp.ps1 status <runtime>` | static networking, local NAT overrides | [Networking](networking.md#prerequisites) |
 | Static IP is outside the NAT subnet | `.\cli\adp.ps1 doctor` | topology and platform config | [Configuration](configuration.md#local-overrides), [Networking](networking.md) |
-| Sync does not start or appears missing | `.\cli\adp.ps1 sync status` | Mutagen sessions, SSH aliases, workspace paths | [Operations](operations.md#workspace-sync) |
+| Sync does not start or appears missing | `.\cli\adp.ps1 sync status` | Mutagen sessions, stale endpoints, SSH aliases, workspace paths | [Operations](operations.md#workspace-sync) |
 | Browser tests cannot run in frontend | `adp-frontend-browser-check` inside the frontend runtime | on-demand browser install | [Browser Testing](browser-testing.md) |
 | Workspace task is blocked | `.\cli\adp.ps1 workspace report` | validation, review, snapshot, governance gates | [Workspaces](workspaces.md), [Release Readiness](release-readiness.md) |
 | High-risk agent work is not ready | `.\cli\adp.ps1 workspace dashboard` | snapshot-first gate | [Workspaces](workspaces.md), [Release Readiness](release-readiness.md) |
@@ -79,6 +79,20 @@ New-Item -ItemType Directory -Path .tools\mutagen -Force
 ```
 
 For an archive stored elsewhere, set `platform.tools.mutagen.archive_path` in ignored `configs\local.json`. For a mirror, set `platform.tools.mutagen.download_url`. For strict archive verification, set `platform.tools.mutagen.sha256` to the expected 64-character SHA256 hash. ADP never commits the archive or `mutagen.exe`; `.tools` remains ignored.
+
+## Sync Session Problems
+
+If `sync status`, `status`, or `doctor` reports `wrong-local`, `wrong-remote`, or `unhealthy`, the Mutagen session exists but does not match the current checkout/runtime or is not usable. This can happen after moving workspaces, switching clones, recreating VMs, or reusing a same-name `adp-<runtime>` session from another setup.
+
+Use the explicit reset path:
+
+```powershell
+.\cli\adp.ps1 sync stop agent
+.\cli\adp.ps1 sync start agent
+.\cli\adp.ps1 sync status
+```
+
+`sync start <runtime>` does not silently replace an unusable same-name session. It asks for the explicit stop/start sequence so users can see that an existing sync relationship is being terminated and recreated.
 
 ## When to Change Local Configuration
 

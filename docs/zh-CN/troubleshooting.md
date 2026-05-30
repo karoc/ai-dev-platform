@@ -45,7 +45,7 @@
 | `status` 报告 network drift | `.\cli\adp.ps1 doctor` 和 `.\cli\adp.ps1 network apply <runtime> -Plan` | 已有 VM seed 网络与当前配置不一致；rebuild、guest netplan fix 或 host-route workaround | [操作指南](operations.md#运行时状态)、[网络说明](networking.md#新-vm-的静态网络) |
 | VMware IP 与配置的 static IP 不同 | `.\cli\adp.ps1 status <runtime>` | static networking、local NAT overrides | [网络说明](networking.md#前置条件) |
 | Static IP 不在 NAT subnet 内 | `.\cli\adp.ps1 doctor` | topology 和 platform config | [配置说明](configuration.md#本地覆盖)、[网络说明](networking.md) |
-| Sync 无法启动或缺失 | `.\cli\adp.ps1 sync status` | Mutagen sessions、SSH aliases、workspace paths | [操作指南](operations.md#工作区同步) |
+| Sync 无法启动或缺失 | `.\cli\adp.ps1 sync status` | Mutagen sessions、stale endpoints、SSH aliases、workspace paths | [操作指南](operations.md#工作区同步) |
 | Frontend browser tests 无法运行 | 在 frontend runtime 内运行 `adp-frontend-browser-check` | on-demand browser install | [浏览器测试](browser-testing.md) |
 | Workspace task 被阻塞 | `.\cli\adp.ps1 workspace report` | validation、review、snapshot、governance gates | [工作区](workspaces.md)、[Release Readiness](release-readiness.md) |
 | 高风险 agent work 尚未 ready | `.\cli\adp.ps1 workspace dashboard` | snapshot-first gate | [工作区](workspaces.md)、[Release Readiness](release-readiness.md) |
@@ -79,6 +79,20 @@ New-Item -ItemType Directory -Path .tools\mutagen -Force
 ```
 
 如果 archive 存在其他位置，在被忽略的 `configs\local.json` 中设置 `platform.tools.mutagen.archive_path`。如果需要 mirror，设置 `platform.tools.mutagen.download_url`。如果需要严格校验 archive，设置 `platform.tools.mutagen.sha256` 为预期的 64 位 SHA256 hash。ADP 不会提交 archive 或 `mutagen.exe`；`.tools` 始终被忽略。
+
+## Sync Session 问题
+
+如果 `sync status`、`status` 或 `doctor` 报告 `wrong-local`、`wrong-remote` 或 `unhealthy`，说明 Mutagen session 虽然存在，但不匹配当前 checkout/runtime，或者当前不可用。移动 workspace、切换 clone、重建 VM，或复用了另一个 setup 中同名的 `adp-<runtime>` session 后，都可能出现这种情况。
+
+使用显式 reset 路径：
+
+```powershell
+.\cli\adp.ps1 sync stop agent
+.\cli\adp.ps1 sync start agent
+.\cli\adp.ps1 sync status
+```
+
+`sync start <runtime>` 不会静默替换不可用的同名 session。它会要求显式执行 stop/start，让用户清楚知道已有同步关系将被终止并重建。
 
 ## 何时修改本地配置
 

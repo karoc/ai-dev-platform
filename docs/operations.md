@@ -231,6 +231,15 @@ Check sync:
 .\cli\adp.ps1 sync status
 ```
 
+`sync status` prints an ADP runtime summary before the raw Mutagen session list. The summary compares each `adp-<runtime>` session with the current checkout's expected local workspace path and SSH alias. A session can exist but still be unusable for this checkout, for example when it points at an older workspace, a different remote alias, or Mutagen reports a halted/error state. In that case ADP reports `wrong-local`, `wrong-remote`, or `unhealthy` and prints the explicit recovery command:
+
+```powershell
+.\cli\adp.ps1 sync stop agent
+.\cli\adp.ps1 sync start agent
+```
+
+`sync start <runtime>` will not treat an unusable same-name session as success. It stops before creating or rewriting the runtime SSH alias and asks you to explicitly stop and recreate the session.
+
 Stop sync:
 
 ```powershell
