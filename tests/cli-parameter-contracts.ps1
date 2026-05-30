@@ -63,6 +63,7 @@ Assert-Contains -Name "shared validation runs CLI smoke tests" -Text $validate -
 Assert-Contains -Name "shared validation runs documentation language link checks" -Text $validate -Pattern '\.\\tests\\docs-language-links\.ps1'
 Assert-Contains -Name "shared validation runs configuration schema checks" -Text $validate -Pattern '\.\\tests\\config-schema\.ps1'
 Assert-Contains -Name "shared validation runs artifact hygiene checks" -Text $validate -Pattern '\.\\tests\\artifact-hygiene\.ps1'
+Assert-Contains -Name "shared validation checks local config mutation boundaries" -Text $validate -Pattern '\.\\tests\\local-config-boundary\.ps1'
 Assert-Contains -Name "documentation language checks enforce translated doc pairs" -Text (Read-Text "tests\docs-language-links.ps1") -Pattern 'Assert-TranslatedDocPair[\s\S]*README[\s\S]*CHANGELOG[\s\S]*build[\s\S]*docs/zh-CN'
 Assert-Contains -Name "shared validation parses workspace recipes example" -Text $validate -Pattern 'configs\\workspace\.recipes\.example\.json'
 Assert-Contains -Name "shared validation checks Markdown links" -Text $validate -Pattern 'Check Markdown local links'

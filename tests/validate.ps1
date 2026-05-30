@@ -78,6 +78,10 @@ Invoke-ValidationStep -Name "Check artifact hygiene" -ScriptBlock {
     & ".\tests\artifact-hygiene.ps1"
 }
 
+Invoke-ValidationStep -Name "Check local config mutation boundaries" -ScriptBlock {
+    & ".\tests\local-config-boundary.ps1"
+}
+
 if (-not $SkipCliSmoke) {
     Invoke-ValidationStep -Name "Run CLI smoke tests" -ScriptBlock {
         & ".\tests\cli-smoke.ps1"
