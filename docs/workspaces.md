@@ -298,3 +298,5 @@ D:\Dev\ai-dev-platform
 ```
 
 This keeps platform maintenance, user projects, and agent-generated artifacts from mixing in one working tree.
+
+For first-run dogfooding, a minimal POSIX shell project is enough to prove the ADP workspace lifecycle end to end. Start with a tiny project that can be synced, validated, reviewed, and committed without browser downloads or package installation. The goal is to verify the workflow path first, not to maximize project complexity.

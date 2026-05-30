@@ -28,6 +28,7 @@ The project does not yet publish versioned releases. Entries are grouped by date
 - Captured `xorriso` output during autoinstall ISO remastering so successful `adp up` output is not polluted by delayed ISO-tool logs after the runtime-ready summary, while failures still include captured tool details.
 - Improved `adp doctor -FixMutagen` first-run remediation output with explicit install phases, download source/target, connection and hard timeout guidance, controlled download-process termination, temporary archive downloads, reuse of existing archives, invalid-archive retry, clean failure output, and manual recovery guidance if the download fails.
 - Expanded default frontend, backend, and agent sync profile ignore lists for common dependency directories, build outputs, framework caches, browser-test output, Python virtual environments, Python caches, and local ADP/Codex tool state, reducing the chance that generated artifacts are synchronized before users customize profiles.
+- Clarified the ADP-OS dogfooding guidance for first-run usage: a minimal POSIX shell project is enough to validate the workspace lifecycle end to end. The public workspaces docs now tell maintainers to start with a tiny syncable project that can be validated, reviewed, and committed without browser downloads or package installation.
 
 ## 2026-05-29
 
