@@ -39,7 +39,7 @@ Default runtime user:
 
 The default password is used for local automated sudo during bootstrap. Change it before using ADP on shared or untrusted networks.
 
-CLI language:
+UI language:
 
 ```json
 {
@@ -179,7 +179,7 @@ Merging is recursive for JSON objects. Arrays and scalar values replace the defa
 
 `platform.defaults.iso_path` is resolved inside `platform.paths.iso_cache`. To import an ISO from any location, run `.\install.ps1 -IsoPath C:\path\to\ubuntu-26.04-live-server-amd64.iso`; the installer copies it into the configured ISO cache.
 
-`platform.ui.language` controls user-facing CLI language where localization has been implemented. The current supported values are `en` and `zh-CN`. `ADP_LANG` takes precedence over configuration for one-off commands, so users can run `ADP_LANG=zh-CN` in the current shell without editing `configs\local.json`. Unsupported values fall back to English.
+`platform.ui.language` controls user-facing installer and CLI language where localization has been implemented. The current supported values are `en` and `zh-CN`. `ADP_LANG` takes precedence over configuration for one-off commands, so users can run `ADP_LANG=zh-CN` in the current shell without editing `configs\local.json`. Unsupported values fall back to English.
 
 `platform.tools.mutagen` controls only the explicit `.\cli\adp.ps1 doctor -FixMutagen` remediation path. Use it when GitHub release downloads are slow or blocked:
 

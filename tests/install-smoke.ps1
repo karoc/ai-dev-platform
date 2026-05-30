@@ -9,19 +9,25 @@ $install = Join-Path $projectRoot "install.ps1"
 function Invoke-Install {
     param(
         [string[]]$Arguments,
-        [string]$UserProfile
+        [string]$UserProfile,
+        [hashtable]$Environment = @{}
     )
 
     $stdout = [System.IO.Path]::GetTempFileName()
     $stderr = [System.IO.Path]::GetTempFileName()
     try {
         $processArguments = @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $install) + $Arguments
+        $processEnvironment = @{ USERPROFILE = $UserProfile }
+        foreach ($name in $Environment.Keys) {
+            $processEnvironment[$name] = [string]$Environment[$name]
+        }
+
         $process = Start-Process -FilePath "pwsh" `
             -ArgumentList $processArguments `
             -NoNewWindow -Wait -PassThru `
             -RedirectStandardOutput $stdout `
             -RedirectStandardError $stderr `
-            -Environment @{ USERPROFILE = $UserProfile }
+            -Environment $processEnvironment
 
         $outText = Get-Content -LiteralPath $stdout -Raw -ErrorAction SilentlyContinue
         $errText = Get-Content -LiteralPath $stderr -Raw -ErrorAction SilentlyContinue
@@ -64,13 +70,14 @@ function Assert-Install {
         [string[]]$Arguments,
         [int]$ExitCode,
         [string[]]$Patterns,
+        [hashtable]$Environment = @{},
         [scriptblock]$Inspect = $null
     )
 
     $userProfile = Join-Path ([System.IO.Path]::GetTempPath()) ("adp-install-smoke-home-{0}" -f ([guid]::NewGuid().ToString("N")))
     New-Item -ItemType Directory -Path $userProfile -Force | Out-Null
     try {
-        $result = Invoke-Install -Arguments $Arguments -UserProfile $userProfile
+        $result = Invoke-Install -Arguments $Arguments -UserProfile $userProfile -Environment $Environment
         Assert-ExitCode -Name $Name -Result $result -Expected $ExitCode
         foreach ($pattern in $Patterns) {
             Assert-OutputContains -Name $Name -Result $result -Pattern $pattern
@@ -108,6 +115,24 @@ Assert-Install `
             }
         }
     }
+
+Assert-Install `
+    -Name "install zh-CN skip checks missing ISO guidance" `
+    -Arguments @("-SkipDependencyCheck", "-SkipVMValidation") `
+    -ExitCode 0 `
+    -Patterns @(
+        "阶段 1",
+        "\[1/6\] 检测平台",
+        "\[2/6\] 检查依赖",
+        "已通过 -SkipDependencyCheck 跳过依赖检查",
+        "未找到 ISO",
+        "或运行: \.\\install\.ps1 -IsoPath <path-to-iso>",
+        "已通过 -SkipVMValidation 跳过 VMware 验证",
+        "依赖检查已跳过",
+        "ADP-OS 阶段 1 平台引导完成",
+        "下一步:"
+    ) `
+    -Environment @{ ADP_LANG = "zh-CN" }
 
 Assert-Install `
     -Name "install missing explicit ISO fails" `

@@ -24,6 +24,7 @@
 
 ### 变更
 
+- 修复 `install.ps1` 未使用 CLI 同一套 `platform.ui.language` / `ADP_LANG` 语言偏好的问题。Phase 1 banner 现在会在加载本地配置后打印，主要 installer 阶段、ISO 提示、依赖摘要和下一步输出已有第一批简体中文覆盖。
 - 改进已有 Mutagen session 的 sync 诊断：`sync status` 现在会在原始 Mutagen 列表前显示 ADP runtime summary，`status` 会报告 unhealthy 或 endpoint 不匹配的 session，`doctor` 会把已创建 runtime 的不可用 session 作为 issue，`sync start <runtime>` 不再把同名 stale 或 halted session 当作成功。如果 stale session 对应的 runtime 尚未在当前 checkout 创建，ADP 现在会把它显示为 cleanup guidance，而不是当前平台健康失败。
 - 改进受限网络中的 Mutagen first-run 修复：`platform.tools.mutagen` 现在支持配置 download URL、显式 local archive path、可选 SHA256 archive verification，以及可配置 download timeouts。`doctor -FixMutagen -Plan` 会在任何下载或解压前显示这些输入，offline archive 仍然只保留在被忽略的 `.tools\mutagen` 下。
 - 在 autoinstall ISO remaster 阶段捕获 `xorriso` 输出，避免成功的 `adp up` 在 runtime-ready summary 之后被延迟的 ISO 工具日志污染；失败时仍会包含捕获到的工具细节。

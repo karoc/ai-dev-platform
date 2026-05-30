@@ -24,6 +24,7 @@ The project does not yet publish versioned releases. Entries are grouped by date
 
 ### Changed
 
+- Fixed `install.ps1` so installer output uses the same `platform.ui.language` / `ADP_LANG` preference as the CLI. The Phase 1 banner is now printed after local config is loaded, and the main installer phases, ISO guidance, dependency summaries, and next-step output have initial Simplified Chinese coverage.
 - Improved sync diagnostics for existing Mutagen sessions: `sync status` now prints an ADP runtime summary before the raw Mutagen list, `status` reports unhealthy or endpoint-mismatched sessions, `doctor` treats unusable sessions as issues for created runtimes, and `sync start <runtime>` no longer treats a same-name stale or halted session as success. If a stale session belongs to a runtime that has not been created in the current checkout, ADP now reports it as cleanup guidance instead of a current platform-health failure.
 - Improved Mutagen first-run remediation for restricted networks: `platform.tools.mutagen` now supports configurable download URL, explicit local archive path, optional SHA256 archive verification, and configurable download timeouts. `doctor -FixMutagen -Plan` shows these inputs before any download or extraction, and offline archives still remain under ignored `.tools\mutagen`.
 - Captured `xorriso` output during autoinstall ISO remastering so successful `adp up` output is not polluted by delayed ISO-tool logs after the runtime-ready summary, while failures still include captured tool details.
