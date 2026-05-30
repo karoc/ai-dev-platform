@@ -10,6 +10,7 @@
 
 ### 新增
 
+- 新增第一批运行时本地化基础能力：`platform.ui.language` 默认英文，被忽略的 `configs\local.json` 可以把本机设置为 `zh-CN`，`ADP_LANG=zh-CN` 可以在不编辑文件的情况下临时切换单次 CLI 调用。首批简体中文覆盖 `adp help`、未知命令输出和保留命令输出。
 - 新增由 CI 执行的本地配置边界检查，用于证明 first-run diagnostics、preview commands、failure diagnostics 和裸 `network configure-local` 不会在没有显式 `-Apply` 的情况下修改用户拥有的 `configs\local.json`，也不会创建 local config 备份。
 - 新增 `adp network configure-local [-Plan|-Apply]`，用于在创建 VM 前把被忽略的 `configs\local.json` 对齐到探测到的 host `VMnet8` NAT subnet。默认模式和 `-Plan` 都不会修改文件，会显示探测到的 host CIDR、目标 gateway/DNS、推导出的 runtime static IP，以及字段级 local config 变更。只有显式 `-Apply` 才会写入本机 override，并会把已有 `configs\local.json` 备份为 `configs\local.json.bak.<timestamp>`。`adp up` 和 `adp doctor` 现在会在 VMware NAT mismatch 阻断首次 VM 创建时给出两条修复路径：将 ADP 本机 override 对齐到 host `VMnet8`，或保留 ADP 配置的 subnet 并修改 VMware `VMnet8`。
 - 新增显式的本地 `checkpoint-waived` workspace task state，让高风险 task 可以在被忽略的本地 state 中记录人类已接受缺少 VM snapshot 保护的风险。Waived checkpoint 会显示在 `workspace status`、`workspace dashboard`、`workspace project`、`workspace report`、`workspace task review`、`workspace task rollback` 和 `workspace task commit` 中；它会解除 snapshot-first gate 的阻塞，但不会伪装成已有 VM snapshot，并且在没有确认 checkpoint 时 rollback 输出不会打印 VM restore 命令。

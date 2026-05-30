@@ -27,6 +27,7 @@ $init = Read-Text "cli\commands\init.ps1"
 $install = Read-Text "install.ps1"
 $factory = Read-Text "runtimes\vmware\vm-factory.ps1"
 $cli = Read-Text "cli\adp.ps1"
+$configModule = Read-Text "core\config\config.ps1"
 $logger = Read-Text "core\logging\logger.ps1"
 $logs = Read-Text "cli\commands\logs.ps1"
 $sync = Read-Text "cli\commands\sync.ps1"
@@ -84,6 +85,12 @@ Assert-Contains -Name "CLI help includes status command" -Text $cli -Pattern 'ad
 Assert-Contains -Name "CLI help includes workspace command" -Text $cli -Pattern 'adp workspace <init\|show\|plan\|status\|dashboard\|report\|recipes\|create\|open\|sync\|project\|task>'
 Assert-Contains -Name "CLI help includes capabilities command" -Text $cli -Pattern 'adp capabilities\s+Show supported and planned runtime capabilities'
 Assert-Contains -Name "CLI help includes local network configuration command" -Text $cli -Pattern 'adp network configure-local \[-Plan\|-Apply\]\s+Plan/apply local VMnet8 overrides'
+Assert-Contains -Name "configuration supports UI language preference" -Text $configModule -Pattern 'function\s+Get-UILanguage[\s\S]*ADP_LANG[\s\S]*config\.ui\.language[\s\S]*return "en"'
+Assert-Contains -Name "configuration normalizes Simplified Chinese language aliases" -Text $configModule -Pattern 'function\s+Normalize-UILanguage[\s\S]*"zh"\s*\{\s*return "zh-CN"[\s\S]*"zh-cn"\s*\{\s*return "zh-CN"[\s\S]*"zh_cn"\s*\{\s*return "zh-CN"'
+Assert-Contains -Name "CLI help supports Simplified Chinese" -Text $cli -Pattern 'Get-UILanguage[\s\S]*"zh-CN"[\s\S]*命令:[\s\S]*初始化平台[\s\S]*显示运行时状态[\s\S]*显示已支持和计划中的运行时能力'
+Assert-Contains -Name "CLI unknown command supports Simplified Chinese" -Text $cli -Pattern '未知命令: \$Command[\s\S]*可用命令:'
+Assert-Contains -Name "configuration docs explain CLI language preference" -Text $configurationDocs -Pattern 'platform\.ui\.language[\s\S]*Supported values are `en` and `zh-CN`[\s\S]*`ADP_LANG` takes precedence'
+Assert-Contains -Name "Chinese configuration docs explain CLI language preference" -Text $configurationDocsZh -Pattern 'platform\.ui\.language[\s\S]*当前支持的值为 `en` 和 `zh-CN`[\s\S]*`ADP_LANG` 优先级高于配置'
 Assert-Contains -Name "capabilities command documents supported and planned carriers" -Text (Read-Text "cli\commands\capabilities.ps1") -Pattern 'Capabilities only: no VMs[\s\S]*\[supported\] vmware-workstation[\s\S]*\[planned\] hyper-v[\s\S]*\[planned\] kvm-libvirt[\s\S]*\[planned\] macos-vm[\s\S]*Docker and dev containers are runtime-internal project tools today'
 Assert-Contains -Name "capabilities docs define support boundary" -Text $capabilitiesDocs -Pattern '## Runtime Carrier Matrix[\s\S]*VMware Workstation[\s\S]*Supported on Windows[\s\S]*Hyper-V[\s\S]*Not implemented[\s\S]*Docker and dev containers are runtime-internal project tools today'
 Assert-Contains -Name "Chinese capabilities docs define support boundary" -Text $capabilitiesDocsZh -Pattern '## 运行时承载矩阵[\s\S]*VMware Workstation[\s\S]*Windows 上已支持[\s\S]*Hyper-V[\s\S]*尚未实现[\s\S]*Docker 和 dev containers 当前是 runtime 内部项目工具'

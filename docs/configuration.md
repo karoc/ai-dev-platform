@@ -39,6 +39,23 @@ Default runtime user:
 
 The default password is used for local automated sudo during bootstrap. Change it before using ADP on shared or untrusted networks.
 
+CLI language:
+
+```json
+{
+  "ui": {
+    "language": "en"
+  }
+}
+```
+
+Supported values are `en` and `zh-CN`. The committed default remains English. Use ignored `configs\local.json` to make a machine use Simplified Chinese by default, or set `ADP_LANG=zh-CN` for one command without changing files:
+
+```powershell
+$env:ADP_LANG = "zh-CN"
+.\cli\adp.ps1 help
+```
+
 ## `topology.json`
 
 `configs\topology.json` defines runtime sizing and profiles.
@@ -115,6 +132,9 @@ Example:
       "admin_user": "adp",
       "admin_password": "change-this-local-password"
     },
+    "ui": {
+      "language": "zh-CN"
+    },
     "tools": {
       "mutagen": {
         "download_url": "https://github.com/mutagen-io/mutagen/releases/download/v0.18.1/mutagen_windows_amd64_v0.18.1.zip",
@@ -158,6 +178,8 @@ Supported top-level sections:
 Merging is recursive for JSON objects. Arrays and scalar values replace the default value, so local `sync_profiles.<name>.ignore` overrides should include every ignored path you still want to keep from the default profile. Empty `configs\local.json` files are ignored.
 
 `platform.defaults.iso_path` is resolved inside `platform.paths.iso_cache`. To import an ISO from any location, run `.\install.ps1 -IsoPath C:\path\to\ubuntu-26.04-live-server-amd64.iso`; the installer copies it into the configured ISO cache.
+
+`platform.ui.language` controls user-facing CLI language where localization has been implemented. The current supported values are `en` and `zh-CN`. `ADP_LANG` takes precedence over configuration for one-off commands, so users can run `ADP_LANG=zh-CN` in the current shell without editing `configs\local.json`. Unsupported values fall back to English.
 
 `platform.tools.mutagen` controls only the explicit `.\cli\adp.ps1 doctor -FixMutagen` remediation path. Use it when GitHub release downloads are slow or blocked:
 

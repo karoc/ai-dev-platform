@@ -7,6 +7,7 @@ $script:PlatformConfig = $null
 $script:TopologyConfig = $null
 $script:SyncProfiles = $null
 $script:LocalConfigStatus = $null
+$script:SupportedUILanguages = @("en", "zh-CN")
 
 function Read-JsonConfig {
     param([string]$Path)
@@ -120,6 +121,50 @@ function Get-PlatformConfig {
 
 function Get-LocalConfigStatus {
     return $script:LocalConfigStatus
+}
+
+function Get-SupportedUILanguages {
+    return $script:SupportedUILanguages
+}
+
+function Normalize-UILanguage {
+    param([string]$Language)
+
+    if ([string]::IsNullOrWhiteSpace($Language)) {
+        return "en"
+    }
+
+    $normalized = $Language.Trim()
+    switch ($normalized.ToLowerInvariant()) {
+        "en" { return "en" }
+        "en-us" { return "en" }
+        "zh" { return "zh-CN" }
+        "zh-cn" { return "zh-CN" }
+        "zh_cn" { return "zh-CN" }
+        default {
+            if ($normalized -in $script:SupportedUILanguages) {
+                return $normalized
+            }
+            return "en"
+        }
+    }
+}
+
+function Get-UILanguage {
+    $envLanguage = [System.Environment]::GetEnvironmentVariable("ADP_LANG")
+    if (-not [string]::IsNullOrWhiteSpace($envLanguage)) {
+        return Normalize-UILanguage $envLanguage
+    }
+
+    $config = Get-PlatformConfig
+    if ($config -and
+        $config.PSObject.Properties.Name -contains "ui" -and
+        $config.ui -and
+        $config.ui.PSObject.Properties.Name -contains "language") {
+        return Normalize-UILanguage ([string]$config.ui.language)
+    }
+
+    return "en"
 }
 
 function Get-TopologyConfig {

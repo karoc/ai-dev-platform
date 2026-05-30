@@ -10,6 +10,9 @@
       "admin_user": "adp",
       "admin_password": "adp"
     },
+    "ui": {
+      "language": "zh-CN"
+    },
     "tools": {
       "mutagen": {
         "download_url": "https://github.com/mutagen-io/mutagen/releases/download/v0.18.1/mutagen_windows_amd64_v0.18.1.zip",

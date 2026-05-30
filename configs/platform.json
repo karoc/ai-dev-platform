@@ -33,6 +33,9 @@
       "interface_match": "en*"
     }
   },
+  "ui": {
+    "language": "en"
+  },
   "features": {
     "vmware": true,
     "hyperv": false,

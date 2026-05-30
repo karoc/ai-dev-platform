@@ -7,11 +7,20 @@ $projectRoot = Split-Path $PSScriptRoot -Parent
 $cli = Join-Path $projectRoot "cli\adp.ps1"
 
 function Invoke-Cli {
-    param([string[]]$Arguments)
+    param(
+        [string[]]$Arguments,
+        [hashtable]$Environment = @{}
+    )
 
     $stdout = [System.IO.Path]::GetTempFileName()
     $stderr = [System.IO.Path]::GetTempFileName()
+    $previousEnvironment = @{}
     try {
+        foreach ($name in $Environment.Keys) {
+            $previousEnvironment[$name] = [System.Environment]::GetEnvironmentVariable($name, "Process")
+            [System.Environment]::SetEnvironmentVariable($name, [string]$Environment[$name], "Process")
+        }
+
         $processArguments = @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $cli) + $Arguments
         $process = Start-Process -FilePath "pwsh" `
             -ArgumentList $processArguments `
@@ -26,6 +35,9 @@ function Invoke-Cli {
             Output   = "$outText`n$errText"
         }
     } finally {
+        foreach ($name in $Environment.Keys) {
+            [System.Environment]::SetEnvironmentVariable($name, $previousEnvironment[$name], "Process")
+        }
         Remove-Item -LiteralPath $stdout, $stderr -Force -ErrorAction SilentlyContinue
     }
 }
@@ -59,10 +71,11 @@ function Assert-Command {
         [string]$Name,
         [string[]]$Arguments,
         [int]$ExitCode,
-        [string[]]$Patterns
+        [string[]]$Patterns,
+        [hashtable]$Environment = @{}
     )
 
-    $result = Invoke-Cli -Arguments $Arguments
+    $result = Invoke-Cli -Arguments $Arguments -Environment $Environment
     Assert-ExitCode -Name $Name -Result $result -Expected $ExitCode
     foreach ($pattern in $Patterns) {
         Assert-OutputContains -Name $Name -Result $result -Pattern $pattern
@@ -76,6 +89,13 @@ Assert-Command `
     -Patterns @("ADP-OS CLI", "adp up <runtime>", "adp capabilities")
 
 Assert-Command `
+    -Name "help zh-CN" `
+    -Arguments @("help") `
+    -ExitCode 0 `
+    -Patterns @("ADP-OS CLI", "命令:", "初始化平台", "显示运行时状态", "adp capabilities\s+显示已支持和计划中的运行时能力") `
+    -Environment @{ ADP_LANG = "zh-CN" }
+
+Assert-Command `
     -Name "capabilities" `
     -Arguments @("capabilities") `
     -ExitCode 0 `
@@ -86,6 +106,13 @@ Assert-Command `
     -Arguments @("not-a-command") `
     -ExitCode 1 `
     -Patterns @("Unknown command: not-a-command", "Valid commands:")
+
+Assert-Command `
+    -Name "unknown command zh-CN" `
+    -Arguments @("not-a-command") `
+    -ExitCode 1 `
+    -Patterns @("未知命令: not-a-command", "可用命令:") `
+    -Environment @{ ADP_LANG = "zh-CN" }
 
 Assert-Command `
     -Name "up unknown runtime" `

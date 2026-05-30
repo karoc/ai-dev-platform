@@ -93,6 +93,17 @@ function Assert-StringArray {
     }
 }
 
+function Assert-LanguageValue {
+    param(
+        [string]$Name,
+        [string]$Language
+    )
+
+    if ($Language -notin @("en", "zh-CN")) {
+        throw "$Name must be one of: en, zh-CN"
+    }
+}
+
 function Assert-RuntimeName {
     param(
         [string]$Name,
@@ -152,6 +163,7 @@ function Assert-PlatformConfig {
     Assert-Property -Name "platform.json" -Object $Config -Property "paths"
     Assert-Property -Name "platform.json" -Object $Config -Property "defaults"
     Assert-Property -Name "platform.json" -Object $Config -Property "network"
+    Assert-Property -Name "platform.json" -Object $Config -Property "ui"
     Assert-Property -Name "platform.json" -Object $Config -Property "features"
     Assert-Property -Name "platform.json" -Object $Config -Property "tools"
 
@@ -174,6 +186,9 @@ function Assert-PlatformConfig {
     Assert-StringProperty -Name "platform.json.network.vmware_nat" -Object $Config.network.vmware_nat -Property "gateway"
     Assert-StringArray -Name "platform.json.network.vmware_nat.dns" -Value $Config.network.vmware_nat.dns
     Assert-StringProperty -Name "platform.json.network.vmware_nat" -Object $Config.network.vmware_nat -Property "interface_match"
+
+    Assert-StringProperty -Name "platform.json.ui" -Object $Config.ui -Property "language"
+    Assert-LanguageValue -Name "platform.json.ui.language" -Language ([string]$Config.ui.language)
 
     foreach ($feature in @("vmware", "hyperv", "mutagen", "docker")) {
         Assert-BooleanProperty -Name "platform.json.features" -Object $Config.features -Property $feature
@@ -258,6 +273,11 @@ function Assert-LocalExample {
                 throw "configs/local.example.json frontend sync override should demonstrate preserving generated-artifact ignore: $expected"
             }
         }
+    }
+
+    if ($Config.PSObject.Properties.Name -contains "platform" -and $Config.platform.PSObject.Properties.Name -contains "ui") {
+        Assert-StringProperty -Name "configs/local.example.json.platform.ui" -Object $Config.platform.ui -Property "language"
+        Assert-LanguageValue -Name "configs/local.example.json.platform.ui.language" -Language ([string]$Config.platform.ui.language)
     }
 
     if ($Config.PSObject.Properties.Name -contains "platform" -and $Config.platform.PSObject.Properties.Name -contains "tools") {

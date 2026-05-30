@@ -39,6 +39,23 @@ ADP-OS 通过 `configs` 目录中的 JSON 文件进行配置。
 
 默认密码用于本地自动 sudo bootstrap。在共享或不可信网络中使用 ADP 前，请修改它。
 
+CLI 语言：
+
+```json
+{
+  "ui": {
+    "language": "en"
+  }
+}
+```
+
+支持的值为 `en` 和 `zh-CN`。已提交的默认值保持英文。可以使用被忽略的 `configs\local.json` 让本机默认使用简体中文，也可以为单次命令设置 `ADP_LANG=zh-CN`，无需修改文件：
+
+```powershell
+$env:ADP_LANG = "zh-CN"
+.\cli\adp.ps1 help
+```
+
 ## `topology.json`
 
 `configs\topology.json` 定义运行时规格和 profile。
@@ -115,6 +132,9 @@ Copy-Item configs\local.example.json configs\local.json
       "admin_user": "adp",
       "admin_password": "change-this-local-password"
     },
+    "ui": {
+      "language": "zh-CN"
+    },
     "tools": {
       "mutagen": {
         "download_url": "https://github.com/mutagen-io/mutagen/releases/download/v0.18.1/mutagen_windows_amd64_v0.18.1.zip",
@@ -158,6 +178,8 @@ Copy-Item configs\local.example.json configs\local.json
 JSON object 会递归合并。数组和标量值会替换默认值，因此本地 `sync_profiles.<name>.ignore` 覆盖应包含你仍然想保留的所有默认忽略路径。空的 `configs\local.json` 会被忽略。
 
 `platform.defaults.iso_path` 会在 `platform.paths.iso_cache` 内解析。如果要从任意位置导入 ISO，请运行 `.\install.ps1 -IsoPath C:\path\to\ubuntu-26.04-live-server-amd64.iso`；安装脚本会把它复制到配置的 ISO cache。
+
+`platform.ui.language` 控制已接入本地化的 CLI 用户可见语言。当前支持的值为 `en` 和 `zh-CN`。`ADP_LANG` 优先级高于配置，适合单次命令临时切换，因此用户可以在当前 shell 中设置 `ADP_LANG=zh-CN`，而不必编辑 `configs\local.json`。不支持的值会回退到英文。
 
 `platform.tools.mutagen` 只影响显式执行的 `.\cli\adp.ps1 doctor -FixMutagen` 修复路径。当 GitHub release 下载很慢或不可达时可以使用它：
 
