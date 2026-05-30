@@ -171,6 +171,20 @@ function Get-StatusSeedNetwork {
     }
 }
 
+function Write-StatusNetworkDriftRemediation {
+    param(
+        [string]$TargetRuntime,
+        [object]$SeedNetwork,
+        [string]$ConfiguredIp
+    )
+
+    Write-Host "  remediation:" -ForegroundColor Yellow
+    Write-Host "    1. Rebuild when the VM can be recreated: adp destroy $TargetRuntime -Plan, then recreate with adp up $TargetRuntime." -ForegroundColor Yellow
+    Write-Host "    2. In-place guest fix when the seed-era address is reachable: adp network apply $TargetRuntime -Plan." -ForegroundColor Yellow
+    Write-Host "    3. Admin-only temporary host-route workaround only to regain SSH to $($SeedNetwork.Address); ADP will not apply host routes automatically." -ForegroundColor Yellow
+    Write-Host "    Seed-era network: $($SeedNetwork.Address)/$($SeedNetwork.Prefix)$(if ($SeedNetwork.Gateway) { ', gateway ' + $SeedNetwork.Gateway } else { '' }); target: $ConfiguredIp." -ForegroundColor DarkGray
+}
+
 function Write-StatusRuntime {
     param(
         [string]$TargetRuntime,
@@ -186,12 +200,24 @@ function Write-StatusRuntime {
     $configuredIp = Get-RuntimeStaticIP $TargetRuntime
     $connectIp = if ($configuredIp) { $configuredIp } else { $state.DetectedIp }
     $port = if ($rt.PSObject.Properties.Name -contains "ssh_port" -and $rt.ssh_port) { [int]$rt.ssh_port } else { 22 }
-    $sshState = if ($state.Status -match "running") { Test-StatusSSHReachable -HostAddress $connectIp -Port $port } else { "skipped" }
     $syncState = Get-StatusSyncState -TargetRuntime $TargetRuntime -MutagenAvailable $MutagenAvailable
     $seedNetwork = Get-StatusSeedNetwork -TargetRuntime $TargetRuntime
     $alias = "adp-os-adp-$TargetRuntime"
     $workspaceRoot = Resolve-Path "workspace_root"
     $workspacePath = Join-Path $workspaceRoot $rt.workspace
+    $adpRunningVms = @()
+    if ($VmwareAvailable) {
+        $adpRunningVms = @(Get-ADPRunningRuntimeVMs -RunningVmxPaths $RunningVmxPaths -RuntimeName $TargetRuntime -ManagedVmxPath $state.VmxPath)
+    }
+    $duplicateRunningVms = @($adpRunningVms | Where-Object { -not $_.IsManagedByCurrentCheckout })
+    $hasDuplicateRunningVm = ($adpRunningVms.Count -gt 1 -or $duplicateRunningVms.Count -gt 0)
+    $sshState = if ($hasDuplicateRunningVm) {
+        "ambiguous-duplicate"
+    } elseif ($state.Status -match "running") {
+        Test-StatusSSHReachable -HostAddress $connectIp -Port $port
+    } else {
+        "skipped"
+    }
 
     Write-Host "$TargetRuntime" -ForegroundColor Yellow
     Write-Host "  status:        $($state.Status)" -ForegroundColor DarkGray
@@ -206,11 +232,20 @@ function Write-StatusRuntime {
     }
     if ($seedNetwork -and $configuredIp -and $seedNetwork.Address -and $seedNetwork.Address -ne $configuredIp) {
         Write-Host "  network drift: seed uses $($seedNetwork.Address)/$($seedNetwork.Prefix), current config uses $configuredIp" -ForegroundColor Red
-        Write-Host "  remediation:   rebuild this runtime or update guest networking from the seed-era address" -ForegroundColor Yellow
+        Write-StatusNetworkDriftRemediation -TargetRuntime $TargetRuntime -SeedNetwork $seedNetwork -ConfiguredIp $configuredIp
     }
     Write-Host "  ssh:           $sshState" -ForegroundColor DarkGray
     if ($sshState -eq "auth-pending") {
         Write-Host "  note:          SSH port is open, but the ADP key is not accepted yet. During autoinstall this usually means the installer or first boot is still preparing the target user." -ForegroundColor Yellow
+    }
+    if ($hasDuplicateRunningVm) {
+        Write-Host "  duplicate VM:  running ADP runtime name also found outside this checkout" -ForegroundColor Red
+        Write-Host "  current VMX:   $($state.VmxPath)" -ForegroundColor DarkGray
+        foreach ($vm in $adpRunningVms) {
+            $owner = if ($vm.IsManagedByCurrentCheckout) { "current checkout" } else { "other checkout or stale VM" }
+            Write-Host "  running VMX:   $($vm.NormalizedVmxPath) [$owner]" -ForegroundColor Yellow
+        }
+        Write-Host "  remediation:   stop or rename the stale duplicate before diagnosing SSH or network issues" -ForegroundColor Yellow
     }
     Write-Host "  sync:          $syncState" -ForegroundColor DarkGray
     Write-Host "  workspace:     $workspacePath" -ForegroundColor DarkGray

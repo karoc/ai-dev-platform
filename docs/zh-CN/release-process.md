@@ -55,6 +55,7 @@ Evidence 应显示：
 - Release decision。
 - Blockers、validation-required tasks、review-required tasks 和 release candidates。
 - Governance gaps。
+- Sync hygiene status，包括发布前必须 review 的 `review sync ignore` tasks。
 - 相关 task 的 validation status。
 - 高风险 agent work 的 snapshot gates。
 - Review、rollback 和 commit 的 handoff commands。

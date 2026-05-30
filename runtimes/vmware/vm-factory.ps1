@@ -877,18 +877,20 @@ function New-RuntimeVM {
     }
 
     # Start VM for provisioning
-    Write-Host "[4/5] Starting VM (autoinstall)..." -ForegroundColor Yellow
-    Write-Host "  This will take 15-45 minutes for automated OS installation." -ForegroundColor Yellow
-    Write-Host "  The VM will auto-install and reboot when ready." -ForegroundColor Yellow
+    Write-Host "[4/5] Starting VM (Ubuntu autoinstall)..." -ForegroundColor Yellow
+    Write-Host "  This starts a real guest OS installation. The next step is an install monitor, not a CLI hang." -ForegroundColor Yellow
+    Write-Host "  Typical duration: 15-45 minutes. Keep this window open until ready or timeout." -ForegroundColor DarkGray
+    Write-Host "  No manual SSH action is needed while install-monitor heartbeats say INSTALLING." -ForegroundColor DarkGray
+    Write-Host "  The VM will install Ubuntu, reboot, accept the ADP SSH key, then write a provision marker." -ForegroundColor DarkGray
 
     $startResult = Start-VM -VmxPath $vmxPath -Mode "nogui"
     if (-not $startResult.Success) {
         throw "Failed to start VM: $($startResult.StdErr)"
     }
-    Write-Host "  VM started — autoinstall in progress..." -ForegroundColor Green
+    Write-Host "  VM started; installer is running in VMware." -ForegroundColor Green
 
     # Wait for autoinstall to complete
-    Write-Host "[5/5] Waiting for autoinstall to complete..." -ForegroundColor Yellow
+    Write-Host "[5/5] Installing Ubuntu inside VM (watched wait, not stuck; repeated signals can be normal)..." -ForegroundColor Yellow
     $ready = Wait-AutoinstallComplete -VmxPath $vmxPath -RuntimeName $RuntimeName -TimeoutMinutes 60
 
     if ($ready) {
@@ -936,11 +938,18 @@ function Wait-AutoinstallComplete {
     $deadline = (Get-Date).AddMinutes($TimeoutMinutes)
     $startedAt = Get-Date
     $lastDetail = ""
+    $sameDetailCount = 0
     $sshKeyPath = Join-Path "$env:USERPROFILE\.ssh\adp-os" "adp-os"
 
-    Write-Host "  Waiting for Ubuntu autoinstall to finish (timeout: ${TimeoutMinutes}min)..." -ForegroundColor DarkGray
-    Write-Host "  This is a long-running OS install. Typical duration is 15-45 minutes." -ForegroundColor DarkGray
-    Write-Host "  ADP will poll SSH and confirm /home/adp/.adp-provisioned after the installed system reboots." -ForegroundColor DarkGray
+    Write-Host "  Install monitor active: INSTALLING Ubuntu in the VM; ADP is watching readiness, not stuck (timeout: ${TimeoutMinutes}min)." -ForegroundColor Yellow
+    Write-Host "  What you should see: an install-monitor heartbeat every ${CheckIntervalSeconds}s until the VM is provisioned." -ForegroundColor DarkGray
+    Write-Host "  Progress model: indeterminate OS install; VMware does not expose a reliable Ubuntu install percentage, so ADP reports real readiness signals." -ForegroundColor DarkGray
+    Write-Host "  Watch path: installer boot -> OS install -> reboot -> SSH auth-pending -> provision marker -> bootstrap." -ForegroundColor DarkGray
+    Write-Host "  Readiness signals checked every ${CheckIntervalSeconds}s: configured/static IP, VMware-reported IP, SSH key auth, /home/adp/.adp-provisioned." -ForegroundColor DarkGray
+    Write-Host "  Important: IP and SSH probe failures are readiness signals during install; they are not the primary status while the headline says INSTALLING." -ForegroundColor DarkGray
+    Write-Host "  Normal during install: the same signal can repeat for many checks while Ubuntu installs, reboots, or prepares the adp user." -ForegroundColor DarkGray
+    Write-Host "  User action: keep this command running. Do not SSH yet; inspect VMware console only if one signal repeats for about 20min or timeout is reached." -ForegroundColor DarkGray
+    Write-Host "  First readiness check in ${CheckIntervalSeconds}s..." -ForegroundColor DarkGray
 
     while ((Get-Date) -lt $deadline) {
         Start-Sleep -Seconds $CheckIntervalSeconds
@@ -952,7 +961,7 @@ function Wait-AutoinstallComplete {
 
         try {
             try {
-                $detectedIp = Get-VMIP $vmxPath
+                $detectedIp = Get-VMIPQuick -VmxPath $VmxPath -TimeoutSeconds 5
             } catch {}
 
             $candidateIps = @($configuredIp, $detectedIp) | Where-Object { $_ -and $_ -ne "0.0.0.0" -and $_ -notmatch "unknown" } | Select-Object -Unique
@@ -964,14 +973,14 @@ function Wait-AutoinstallComplete {
                     $sshExit = $LASTEXITCODE
                     $sshTest = ($sshOutput | Where-Object { $_ }) -join "`n"
                     if ($sshExit -eq 0 -and $sshTest) {
-                        Write-Host "  Provisioning confirmed at $ip!" -ForegroundColor Green
+                        Write-Host "  Ready: provision marker confirmed at $ip." -ForegroundColor Green
                         return $true
                     }
 
                     if ($sshExit -eq 255 -and $sshTest -match "Permission denied") {
-                        $probeDetails.Add("$label ${ip}: SSH is up, waiting for installed-system user/key and provision marker") | Out-Null
+                        $probeDetails.Add("$label ${ip}: auth-pending; SSH is up but installed-system user/key or provision marker is not ready") | Out-Null
                     } elseif ($sshExit -eq 255) {
-                        $probeDetails.Add("$label ${ip}: SSH not ready yet") | Out-Null
+                        $probeDetails.Add("$label ${ip}: SSH not ready yet; installer may still be booting, installing, or rebooting") | Out-Null
                     } else {
                         $probeDetails.Add("$label ${ip}: provision marker not ready yet") | Out-Null
                     }
@@ -984,26 +993,47 @@ function Wait-AutoinstallComplete {
         }
 
         if ($candidateIps.Count -eq 0) {
-            $probeDetails.Add("waiting for VMware Tools, DHCP, or static networking to report an address") | Out-Null
+            $probeDetails.Add("no guest IP observed yet; installer may still be booting, installing, or rebooting") | Out-Null
         }
 
         $elapsed = [math]::Round(((Get-Date) - $startedAt).TotalMinutes, 1)
         $remaining = [math]::Max(0, [math]::Round(($deadline - (Get-Date)).TotalMinutes, 1))
+        $nextCheck = [math]::Max(0, [math]::Round($CheckIntervalSeconds / 60, 1))
         $detail = (@($probeDetails) | Select-Object -Unique) -join "; "
         if ([string]::IsNullOrWhiteSpace($detail)) {
             $detail = "installer is still running"
         }
 
         if ($detail -ne $lastDetail) {
-            Write-Host "  Autoinstall in progress (${elapsed}min elapsed, ${remaining}min remaining): $detail" -ForegroundColor DarkGray
+            $sameDetailCount = 0
+            Write-Host "  [install monitor] INSTALLING Ubuntu in VM - watched wait, not stuck" -ForegroundColor Yellow
+            Write-Host "    status: state=installing activity=installing-ubuntu status=watching current-op=readiness-check wait-mode=watched progress=indeterminate user-action=keep-open diagnostics=vmware-console-after-20min phase=ubuntu-autoinstall" -ForegroundColor DarkGray
+            Write-Host "    time: expected=15-45min timeout=${TimeoutMinutes}min elapsed=${elapsed}min remaining=${remaining}min next-check=${nextCheck}min" -ForegroundColor DarkGray
+            Write-Host "    meaning: Ubuntu is still installing, rebooting, or preparing the installed-system user; ADP is watching for the provision marker." -ForegroundColor DarkGray
+            Write-Host "    readiness signals: $detail" -ForegroundColor DarkGray
+            Write-Host "    next: ADP will recheck readiness after ${nextCheck}min and start bootstrap automatically after the provision marker is confirmed." -ForegroundColor DarkGray
+            Write-Host "    action: keep this command running; no manual SSH is needed while the status is INSTALLING." -ForegroundColor DarkGray
             $lastDetail = $detail
         } else {
-            Write-Host "  Autoinstall still in progress (${elapsed}min elapsed, ${remaining}min remaining)." -ForegroundColor DarkGray
+            $sameDetailCount += 1
+            $sameMinutes = [math]::Round(($sameDetailCount * $CheckIntervalSeconds) / 60, 1)
+            Write-Host "  [install monitor] INSTALLING Ubuntu in VM - heartbeat active, repeated signal is normal" -ForegroundColor Yellow
+            Write-Host "    status: state=installing activity=installing-ubuntu status=watching current-op=readiness-check wait-mode=watched progress=indeterminate user-action=keep-open diagnostics=vmware-console-after-20min phase=ubuntu-autoinstall normal=yes unchanged-for=${sameMinutes}min" -ForegroundColor DarkGray
+            Write-Host "    time: expected=15-45min timeout=${TimeoutMinutes}min elapsed=${elapsed}min remaining=${remaining}min next-check=${nextCheck}min" -ForegroundColor DarkGray
+            Write-Host "    meaning: unchanged readiness signals are normal while Ubuntu installs, reboots, or prepares the adp user; this heartbeat means ADP is still watching the install." -ForegroundColor DarkGray
+            Write-Host "    readiness signals: $detail" -ForegroundColor DarkGray
+            Write-Host "    next: ADP will recheck readiness after ${nextCheck}min and start bootstrap automatically after the provision marker is confirmed." -ForegroundColor DarkGray
+            if ($sameMinutes -ge 20) {
+                Write-Host "    action: same signal has repeated for about ${sameMinutes}min; keep the command running, and inspect the VMware console if you need live installer detail." -ForegroundColor Yellow
+            } else {
+                Write-Host "    action: keep waiting; repeated signals are expected during this watched OS installation stage, and no manual SSH is needed." -ForegroundColor DarkGray
+            }
         }
     }
 
     Write-Host "  Autoinstall confirmation timed out after ${TimeoutMinutes}min." -ForegroundColor Yellow
-    Write-Host "  The VM may still be installing. Check VMware console, then run: adp status $RuntimeName" -ForegroundColor DarkGray
+    Write-Host "  The VM may still be installing, but ADP did not confirm the provision marker in time." -ForegroundColor DarkGray
+    Write-Host "  Next: check the VMware console for installer errors, then run: adp status $RuntimeName" -ForegroundColor DarkGray
     return $false
 }
 

@@ -104,7 +104,69 @@ function Get-RegisteredVMs {
 }
 
 function Get-RunningVMs {
+    # vmrun list returns only running VMs. Keep Get-RegisteredVMs as a compatibility alias for older callers.
     return Get-RegisteredVMs
+}
+
+function Normalize-VMXPath {
+    param([string]$VmxPath)
+
+    if ([string]::IsNullOrWhiteSpace($VmxPath)) {
+        return ""
+    }
+
+    try {
+        return [System.IO.Path]::GetFullPath($VmxPath)
+    } catch {
+        return $VmxPath
+    }
+}
+
+function Get-ADPRuntimeNameFromVmxPath {
+    param([string]$VmxPath)
+
+    if ([string]::IsNullOrWhiteSpace($VmxPath)) {
+        return ""
+    }
+
+    $leaf = [System.IO.Path]::GetFileName($VmxPath)
+    if ($leaf -match '^adp-(.+)\.vmx$') {
+        return $matches[1]
+    }
+
+    return ""
+}
+
+function Get-ADPRunningRuntimeVMs {
+    param(
+        [string[]]$RunningVmxPaths,
+        [string]$RuntimeName = "",
+        [string]$ManagedVmxPath = ""
+    )
+
+    $managedFull = Normalize-VMXPath -VmxPath $ManagedVmxPath
+    $items = [System.Collections.Generic.List[object]]::new()
+
+    foreach ($path in @($RunningVmxPaths)) {
+        $runtime = Get-ADPRuntimeNameFromVmxPath -VmxPath $path
+        if (-not $runtime) {
+            continue
+        }
+
+        if ($RuntimeName -and $runtime -ne $RuntimeName) {
+            continue
+        }
+
+        $full = Normalize-VMXPath -VmxPath $path
+        $items.Add([pscustomobject]@{
+            RuntimeName                = $runtime
+            VmxPath                    = $path
+            NormalizedVmxPath          = $full
+            IsManagedByCurrentCheckout = ($managedFull -and $full -eq $managedFull)
+        }) | Out-Null
+    }
+
+    return @($items)
 }
 
 function Get-VMStatus {
@@ -494,6 +556,23 @@ function Get-VMIP {
     }
 
     throw "Could not resolve VM IP for $VmxPath. Attempts: $($errors -join '; ')"
+}
+
+function Get-VMIPQuick {
+    param(
+        [string]$VmxPath,
+        [int]$TimeoutSeconds = 5
+    )
+
+    $probe = Invoke-Vmrun -Arguments @("getGuestIPAddress", $VmxPath) -TimeoutSeconds $TimeoutSeconds
+    if ($probe.Success) {
+        $ip = Select-VMIPv4FromText -Text $probe.StdOut
+        if ($ip) {
+            return $ip
+        }
+    }
+
+    return Get-VMIPFromDhcpLeases -VmxPath $VmxPath
 }
 
 function Run-GuestCommand {

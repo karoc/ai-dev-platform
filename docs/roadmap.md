@@ -30,8 +30,9 @@ The current public project is a Windows VMware MVP plus open-source hardening:
 - Snapshot create, restore, stop, logs, status, diagnostics, and plan previews.
 - Shared non-destructive validation through `tests\validate.ps1`.
 - Bilingual public documentation.
-- Workspace manifests, task recipes, validation recording, review gates, commit readiness, and Markdown release evidence.
+- Workspace manifests, recipes, local directory creation, project open/sync/project views, task lifecycle commands, milestone planning, evaluation planning, sync hygiene checks, validation recording, review gates, commit readiness, and Markdown release evidence.
 - Dev container metadata detection as runtime-internal project context.
+- A public capability boundary through `adp capabilities`.
 
 ## Near-Term Work
 
@@ -46,17 +47,25 @@ Near-term work focuses on making the public project safer and easier to use befo
 
 ## Workspace Orchestration
 
-Workspace orchestration is the next major product layer. The goal is to make ADP-OS useful for real projects, not only runtime startup.
+Workspace orchestration is the current major product layer. The goal is to make ADP-OS useful for real projects, not only runtime startup.
 
-Planned directions:
+Current public surface:
 
-- Workspace creation and project registration commands.
-- Per-project sync lifecycle views.
-- Runtime, project, validation, and task dashboards.
-- Validation recipes that can be previewed, executed intentionally, recorded, and reviewed.
-- Snapshot naming tied to tasks, milestones, and rollback intent.
-- Clear separation between planning, execution, review, rollback, and commit.
-- Better support for existing project environment metadata, including `.devcontainer/devcontainer.json` and `.devcontainer.json`.
+- Workspace manifests with projects, tasks, milestones, evaluations, validation commands, review metadata, and snapshot intent.
+- `workspace create [-Plan]` for manifest-declared local project directories. Execution creates missing local directories only; it does not clone repositories, start runtimes, start sync, open SSH, create snapshots, run validation, run evaluation commands, or run Git.
+- `workspace open`, `workspace sync`, and `workspace project` views that turn one project entry into explicit local, runtime, sync, validation, and evidence handoff steps without performing those actions.
+- `workspace status`, `workspace dashboard`, and `workspace report` views for runtime, project, sync hygiene, validation, evaluation, milestone, task, review, rollback, and commit readiness.
+- `workspace report -Markdown` for copyable pull request, release, or maintainer handoff evidence.
+- Validation recipes that can be previewed, executed intentionally through `workspace task validate <task> -Execute`, recorded in ignored local state, and reviewed later.
+- Snapshot naming tied to tasks, milestones, and rollback intent through non-blocking convention checks.
+- Dev container metadata detection for `.devcontainer/devcontainer.json` and `.devcontainer.json` as runtime-internal project context.
+
+Remaining directions:
+
+- Evolve project registration from local directory creation into safer clone/import guidance without hiding Git operations.
+- Improve workspace evidence quality as real projects expose gaps in validation, review, rollback, and sync workflows.
+- Keep tightening generated-artifact sync defaults and review ergonomics for common stacks.
+- Explore stronger project-environment integration while keeping Docker, Docker Compose, and dev containers as inner tools.
 
 Non-goals:
 
@@ -68,18 +77,27 @@ Non-goals:
 
 ADP-OS is designed for AI-assisted and agent-native development, but broad autonomous execution must remain gated by clear safety boundaries.
 
-Planned directions:
+Current public surface:
 
-- Task lifecycle commands that make preparation, execution, validation, review, rollback, and commit state explicit.
-- Snapshot-first gates for high-risk or destructive tasks.
-- Validation evidence that can be copied into pull requests or release notes.
-- Review bundles that show source-review prompts, validation results, rollback context, and commit readiness.
-- Runtime profiles that make it clear when a workload has elevated IO, package installation, Docker access, or broad filesystem access.
-- Future task execution support only after preview, snapshot, validation, review, and rollback boundaries are strong enough.
+- Task lifecycle commands for prepare, snapshot, run guidance, validate, review, rollback guidance, commit guidance, and local state marking.
+- Snapshot-first gates for high-risk or destructive tasks, including explicit local `checkpoint-waived` state when a human reviewer accepts missing VM snapshot protection.
+- Validation evidence that can be recorded by explicit task validation execution and copied into reports or Markdown release evidence.
+- Review bundles that show source-review prompts, sync hygiene, validation results, evaluation links, rollback context, and commit readiness.
+- Milestone and evaluation planning surfaces that make broader agent-native review criteria visible without executing evaluation commands.
+- Runtime profile language that makes elevated agent IO and snapshot recommendations visible.
+
+Remaining directions:
+
+- Keep broad task execution plan-only until preview, snapshot, validation, review, rollback, and commit boundaries are strong enough across real projects.
+- Dogfood evaluation hooks and report evidence against more project shapes before adding evaluation execution.
+- Improve human review bundles and release evidence from real maintainer and contributor workflows.
+- Explore richer runtime profiles only when their security and rollback boundaries can be explained and tested.
 
 ## Runtime Expansion
 
 ADP-OS currently targets Windows plus VMware Workstation. Future runtime expansion should preserve the same user-facing lifecycle while moving host-specific behavior behind adapters.
+
+For the current supported and planned capability boundary, run `.\cli\adp.ps1 capabilities` or see [Capabilities](capabilities.md). That boundary is authoritative for what is available today; this roadmap remains directional.
 
 Candidate directions:
 

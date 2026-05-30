@@ -194,19 +194,24 @@ Examples:
 ```
 
 See [Workspaces](docs/workspaces.md) for target-project layout and ADP-OS dogfooding guidance.
-See [Roadmap](docs/roadmap.md) for the public product direction across workspace orchestration, agent-native development, and runtime expansion. See [Release Readiness](docs/release-readiness.md) for the release decision policy, stale-task remediation flow, and maintainer checklist. See [Release Process](docs/release-process.md) for validation, evidence, safety checks, and publication boundaries. See [Contributor Workflows](docs/contributor-workflows.md) for task templates, maintainer review ritual, and pull request expectations.
+See [Capabilities](docs/capabilities.md) for the current supported runtime and adapter boundary. See [Roadmap](docs/roadmap.md) for the public product direction across workspace orchestration, agent-native development, and runtime expansion. See [Release Readiness](docs/release-readiness.md) for the release decision policy, stale-task remediation flow, and maintainer checklist. See [Release Process](docs/release-process.md) for validation, evidence, safety checks, and publication boundaries. See [Contributor Workflows](docs/contributor-workflows.md) for task templates, maintainer review ritual, and pull request expectations.
 
 ADP-OS also includes a multi-scenario workspace recipes manifest for common agent-native workflows:
 
 ```powershell
 .\cli\adp.ps1 workspace show -ManifestPath configs\workspace.recipes.example.json
 .\cli\adp.ps1 workspace plan -ManifestPath configs\workspace.recipes.example.json
+.\cli\adp.ps1 workspace recipes -ManifestPath configs\workspace.recipes.example.json
+.\cli\adp.ps1 workspace create -Plan -ManifestPath configs\workspace.recipes.example.json
+.\cli\adp.ps1 workspace open frontend-app -ManifestPath configs\workspace.recipes.example.json
+.\cli\adp.ps1 workspace sync frontend-app -ManifestPath configs\workspace.recipes.example.json
+.\cli\adp.ps1 workspace project frontend-app -ManifestPath configs\workspace.recipes.example.json
 .\cli\adp.ps1 workspace dashboard -ManifestPath configs\workspace.recipes.example.json
 .\cli\adp.ps1 workspace report -ManifestPath configs\workspace.recipes.example.json
 .\cli\adp.ps1 workspace report -Markdown -ManifestPath configs\workspace.recipes.example.json
 ```
 
-The recipes cover low-risk maintenance, frontend browser acceptance, backend validation, and high-risk agent work with a snapshot-first gate. `workspace report` also prints a release handoff summary that counts validation results, lists blockers, shows tasks ready for review or commit, names the current release gate, and exposes task governance fields such as owner, review cadence, and due date. It also groups tasks into owner queues, review cadence queues, an attention queue for recurring review, decision queues for actions such as validate, review, revise, snapshot, or commit, a release decision policy, and stale-task remediation guidance. Add `-Markdown` to generate copyable PR or release evidence with the same decision state. The recipes are planning examples only; the workspace commands do not install packages, download browsers, create snapshots, run validation, or commit files.
+The recipes cover low-risk maintenance, frontend browser acceptance, backend validation, and high-risk agent work with a snapshot-first gate. They also demonstrate optional `milestones[]` planning so related tasks can share a visible milestone checkpoint such as `milestone-agent-refactor-safety`, plus plan-only `evaluations[]` hooks so agent-native review criteria, metrics, and declared evaluation commands can appear in release evidence without being executed. `workspace recipes` is the discovery view for these examples: it summarizes project recipes, task recipes, milestone checkpoints, evaluation hooks, and evidence commands without cloning projects, opening SSH, creating snapshots, running validation, running evaluation commands, starting sync, or running Git. `workspace create -Plan` previews local project directories declared by the manifest; `workspace create` creates only those local directories and still does not clone projects, start sync, start runtimes, open SSH, create snapshots, run validation, run evaluation commands, or run Git. `workspace open` prints a non-destructive open guide for one project: local path, remote path, readiness, and copyable local, editor, SSH, sync, and status commands. `workspace sync` prints a non-destructive project-aware sync guide: it maps the manifest project back to the runtime sync session, shows sync readiness and sync hygiene, and prints the runtime `adp sync` commands to run explicitly. `workspace project` prints the project operational lifecycle in one place: open, runtime, sync, validation, linked tasks, and evidence handoff. `workspace report` also prints a release handoff summary that counts validation results, lists blockers, shows tasks ready for review or commit, names the current release gate, exposes milestone checkpoint status, exposes evaluation queue status, and exposes task governance fields such as owner, review cadence, and due date. It also groups tasks into owner queues, review cadence queues, milestone queues, milestone review rollups, a validation execution queue, an evaluation queue, an attention queue for recurring review, decision queues for actions such as validate, review, revise, snapshot, or commit, a release decision policy, and stale-task remediation guidance. Add `-Markdown` to generate copyable PR or release evidence with the same decision state, including Validation Execution Queue, Evaluation Queue, Milestone Checkpoints, and Milestone Review Rollup tables. The recipes are planning examples only; the workspace commands do not install packages, download browsers, create snapshots, run validation, run evaluation commands, open editors, SSH into runtimes, start sync, stop sync, or commit files.
 
 Validation can be executed explicitly from a task recipe:
 
@@ -224,6 +229,7 @@ Validation can be executed explicitly from a task recipe:
 .\cli\adp.ps1 init <frontend|backend|agent> [-IsoPath <path>] [-SkipProvision]
 .\cli\adp.ps1 up <frontend|backend|agent> [-IsoPath <path>] [-Plan] [-NoProvision] [-NoBootstrap]
 .\cli\adp.ps1 status [frontend|backend|agent]
+.\cli\adp.ps1 capabilities
 .\cli\adp.ps1 stop <frontend|backend|agent>
 .\cli\adp.ps1 sync status
 .\cli\adp.ps1 workspace init
@@ -231,11 +237,16 @@ Validation can be executed explicitly from a task recipe:
 .\cli\adp.ps1 workspace plan
 .\cli\adp.ps1 workspace status
 .\cli\adp.ps1 workspace dashboard
+.\cli\adp.ps1 workspace recipes
+.\cli\adp.ps1 workspace create [-Plan]
+.\cli\adp.ps1 workspace open [project-name]
+.\cli\adp.ps1 workspace sync [project-name]
+.\cli\adp.ps1 workspace project [project-name]
 .\cli\adp.ps1 workspace report
 .\cli\adp.ps1 workspace report [-Markdown]
 .\cli\adp.ps1 workspace task <prepare|snapshot|run|validate|review|rollback|commit> <task-name>
 .\cli\adp.ps1 workspace task validate <task-name> [-Execute] [-Plan]
-.\cli\adp.ps1 workspace task mark <task-name> <prepared|checkpointed|running|validated|reviewed|rollback|committed>
+.\cli\adp.ps1 workspace task mark <task-name> <prepared|checkpointed|checkpoint-waived|running|validated|reviewed|rollback|committed>
 .\cli\adp.ps1 sync start <frontend|backend|agent>
 .\cli\adp.ps1 sync stop <frontend|backend|agent>
 .\cli\adp.ps1 network apply <frontend|backend|agent|all> [-Plan]
@@ -253,6 +264,7 @@ Validation can be executed explicitly from a task recipe:
 - [Architecture](docs/architecture.md)
 - [Configuration](docs/configuration.md)
 - [Workspaces](docs/workspaces.md)
+- [Capabilities](docs/capabilities.md)
 - [Roadmap](docs/roadmap.md)
 - [Release Readiness](docs/release-readiness.md)
 - [Release Process](docs/release-process.md)

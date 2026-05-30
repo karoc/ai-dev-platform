@@ -10,6 +10,7 @@
 - [操作指南](operations.md)：日常运行时命令和工作流。
 - [配置说明](configuration.md)：平台、拓扑、同步和本地覆盖配置。
 - [工作区](workspaces.md)：目标项目应该放在哪里，以及如何安全地 dogfood ADP-OS。
+- [能力边界](capabilities.md)：已支持和计划中的 runtime carriers、host adapters，以及内层环境边界。
 - [路线图](roadmap.md)：公开产品方向、当前阶段，以及未来 workspace、agent 和 runtime expansion 方向。
 - [发布就绪](release-readiness.md)：release decision policy、task governance 和维护者 checklist。
 - [发布流程](release-process.md)：validation、release evidence、safety checks 和 publication boundaries。

@@ -33,7 +33,7 @@ Expected flow:
 2. Run `adp workspace task validate docs-copy-edit -Execute` when the plan is correct.
 3. Run `adp workspace task review docs-copy-edit`.
 4. Mark reviewed only after source review is accepted.
-5. Commit only when `workspace report` shows `ready to commit` and `release candidate`.
+5. Commit only when sync hygiene is reviewed and `workspace report` shows `ready to commit` and `release candidate`.
 
 ### Frontend Browser Acceptance
 
@@ -111,11 +111,11 @@ Expected flow:
 Expected flow:
 
 1. Run `adp workspace task snapshot broad-agent-refactor`.
-2. Create the checkpoint before broad agent execution.
+2. Create the checkpoint before broad agent execution. Use `before-<task-name>` for task-scoped checkpoints or `milestone-<name>` for broader checkpoints.
 3. Keep execution manual and explicit.
 4. Run validation after the task.
 5. Review source diff, rollback path, and recorded validation before marking reviewed.
-6. Commit only when the snapshot gate is ready, validation passed, review is recorded, and `workspace report` shows `release candidate`.
+6. Commit only when sync hygiene is reviewed, the snapshot gate is ready, validation passed, review is recorded, and `workspace report` shows `release candidate`.
 
 ## Maintainer Review Ritual
 
@@ -126,9 +126,10 @@ Use this repeatable ritual before accepting a contribution:
 3. Run `adp workspace report -Markdown` when the decision needs to be copied into a pull request, release note, or handoff.
 4. Resolve the report in this order: `release blocked`, `validation required`, `review required`, `governance incomplete`, `release candidate`.
 5. Ask the contributor to fill missing owner, review cadence, due date, validation, or snapshot metadata when the report shows governance gaps.
-6. Require a recorded passing validation result before review acceptance.
-7. Require an explicit snapshot gate for high-risk agent work.
-8. Keep rollback and commit as manual maintainer-controlled boundaries.
+6. Resolve any `review sync ignore` item before review acceptance or commit.
+7. Require a recorded passing validation result before review acceptance.
+8. Require an explicit snapshot gate for high-risk agent work, and check that the snapshot name communicates task or milestone rollback intent.
+9. Keep rollback and commit as manual maintainer-controlled boundaries.
 
 ## Pull Request Expectations
 
@@ -138,6 +139,7 @@ Pull requests should include:
 - The `workspace report` release decision, preferably from `workspace report -Markdown` when the change affects workflows, runtimes, validation, docs, or release readiness.
 - Validation commands run and whether they were executed through `adp workspace task validate -Execute`.
 - Review status and any unresolved stale-task remediation items.
+- Sync hygiene status, especially any `review sync ignore` decision.
 - Confirmation that README and Simplified Chinese docs were updated together when relevant.
 - Confirmation that no local state, VM artifacts, credentials, ISO files, downloaded tools, or private maintainer files are included.
 

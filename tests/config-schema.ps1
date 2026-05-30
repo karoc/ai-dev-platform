@@ -210,6 +210,22 @@ function Assert-SyncProfiles {
         Assert-PositiveIntProperty -Name "sync-profiles.json.$profileName" -Object $profile -Property "sync_interval_ms"
         Assert-StringArray -Name "sync-profiles.json.$profileName.ignore" -Value $profile.ignore
     }
+
+    $requiredIgnores = @{
+        frontend = @("node_modules", ".next", "dist", "build", "coverage", ".turbo", ".cache", ".parcel-cache", ".vite", ".nuxt", ".svelte-kit", "playwright-report", "test-results", "blob-report", ".playwright")
+        backend  = @("dist", "build", "coverage", "__pycache__", ".venv", "venv", ".mypy_cache", ".ruff_cache", "*.pyc", ".pytest_cache", ".cache", ".tox", ".nox", ".coverage", "htmlcov")
+        agent    = @("node_modules", ".git", ".venv", "venv", "dist", ".next", "build", "coverage", "__pycache__", ".pytest_cache", ".mypy_cache", ".ruff_cache", ".cache", ".turbo", ".parcel-cache", ".vite", ".nuxt", ".svelte-kit", ".playwright", "playwright-report", "test-results", "blob-report", ".codex", ".claude", ".tools", "logs")
+    }
+
+    foreach ($profileName in $requiredIgnores.Keys) {
+        Assert-Property -Name "sync-profiles.json" -Object $Config -Property $profileName
+        $ignore = @($Config.$profileName.ignore | ForEach-Object { [string]$_ })
+        foreach ($expected in $requiredIgnores[$profileName]) {
+            if ($expected -notin $ignore) {
+                throw "sync-profiles.json.$profileName.ignore is missing expected generated-artifact ignore: $expected"
+            }
+        }
+    }
 }
 
 function Assert-LocalExample {
@@ -219,6 +235,15 @@ function Assert-LocalExample {
     foreach ($section in $Config.PSObject.Properties.Name) {
         if ($section -notin $supportedSections) {
             throw "configs/local.example.json contains unsupported top-level section: $section"
+        }
+    }
+
+    if ($Config.PSObject.Properties.Name -contains "sync_profiles" -and $Config.sync_profiles.PSObject.Properties.Name -contains "frontend") {
+        $frontendIgnore = @($Config.sync_profiles.frontend.ignore | ForEach-Object { [string]$_ })
+        foreach ($expected in @("node_modules", ".next", "dist", "build", "coverage", ".turbo", ".cache", "playwright-report", "test-results", "blob-report", ".playwright")) {
+            if ($expected -notin $frontendIgnore) {
+                throw "configs/local.example.json frontend sync override should demonstrate preserving generated-artifact ignore: $expected"
+            }
         }
     }
 }
@@ -235,6 +260,9 @@ function Assert-WorkspaceManifest {
     Assert-Property -Name $Name -Object $Manifest -Property "tasks"
 
     $projectNames = [System.Collections.Generic.HashSet[string]]::new()
+    $taskNames = [System.Collections.Generic.HashSet[string]]::new()
+    $milestoneNames = [System.Collections.Generic.HashSet[string]]::new()
+    $evaluationNames = [System.Collections.Generic.HashSet[string]]::new()
     foreach ($project in @($Manifest.projects)) {
         Assert-StringProperty -Name "$Name.projects[]" -Object $project -Property "name"
         Assert-StringProperty -Name "$Name.projects[$($project.name)]" -Object $project -Property "path"
@@ -253,6 +281,9 @@ function Assert-WorkspaceManifest {
 
     foreach ($task in @($Manifest.tasks)) {
         Assert-StringProperty -Name "$Name.tasks[]" -Object $task -Property "name"
+        if (-not $taskNames.Add([string]$task.name)) {
+            throw "$Name has duplicate task name: $($task.name)"
+        }
         Assert-StringProperty -Name "$Name.tasks[$($task.name)]" -Object $task -Property "runtime"
         Assert-RuntimeName -Name "$Name.tasks[$($task.name)].runtime" -Runtime ([string]$task.runtime)
         Assert-StringArray -Name "$Name.tasks[$($task.name)].validation" -Value $task.validation
@@ -271,6 +302,91 @@ function Assert-WorkspaceManifest {
         $requiresSnapshot = ($task.PSObject.Properties.Name -contains "requires_snapshot" -and [bool]$task.requires_snapshot)
         if ($requiresSnapshot) {
             Assert-StringProperty -Name "$Name.tasks[$($task.name)]" -Object $task -Property "snapshot"
+        }
+    }
+
+    if ($Manifest.PSObject.Properties.Name -contains "milestones") {
+        foreach ($milestone in @($Manifest.milestones)) {
+            Assert-StringProperty -Name "$Name.milestones[]" -Object $milestone -Property "name"
+            if (-not $milestoneNames.Add([string]$milestone.name)) {
+                throw "$Name has duplicate milestone name: $($milestone.name)"
+            }
+
+            if ($milestone.PSObject.Properties.Name -contains "description" -and [string]::IsNullOrWhiteSpace([string]$milestone.description)) {
+                throw "$Name.milestones[$($milestone.name)].description must be a non-empty string when present"
+            }
+
+            if ($milestone.PSObject.Properties.Name -contains "runtime") {
+                Assert-StringProperty -Name "$Name.milestones[$($milestone.name)]" -Object $milestone -Property "runtime"
+                Assert-RuntimeName -Name "$Name.milestones[$($milestone.name)].runtime" -Runtime ([string]$milestone.runtime)
+            }
+
+            if ($milestone.PSObject.Properties.Name -contains "snapshot") {
+                Assert-StringProperty -Name "$Name.milestones[$($milestone.name)]" -Object $milestone -Property "snapshot"
+            }
+
+            if ($milestone.PSObject.Properties.Name -contains "tasks") {
+                Assert-StringArray -Name "$Name.milestones[$($milestone.name)].tasks" -Value $milestone.tasks
+                foreach ($taskName in @($milestone.tasks)) {
+                    if (-not $taskNames.Contains([string]$taskName)) {
+                        throw "$Name.milestones[$($milestone.name)].tasks references unknown task: $taskName"
+                    }
+                }
+            }
+        }
+    }
+
+    if ($Manifest.PSObject.Properties.Name -contains "evaluations") {
+        foreach ($evaluation in @($Manifest.evaluations)) {
+            Assert-StringProperty -Name "$Name.evaluations[]" -Object $evaluation -Property "name"
+            if (-not $evaluationNames.Add([string]$evaluation.name)) {
+                throw "$Name has duplicate evaluation name: $($evaluation.name)"
+            }
+
+            if ($evaluation.PSObject.Properties.Name -contains "description" -and [string]::IsNullOrWhiteSpace([string]$evaluation.description)) {
+                throw "$Name.evaluations[$($evaluation.name)].description must be a non-empty string when present"
+            }
+
+            if ($evaluation.PSObject.Properties.Name -contains "project" -and -not [string]::IsNullOrWhiteSpace([string]$evaluation.project)) {
+                if (-not $projectNames.Contains([string]$evaluation.project)) {
+                    throw "$Name.evaluations[$($evaluation.name)].project references unknown project: $($evaluation.project)"
+                }
+            }
+
+            if ($evaluation.PSObject.Properties.Name -contains "runtime") {
+                Assert-StringProperty -Name "$Name.evaluations[$($evaluation.name)]" -Object $evaluation -Property "runtime"
+                Assert-RuntimeName -Name "$Name.evaluations[$($evaluation.name)].runtime" -Runtime ([string]$evaluation.runtime)
+            }
+
+            if ($evaluation.PSObject.Properties.Name -contains "cadence" -and [string]::IsNullOrWhiteSpace([string]$evaluation.cadence)) {
+                throw "$Name.evaluations[$($evaluation.name)].cadence must be a non-empty string when present"
+            }
+
+            Assert-StringArray -Name "$Name.evaluations[$($evaluation.name)].metrics" -Value $evaluation.metrics
+            Assert-StringArray -Name "$Name.evaluations[$($evaluation.name)].commands" -Value $evaluation.commands
+
+            if ($evaluation.PSObject.Properties.Name -contains "tasks") {
+                Assert-StringArray -Name "$Name.evaluations[$($evaluation.name)].tasks" -Value $evaluation.tasks
+                foreach ($taskName in @($evaluation.tasks)) {
+                    if (-not $taskNames.Contains([string]$taskName)) {
+                        throw "$Name.evaluations[$($evaluation.name)].tasks references unknown task: $taskName"
+                    }
+                }
+            }
+        }
+    }
+
+    foreach ($task in @($Manifest.tasks)) {
+        if ($task.PSObject.Properties.Name -contains "milestone" -and -not [string]::IsNullOrWhiteSpace([string]$task.milestone)) {
+            if (-not $milestoneNames.Contains([string]$task.milestone)) {
+                throw "$Name.tasks[$($task.name)].milestone references unknown milestone: $($task.milestone)"
+            }
+        }
+
+        if ($task.PSObject.Properties.Name -contains "evaluation" -and -not [string]::IsNullOrWhiteSpace([string]$task.evaluation)) {
+            if (-not $evaluationNames.Contains([string]$task.evaluation)) {
+                throw "$Name.tasks[$($task.name)].evaluation references unknown evaluation: $($task.evaluation)"
+            }
         }
     }
 }

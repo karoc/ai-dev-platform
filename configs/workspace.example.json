@@ -15,9 +15,43 @@
       ]
     }
   ],
+  "milestones": [
+    {
+      "name": "agent-safety-baseline",
+      "description": "Checkpoint before broad agent work changes the project.",
+      "runtime": "agent",
+      "snapshot": "milestone-agent-safety-baseline",
+      "tasks": [
+        "before-large-agent-task"
+      ]
+    }
+  ],
+  "evaluations": [
+    {
+      "name": "agent-change-evaluation",
+      "description": "Plan-only evaluation hook for broad agent changes.",
+      "project": "app",
+      "runtime": "agent",
+      "cadence": "per-task",
+      "metrics": [
+        "tests-pass",
+        "diff-reviewed",
+        "rollback-ready"
+      ],
+      "commands": [
+        "pnpm test",
+        "git diff --check"
+      ],
+      "tasks": [
+        "before-large-agent-task"
+      ]
+    }
+  ],
   "tasks": [
     {
       "name": "before-large-agent-task",
+      "milestone": "agent-safety-baseline",
+      "evaluation": "agent-change-evaluation",
       "runtime": "agent",
       "risk": "high",
       "owner": "platform-maintainer",

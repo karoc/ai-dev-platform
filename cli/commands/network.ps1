@@ -121,6 +121,43 @@ function Test-RuntimeSSH {
     return ($LASTEXITCODE -eq 0 -and $result -eq "ok")
 }
 
+function Get-NetworkSeedNetwork {
+    param([string]$TargetRuntime)
+
+    $vmStore = Resolve-Path "vm_store"
+    $seedUserData = Join-Path $vmStore "seeds\$TargetRuntime\user-data"
+    if (-not (Test-Path -LiteralPath $seedUserData)) {
+        return $null
+    }
+
+    $text = Get-Content -LiteralPath $seedUserData -Raw -ErrorAction SilentlyContinue
+    if ([string]::IsNullOrWhiteSpace($text)) {
+        return $null
+    }
+
+    $address = ""
+    $prefix = ""
+    $gateway = ""
+    if ($text -match '(?m)^\s*-\s*((?:\d{1,3}\.){3}\d{1,3})/(\d{1,2})\s*$') {
+        $address = $matches[1]
+        $prefix = $matches[2]
+    }
+    if ($text -match '(?m)^\s*via:\s*((?:\d{1,3}\.){3}\d{1,3})\s*$') {
+        $gateway = $matches[1]
+    }
+
+    if (-not $address -and -not $gateway) {
+        return $null
+    }
+
+    return [pscustomobject]@{
+        Address = $address
+        Prefix  = $prefix
+        Gateway = $gateway
+        Path    = $seedUserData
+    }
+}
+
 function Wait-RuntimeSSH {
     param(
         [string]$HostAddress,
@@ -151,6 +188,7 @@ function Apply-RuntimeNetwork {
     $rt = Get-RuntimeConfig $TargetRuntime
     $network = Get-ConfiguredNetwork -TargetRuntime $TargetRuntime
     $netplan = New-NetplanConfig -Network $network
+    $seedNetwork = Get-NetworkSeedNetwork -TargetRuntime $TargetRuntime
 
     $vmStore = Resolve-Path "vm_store"
     $vmName = "adp-$TargetRuntime"
@@ -166,6 +204,10 @@ function Apply-RuntimeNetwork {
         $currentIp = Get-VMIP $vmxPath
     } catch {}
 
+    if (-not $currentIp -and $seedNetwork -and $seedNetwork.Address -and $seedNetwork.Address -ne $network.Address) {
+        $currentIp = $seedNetwork.Address
+    }
+
     if (-not $currentIp) {
         $currentIp = $network.Address
     }
@@ -177,6 +219,13 @@ function Apply-RuntimeNetwork {
 
     if ($PlanOnly) {
         Write-Host "  Plan only: no guest files will be changed." -ForegroundColor Cyan
+        if ($seedNetwork -and $seedNetwork.Address -and $seedNetwork.Address -ne $network.Address) {
+            Write-Host "  Network drift detected: seed uses $($seedNetwork.Address)/$($seedNetwork.Prefix), target is $($network.Address)/$($network.Prefix)." -ForegroundColor Yellow
+            Write-Host "  This plan covers the in-place guest netplan fix path only." -ForegroundColor Yellow
+            Write-Host "  If the VM can be recreated, preview rebuild first: adp destroy $TargetRuntime -Plan" -ForegroundColor DarkGray
+            Write-Host "  If SSH is only reachable through the seed-era network, use an admin-only temporary host-route workaround outside ADP, then rerun this command." -ForegroundColor DarkGray
+            Write-Host "  ADP will not add, change, or remove host routes automatically." -ForegroundColor DarkGray
+        }
         Write-Host "  Would verify SSH at: $currentIp" -ForegroundColor DarkGray
         Write-Host "  Would upload: /tmp/99-adp-static.yaml" -ForegroundColor DarkGray
         Write-Host "  Would install: /etc/netplan/99-adp-static.yaml" -ForegroundColor DarkGray

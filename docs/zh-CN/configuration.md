@@ -81,10 +81,12 @@ Sync profiles 配置 Mutagen 行为和忽略列表。
 {
   "frontend": {
     "mode": "two-way-resolved",
-    "ignore": ["node_modules", ".next", "dist", "build"]
+    "ignore": ["node_modules", ".next", "dist", "build", "coverage", ".turbo", ".cache", "playwright-report", "test-results"]
   }
 }
 ```
+
+默认 sync profiles 会忽略常见依赖目录、构建输出、框架缓存、测试报告、Python virtual environments、Python cache，以及不应通过 Mutagen 复制的本地 ADP/Codex 工具状态。它们保持保守：源码文件、lockfile、manifest 和项目配置仍会同步。可以使用 `workspace status`、`workspace dashboard` 或 `workspace report` 查看某个同步项目是否仍有需要 review profile 的生成目录。
 
 支持的同步模式取决于安装的 Mutagen 版本。本项目已使用 Mutagen `0.18.x` 测试。
 
@@ -132,7 +134,7 @@ Copy-Item configs\local.example.json configs\local.json
   },
   "sync_profiles": {
     "frontend": {
-      "ignore": ["node_modules", ".next", "dist", "build", ".cache"]
+      "ignore": ["node_modules", ".next", "dist", "build", "coverage", ".turbo", ".cache", "playwright-report", "test-results", "blob-report", ".playwright"]
     }
   }
 }
@@ -144,7 +146,7 @@ Copy-Item configs\local.example.json configs\local.json
 - `topology`：合并到 `configs\topology.json`。
 - `sync_profiles`：合并到 `configs\sync-profiles.json`。
 
-JSON object 会递归合并。数组和标量值会替换默认值。空的 `configs\local.json` 会被忽略。
+JSON object 会递归合并。数组和标量值会替换默认值，因此本地 `sync_profiles.<name>.ignore` 覆盖应包含你仍然想保留的所有默认忽略路径。空的 `configs\local.json` 会被忽略。
 
 `platform.defaults.iso_path` 会在 `platform.paths.iso_cache` 内解析。如果要从任意位置导入 ISO，请运行 `.\install.ps1 -IsoPath C:\path\to\ubuntu-26.04-live-server-amd64.iso`；安装脚本会把它复制到配置的 ISO cache。
 

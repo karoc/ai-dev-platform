@@ -10,6 +10,7 @@ This documentation covers how to install, operate, configure, and understand ADP
 - [Operations](operations.md): day-to-day runtime commands and workflows.
 - [Configuration](configuration.md): platform, topology, sync, and local override configuration.
 - [Workspaces](workspaces.md): where to put target projects and how to dogfood ADP-OS safely.
+- [Capabilities](capabilities.md): supported and planned runtime carriers, host adapters, and inner environment boundaries.
 - [Roadmap](roadmap.md): public product direction, current stage, and future workspace, agent, and runtime expansion tracks.
 - [Release Readiness](release-readiness.md): release decision policy, task governance, and maintainer checklist.
 - [Release Process](release-process.md): validation, release evidence, safety checks, and publication boundaries.

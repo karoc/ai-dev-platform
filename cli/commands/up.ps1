@@ -136,14 +136,15 @@ function Invoke-BootstrapIfReady {
     if (-not $ready) {
         if ($WaitForProvisioning) {
             Write-Host ""
-            Write-Host "VM is still provisioning. Continuing to wait..." -ForegroundColor Yellow
+            Write-Host "VM is still in Ubuntu install/provisioning. ADP will keep monitoring readiness signals." -ForegroundColor Yellow
+            Write-Host "  This can take 15-45 minutes on first creation; it is not an SSH failure while install-monitor heartbeats continue." -ForegroundColor DarkGray
             $ready = Wait-AutoinstallComplete -VmxPath $TargetVmxPath -RuntimeName $TargetRuntime -TimeoutMinutes 60
         }
     }
 
     if (-not $ready) {
         Write-Host ""
-        Write-Host "VM is still provisioning. Once ready, run:" -ForegroundColor Yellow
+        Write-Host "VM is still installing or provisioning. Once the install finishes, run:" -ForegroundColor Yellow
         Write-Host "  adp up $TargetRuntime" -ForegroundColor DarkGray
         Write-Host "  (it will detect the VM and skip creation)" -ForegroundColor DarkGray
         Write-Host "  adp status $TargetRuntime" -ForegroundColor DarkGray

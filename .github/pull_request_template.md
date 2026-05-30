@@ -15,6 +15,7 @@
 - [ ] The workspace task shape is listed, or this PR explains why no workspace task applies.
 - [ ] `.\cli\adp.ps1 workspace report -Markdown` release evidence is included when this affects workflows, runtimes, validation, docs, or release readiness.
 - [ ] Stale-task remediation items are resolved or explicitly called out.
+- [ ] Sync hygiene is clean, covered, not requested, or any `review sync ignore` item is explicitly reviewed.
 - [ ] High-risk agent work has a ready snapshot gate or an explicit maintainer waiver.
 
 ## Documentation

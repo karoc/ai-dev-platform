@@ -157,6 +157,20 @@ function Get-DoctorSeedNetwork {
     }
 }
 
+function Write-NetworkDriftRemediation {
+    param(
+        [string]$TargetRuntime,
+        [object]$SeedNetwork,
+        [string]$ConfiguredIp
+    )
+
+    Write-Host "  [INFO]  Remediation options for $TargetRuntime network drift:" -ForegroundColor DarkGray
+    Write-Host "          1. Rebuild when the VM can be recreated: adp destroy $TargetRuntime -Plan, then adp up $TargetRuntime." -ForegroundColor DarkGray
+    Write-Host "          2. In-place guest fix when the seed-era address is reachable: adp network apply $TargetRuntime -Plan." -ForegroundColor DarkGray
+    Write-Host "          3. Admin-only temporary host-route workaround only to regain SSH to $($SeedNetwork.Address); ADP will not apply host routes automatically." -ForegroundColor DarkGray
+    Write-Host "          Seed-era network: $($SeedNetwork.Address)/$($SeedNetwork.Prefix)$(if ($SeedNetwork.Gateway) { ', gateway ' + $SeedNetwork.Gateway } else { '' }); target: $ConfiguredIp." -ForegroundColor DarkGray
+}
+
 function Test-WSLCommand {
     param([string]$Command)
 
@@ -241,6 +255,7 @@ if ($config.network.vmware_nat) {
 Write-Host ""
 Write-Host "VMware:" -ForegroundColor Yellow
 $vmwareOk = Test-VMwareAvailable
+$runningVmxPaths = @()
 Test-Check -Name "vmrun.exe" -Condition $vmwareOk
 
 if ($vmwareOk) {
@@ -264,8 +279,9 @@ if ($vmwareOk) {
     }
 
     try {
-        $vms = Get-RegisteredVMs
-        Test-Check -Name "VMware VMs" -Condition $true -Detail "($($vms.Count) registered)"
+        $vms = Get-RunningVMs
+        $runningVmxPaths = @($vms | ForEach-Object { Normalize-VMXPath -VmxPath $_ })
+        Test-Check -Name "VMware running VMs" -Condition $true -Detail "($($vms.Count) running)"
     } catch {
         Test-Check -Name "VMware accessible" -Condition $false -Detail "($_)"
     }
@@ -387,6 +403,24 @@ foreach ($name in (Get-AllRuntimeNames)) {
         Test-Check -Name "$name sync profile" -Condition $false -Detail "($($rt.sync_profile): $_)"
     }
 
+    if ($vmwareOk) {
+        $adpRunningVms = @(Get-ADPRunningRuntimeVMs -RunningVmxPaths $runningVmxPaths -RuntimeName $name -ManagedVmxPath $vmxPath)
+        $duplicateRunningVms = @($adpRunningVms | Where-Object { -not $_.IsManagedByCurrentCheckout })
+        $hasDuplicateRunningVm = ($adpRunningVms.Count -gt 1 -or $duplicateRunningVms.Count -gt 0)
+        $hasCurrentRuntimeVm = Test-Path -LiteralPath $vmPath
+        if ($hasCurrentRuntimeVm) {
+            Test-Check -Name "$name duplicate running VM" -Condition (-not $hasDuplicateRunningVm) -Detail "$(if ($hasDuplicateRunningVm) { '(' + ($duplicateRunningVms.NormalizedVmxPath -join '; ') + ')' } else { '(none)' })"
+        } elseif ($hasDuplicateRunningVm) {
+            Write-InfoCheck -Name "$name duplicate running VM" -Detail "(same runtime name is running outside this checkout: $($duplicateRunningVms.NormalizedVmxPath -join '; '))"
+        } else {
+            Test-Check -Name "$name duplicate running VM" -Condition $true -Detail "(none)"
+        }
+        if ($hasDuplicateRunningVm -and $hasCurrentRuntimeVm) {
+            Write-Host "  [INFO]  Stop or rename stale duplicate ADP VMs before diagnosing SSH or network issues." -ForegroundColor DarkGray
+            Write-Host "  [INFO]  Current checkout VMX: $vmxPath" -ForegroundColor DarkGray
+        }
+    }
+
     if (Test-Path $vmPath) {
         Test-Check -Name "$name VMX" -Condition (Test-Path $vmxPath) -Detail "($vmxPath)"
         Test-Check -Name "$name VMDK" -Condition (Test-Path $vmdkPath) -Detail "($vmdkPath)"
@@ -394,7 +428,7 @@ foreach ($name in (Get-AllRuntimeNames)) {
         if ($seedNetwork -and $rt.static_ip) {
             Test-Check -Name "$name seed network drift" -Condition ($seedNetwork.Address -eq $rt.static_ip) -Detail "(seed $($seedNetwork.Address)/$($seedNetwork.Prefix), configured $($rt.static_ip))"
             if ($seedNetwork.Address -ne $rt.static_ip) {
-                Write-Host "  [INFO]  Rebuild $name or update guest networking from the seed-era address before using SSH." -ForegroundColor DarkGray
+                Write-NetworkDriftRemediation -TargetRuntime $name -SeedNetwork $seedNetwork -ConfiguredIp $rt.static_ip
             }
         } else {
             Write-InfoCheck -Name "$name seed network drift" -Detail "(seed user-data not found or static IP missing)"

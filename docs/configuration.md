@@ -81,10 +81,12 @@ Sync profiles configure Mutagen behavior and ignore lists.
 {
   "frontend": {
     "mode": "two-way-resolved",
-    "ignore": ["node_modules", ".next", "dist", "build"]
+    "ignore": ["node_modules", ".next", "dist", "build", "coverage", ".turbo", ".cache", "playwright-report", "test-results"]
   }
 }
 ```
+
+Default sync profiles ignore common dependency directories, build outputs, framework caches, test reports, Python virtual environments, Python caches, and local ADP/Codex tool state that should not be copied through Mutagen. They are intentionally conservative: source files, lockfiles, manifests, and project configuration remain syncable. Use `workspace status`, `workspace dashboard`, or `workspace report` to see whether a synced project still has generated directories that need profile review.
 
 Supported sync modes depend on the installed Mutagen version. The project has been tested with Mutagen `0.18.x`.
 
@@ -132,7 +134,7 @@ Example:
   },
   "sync_profiles": {
     "frontend": {
-      "ignore": ["node_modules", ".next", "dist", "build", ".cache"]
+      "ignore": ["node_modules", ".next", "dist", "build", "coverage", ".turbo", ".cache", "playwright-report", "test-results", "blob-report", ".playwright"]
     }
   }
 }
@@ -144,7 +146,7 @@ Supported top-level sections:
 - `topology`: merged into `configs\topology.json`.
 - `sync_profiles`: merged into `configs\sync-profiles.json`.
 
-Merging is recursive for JSON objects. Arrays and scalar values replace the default value. Empty `configs\local.json` files are ignored.
+Merging is recursive for JSON objects. Arrays and scalar values replace the default value, so local `sync_profiles.<name>.ignore` overrides should include every ignored path you still want to keep from the default profile. Empty `configs\local.json` files are ignored.
 
 `platform.defaults.iso_path` is resolved inside `platform.paths.iso_cache`. To import an ISO from any location, run `.\install.ps1 -IsoPath C:\path\to\ubuntu-26.04-live-server-amd64.iso`; the installer copies it into the configured ISO cache.
 

@@ -193,19 +193,24 @@ git clone <project-url> my-project
 %USERPROFILE%\adp-workspaces\agent     <->  agent:/home/adp/workspace
 ```
 
-目标项目布局和 ADP-OS dogfooding 指南见[工作区](docs/zh-CN/workspaces.md)。Workspace orchestration、agent-native development 和 runtime expansion 的公开产品方向见[路线图](docs/zh-CN/roadmap.md)。Release decision policy、stale-task remediation flow 和维护者 checklist 见[发布就绪](docs/zh-CN/release-readiness.md)。Validation、evidence、safety checks 和 publication boundaries 见[发布流程](docs/zh-CN/release-process.md)。Task templates、维护者 review ritual 和 pull request expectations 见[贡献者工作流](docs/zh-CN/contributor-workflows.md)。
+目标项目布局和 ADP-OS dogfooding 指南见[工作区](docs/zh-CN/workspaces.md)。当前支持的 runtime 和 adapter 边界见[能力边界](docs/zh-CN/capabilities.md)。Workspace orchestration、agent-native development 和 runtime expansion 的公开产品方向见[路线图](docs/zh-CN/roadmap.md)。Release decision policy、stale-task remediation flow 和维护者 checklist 见[发布就绪](docs/zh-CN/release-readiness.md)。Validation、evidence、safety checks 和 publication boundaries 见[发布流程](docs/zh-CN/release-process.md)。Task templates、维护者 review ritual 和 pull request expectations 见[贡献者工作流](docs/zh-CN/contributor-workflows.md)。
 
 ADP-OS 还提供一个多场景 workspace recipes manifest，用于常见 agent-native workflow：
 
 ```powershell
 .\cli\adp.ps1 workspace show -ManifestPath configs\workspace.recipes.example.json
 .\cli\adp.ps1 workspace plan -ManifestPath configs\workspace.recipes.example.json
+.\cli\adp.ps1 workspace recipes -ManifestPath configs\workspace.recipes.example.json
+.\cli\adp.ps1 workspace create -Plan -ManifestPath configs\workspace.recipes.example.json
+.\cli\adp.ps1 workspace open frontend-app -ManifestPath configs\workspace.recipes.example.json
+.\cli\adp.ps1 workspace sync frontend-app -ManifestPath configs\workspace.recipes.example.json
+.\cli\adp.ps1 workspace project frontend-app -ManifestPath configs\workspace.recipes.example.json
 .\cli\adp.ps1 workspace dashboard -ManifestPath configs\workspace.recipes.example.json
 .\cli\adp.ps1 workspace report -ManifestPath configs\workspace.recipes.example.json
 .\cli\adp.ps1 workspace report -Markdown -ManifestPath configs\workspace.recipes.example.json
 ```
 
-这些 recipes 覆盖低风险维护、frontend 浏览器验收、backend 验证，以及带 snapshot-first gate 的高风险 agent 工作。`workspace report` 还会打印 release handoff summary，用于统计 validation result、列出 blockers、显示 ready for review 或 ready to commit 的 task、标明当前 release gate，并暴露 owner、review cadence、due date 等 task governance 字段。它还会按 owner queue、review cadence queue、attention queue 和 decision queues 聚合 task，用于周期性 review，并给出 validate、review、revise、snapshot 或 commit 等下一步动作分类，同时输出 release decision policy 和 stale-task remediation guidance。添加 `-Markdown` 可以生成可复制到 PR 或 release 的 evidence，并保持同一套 decision state。这些 recipes 只是 planning examples；workspace 命令不会安装 packages、下载浏览器、创建快照、运行验证或 commit 文件。
+这些 recipes 覆盖低风险维护、frontend 浏览器验收、backend 验证，以及带 snapshot-first gate 的高风险 agent 工作。它们也演示了可选的 `milestones[]` planning，让相关 task 可以共享一个可见的 milestone checkpoint，例如 `milestone-agent-refactor-safety`；还演示了 plan-only `evaluations[]` hooks，让 agent-native review criteria、metrics 和声明式 evaluation commands 可以进入 release evidence，但不会被执行。`workspace recipes` 是这些示例的 discovery view：它会汇总 project recipes、task recipes、milestone checkpoints、evaluation hooks 和 evidence commands，但不会 clone project、打开 SSH、创建快照、运行 validation、运行 evaluation commands、启动 sync 或运行 Git。`workspace create -Plan` 会预览 manifest 声明的本地项目目录；`workspace create` 只会创建这些本地目录，仍然不会 clone project、启动 sync、启动 runtime、打开 SSH、创建快照、运行 validation、运行 evaluation commands 或运行 Git。`workspace open` 会为单个项目打印非破坏性的 open guide：local path、remote path、readiness，以及可复制的本地、编辑器、SSH、sync 和 status 命令。`workspace sync` 会打印非破坏性的 project-aware sync guide：它会把 manifest project 映射回 runtime sync session，显示 sync readiness 和 sync hygiene，并打印需要显式执行的 runtime `adp sync` 命令。`workspace project` 会在一个位置打印 project operational lifecycle：open、runtime、sync、validation、linked tasks 和 evidence handoff。`workspace report` 还会打印 release handoff summary，用于统计 validation result、列出 blockers、显示 ready for review 或 ready to commit 的 task、标明当前 release gate，暴露 milestone checkpoint status、evaluation queue status，并暴露 owner、review cadence、due date 等 task governance 字段。它还会按 owner queue、review cadence queue、milestone queue、milestone review rollup、validation execution queue、evaluation queue、attention queue 和 decision queues 聚合 task，用于周期性 review，并给出 validate、review、revise、snapshot 或 commit 等下一步动作分类，同时输出 release decision policy 和 stale-task remediation guidance。添加 `-Markdown` 可以生成可复制到 PR 或 release 的 evidence，并保持同一套 decision state，其中包含 Validation Execution Queue、Evaluation Queue、Milestone Checkpoints 和 Milestone Review Rollup tables。这些 recipes 只是 planning examples；workspace 命令不会安装 packages、下载浏览器、创建快照、运行验证、运行 evaluation commands、打开编辑器、SSH 进入 runtime、启动 sync、停止 sync 或 commit 文件。
 
 Validation 可以从 task recipe 中显式执行：
 
@@ -223,6 +228,7 @@ Validation 可以从 task recipe 中显式执行：
 .\cli\adp.ps1 init <frontend|backend|agent> [-IsoPath <path>] [-SkipProvision]
 .\cli\adp.ps1 up <frontend|backend|agent> [-IsoPath <path>] [-Plan] [-NoProvision] [-NoBootstrap]
 .\cli\adp.ps1 status [frontend|backend|agent]
+.\cli\adp.ps1 capabilities
 .\cli\adp.ps1 stop <frontend|backend|agent>
 .\cli\adp.ps1 sync status
 .\cli\adp.ps1 workspace init
@@ -230,11 +236,16 @@ Validation 可以从 task recipe 中显式执行：
 .\cli\adp.ps1 workspace plan
 .\cli\adp.ps1 workspace status
 .\cli\adp.ps1 workspace dashboard
+.\cli\adp.ps1 workspace recipes
+.\cli\adp.ps1 workspace create [-Plan]
+.\cli\adp.ps1 workspace open [project-name]
+.\cli\adp.ps1 workspace sync [project-name]
+.\cli\adp.ps1 workspace project [project-name]
 .\cli\adp.ps1 workspace report
 .\cli\adp.ps1 workspace report [-Markdown]
 .\cli\adp.ps1 workspace task <prepare|snapshot|run|validate|review|rollback|commit> <task-name>
 .\cli\adp.ps1 workspace task validate <task-name> [-Execute] [-Plan]
-.\cli\adp.ps1 workspace task mark <task-name> <prepared|checkpointed|running|validated|reviewed|rollback|committed>
+.\cli\adp.ps1 workspace task mark <task-name> <prepared|checkpointed|checkpoint-waived|running|validated|reviewed|rollback|committed>
 .\cli\adp.ps1 sync start <frontend|backend|agent>
 .\cli\adp.ps1 sync stop <frontend|backend|agent>
 .\cli\adp.ps1 network apply <frontend|backend|agent|all> [-Plan]
@@ -252,6 +263,7 @@ Validation 可以从 task recipe 中显式执行：
 - [架构说明](docs/zh-CN/architecture.md)
 - [配置说明](docs/zh-CN/configuration.md)
 - [工作区](docs/zh-CN/workspaces.md)
+- [能力边界](docs/zh-CN/capabilities.md)
 - [路线图](docs/zh-CN/roadmap.md)
 - [发布就绪](docs/zh-CN/release-readiness.md)
 - [发布流程](docs/zh-CN/release-process.md)

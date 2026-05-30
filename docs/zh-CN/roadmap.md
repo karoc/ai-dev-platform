@@ -30,8 +30,9 @@ ADP-OS 正在朝本地、可复现、agent-native 的开发平台演进：
 - Snapshot create、restore、stop、logs、status、diagnostics 和 plan previews。
 - 通过 `tests\validate.ps1` 提供共享非破坏性 validation。
 - 双语公开文档。
-- Workspace manifests、task recipes、validation recording、review gates、commit readiness 和 Markdown release evidence。
+- Workspace manifests、recipes、本地目录创建、project open/sync/project views、task lifecycle commands、milestone planning、evaluation planning、sync hygiene checks、validation recording、review gates、commit readiness 和 Markdown release evidence。
 - 将 dev container metadata detection 作为 runtime 内部项目上下文。
+- 通过 `adp capabilities` 提供公开 capability boundary。
 
 ## 近期工作
 
@@ -46,17 +47,25 @@ ADP-OS 正在朝本地、可复现、agent-native 的开发平台演进：
 
 ## 工作区编排
 
-Workspace orchestration 是下一层主要产品能力。目标是让 ADP-OS 真正服务于项目，而不只是启动 runtime。
+Workspace orchestration 是当前主要产品能力。目标是让 ADP-OS 真正服务于项目，而不只是启动 runtime。
 
-计划方向：
+当前公开能力：
 
-- Workspace creation 和 project registration commands。
-- Per-project sync lifecycle views。
-- Runtime、project、validation 和 task dashboards。
-- 可以 preview、显式 execute、record 和 review 的 validation recipes。
-- 与 task、milestone 和 rollback intent 绑定的 snapshot naming。
-- 明确区分 planning、execution、review、rollback 和 commit。
-- 更好支持现有项目环境 metadata，包括 `.devcontainer/devcontainer.json` 和 `.devcontainer.json`。
+- Workspace manifests 可以声明 projects、tasks、milestones、evaluations、validation commands、review metadata 和 snapshot intent。
+- `workspace create [-Plan]` 用于 manifest 声明的本地项目目录。实际执行只会创建缺失的本地目录；不会 clone repository、启动 runtime、启动 sync、打开 SSH、创建 snapshot、运行 validation、运行 evaluation commands 或运行 Git。
+- `workspace open`、`workspace sync` 和 `workspace project` views 会把单个 project entry 转换成本地、runtime、sync、validation 和 evidence handoff 的显式步骤，但不会代替用户执行这些步骤。
+- `workspace status`、`workspace dashboard` 和 `workspace report` views 覆盖 runtime、project、sync hygiene、validation、evaluation、milestone、task、review、rollback 和 commit readiness。
+- `workspace report -Markdown` 可以生成可复制到 pull request、release 或 maintainer handoff 的 evidence。
+- Validation recipes 可以 preview，可以通过 `workspace task validate <task> -Execute` 显式执行，并把结果记录到被忽略的本地 state，供后续 review。
+- Snapshot naming 通过非阻塞约定检查绑定 task、milestone 和 rollback intent。
+- `.devcontainer/devcontainer.json` 和 `.devcontainer.json` 会作为 runtime 内部项目上下文被检测。
+
+剩余方向：
+
+- 将 project registration 从本地目录创建演进到更安全的 clone/import guidance，但不隐藏 Git 操作。
+- 根据真实项目暴露的问题，继续提升 workspace evidence 在 validation、review、rollback 和 sync workflows 中的质量。
+- 继续收紧常见技术栈的 generated-artifact sync defaults 和 review ergonomics。
+- 探索更强的项目环境集成，同时保持 Docker、Docker Compose 和 dev containers 作为内层工具。
 
 非目标：
 
@@ -68,18 +77,27 @@ Workspace orchestration 是下一层主要产品能力。目标是让 ADP-OS 真
 
 ADP-OS 面向 AI-assisted 和 agent-native development，但广泛 autonomous execution 必须受清晰安全边界约束。
 
-计划方向：
+当前公开能力：
 
-- 让 preparation、execution、validation、review、rollback 和 commit state 显式化的 task lifecycle commands。
-- 面向高风险或 destructive tasks 的 snapshot-first gates。
-- 可以复制到 pull request 或 release note 的 validation evidence。
-- 展示 source-review prompts、validation results、rollback context 和 commit readiness 的 review bundles。
-- 清楚说明 workload 是否拥有 elevated IO、package installation、Docker access 或 broad filesystem access 的 runtime profiles。
-- 只有当 preview、snapshot、validation、review 和 rollback boundaries 足够强之后，才扩展未来 task execution support。
+- Task lifecycle commands 覆盖 prepare、snapshot、run guidance、validate、review、rollback guidance、commit guidance 和 local state marking。
+- 面向高风险或 destructive tasks 的 snapshot-first gates；当人类 reviewer 接受缺少 VM snapshot 保护时，可以用显式本地 `checkpoint-waived` state 记录。
+- Validation evidence 可以通过显式 task validation execution 记录，并进入 report 或 Markdown release evidence。
+- Review bundles 会显示 source-review prompts、sync hygiene、validation results、evaluation links、rollback context 和 commit readiness。
+- Milestone 和 evaluation planning surfaces 可以让更广的 agent-native review criteria 可见，但不会执行 evaluation commands。
+- Runtime profile 语言会明确 agent elevated IO 和 snapshot 建议。
+
+剩余方向：
+
+- 在 preview、snapshot、validation、review、rollback 和 commit boundaries 经过更多真实项目验证前，继续让 broad task execution 保持 plan-only。
+- 在增加 evaluation execution 之前，先用更多项目形态 dogfood evaluation hooks 和 report evidence。
+- 基于真实维护者和贡献者 workflow，改进 human review bundles 和 release evidence。
+- 只有当 security 和 rollback boundaries 能被解释并测试时，才探索更丰富的 runtime profiles。
 
 ## 运行时扩展
 
 ADP-OS 当前面向 Windows 和 VMware Workstation。未来 runtime expansion 应在保持同一套用户可见生命周期的同时，把 host-specific behavior 放到 adapter 后面。
+
+当前已支持和计划中的能力边界，请运行 `.\cli\adp.ps1 capabilities` 或查看[能力边界](capabilities.md)。该边界用于说明今天实际可用的能力；本路线图仍然是方向性说明。
 
 候选方向：
 

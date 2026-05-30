@@ -24,7 +24,7 @@ For first-run guidance, include the checklist:
 .\cli\adp.ps1 doctor -FirstRun
 ```
 
-`doctor` checks platform prerequisites, configuration shape, local override status, VMware tooling, VMware NAT host match when detectable, Mutagen version, ISO cache, runtime topology, static IP uniqueness, static IP ranges, existing-runtime seed network drift, VM status, SSH reachability for running VMs, and Mutagen sessions.
+`doctor` checks platform prerequisites, configuration shape, local override status, VMware tooling, VMware NAT host match when detectable, Mutagen version, ISO cache, runtime topology, static IP uniqueness, static IP ranges, duplicate running ADP runtime names across VMX paths, existing-runtime seed network drift, VM status, SSH reachability for running VMs, and Mutagen sessions.
 
 Preview local Mutagen remediation:
 
@@ -97,7 +97,7 @@ After startup, ADP prints the configured connection target, SSH command, SSH ali
 
 The `agent` runtime may print a high-IO profile notice. This is not an error; it means the runtime is sized for AI agent workloads and snapshots are recommended before destructive or large-scale tasks.
 
-First-time VM creation includes a long Ubuntu autoinstall phase. ADP reports this as `Autoinstall in progress` and shows elapsed and remaining timeout time. During this phase, SSH port 22 may become reachable before the installed system has accepted the ADP key or written `/home/adp/.adp-provisioned`; that intermediate state is reported as `auth-pending`, not as a finished runtime.
+First-time VM creation includes a long Ubuntu autoinstall phase. ADP reports this as a watched OS installation, not a CLI hang, then prints plain, copyable `[install monitor] INSTALLING Ubuntu in VM` heartbeats. Each heartbeat starts with a human-readable installation headline before the diagnostic fields, so the visible tail of the log still says the VM is installing instead of looking like a stuck IP or SSH probe. The structured details include `state=installing`, `activity=installing-ubuntu`, `status=watching`, `current-op=readiness-check`, `wait-mode=watched`, `progress=indeterminate`, `user-action=keep-open`, `diagnostics=vmware-console-after-20min`, `phase=ubuntu-autoinstall`, expected duration, timeout, elapsed time, remaining timeout time, next check interval, observed readiness signals, the next readiness check, and whether user action is needed. Because Ubuntu does not expose a reliable install percentage through VMware at this stage, ADP uses an indeterminate progress model: it reports observable readiness signals instead of fake percentages. The monitored signals are configured/static IP, VMware-reported IP, SSH key authentication, and `/home/adp/.adp-provisioned`. IP and SSH probes are readiness signals inside the install monitor; repeated probe failures do not mean ADP is stuck while the heartbeat headline still says `INSTALLING Ubuntu in VM`. During normal installation, the same signal can repeat for several minutes while Ubuntu boots, installs, reboots, or prepares the target user, so repeated heartbeats include `normal=yes`. ADP explains in each heartbeat that unchanged signals can be normal during OS installation, states when it will recheck readiness, tells you to keep the command running and avoid manual SSH, and only recommends inspecting the VMware console after the same signal repeats for about 20 minutes or the timeout is reached. During this phase, SSH port 22 may become reachable before the installed system has accepted the ADP key or written the provision marker; that intermediate state is reported as `auth-pending`, not as a finished runtime.
 
 Preview startup without creating, starting, provisioning, or bootstrapping a VM:
 
@@ -156,14 +156,23 @@ Show one runtime:
 - Each runtime's VM status.
 - The configured static IP from the merged topology.
 - The VMware-detected IP when available.
+- Duplicate running ADP runtime names when VMware has another `adp-<runtime>.vmx` running outside the current checkout.
 - Network drift when an existing autoinstall seed still contains an older static IP than the current merged configuration.
-- SSH state for running VMs: `reachable`, `auth-pending`, `unreachable`, or a local prerequisite state such as `key-missing`.
+- SSH state for running VMs: `reachable`, `auth-pending`, `unreachable`, `ambiguous-duplicate`, or a local prerequisite state such as `key-missing`.
 - Mutagen sync session presence.
 - The exact SSH command, SSH alias, workspace path, and next commands.
 
 If the VMware-detected IP differs from the configured static IP, ADP still shows the configured static IP as the connection target. This is intentional for static networking and makes local NAT subnet overrides visible after editing `configs\local.json`.
 
-If `status` reports `network drift`, the VM was created with an older seed network than the current configuration. Editing `configs\local.json` after VM creation does not rewrite guest networking. Rebuild the runtime, or reach the guest through the seed-era address and apply the desired netplan change.
+If `status` reports `duplicate VM`, another VMX with the same runtime name is running from another checkout or a stale VM store. Stop or rename the stale duplicate before diagnosing SSH, detected IP, or network drift, because VMware may report IP information for the wrong same-name runtime while the current checkout expects a different VMX path.
+
+When a duplicate is present, `status` reports SSH as `ambiguous-duplicate` because a successful connection to the configured IP does not prove that the current checkout's VMX is the guest that answered.
+
+If `status` reports `network drift`, the VM was created with an older seed network than the current configuration. Editing `configs\local.json` after VM creation does not rewrite guest networking. Use the remediation path that matches the situation:
+
+- Rebuild when the VM can be recreated. Preview first with `.\cli\adp.ps1 destroy <runtime> -Plan`, then recreate with `.\cli\adp.ps1 up <runtime>`.
+- Use an in-place guest netplan fix when the seed-era address is reachable. Preview first with `.\cli\adp.ps1 network apply <runtime> -Plan`; then run without `-Plan` only after confirming it will SSH to the expected guest.
+- Use an administrator-only temporary host-route workaround only when you must regain SSH to the seed-era address first. ADP does not add, change, or remove host routes automatically.
 
 If `status` reports `auth-pending`, the SSH port is open but the ADP key is not accepted yet. During first-time autoinstall this usually means the installer or first boot is still preparing the target user. Keep waiting until the timeout, or inspect the VMware console if the state does not change.
 
@@ -275,3 +284,5 @@ Preview the guest networking changes first:
 ```powershell
 .\cli\adp.ps1 network apply all -Plan
 ```
+
+When `network apply -Plan` detects seed-network drift, it prints the same remediation split: rebuild path, in-place guest netplan path, and administrator-only host-route workaround. The command only manages guest netplan files over SSH; it does not recreate VMs and does not change host routes.

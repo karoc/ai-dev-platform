@@ -55,6 +55,7 @@ The evidence should show:
 - The release decision.
 - Blockers, validation-required tasks, review-required tasks, and release candidates.
 - Governance gaps.
+- Sync hygiene status, including any `review sync ignore` tasks that must be reviewed before release.
 - Validation status for relevant tasks.
 - Snapshot gates for high-risk agent work.
 - Handoff commands for review, rollback, and commit.

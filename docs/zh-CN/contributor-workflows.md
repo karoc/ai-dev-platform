@@ -33,7 +33,7 @@
 2. 计划正确后，运行 `adp workspace task validate docs-copy-edit -Execute`。
 3. 运行 `adp workspace task review docs-copy-edit`。
 4. 只有 source review 被接受后，才标记 reviewed。
-5. 只有当 `workspace report` 显示 `ready to commit` 和 `release candidate` 时才 commit。
+5. 只有 sync hygiene 已 review，并且 `workspace report` 显示 `ready to commit` 和 `release candidate` 时才 commit。
 
 ### 前端浏览器验收
 
@@ -111,11 +111,11 @@
 预期流程：
 
 1. 运行 `adp workspace task snapshot broad-agent-refactor`。
-2. 在大范围 agent execution 前创建 checkpoint。
+2. 在大范围 agent execution 前创建 checkpoint。task 级 checkpoint 使用 `before-<task-name>`，更大的 checkpoint 使用 `milestone-<name>`。
 3. 保持 execution 手动且显式。
 4. task 完成后运行 validation。
 5. 标记 reviewed 前，review source diff、rollback path 和已记录 validation。
-6. 只有 snapshot gate ready、validation passed、review 已记录，并且 `workspace report` 显示 `release candidate` 时才 commit。
+6. 只有 sync hygiene 已 review、snapshot gate ready、validation passed、review 已记录，并且 `workspace report` 显示 `release candidate` 时才 commit。
 
 ## 维护者评审流程
 
@@ -126,9 +126,10 @@
 3. 当 decision 需要复制到 pull request、release note 或 handoff 时，运行 `adp workspace report -Markdown`。
 4. 按顺序处理 report：`release blocked`、`validation required`、`review required`、`governance incomplete`、`release candidate`。
 5. 当 report 显示 governance gaps 时，要求贡献者补齐 owner、review cadence、due date、validation 或 snapshot metadata。
-6. 接受 review 前，要求已有记录的 passing validation result。
-7. 对高风险 agent work，要求显式 snapshot gate。
-8. rollback 和 commit 始终保持为维护者手动控制的边界。
+6. Review acceptance 或 commit 前，先处理所有 `review sync ignore` item。
+7. 接受 review 前，要求已有记录的 passing validation result。
+8. 对高风险 agent work，要求显式 snapshot gate，并检查 snapshot 名称是否表达 task 或 milestone rollback 意图。
+9. rollback 和 commit 始终保持为维护者手动控制的边界。
 
 ## Pull Request 预期
 
@@ -138,6 +139,7 @@ Pull request 应包含：
 - `workspace report` 的 release decision；如果变更影响 workflow、runtime、validation、docs 或 release readiness，优先使用 `workspace report -Markdown`。
 - 已运行的 validation commands，以及是否通过 `adp workspace task validate -Execute` 执行。
 - Review 状态和未解决的 stale-task remediation items。
+- Sync hygiene status，特别是任何 `review sync ignore` decision。
 - 相关时，确认 README 和简体中文文档已同步更新。
 - 确认没有包含 local state、VM artifacts、credentials、ISO files、downloaded tools 或 private maintainer files。
 

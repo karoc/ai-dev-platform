@@ -38,10 +38,11 @@
 | Mutagen 缺失或版本不对 | `.\cli\adp.ps1 doctor -FixMutagen -Plan` | local Mutagen remediation | [操作指南](operations.md#健康检查) |
 | Runtime startup 使用了非预期 ISO path | `.\cli\adp.ps1 up <runtime> -IsoPath <path> -Plan` | explicit ISO path、local config | [操作指南](operations.md#启动运行时) |
 | Runtime 已存在但无法连接 | `.\cli\adp.ps1 status <runtime>` | VM state、static IP、SSH reachability | [操作指南](operations.md#运行时状态)、[网络说明](networking.md) |
-| Runtime 创建看起来卡住 | 保持 `adp up <runtime>` 运行直到 timeout | Ubuntu autoinstall、first boot、SSH key readiness | [操作指南](operations.md#启动运行时) |
+| Runtime 创建看起来卡住 | 只要 `[install monitor] INSTALLING Ubuntu in VM` 心跳仍在继续，就保持 `adp up <runtime>` 运行 | Ubuntu autoinstall、first boot、IP/SSH/provision marker readiness signals | [操作指南](operations.md#启动运行时) |
 | `status` 报告 `auth-pending` | 等待后再次运行 `.\cli\adp.ps1 status <runtime>` | SSH 端口已打开，但 ADP key/user 尚未 ready | [操作指南](operations.md#运行时状态) |
 | `up` 因 VMware NAT mismatch 停止 | `.\cli\adp.ps1 doctor -FirstRun` | host VMnet8 与 local config 不一致 | [网络说明](networking.md#前置条件)、[配置说明](configuration.md#本地覆盖) |
-| `status` 报告 network drift | `.\cli\adp.ps1 doctor` | 已有 VM seed 网络与当前配置不一致 | [网络说明](networking.md#新-vm-的静态网络) |
+| `status` 报告 `duplicate VM` | `.\cli\adp.ps1 doctor` | 另一个 checkout 或 stale VM store 中有同名 runtime 正在运行 | [操作指南](operations.md#运行时状态) |
+| `status` 报告 network drift | `.\cli\adp.ps1 doctor` 和 `.\cli\adp.ps1 network apply <runtime> -Plan` | 已有 VM seed 网络与当前配置不一致；rebuild、guest netplan fix 或 host-route workaround | [操作指南](operations.md#运行时状态)、[网络说明](networking.md#新-vm-的静态网络) |
 | VMware IP 与配置的 static IP 不同 | `.\cli\adp.ps1 status <runtime>` | static networking、local NAT overrides | [网络说明](networking.md#前置条件) |
 | Static IP 不在 NAT subnet 内 | `.\cli\adp.ps1 doctor` | topology 和 platform config | [配置说明](configuration.md#本地覆盖)、[网络说明](networking.md) |
 | Sync 无法启动或缺失 | `.\cli\adp.ps1 sync status` | Mutagen sessions、SSH aliases、workspace paths | [操作指南](operations.md#工作区同步) |
@@ -88,7 +89,13 @@ Copy-Item configs\local.example.json configs\local.json
 .\cli\adp.ps1 status
 ```
 
-请在创建 VM 前完成这些修改。如果 VM 已存在，修改 `configs\local.json` 只会改变 ADP 的目标地址，不会自动重写旧 autoinstall seed 已安装到 guest 内部的网络。如果 `status` 报告 `network drift`，请重建该 runtime，或从 seed-era 地址进入 guest 后更新网络。
+请在创建 VM 前完成这些修改。如果 VM 已存在，修改 `configs\local.json` 只会改变 ADP 的目标地址，不会自动重写旧 autoinstall seed 已安装到 guest 内部的网络。如果 `status` 报告 `network drift`，请显式选择 remediation path：
+
+- VM 可以重建时，重建该 runtime。
+- seed-era guest address 可达且希望原地修复 guest netplan 时，先运行 `network apply <runtime> -Plan`。
+- 只有为了先恢复到 seed-era address 的 SSH 时，才使用 administrator-only temporary host-route workaround。ADP 不会自动应用 host routes。
+
+如果 `status` 或 `doctor` 报告 duplicate running ADP runtime，请先处理它，再修改本地网络。来自另一个 checkout 的同名 VM 可能让 detected IP 和 SSH diagnostics 指向错误的 VM。
 
 不要把 private local paths 或 credentials 粘贴到公开 issue。如果 issue 与 local config 有关，只列出受支持的 top-level sections，例如 `platform` 和 `topology`。
 

@@ -49,7 +49,18 @@
         "node_modules",
         ".next",
         "dist",
-        "build"
+        "build",
+        "coverage",
+        ".turbo",
+        ".cache",
+        ".parcel-cache",
+        ".vite",
+        ".nuxt",
+        ".svelte-kit",
+        "playwright-report",
+        "test-results",
+        "blob-report",
+        ".playwright"
       ]
     }
   }

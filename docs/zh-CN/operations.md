@@ -24,7 +24,7 @@ All checks passed. Platform is healthy.
 .\cli\adp.ps1 doctor -FirstRun
 ```
 
-`doctor` 会检查平台前置条件、配置结构、本地覆盖状态、VMware 工具、可探测时的 VMware NAT host match、Mutagen 版本、ISO cache、运行时拓扑、静态 IP 唯一性、静态 IP 网段、已有 runtime 的 seed network drift、VM 状态、运行中 VM 的 SSH 可达性，以及 Mutagen sessions。
+`doctor` 会检查平台前置条件、配置结构、本地覆盖状态、VMware 工具、可探测时的 VMware NAT host match、Mutagen 版本、ISO cache、运行时拓扑、静态 IP 唯一性、静态 IP 网段、跨 VMX path 的 duplicate running ADP runtime 名称、已有 runtime 的 seed network drift、VM 状态、运行中 VM 的 SSH 可达性，以及 Mutagen sessions。
 
 预览本地 Mutagen 修复：
 
@@ -97,7 +97,7 @@ Installer 排障开关：
 
 `agent` 运行时可能会打印 high-IO profile 提示。这不是错误；它表示该运行时面向 AI agent 工作负载配置，执行破坏性或大范围任务前建议先创建快照。
 
-首次创建 VM 时包含较长的 Ubuntu autoinstall 阶段。ADP 会把它显示为 `Autoinstall in progress`，并显示已用时间和剩余 timeout 时间。在这个阶段，SSH 22 端口可能先变为可达，但安装后的系统还没有接受 ADP key，也还没有写入 `/home/adp/.adp-provisioned`；这种中间态会显示为 `auth-pending`，不代表 runtime 已完成。
+首次创建 VM 时包含较长的 Ubuntu autoinstall 阶段。ADP 会明确说明这是 watched OS installation，不是 CLI 卡住，然后用可复制的 plain `[install monitor] INSTALLING Ubuntu in VM` 心跳持续显示安装状态。每条心跳都会先显示人能直接理解的安装标题，再显示诊断字段，因此即使只看到日志尾部，也能判断 VM 仍在安装，而不是卡在 IP 或 SSH probe。结构化细节包括 `state=installing`、`activity=installing-ubuntu`、`status=watching`、`current-op=readiness-check`、`wait-mode=watched`、`progress=indeterminate`、`user-action=keep-open`、`diagnostics=vmware-console-after-20min`、`phase=ubuntu-autoinstall`、预期耗时、timeout、已用时间、剩余 timeout 时间、下一次检查间隔、已观察到的 readiness signals、下一次 readiness check，以及用户当前是否需要操作。由于这个阶段 Ubuntu 不会通过 VMware 暴露可靠的安装百分比，ADP 使用 indeterminate progress model：报告真实可观测信号，而不是伪造百分比。监控信号包括配置/static IP、VMware-reported IP、SSH key authentication，以及 `/home/adp/.adp-provisioned`。IP 和 SSH probes 是 install monitor 内部的 readiness signals；只要心跳标题仍显示 `INSTALLING Ubuntu in VM`，重复 probe failure 不代表 ADP 卡住。正常安装期间，同一个信号可能会在 Ubuntu boot、install、reboot 或准备目标用户时重复数分钟，因此重复心跳会包含 `normal=yes`。ADP 会在每次心跳中解释 unchanged signals 在 OS installation 期间可能是正常现象，说明何时重新检查 readiness，提示继续保持命令运行、不要手动 SSH；只有当同一信号重复约 20 分钟或达到 timeout 时，才建议检查 VMware console。在这个阶段，SSH 22 端口可能先变为可达，但安装后的系统还没有接受 ADP key，也还没有写入 provision marker；这种中间态会显示为 `auth-pending`，不代表 runtime 已完成。
 
 不创建、不启动、不 provisioning、不 bootstrap VM，只预览启动计划：
 
@@ -156,14 +156,23 @@ Installer 排障开关：
 - 每个运行时的 VM 状态。
 - 合并后的 topology 中配置的 static IP。
 - VMware 可探测到的 IP（如果可用）。
+- VMware 中是否有其他 `adp-<runtime>.vmx` 从当前 checkout 外部运行，造成 duplicate running ADP runtime。
 - 已有 autoinstall seed 仍包含旧 static IP 时的 network drift。
-- 运行中 VM 的 SSH 状态：`reachable`、`auth-pending`、`unreachable`，或 `key-missing` 等本地前置条件状态。
+- 运行中 VM 的 SSH 状态：`reachable`、`auth-pending`、`unreachable`、`ambiguous-duplicate`，或 `key-missing` 等本地前置条件状态。
 - Mutagen sync session 是否存在。
 - 具体 SSH 命令、SSH alias、workspace path 和下一步命令。
 
 如果 VMware 探测到的 IP 与配置的 static IP 不同，ADP 仍会把配置的 static IP 显示为连接目标。这是静态网络的预期行为，也能让你在编辑 `configs\local.json` 修改本机 NAT 网段后直接看到实际使用的地址。
 
-如果 `status` 报告 `network drift`，说明该 VM 是用比当前配置更旧的 seed 网络创建的。VM 创建完成后再编辑 `configs\local.json` 不会自动重写 guest 内部网络。请重建该 runtime，或先通过 seed-era 地址进入 guest，再应用目标 netplan 改动。
+如果 `status` 报告 `duplicate VM`，说明另一个 checkout 或 stale VM store 中有同名 runtime VMX 正在运行。请先停止或重命名这个 stale duplicate，再继续诊断 SSH、detected IP 或 network drift；否则 VMware 可能返回另一个同名 runtime 的 IP，而当前 checkout 期望的是不同的 VMX path。
+
+当存在 duplicate 时，`status` 会把 SSH 报告为 `ambiguous-duplicate`，因为即使连接配置 IP 成功，也不能证明响应的是当前 checkout 对应的 VMX。
+
+如果 `status` 报告 `network drift`，说明该 VM 是用比当前配置更旧的 seed 网络创建的。VM 创建完成后再编辑 `configs\local.json` 不会自动重写 guest 内部网络。根据实际情况选择 remediation path：
+
+- VM 可以重建时走 rebuild path。先用 `.\cli\adp.ps1 destroy <runtime> -Plan` 预览，再用 `.\cli\adp.ps1 up <runtime>` 重建。
+- seed-era address 仍可达时走 in-place guest netplan fix。先用 `.\cli\adp.ps1 network apply <runtime> -Plan` 预览；确认会 SSH 到预期 guest 后，再去掉 `-Plan` 执行。
+- 只有必须先恢复到 seed-era address 的 SSH 时，才考虑 administrator-only temporary host-route workaround。ADP 不会自动添加、修改或删除 host routes。
 
 如果 `status` 报告 `auth-pending`，说明 SSH 端口已经打开，但 ADP key 还没有被接受。首次 autoinstall 期间这通常表示 installer 或 first boot 仍在准备目标用户。请等待到 timeout，或者在该状态长时间不变化时检查 VMware console。
 
@@ -275,3 +284,5 @@ pnpm exec playwright test
 ```powershell
 .\cli\adp.ps1 network apply all -Plan
 ```
+
+当 `network apply -Plan` 检测到 seed-network drift 时，会打印同一套 remediation 划分：rebuild path、in-place guest netplan path 和 administrator-only host-route workaround。该命令只通过 SSH 管理 guest netplan 文件；不会重建 VM，也不会修改 host routes。

@@ -39,6 +39,67 @@
       ]
     }
   ],
+  "milestones": [
+    {
+      "name": "frontend-acceptance",
+      "description": "Browser-facing acceptance evidence before frontend release handoff.",
+      "runtime": "frontend",
+      "snapshot": "milestone-frontend-acceptance",
+      "tasks": [
+        "frontend-browser-acceptance"
+      ]
+    },
+    {
+      "name": "agent-refactor-safety",
+      "description": "Snapshot checkpoint before broad agent runtime changes.",
+      "runtime": "agent",
+      "snapshot": "milestone-agent-refactor-safety",
+      "tasks": [
+        "broad-agent-refactor"
+      ]
+    }
+  ],
+  "evaluations": [
+    {
+      "name": "frontend-acceptance-eval",
+      "description": "Plan-only evaluation hook for browser-facing release evidence.",
+      "project": "frontend-app",
+      "runtime": "frontend",
+      "cadence": "per-change",
+      "metrics": [
+        "browser-tests-pass",
+        "visual-regressions-reviewed",
+        "sync-hygiene-reviewed"
+      ],
+      "commands": [
+        "pnpm exec playwright test",
+        "git diff --check"
+      ],
+      "tasks": [
+        "frontend-browser-acceptance"
+      ]
+    },
+    {
+      "name": "agent-safety-eval",
+      "description": "Plan-only evaluation hook for high-risk agent work.",
+      "project": "agent-workspace",
+      "runtime": "agent",
+      "cadence": "per-task",
+      "metrics": [
+        "snapshot-ready-or-waived",
+        "validation-pass",
+        "rollback-path-reviewed"
+      ],
+      "commands": [
+        "git status --short",
+        "git diff --check",
+        "pnpm test"
+      ],
+      "tasks": [
+        "broad-agent-refactor"
+      ]
+    }
+  ],
   "tasks": [
     {
       "name": "docs-copy-edit",
@@ -56,6 +117,8 @@
     },
     {
       "name": "frontend-browser-acceptance",
+      "milestone": "frontend-acceptance",
+      "evaluation": "frontend-acceptance-eval",
       "project": "frontend-app",
       "runtime": "frontend",
       "risk": "normal",
@@ -85,6 +148,8 @@
     },
     {
       "name": "broad-agent-refactor",
+      "milestone": "agent-refactor-safety",
+      "evaluation": "agent-safety-eval",
       "project": "agent-workspace",
       "runtime": "agent",
       "risk": "high",
