@@ -38,5 +38,15 @@
     "hyperv": false,
     "mutagen": true,
     "docker": true
+  },
+  "tools": {
+    "mutagen": {
+      "version": "0.18.1",
+      "download_url": "https://github.com/mutagen-io/mutagen/releases/download/v0.18.1/mutagen_windows_amd64_v0.18.1.zip",
+      "archive_path": null,
+      "sha256": null,
+      "connection_timeout_seconds": 30,
+      "download_timeout_seconds": 300
+    }
   }
 }

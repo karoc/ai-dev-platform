@@ -92,7 +92,7 @@ Supported sync modes depend on the installed Mutagen version. The project has be
 
 ## Local Overrides
 
-`configs\local.json` is an ignored, machine-local override file. Use it for host paths, the ISO filename used inside the ISO cache, local VM sizing, static IPs, credentials for local bootstrap, and sync ignore changes that should not be committed.
+`configs\local.json` is an ignored, machine-local override file. Use it for host paths, the ISO filename used inside the ISO cache, local VM sizing, static IPs, credentials for local bootstrap, local tool acquisition settings such as Mutagen archive mirrors, and sync ignore changes that should not be committed.
 
 Start from the example:
 
@@ -114,6 +114,15 @@ Example:
       "iso_path": "ubuntu-26.04-live-server-amd64.iso",
       "admin_user": "adp",
       "admin_password": "change-this-local-password"
+    },
+    "tools": {
+      "mutagen": {
+        "download_url": "https://github.com/mutagen-io/mutagen/releases/download/v0.18.1/mutagen_windows_amd64_v0.18.1.zip",
+        "archive_path": "D:\\Downloads\\mutagen_windows_amd64_v0.18.1.zip",
+        "sha256": null,
+        "connection_timeout_seconds": 30,
+        "download_timeout_seconds": 300
+      }
     },
     "network": {
       "vmware_nat": {
@@ -149,6 +158,15 @@ Supported top-level sections:
 Merging is recursive for JSON objects. Arrays and scalar values replace the default value, so local `sync_profiles.<name>.ignore` overrides should include every ignored path you still want to keep from the default profile. Empty `configs\local.json` files are ignored.
 
 `platform.defaults.iso_path` is resolved inside `platform.paths.iso_cache`. To import an ISO from any location, run `.\install.ps1 -IsoPath C:\path\to\ubuntu-26.04-live-server-amd64.iso`; the installer copies it into the configured ISO cache.
+
+`platform.tools.mutagen` controls only the explicit `.\cli\adp.ps1 doctor -FixMutagen` remediation path. Use it when GitHub release downloads are slow or blocked:
+
+- `download_url`: archive URL used when ADP needs to download Mutagen.
+- `archive_path`: optional local archive path. If set, ADP copies this archive into ignored `.tools\mutagen` instead of downloading.
+- `sha256`: optional 64-character archive hash. If set, ADP verifies the archive before extraction.
+- `connection_timeout_seconds` and `download_timeout_seconds`: timeout values for the controlled download process.
+
+Downloaded archives, copied archives, and `mutagen.exe` remain under ignored `.tools\mutagen` and must not be committed.
 
 For VMware NAT differences between machines, prefer:
 

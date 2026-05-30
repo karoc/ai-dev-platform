@@ -23,6 +23,8 @@ The project does not yet publish versioned releases. Entries are grouped by date
 
 ### Changed
 
+- Improved Mutagen first-run remediation for restricted networks: `platform.tools.mutagen` now supports configurable download URL, explicit local archive path, optional SHA256 archive verification, and configurable download timeouts. `doctor -FixMutagen -Plan` shows these inputs before any download or extraction, and offline archives still remain under ignored `.tools\mutagen`.
+- Captured `xorriso` output during autoinstall ISO remastering so successful `adp up` output is not polluted by delayed ISO-tool logs after the runtime-ready summary, while failures still include captured tool details.
 - Improved `adp doctor -FixMutagen` first-run remediation output with explicit install phases, download source/target, connection and hard timeout guidance, controlled download-process termination, temporary archive downloads, reuse of existing archives, invalid-archive retry, clean failure output, and manual recovery guidance if the download fails.
 - Expanded default frontend, backend, and agent sync profile ignore lists for common dependency directories, build outputs, framework caches, browser-test output, Python virtual environments, Python caches, and local ADP/Codex tool state, reducing the chance that generated artifacts are synchronized before users customize profiles.
 

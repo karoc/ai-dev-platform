@@ -92,7 +92,7 @@ Sync profiles 配置 Mutagen 行为和忽略列表。
 
 ## 本地覆盖
 
-`configs\local.json` 是已被忽略的本机覆盖文件。它适合存放主机路径、ISO cache 中使用的 ISO 文件名、本机 VM 规格、静态 IP、本地 bootstrap 凭据，以及不应该提交的同步忽略规则调整。
+`configs\local.json` 是已被忽略的本机覆盖文件。它适合存放主机路径、ISO cache 中使用的 ISO 文件名、本机 VM 规格、静态 IP、本地 bootstrap 凭据、Mutagen archive mirror 等本机工具获取设置，以及不应该提交的同步忽略规则调整。
 
 从示例开始：
 
@@ -114,6 +114,15 @@ Copy-Item configs\local.example.json configs\local.json
       "iso_path": "ubuntu-26.04-live-server-amd64.iso",
       "admin_user": "adp",
       "admin_password": "change-this-local-password"
+    },
+    "tools": {
+      "mutagen": {
+        "download_url": "https://github.com/mutagen-io/mutagen/releases/download/v0.18.1/mutagen_windows_amd64_v0.18.1.zip",
+        "archive_path": "D:\\Downloads\\mutagen_windows_amd64_v0.18.1.zip",
+        "sha256": null,
+        "connection_timeout_seconds": 30,
+        "download_timeout_seconds": 300
+      }
     },
     "network": {
       "vmware_nat": {
@@ -149,6 +158,15 @@ Copy-Item configs\local.example.json configs\local.json
 JSON object 会递归合并。数组和标量值会替换默认值，因此本地 `sync_profiles.<name>.ignore` 覆盖应包含你仍然想保留的所有默认忽略路径。空的 `configs\local.json` 会被忽略。
 
 `platform.defaults.iso_path` 会在 `platform.paths.iso_cache` 内解析。如果要从任意位置导入 ISO，请运行 `.\install.ps1 -IsoPath C:\path\to\ubuntu-26.04-live-server-amd64.iso`；安装脚本会把它复制到配置的 ISO cache。
+
+`platform.tools.mutagen` 只影响显式执行的 `.\cli\adp.ps1 doctor -FixMutagen` 修复路径。当 GitHub release 下载很慢或不可达时可以使用它：
+
+- `download_url`：ADP 需要下载 Mutagen 时使用的 archive URL。
+- `archive_path`：可选本地 archive 路径。设置后，ADP 会把该 archive 复制到被忽略的 `.tools\mutagen`，而不是下载。
+- `sha256`：可选的 64 位 archive hash。设置后，ADP 会在解压前校验 archive。
+- `connection_timeout_seconds` 和 `download_timeout_seconds`：受控下载进程的 timeout 值。
+
+下载的 archive、复制的 archive 和 `mutagen.exe` 都保留在被忽略的 `.tools\mutagen` 下，不能提交。
 
 如果不同机器上的 VMware NAT 设置不同，优先使用：
 

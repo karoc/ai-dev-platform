@@ -10,6 +10,15 @@
       "admin_user": "adp",
       "admin_password": "adp"
     },
+    "tools": {
+      "mutagen": {
+        "download_url": "https://github.com/mutagen-io/mutagen/releases/download/v0.18.1/mutagen_windows_amd64_v0.18.1.zip",
+        "archive_path": ".tools\\mutagen\\mutagen_windows_amd64_v0.18.1.zip",
+        "sha256": null,
+        "connection_timeout_seconds": 30,
+        "download_timeout_seconds": 300
+      }
+    },
     "network": {
       "vmware_nat": {
         "cidr": "192.168.242.0/24",

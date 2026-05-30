@@ -324,8 +324,16 @@ if ($FixMutagen) {
         Write-Host "  Plan only: no files will be downloaded, expanded, or overwritten." -ForegroundColor Yellow
         Write-Host "  Version: $($remediation.Version)" -ForegroundColor DarkGray
         Write-Host "  Download: $($remediation.Url)" -ForegroundColor DarkGray
+        if ($remediation.ConfiguredArchivePath) {
+            Write-Host "  Offline archive: $($remediation.ConfiguredArchivePath)" -ForegroundColor DarkGray
+        } else {
+            Write-Host "  Offline archive: not configured; place the archive at $($remediation.ZipPath) to avoid downloading." -ForegroundColor DarkGray
+        }
         Write-Host "  Archive:  $($remediation.ZipPath)" -ForegroundColor DarkGray
         Write-Host "  Target:   $($remediation.TargetPath)" -ForegroundColor DarkGray
+        Write-Host "  SHA256:   $(if ($remediation.Sha256) { $remediation.Sha256 } else { 'not configured; archive hash verification will be skipped' })" -ForegroundColor DarkGray
+        Write-Host "  Timeout:  connection=$($remediation.ConnectionTimeoutSeconds)s hard=$($remediation.DownloadTimeoutSeconds)s" -ForegroundColor DarkGray
+        Write-Host "  Local overrides: platform.tools.mutagen.download_url, archive_path, sha256, connection_timeout_seconds, download_timeout_seconds" -ForegroundColor DarkGray
         Write-Host "  To install: .\cli\adp.ps1 doctor -FixMutagen" -ForegroundColor DarkGray
     } else {
         try {
@@ -338,6 +346,10 @@ if ($FixMutagen) {
             Write-Host "  Retry:  .\cli\adp.ps1 doctor -FixMutagen" -ForegroundColor DarkGray
             Write-Host "  Manual: download $($remediationPlan.Url)" -ForegroundColor DarkGray
             Write-Host "          place it at $($remediationPlan.ZipPath), then rerun the command." -ForegroundColor DarkGray
+            if ($remediationPlan.ConfiguredArchivePath) {
+                Write-Host "  Offline: configured archive path was $($remediationPlan.ConfiguredArchivePath)" -ForegroundColor DarkGray
+            }
+            Write-Host "  Verify: set platform.tools.mutagen.sha256 in configs\local.json to enforce archive hash verification." -ForegroundColor DarkGray
             Write-Host "  Or place mutagen.exe directly at: $($remediationPlan.TargetPath)" -ForegroundColor DarkGray
             Write-Host "  No VMs, sync sessions, SSH config, or configs\local.json were changed by this failed remediation." -ForegroundColor DarkGray
             exit 1

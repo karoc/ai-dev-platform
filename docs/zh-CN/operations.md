@@ -38,7 +38,38 @@ All checks passed. Platform is healthy.
 .\cli\adp.ps1 doctor -FixMutagen
 ```
 
-`-FixMutagen` 会下载官方 Mutagen 0.18.x Windows AMD64 archive，将 `mutagen.exe` 解压到 `.tools\mutagen\mutagen.exe`，并验证安装后的版本。安装路径会打印明确阶段、下载 source/target、连接和 hard timeout、干净的失败输出，以及下载失败时的手动恢复路径。`.tools` 目录已被 Git 忽略，因此下载的 archive 和本地 binary 不会被提交。
+`-FixMutagen` 会把 Mutagen 0.18.x 安装到 `.tools\mutagen\mutagen.exe`，并验证安装后的版本。安装路径会打印明确阶段、下载 source/target、offline archive path、连接和 hard timeout、可选 SHA256 状态、干净的失败输出，以及下载失败时的手动恢复路径。`.tools` 目录已被 Git 忽略，因此下载的 archive 和本地 binary 不会被提交。
+
+如果 GitHub release 下载很慢或不可达，请使用 offline archive path，不要依赖网络下载：
+
+```powershell
+New-Item -ItemType Directory -Path .tools\mutagen -Force
+# 通过浏览器或其他可信渠道下载此文件：
+# https://github.com/mutagen-io/mutagen/releases/download/v0.18.1/mutagen_windows_amd64_v0.18.1.zip
+# 保存为：
+# .tools\mutagen\mutagen_windows_amd64_v0.18.1.zip
+.\cli\adp.ps1 doctor -FixMutagen
+```
+
+如果需要自定义本地 archive、mirror 或 timeout policy，可以在被忽略的 `configs\local.json` 中设置 `platform.tools.mutagen`：
+
+```json
+{
+  "platform": {
+    "tools": {
+      "mutagen": {
+        "download_url": "https://example.invalid/mutagen_windows_amd64_v0.18.1.zip",
+        "archive_path": "D:\\Downloads\\mutagen_windows_amd64_v0.18.1.zip",
+        "sha256": null,
+        "connection_timeout_seconds": 30,
+        "download_timeout_seconds": 300
+      }
+    }
+  }
+}
+```
+
+当 `sha256` 是 64 位十六进制 hash 时，ADP 会在解压前校验 archive，不匹配则失败。当 `sha256` 为 `null` 时，archive hash verification 会被跳过，但 ADP 仍会验证解压出的 `mutagen.exe` 是否报告支持的 `0.18.x` 版本。
 
 运行集成检查：
 

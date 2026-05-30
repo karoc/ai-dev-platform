@@ -139,7 +139,7 @@ Assert-Command `
     -Name "doctor fix mutagen plan" `
     -Arguments @("doctor", "-FixMutagen", "-Plan") `
     -ExitCode 0 `
-    -Patterns @("Mutagen remediation:", "Plan only: no files will be downloaded", "mutagen_windows_amd64_v0\.18\.1\.zip", "\.tools\\mutagen\\mutagen\.exe", "To install: \.\\cli\\adp\.ps1 doctor -FixMutagen")
+    -Patterns @("Mutagen remediation:", "Plan only: no files will be downloaded", "mutagen_windows_amd64_v0\.18\.1\.zip", "\.tools\\mutagen\\mutagen\.exe", "Offline archive:", "SHA256:", "Timeout:\s+connection=30s hard=300s", "platform\.tools\.mutagen\.download_url", "To install: \.\\cli\\adp\.ps1 doctor -FixMutagen")
 
 Assert-Command `
     -Name "doctor reports VMware NAT prerequisites" `

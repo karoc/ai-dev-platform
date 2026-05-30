@@ -35,7 +35,7 @@
 | --- | --- | --- | --- |
 | 首次 setup 不清楚 | `.\cli\adp.ps1 doctor -FirstRun` | prerequisites、ISO、local overrides | [操作指南](operations.md)、[配置说明](configuration.md) |
 | 缺少必要工具 | `.\cli\adp.ps1 doctor` | VMware、WSL、xorriso、Mutagen、OpenSSH | [操作指南](operations.md#健康检查) |
-| Mutagen 缺失或版本不对 | `.\cli\adp.ps1 doctor -FixMutagen -Plan` | local Mutagen remediation | [操作指南](operations.md#健康检查) |
+| Mutagen 缺失或版本不对 | `.\cli\adp.ps1 doctor -FixMutagen -Plan` | local Mutagen remediation、offline archive、可选 SHA256 | [操作指南](operations.md#健康检查) |
 | Runtime startup 使用了非预期 ISO path | `.\cli\adp.ps1 up <runtime> -IsoPath <path> -Plan` | explicit ISO path、local config | [操作指南](operations.md#启动运行时) |
 | Runtime 已存在但无法连接 | `.\cli\adp.ps1 status <runtime>` | VM state、static IP、SSH reachability | [操作指南](operations.md#运行时状态)、[网络说明](networking.md) |
 | Runtime 创建看起来卡住 | 只要 `[install monitor] INSTALLING Ubuntu in VM` 心跳仍在继续，就保持 `adp up <runtime>` 运行 | Ubuntu autoinstall、first boot、IP/SSH/provision marker readiness signals | [操作指南](operations.md#启动运行时) |
@@ -66,6 +66,19 @@
 ```
 
 这些命令用于展示计划或收集 evidence。它们不会创建 snapshots、运行 task validation、stage 文件、commit 文件或 destroy VMs。
+
+## Mutagen 下载问题
+
+如果 `doctor -FixMutagen` timeout，或无法访问 GitHub releases，请保持修复路径本地且显式：
+
+```powershell
+.\cli\adp.ps1 doctor -FixMutagen -Plan
+New-Item -ItemType Directory -Path .tools\mutagen -Force
+# 将 mutagen_windows_amd64_v0.18.1.zip 放到 .tools\mutagen 后运行：
+.\cli\adp.ps1 doctor -FixMutagen
+```
+
+如果 archive 存在其他位置，在被忽略的 `configs\local.json` 中设置 `platform.tools.mutagen.archive_path`。如果需要 mirror，设置 `platform.tools.mutagen.download_url`。如果需要严格校验 archive，设置 `platform.tools.mutagen.sha256` 为预期的 64 位 SHA256 hash。ADP 不会提交 archive 或 `mutagen.exe`；`.tools` 始终被忽略。
 
 ## 何时修改本地配置
 

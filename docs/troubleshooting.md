@@ -35,7 +35,7 @@ Do not publish secrets, tokens, private keys, VM disks, ISO files, downloaded ar
 | --- | --- | --- | --- |
 | First setup is unclear | `.\cli\adp.ps1 doctor -FirstRun` | prerequisites, ISO, local overrides | [Operations](operations.md), [Configuration](configuration.md) |
 | A required tool is missing | `.\cli\adp.ps1 doctor` | VMware, WSL, xorriso, Mutagen, OpenSSH | [Operations](operations.md#health-checks) |
-| Mutagen is missing or wrong version | `.\cli\adp.ps1 doctor -FixMutagen -Plan` | local Mutagen remediation | [Operations](operations.md#health-checks) |
+| Mutagen is missing or wrong version | `.\cli\adp.ps1 doctor -FixMutagen -Plan` | local Mutagen remediation, offline archive, optional SHA256 | [Operations](operations.md#health-checks) |
 | Runtime startup uses an unexpected ISO path | `.\cli\adp.ps1 up <runtime> -IsoPath <path> -Plan` | explicit ISO path, local config | [Operations](operations.md#start-runtimes) |
 | Runtime exists but connection fails | `.\cli\adp.ps1 status <runtime>` | VM state, static IP, SSH reachability | [Operations](operations.md#runtime-status), [Networking](networking.md) |
 | Runtime creation looks stuck | keep `adp up <runtime>` running while `[install monitor] INSTALLING Ubuntu in VM` heartbeats continue | Ubuntu autoinstall, first boot, readiness signals from IP/SSH/provision marker | [Operations](operations.md#start-runtimes) |
@@ -66,6 +66,19 @@ Use plan or status commands before changing runtime state:
 ```
 
 These commands are intended to show what would happen or collect evidence. They do not create snapshots, run task validation, stage files, commit files, or destroy VMs.
+
+## Mutagen Download Problems
+
+If `doctor -FixMutagen` times out or cannot reach GitHub releases, keep the remediation local and explicit:
+
+```powershell
+.\cli\adp.ps1 doctor -FixMutagen -Plan
+New-Item -ItemType Directory -Path .tools\mutagen -Force
+# Place mutagen_windows_amd64_v0.18.1.zip under .tools\mutagen, then:
+.\cli\adp.ps1 doctor -FixMutagen
+```
+
+For an archive stored elsewhere, set `platform.tools.mutagen.archive_path` in ignored `configs\local.json`. For a mirror, set `platform.tools.mutagen.download_url`. For strict archive verification, set `platform.tools.mutagen.sha256` to the expected 64-character SHA256 hash. ADP never commits the archive or `mutagen.exe`; `.tools` remains ignored.
 
 ## When to Change Local Configuration
 

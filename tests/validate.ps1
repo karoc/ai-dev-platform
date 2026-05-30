@@ -82,6 +82,10 @@ Invoke-ValidationStep -Name "Check local config mutation boundaries" -ScriptBloc
     & ".\tests\local-config-boundary.ps1"
 }
 
+Invoke-ValidationStep -Name "Check Mutagen remediation behavior" -ScriptBlock {
+    & ".\tests\mutagen-remediation.ps1"
+}
+
 if (-not $SkipCliSmoke) {
     Invoke-ValidationStep -Name "Run CLI smoke tests" -ScriptBlock {
         & ".\tests\cli-smoke.ps1"

@@ -38,7 +38,38 @@ Install the tested local Mutagen binary only after reviewing the plan:
 .\cli\adp.ps1 doctor -FixMutagen
 ```
 
-`-FixMutagen` downloads the official Mutagen 0.18.x Windows AMD64 archive, extracts `mutagen.exe` to `.tools\mutagen\mutagen.exe`, and verifies the installed version. The install path prints explicit phases, download source/target, connection and hard timeout guidance, clean failure output, and a manual recovery path if the download fails. The `.tools` directory is ignored by Git, so downloaded archives and local binaries are not committed.
+`-FixMutagen` installs Mutagen 0.18.x into `.tools\mutagen\mutagen.exe`, then verifies the installed version. The install path prints explicit phases, download source/target, offline archive path, connection and hard timeout guidance, optional SHA256 status, clean failure output, and a manual recovery path if the download fails. The `.tools` directory is ignored by Git, so downloaded archives and local binaries are not committed.
+
+If GitHub release downloads are slow or blocked, use the offline archive path instead of relying on the network:
+
+```powershell
+New-Item -ItemType Directory -Path .tools\mutagen -Force
+# Download this file through a browser or another trusted channel:
+# https://github.com/mutagen-io/mutagen/releases/download/v0.18.1/mutagen_windows_amd64_v0.18.1.zip
+# Save it as:
+# .tools\mutagen\mutagen_windows_amd64_v0.18.1.zip
+.\cli\adp.ps1 doctor -FixMutagen
+```
+
+For a custom local archive, mirror, or timeout policy, use ignored `configs\local.json` under `platform.tools.mutagen`:
+
+```json
+{
+  "platform": {
+    "tools": {
+      "mutagen": {
+        "download_url": "https://example.invalid/mutagen_windows_amd64_v0.18.1.zip",
+        "archive_path": "D:\\Downloads\\mutagen_windows_amd64_v0.18.1.zip",
+        "sha256": null,
+        "connection_timeout_seconds": 30,
+        "download_timeout_seconds": 300
+      }
+    }
+  }
+}
+```
+
+When `sha256` is a 64-character hexadecimal hash, ADP verifies the archive before extraction and fails if it does not match. When `sha256` is `null`, archive hash verification is skipped and ADP still verifies the extracted `mutagen.exe` reports a supported `0.18.x` version.
 
 Run integration checks:
 

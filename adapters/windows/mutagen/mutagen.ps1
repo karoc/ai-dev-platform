@@ -24,6 +24,128 @@ function Get-MutagenDownloadUrl {
     return "https://github.com/mutagen-io/mutagen/releases/download/v$Version/mutagen_windows_amd64_v$Version.zip"
 }
 
+function Resolve-MutagenToolPath {
+    param(
+        [string]$ProjectRoot,
+        [string]$Path
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Path)) {
+        return $null
+    }
+
+    $expanded = [Environment]::ExpandEnvironmentVariables($Path)
+    $expanded = $expanded -replace '\$\{project:root\}', $ProjectRoot
+    if ([System.IO.Path]::IsPathRooted($expanded)) {
+        return $expanded
+    }
+
+    return (Join-Path $ProjectRoot $expanded)
+}
+
+function Get-MutagenInstallSettings {
+    param(
+        [string]$ProjectRoot,
+        [string]$Version
+    )
+
+    if (-not $ProjectRoot) {
+        $ProjectRoot = Get-ProjectRoot
+    }
+    if (-not $Version) {
+        $Version = Get-MutagenExpectedVersion
+    }
+
+    $platform = Get-PlatformConfig
+    $mutagenTools = $null
+    if ($platform -and $platform.PSObject.Properties.Name -contains "tools" -and $platform.tools.PSObject.Properties.Name -contains "mutagen") {
+        $mutagenTools = $platform.tools.mutagen
+    }
+
+    $configuredVersion = if ($mutagenTools -and $mutagenTools.PSObject.Properties.Name -contains "version" -and -not [string]::IsNullOrWhiteSpace([string]$mutagenTools.version)) {
+        [string]$mutagenTools.version
+    } else {
+        $Version
+    }
+
+    $downloadUrl = if ($mutagenTools -and $mutagenTools.PSObject.Properties.Name -contains "download_url" -and -not [string]::IsNullOrWhiteSpace([string]$mutagenTools.download_url)) {
+        [string]$mutagenTools.download_url
+    } else {
+        Get-MutagenDownloadUrl -Version $configuredVersion
+    }
+
+    $archivePath = if ($mutagenTools -and $mutagenTools.PSObject.Properties.Name -contains "archive_path" -and -not [string]::IsNullOrWhiteSpace([string]$mutagenTools.archive_path)) {
+        Resolve-MutagenToolPath -ProjectRoot $ProjectRoot -Path ([string]$mutagenTools.archive_path)
+    } else {
+        $null
+    }
+
+    $sha256 = if ($mutagenTools -and $mutagenTools.PSObject.Properties.Name -contains "sha256" -and -not [string]::IsNullOrWhiteSpace([string]$mutagenTools.sha256)) {
+        ([string]$mutagenTools.sha256).Trim().ToLowerInvariant()
+    } else {
+        $null
+    }
+
+    $connectionTimeout = 30
+    if ($mutagenTools -and $mutagenTools.PSObject.Properties.Name -contains "connection_timeout_seconds") {
+        $configuredConnectionTimeout = 0
+        if ([int]::TryParse([string]$mutagenTools.connection_timeout_seconds, [ref]$configuredConnectionTimeout) -and $configuredConnectionTimeout -gt 0) {
+            $connectionTimeout = $configuredConnectionTimeout
+        }
+    }
+
+    $downloadTimeout = 300
+    if ($mutagenTools -and $mutagenTools.PSObject.Properties.Name -contains "download_timeout_seconds") {
+        $configuredDownloadTimeout = 0
+        if ([int]::TryParse([string]$mutagenTools.download_timeout_seconds, [ref]$configuredDownloadTimeout) -and $configuredDownloadTimeout -gt 0) {
+            $downloadTimeout = $configuredDownloadTimeout
+        }
+    }
+
+    return [pscustomobject]@{
+        Version                  = $configuredVersion
+        DownloadUrl              = $downloadUrl
+        ArchivePath              = $archivePath
+        Sha256                   = $sha256
+        ConnectionTimeoutSeconds = $connectionTimeout
+        DownloadTimeoutSeconds   = $downloadTimeout
+    }
+}
+
+function Test-MutagenSha256Value {
+    param([string]$Sha256)
+
+    if ([string]::IsNullOrWhiteSpace($Sha256)) {
+        return $true
+    }
+
+    return ($Sha256 -match '^[a-fA-F0-9]{64}$')
+}
+
+function Assert-MutagenArchiveHash {
+    param(
+        [string]$ArchivePath,
+        [string]$Sha256
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Sha256)) {
+        Write-Host "        sha256: not configured; archive hash verification skipped." -ForegroundColor DarkGray
+        return
+    }
+
+    if (-not (Test-MutagenSha256Value -Sha256 $Sha256)) {
+        throw "Configured Mutagen SHA256 must be a 64-character hexadecimal value."
+    }
+
+    $actual = (Get-FileHash -LiteralPath $ArchivePath -Algorithm SHA256).Hash.ToLowerInvariant()
+    $expected = $Sha256.ToLowerInvariant()
+    if ($actual -ne $expected) {
+        throw "Mutagen archive SHA256 mismatch for $ArchivePath. Expected $expected, got $actual."
+    }
+
+    Write-Host "        sha256: verified $actual" -ForegroundColor DarkGray
+}
+
 function Find-Mutagen {
     param([string]$ProjectRoot)
 
@@ -144,6 +266,28 @@ Invoke-WebRequest -Uri '$escapedUrl' -OutFile '$escapedTempPath' -ConnectionTime
     Move-Item -LiteralPath $TempPath -Destination $ZipPath -Force
 }
 
+function Copy-MutagenArchive {
+    param(
+        [string]$SourcePath,
+        [string]$ZipPath,
+        [string]$TempPath
+    )
+
+    Write-Host "  [2/5] Copying configured Mutagen archive..." -ForegroundColor Yellow
+    Write-Host "        source: $SourcePath" -ForegroundColor DarkGray
+    Write-Host "        target: $ZipPath" -ForegroundColor DarkGray
+
+    if (-not (Test-Path -LiteralPath $SourcePath -PathType Leaf)) {
+        throw "Configured Mutagen archive was not found: $SourcePath"
+    }
+
+    if (Test-Path -LiteralPath $TempPath) {
+        Remove-Item -LiteralPath $TempPath -Force
+    }
+    Copy-Item -LiteralPath $SourcePath -Destination $TempPath -Force
+    Move-Item -LiteralPath $TempPath -Destination $ZipPath -Force
+}
+
 function Install-LocalMutagen {
     param(
         [string]$ProjectRoot,
@@ -156,28 +300,44 @@ function Install-LocalMutagen {
     }
 
     $toolRoot = Join-Path $ProjectRoot ".tools\mutagen"
+    $settings = Get-MutagenInstallSettings -ProjectRoot $ProjectRoot -Version $Version
+    $Version = $settings.Version
     $targetPath = Get-LocalMutagenPath -ProjectRoot $ProjectRoot
     $zipName = "mutagen_windows_amd64_v$Version.zip"
     $zipPath = Join-Path $toolRoot $zipName
     $tempZipPath = "$zipPath.download"
     $extractPath = Join-Path $toolRoot "extract-$Version"
-    $downloadUrl = Get-MutagenDownloadUrl -Version $Version
+    $downloadUrl = $settings.DownloadUrl
 
     if ($Plan) {
         return [pscustomobject]@{
-            Planned     = $true
-            Version     = $Version
-            Url         = $downloadUrl
-            ZipPath     = $zipPath
-            ExtractPath = $extractPath
-            TempZipPath = $tempZipPath
-            TargetPath  = $targetPath
+            Planned                  = $true
+            Version                  = $Version
+            Url                      = $downloadUrl
+            ConfiguredArchivePath    = $settings.ArchivePath
+            ZipPath                  = $zipPath
+            ExtractPath              = $extractPath
+            TempZipPath              = $tempZipPath
+            TargetPath               = $targetPath
+            Sha256                   = $settings.Sha256
+            ConnectionTimeoutSeconds = $settings.ConnectionTimeoutSeconds
+            DownloadTimeoutSeconds   = $settings.DownloadTimeoutSeconds
         }
     }
 
     Write-Host "  Installing Mutagen locally..." -ForegroundColor Yellow
     Write-Host "  Version: $Version" -ForegroundColor DarkGray
     Write-Host "  Local tools are kept under ignored .tools and must not be committed." -ForegroundColor DarkGray
+    if ($settings.ArchivePath) {
+        Write-Host "  Offline archive: $($settings.ArchivePath)" -ForegroundColor DarkGray
+    } else {
+        Write-Host "  Download source: $downloadUrl" -ForegroundColor DarkGray
+    }
+    if ($settings.Sha256) {
+        Write-Host "  Archive SHA256: $($settings.Sha256)" -ForegroundColor DarkGray
+    } else {
+        Write-Host "  Archive SHA256: not configured; add platform.tools.mutagen.sha256 in configs\local.json when you need strict archive verification." -ForegroundColor DarkGray
+    }
 
     Write-Host "  [1/5] Preparing local tool directory..." -ForegroundColor Yellow
     if (-not (Test-Path -LiteralPath $toolRoot)) {
@@ -186,15 +346,26 @@ function Install-LocalMutagen {
     Write-Host "        directory: $toolRoot" -ForegroundColor DarkGray
 
     $archiveWasReused = $false
-    if (Test-Path -LiteralPath $zipPath) {
+    $useConfiguredArchive = $false
+    if ($settings.ArchivePath) {
+        $configuredFullPath = [System.IO.Path]::GetFullPath($settings.ArchivePath)
+        $cacheFullPath = [System.IO.Path]::GetFullPath($zipPath)
+        $useConfiguredArchive = (-not $configuredFullPath.Equals($cacheFullPath, [System.StringComparison]::OrdinalIgnoreCase))
+    }
+
+    if ($useConfiguredArchive) {
+        Copy-MutagenArchive -SourcePath $settings.ArchivePath -ZipPath $zipPath -TempPath $tempZipPath
+    } elseif (Test-Path -LiteralPath $zipPath) {
         $archiveWasReused = $true
         $archiveSize = [math]::Round((Get-Item -LiteralPath $zipPath).Length / 1MB, 1)
         Write-Host "  [2/5] Reusing existing Mutagen archive..." -ForegroundColor Yellow
         Write-Host "        archive: $zipPath ($archiveSize MB)" -ForegroundColor DarkGray
         Write-Host "        If extraction fails, ADP will delete it and download a fresh copy." -ForegroundColor DarkGray
     } else {
-        Invoke-MutagenArchiveDownload -DownloadUrl $downloadUrl -ZipPath $zipPath -TempPath $tempZipPath
+        Invoke-MutagenArchiveDownload -DownloadUrl $downloadUrl -ZipPath $zipPath -TempPath $tempZipPath -ConnectionTimeoutSeconds $settings.ConnectionTimeoutSeconds -DownloadTimeoutSeconds $settings.DownloadTimeoutSeconds
     }
+
+    Assert-MutagenArchiveHash -ArchivePath $zipPath -Sha256 $settings.Sha256
 
     Write-Host "  [3/5] Extracting Mutagen archive..." -ForegroundColor Yellow
     if (Test-Path -LiteralPath $extractPath) {
@@ -211,7 +382,12 @@ function Install-LocalMutagen {
         Write-Host "        existing archive was invalid; downloading a fresh copy." -ForegroundColor Yellow
         Remove-Item -LiteralPath $zipPath -Force -ErrorAction SilentlyContinue
         Remove-Item -LiteralPath $extractPath -Recurse -Force -ErrorAction SilentlyContinue
-        Invoke-MutagenArchiveDownload -DownloadUrl $downloadUrl -ZipPath $zipPath -TempPath $tempZipPath
+        if ($useConfiguredArchive) {
+            Copy-MutagenArchive -SourcePath $settings.ArchivePath -ZipPath $zipPath -TempPath $tempZipPath
+        } else {
+            Invoke-MutagenArchiveDownload -DownloadUrl $downloadUrl -ZipPath $zipPath -TempPath $tempZipPath -ConnectionTimeoutSeconds $settings.ConnectionTimeoutSeconds -DownloadTimeoutSeconds $settings.DownloadTimeoutSeconds
+        }
+        Assert-MutagenArchiveHash -ArchivePath $zipPath -Sha256 $settings.Sha256
         New-Item -ItemType Directory -Path $extractPath -Force | Out-Null
         Expand-Archive -LiteralPath $zipPath -DestinationPath $extractPath -Force
     }
@@ -238,10 +414,12 @@ function Install-LocalMutagen {
         Version     = $Version
         VersionText = $versionText
         Url         = $downloadUrl
+        ConfiguredArchivePath = $settings.ArchivePath
         ZipPath     = $zipPath
         ExtractPath = $extractPath
         TempZipPath = $tempZipPath
         TargetPath  = $targetPath
+        Sha256      = $settings.Sha256
     }
 }
 

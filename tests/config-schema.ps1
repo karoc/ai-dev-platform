@@ -153,6 +153,7 @@ function Assert-PlatformConfig {
     Assert-Property -Name "platform.json" -Object $Config -Property "defaults"
     Assert-Property -Name "platform.json" -Object $Config -Property "network"
     Assert-Property -Name "platform.json" -Object $Config -Property "features"
+    Assert-Property -Name "platform.json" -Object $Config -Property "tools"
 
     foreach ($pathKey in @("workspace_root", "iso_cache", "vm_store", "logs", "snapshots", "configs")) {
         Assert-StringProperty -Name "platform.json.paths" -Object $Config.paths -Property $pathKey
@@ -176,6 +177,18 @@ function Assert-PlatformConfig {
 
     foreach ($feature in @("vmware", "hyperv", "mutagen", "docker")) {
         Assert-BooleanProperty -Name "platform.json.features" -Object $Config.features -Property $feature
+    }
+
+    Assert-Property -Name "platform.json.tools" -Object $Config.tools -Property "mutagen"
+    Assert-StringProperty -Name "platform.json.tools.mutagen" -Object $Config.tools.mutagen -Property "version"
+    Assert-StringProperty -Name "platform.json.tools.mutagen" -Object $Config.tools.mutagen -Property "download_url"
+    Assert-PositiveIntProperty -Name "platform.json.tools.mutagen" -Object $Config.tools.mutagen -Property "connection_timeout_seconds"
+    Assert-PositiveIntProperty -Name "platform.json.tools.mutagen" -Object $Config.tools.mutagen -Property "download_timeout_seconds"
+    Assert-Property -Name "platform.json.tools.mutagen" -Object $Config.tools.mutagen -Property "archive_path"
+    Assert-Property -Name "platform.json.tools.mutagen" -Object $Config.tools.mutagen -Property "sha256"
+
+    if ($Config.tools.mutagen.sha256 -and ([string]$Config.tools.mutagen.sha256 -notmatch '^[a-fA-F0-9]{64}$')) {
+        throw "platform.json.tools.mutagen.sha256 must be null or a 64-character hexadecimal SHA256"
     }
 }
 
@@ -245,6 +258,15 @@ function Assert-LocalExample {
                 throw "configs/local.example.json frontend sync override should demonstrate preserving generated-artifact ignore: $expected"
             }
         }
+    }
+
+    if ($Config.PSObject.Properties.Name -contains "platform" -and $Config.platform.PSObject.Properties.Name -contains "tools") {
+        Assert-Property -Name "configs/local.example.json.platform.tools" -Object $Config.platform.tools -Property "mutagen"
+        Assert-StringProperty -Name "configs/local.example.json.platform.tools.mutagen" -Object $Config.platform.tools.mutagen -Property "download_url"
+        Assert-StringProperty -Name "configs/local.example.json.platform.tools.mutagen" -Object $Config.platform.tools.mutagen -Property "archive_path"
+        Assert-PositiveIntProperty -Name "configs/local.example.json.platform.tools.mutagen" -Object $Config.platform.tools.mutagen -Property "connection_timeout_seconds"
+        Assert-PositiveIntProperty -Name "configs/local.example.json.platform.tools.mutagen" -Object $Config.platform.tools.mutagen -Property "download_timeout_seconds"
+        Assert-Property -Name "configs/local.example.json.platform.tools.mutagen" -Object $Config.platform.tools.mutagen -Property "sha256"
     }
 }
 
