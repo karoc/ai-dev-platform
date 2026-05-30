@@ -299,4 +299,4 @@ D:\Dev\ai-dev-platform
 
 这样可以避免平台维护、用户项目和 agent 生成产物混在同一个 working tree 中。
 
-对于 first-run dogfood，一个最小的 POSIX shell 项目就足以验证 ADP workspace lifecycle 的整条链路。先从一个足够小的项目开始，确保它可以被 sync、验证、review 和 commit，而不需要下载浏览器或安装额外 packages。目标是先验证工作流路径，而不是把项目复杂度拉满。
+对于 first-run dogfood，一个最小的 POSIX shell 项目就足以验证 ADP workspace lifecycle 的整条链路。先从一个足够小但真实的项目开始，确保它的文件可以被 sync、验证、review 和 commit，而不需要下载浏览器或安装额外 packages。只要它有明确的 validation command 和有意义的 diff，shell-only 项目就已经足够。目标是先验证工作流路径，而不是把项目复杂度拉满。

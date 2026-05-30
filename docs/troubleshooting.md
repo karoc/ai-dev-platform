@@ -96,6 +96,20 @@ If the runtime has not been created in this checkout, `sync status`, `status`, a
 
 `sync start <runtime>` does not silently replace an unusable same-name session. It asks for the explicit stop/start sequence so users can see that an existing sync relationship is being terminated and recreated.
 
+## One-Sided Root Emptying
+
+If Mutagen stops with one-sided root emptying protection, it means the synced root was emptied on one side or on both sides and Mutagen refused to keep mirroring the delete. This is expected safety behavior, not a platform crash. It usually shows up after cleaning probe files or experimenting with both sides of the same workspace.
+
+Recover by repopulating one side from the source of truth, or by recreating the project tree if you intentionally started over. Then restart the session explicitly:
+
+```powershell
+.\cli\adp.ps1 sync stop agent
+.\cli\adp.ps1 sync start agent
+.\cli\adp.ps1 sync status
+```
+
+If the project should be recreated from scratch, do that deliberately instead of expecting Mutagen to recover an empty pair of roots automatically.
+
 ## When to Change Local Configuration
 
 Use ignored local overrides when machine-specific settings differ from committed defaults:

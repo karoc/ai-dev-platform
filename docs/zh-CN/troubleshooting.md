@@ -96,6 +96,20 @@ New-Item -ItemType Directory -Path .tools\mutagen -Force
 
 `sync start <runtime>` 不会静默替换不可用的同名 session。它会要求显式执行 stop/start，让用户清楚知道已有同步关系将被终止并重建。
 
+## 单边 root 清空保护
+
+如果 Mutagen 因 one-sided root emptying protection 而停止，说明同步 root 在一侧或两侧被清空，Mutagen 为了安全拒绝继续镜像删除。这是预期的保护行为，不是平台崩溃。通常会出现在清理 probe 文件，或者对同一个 workspace 的两侧都做过实验之后。
+
+恢复方式是：重新从源头把一侧内容补回去，或者如果你本来就是要重来，则明确重建项目目录。然后显式重启 session：
+
+```powershell
+.\cli\adp.ps1 sync stop agent
+.\cli\adp.ps1 sync start agent
+.\cli\adp.ps1 sync status
+```
+
+如果项目应该从头重建，不要指望 Mutagen 自动把两个空 root 恢复成可用状态，应当有意重建。
+
 ## 何时修改本地配置
 
 当本机专属设置与已提交默认值不同时，使用被忽略的本地覆盖：
