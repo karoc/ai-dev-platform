@@ -4,18 +4,29 @@
 param(
     [string]$SubCommand,
     [string]$RuntimeName,
-    [switch]$Plan
+    [switch]$Plan,
+    [switch]$Apply
 )
 
 $ErrorActionPreference = "Stop"
 
 if (-not $SubCommand -or $SubCommand -notin @("apply", "configure-local", "local")) {
-    Write-ErrorLog -Message "Usage: adp network apply <runtime|all> [-Plan] | adp network configure-local [-Plan]" -Component "cli.network"
+    Write-ErrorLog -Message "Usage: adp network apply <runtime|all> [-Plan] | adp network configure-local [-Plan|-Apply]" -Component "cli.network"
     exit 1
 }
 
 if ($SubCommand -eq "apply" -and -not $RuntimeName) {
     Write-ErrorLog -Message "Usage: adp network apply <runtime|all> [-Plan]" -Component "cli.network"
+    exit 1
+}
+
+if ($SubCommand -eq "apply" -and $Apply) {
+    Write-ErrorLog -Message "-Apply is only supported with: adp network configure-local -Apply" -Component "cli.network"
+    exit 1
+}
+
+if ($SubCommand -in @("configure-local", "local") -and $Plan -and $Apply) {
+    Write-ErrorLog -Message "Use either -Plan or -Apply, not both." -Component "cli.network"
     exit 1
 }
 
@@ -143,6 +154,101 @@ function Get-VMwareLocalNetworkPlan {
     }
 }
 
+function Format-LocalNetworkValue {
+    param($Value)
+
+    if ($null -eq $Value) {
+        return "(not set)"
+    }
+
+    if ($Value -is [array]) {
+        $items = @($Value | Where-Object { $null -ne $_ -and "$_".Length -gt 0 })
+        if ($items.Count -eq 0) {
+            return "(not set)"
+        }
+        return ($items -join ", ")
+    }
+
+    $text = [string]$Value
+    if ([string]::IsNullOrWhiteSpace($text)) {
+        return "(not set)"
+    }
+    return $text
+}
+
+function New-LocalNetworkChange {
+    param(
+        [string]$Path,
+        $Current,
+        $Target
+    )
+
+    return [pscustomobject]@{
+        Path    = $Path
+        Current = (Format-LocalNetworkValue $Current)
+        Target  = (Format-LocalNetworkValue $Target)
+    }
+}
+
+function Get-LocalNetworkChangeSet {
+    param([object]$NetworkPlan)
+
+    $config = Get-PlatformConfig
+    $topology = Get-TopologyConfig
+    $nat = $config.network.vmware_nat
+    $changes = [System.Collections.Generic.List[object]]::new()
+
+    $changes.Add((New-LocalNetworkChange -Path "platform.network.mode" -Current $config.network.mode -Target "static")) | Out-Null
+    $changes.Add((New-LocalNetworkChange -Path "platform.network.vmware_nat.cidr" -Current $nat.cidr -Target $NetworkPlan.HostCidr)) | Out-Null
+    $changes.Add((New-LocalNetworkChange -Path "platform.network.vmware_nat.prefix" -Current $nat.prefix -Target $NetworkPlan.Prefix)) | Out-Null
+    $changes.Add((New-LocalNetworkChange -Path "platform.network.vmware_nat.gateway" -Current $nat.gateway -Target $NetworkPlan.Gateway)) | Out-Null
+    $changes.Add((New-LocalNetworkChange -Path "platform.network.vmware_nat.dns" -Current @($nat.dns) -Target @($NetworkPlan.Dns))) | Out-Null
+
+    foreach ($runtimePlan in @($NetworkPlan.RuntimePlans)) {
+        $runtimeProperty = $topology.PSObject.Properties[$runtimePlan.Name]
+        $rt = if ($runtimeProperty) { $runtimeProperty.Value } else { $null }
+        $currentIp = if ($rt -and $rt.PSObject.Properties.Name -contains "static_ip") { $rt.static_ip } else { "" }
+        $changes.Add((New-LocalNetworkChange -Path "topology.$($runtimePlan.Name).static_ip" -Current $currentIp -Target $runtimePlan.StaticIp)) | Out-Null
+    }
+
+    return @($changes)
+}
+
+function Get-ChangedLocalNetworkFields {
+    param([object[]]$Changes)
+
+    return @($Changes | Where-Object { $_.Current -ne $_.Target })
+}
+
+function Write-LocalNetworkChangeSet {
+    param([object[]]$Changes)
+
+    $changed = @(Get-ChangedLocalNetworkFields -Changes $Changes)
+    Write-Host "  Proposed local config changes:" -ForegroundColor DarkGray
+    if ($changed.Count -eq 0) {
+        Write-Host "    none; local ADP configuration already matches detected host VMnet8." -ForegroundColor DarkGray
+        return
+    }
+
+    foreach ($change in $changed) {
+        Write-Host "    $($change.Path):" -ForegroundColor DarkGray
+        Write-Host "      $($change.Current) -> $($change.Target)" -ForegroundColor DarkGray
+    }
+}
+
+function Backup-LocalNetworkConfig {
+    param([string]$LocalConfigPath)
+
+    if (-not (Test-Path -LiteralPath $LocalConfigPath)) {
+        return ""
+    }
+
+    $timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
+    $backupPath = "$LocalConfigPath.bak.$timestamp"
+    Copy-Item -LiteralPath $LocalConfigPath -Destination $backupPath -Force
+    return $backupPath
+}
+
 function Set-LocalNetworkConfig {
     param([object]$NetworkPlan)
 
@@ -172,18 +278,21 @@ function Set-LocalNetworkConfig {
         Set-JsonProperty -Object $runtime -Name "static_ip" -Value $runtimePlan.StaticIp
     }
 
+    $backupPath = Backup-LocalNetworkConfig -LocalConfigPath $localPath
     $json = $localConfig | ConvertTo-Json -Depth 20
     Set-Content -LiteralPath $localPath -Value $json -Encoding utf8
+    return $backupPath
 }
 
 function Invoke-ConfigureLocalNetwork {
-    param([switch]$PlanOnly)
+    param([switch]$ApplyChanges)
 
     $plan = Get-VMwareLocalNetworkPlan
     $config = Get-PlatformConfig
     $nat = $config.network.vmware_nat
+    $changes = @(Get-LocalNetworkChangeSet -NetworkPlan $plan)
 
-    Write-Host "Configuring local VMware NAT overrides..." -ForegroundColor Yellow
+    Write-Host "Local VMware NAT override plan..." -ForegroundColor Yellow
     Write-Host "  Host VMnet8: $($plan.HostCidr) ($($plan.HostAddress), $($plan.HostSource))" -ForegroundColor DarkGray
     Write-Host "  Local config: $($plan.LocalConfigPath)" -ForegroundColor DarkGray
     Write-Host "  Current configured NAT: $($nat.cidr), gateway $($nat.gateway)" -ForegroundColor DarkGray
@@ -193,16 +302,26 @@ function Invoke-ConfigureLocalNetwork {
     foreach ($runtimePlan in @($plan.RuntimePlans)) {
         Write-Host "    $($runtimePlan.Name): $($runtimePlan.CurrentIp) -> $($runtimePlan.StaticIp)" -ForegroundColor DarkGray
     }
+    Write-LocalNetworkChangeSet -Changes $changes
+    Write-Host "  Preserved: unrelated configs\local.json fields are left unchanged." -ForegroundColor DarkGray
+    Write-Host "  Not changed: VMware VMnet8, VM files, guest networking, SSH, sync sessions, and runtimes." -ForegroundColor DarkGray
+    Write-Host "  Alternative: keep ADP's configured subnet and change VMware VMnet8 in Virtual Network Editor to match it." -ForegroundColor DarkGray
 
-    if ($PlanOnly) {
+    if (-not $ApplyChanges) {
         Write-Host "  Plan only: configs\local.json will not be changed." -ForegroundColor Cyan
-        Write-Host "  To apply: .\cli\adp.ps1 network configure-local" -ForegroundColor DarkGray
+        Write-Host "  No files changed." -ForegroundColor Cyan
+        Write-Host "  To apply this local override: .\cli\adp.ps1 network configure-local -Apply" -ForegroundColor DarkGray
         Write-Host "  Then rerun: .\cli\adp.ps1 doctor -FirstRun" -ForegroundColor DarkGray
         return
     }
 
-    Set-LocalNetworkConfig -NetworkPlan $plan
+    $backupPath = Set-LocalNetworkConfig -NetworkPlan $plan
     Write-Host "  Updated configs\local.json with host VMnet8 NAT settings." -ForegroundColor Green
+    if ($backupPath) {
+        Write-Host "  Backup: $backupPath" -ForegroundColor DarkGray
+    } else {
+        Write-Host "  Backup: none; configs\local.json did not exist before apply." -ForegroundColor DarkGray
+    }
     Write-Host "  Next: .\cli\adp.ps1 doctor -FirstRun" -ForegroundColor DarkGray
     Write-Host "  Then: .\cli\adp.ps1 up <runtime> -Plan" -ForegroundColor DarkGray
 }
@@ -462,7 +581,7 @@ Write-Host ""
 
 if ($SubCommand -in @("configure-local", "local")) {
     try {
-        Invoke-ConfigureLocalNetwork -PlanOnly:$Plan
+        Invoke-ConfigureLocalNetwork -ApplyChanges:$Apply
     } catch {
         Write-ErrorLog -Message "local network configuration failed: $_" -Component "cli.network"
         exit 1

@@ -148,6 +148,12 @@ Assert-Command `
     -Patterns @("VMware NAT config", "VMware NAT gateway range", "VMware NAT host match", "VMware NAT prerequisites", "VMnet8")
 
 Assert-Command `
+    -Name "network apply rejects local apply switch" `
+    -Arguments @("network", "apply", "agent", "-Apply") `
+    -ExitCode 1 `
+    -Patterns @("-Apply is only supported with: adp network configure-local -Apply")
+
+Assert-Command `
     -Name "workspace show example manifest" `
     -Arguments @("workspace", "show", "-ManifestPath", "configs\workspace.example.json") `
     -ExitCode 0 `

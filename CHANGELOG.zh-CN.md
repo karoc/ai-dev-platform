@@ -10,7 +10,7 @@
 
 ### 新增
 
-- 新增 `adp network configure-local [-Plan]`，用于在创建 VM 前把被忽略的 `configs\local.json` 对齐到探测到的 host `VMnet8` NAT subnet。Plan 输出会显示探测到的 host CIDR、目标 gateway/DNS，以及推导出的 runtime static IP；实际执行只写入本机 ignored override 文件。`adp up` 和 `adp doctor` 现在会在 VMware NAT mismatch 阻断首次 VM 创建时提示这个命令。
+- 新增 `adp network configure-local [-Plan|-Apply]`，用于在创建 VM 前把被忽略的 `configs\local.json` 对齐到探测到的 host `VMnet8` NAT subnet。默认模式和 `-Plan` 都不会修改文件，会显示探测到的 host CIDR、目标 gateway/DNS、推导出的 runtime static IP，以及字段级 local config 变更。只有显式 `-Apply` 才会写入本机 override，并会把已有 `configs\local.json` 备份为 `configs\local.json.bak.<timestamp>`。`adp up` 和 `adp doctor` 现在会在 VMware NAT mismatch 阻断首次 VM 创建时给出两条修复路径：将 ADP 本机 override 对齐到 host `VMnet8`，或保留 ADP 配置的 subnet 并修改 VMware `VMnet8`。
 - 新增显式的本地 `checkpoint-waived` workspace task state，让高风险 task 可以在被忽略的本地 state 中记录人类已接受缺少 VM snapshot 保护的风险。Waived checkpoint 会显示在 `workspace status`、`workspace dashboard`、`workspace project`、`workspace report`、`workspace task review`、`workspace task rollback` 和 `workspace task commit` 中；它会解除 snapshot-first gate 的阻塞，但不会伪装成已有 VM snapshot，并且在没有确认 checkpoint 时 rollback 输出不会打印 VM restore 命令。
 - 在 `workspace report` 和 `workspace report -Markdown` 中新增 milestone review rollup，用于汇总每个 milestone 的 actions、release states、blockers、validation-required tasks、review-required tasks、ready-to-commit tasks、owners 和 due attention；不会运行 validation，也不会修改 runtime state。
 - 在 `workspace report` 和 `workspace report -Markdown` 中新增非破坏性的 validation execution queue，用于显示每个 task 的 recorded validation state、command count、readiness、blockers、plan command、`-Execute -Plan` preview command 和显式 `-Execute` command；不会运行 validation。

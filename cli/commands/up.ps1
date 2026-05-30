@@ -111,9 +111,11 @@ function Assert-VMwareNatReadyForRuntimeCreate {
         Write-Host "VMware NAT mismatch detected before VM creation." -ForegroundColor Red
         Write-Host "  Configured: $($hostNat.ConfiguredCidr), gateway $($nat.gateway)" -ForegroundColor DarkGray
         Write-Host "  Host VMnet8: $($hostNat.HostCidr) ($($hostNat.HostAddress), $($hostNat.HostSource))" -ForegroundColor DarkGray
-        Write-Host "  Fix configs\local.json so platform.network.vmware_nat and topology.$TargetRuntime.static_ip match host VMnet8." -ForegroundColor Yellow
-        Write-Host "  Preview automatic local fix: .\cli\adp.ps1 network configure-local -Plan" -ForegroundColor DarkGray
-        Write-Host "  Apply automatic local fix:   .\cli\adp.ps1 network configure-local" -ForegroundColor DarkGray
+        Write-Host "  ADP configuration and host VMware NAT disagree. Choose one remediation path:" -ForegroundColor Yellow
+        Write-Host "  Option A: Align ADP local overrides to current host VMnet8:" -ForegroundColor DarkGray
+        Write-Host "    .\cli\adp.ps1 network configure-local -Plan" -ForegroundColor DarkGray
+        Write-Host "    .\cli\adp.ps1 network configure-local -Apply" -ForegroundColor DarkGray
+        Write-Host "  Option B: Keep ADP's configured subnet and change VMware VMnet8 to $($hostNat.ConfiguredCidr) in Virtual Network Editor." -ForegroundColor DarkGray
         Write-Host "  Then rerun: .\cli\adp.ps1 doctor -FirstRun" -ForegroundColor DarkGray
         Write-Host "  No VM was created." -ForegroundColor DarkGray
         exit 1

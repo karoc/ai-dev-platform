@@ -125,7 +125,7 @@ Installer 排障开关：
 
 `-IsoPath` 会直接用于 VM 创建，不需要位于配置的 ISO cache 中。
 
-首次创建新 VM 前，`adp up <runtime>` 会在 host 暴露相关信息时，比对配置的 VMware NAT CIDR 和 host `VMnet8` 网络。如果二者不一致，ADP 会在创建 VM 前退出，并提示运行 `.\cli\adp.ps1 network configure-local -Plan`。这可以避免新 VM 被安装到 host 无法访问的静态 IP 上。
+首次创建新 VM 前，`adp up <runtime>` 会在 host 暴露相关信息时，比对配置的 VMware NAT CIDR 和 host `VMnet8` 网络。如果二者不一致，ADP 会在创建 VM 前退出，并给出两条修复路径：用 `.\cli\adp.ps1 network configure-local -Plan` 和 `.\cli\adp.ps1 network configure-local -Apply` 将 ADP 本机 override 对齐到 host `VMnet8`，或保留 ADP 配置的 subnet 并在 VMware Virtual Network Editor 中修改 `VMnet8`。这可以避免新 VM 被安装到 host 无法访问的静态 IP 上。
 
 ## 停止运行时
 
@@ -283,10 +283,10 @@ pnpm exec playwright test
 
 ```powershell
 .\cli\adp.ps1 network configure-local -Plan
-.\cli\adp.ps1 network configure-local
+.\cli\adp.ps1 network configure-local -Apply
 ```
 
-`configure-local -Plan` 会预览探测到的 host NAT subnet、目标 gateway/DNS，以及推导出的 runtime static IP。不带 `-Plan` 时，它只会写入被忽略的 `configs\local.json` 文件。
+`configure-local -Plan` 会预览探测到的 host NAT subnet、目标 gateway/DNS、推导出的 runtime static IP，以及字段级 local config 变更。裸 `configure-local` 同样不会修改文件。只有在审阅 plan 后才使用 `-Apply`；它只会更新 `configs\local.json`，并把已有文件备份为 `configs\local.json.bak.<timestamp>`。如果你想保留 ADP 配置的 subnet，请改为在 VMware Virtual Network Editor 中修改 `VMnet8`，不要应用本机 override。
 
 可以先预览 guest 网络改动：
 

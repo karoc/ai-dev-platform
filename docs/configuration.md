@@ -154,10 +154,10 @@ For VMware NAT differences between machines, prefer:
 
 ```powershell
 .\cli\adp.ps1 network configure-local -Plan
-.\cli\adp.ps1 network configure-local
+.\cli\adp.ps1 network configure-local -Apply
 ```
 
-The command detects host `VMnet8`, previews the target `platform.network.vmware_nat` and `topology.<runtime>.static_ip` values, and writes only the ignored `configs\local.json` override when run without `-Plan`. Manual editing is still supported when host detection is unavailable. Confirm the actual VMware NAT subnet in VMware Workstation's Virtual Network Editor if needed; see [Networking](networking.md#prerequisites).
+The command detects host `VMnet8`, previews the target `platform.network.vmware_nat` and `topology.<runtime>.static_ip` values, and does not write local configuration unless `-Apply` is explicit. With `-Apply`, the command updates only the ignored `configs\local.json` override and backs up an existing local file as `configs\local.json.bak.<timestamp>`. Manual editing is still supported when host detection is unavailable or when you prefer to keep the ADP subnet and change VMware `VMnet8` in Virtual Network Editor instead. Confirm the actual VMware NAT subnet in VMware Workstation's Virtual Network Editor if needed; see [Networking](networking.md#prerequisites).
 
 Do not commit `configs\local.json`; commit shared defaults to the main config files instead.
 

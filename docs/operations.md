@@ -125,7 +125,7 @@ When creating a runtime for the first time, you can pass an ISO from any locatio
 
 `-IsoPath` is used directly for VM creation. It does not need to be inside the configured ISO cache.
 
-Before creating a new VM, `adp up <runtime>` compares the configured VMware NAT CIDR with the host `VMnet8` network when the host exposes it. If they do not match, ADP exits before creating the VM and points you to `.\cli\adp.ps1 network configure-local -Plan`. This prevents a new VM from being installed with a static IP that the host cannot reach.
+Before creating a new VM, `adp up <runtime>` compares the configured VMware NAT CIDR with the host `VMnet8` network when the host exposes it. If they do not match, ADP exits before creating the VM and presents two remediation paths: align ADP local overrides to host `VMnet8` with `.\cli\adp.ps1 network configure-local -Plan` and `.\cli\adp.ps1 network configure-local -Apply`, or keep ADP's configured subnet and change VMware `VMnet8` in Virtual Network Editor. This prevents a new VM from being installed with a static IP that the host cannot reach.
 
 ## Stop Runtimes
 
@@ -283,10 +283,10 @@ Before any VM exists, use this to align local NAT settings with host `VMnet8` wi
 
 ```powershell
 .\cli\adp.ps1 network configure-local -Plan
-.\cli\adp.ps1 network configure-local
+.\cli\adp.ps1 network configure-local -Apply
 ```
 
-`configure-local -Plan` previews the detected host NAT subnet, target gateway/DNS, and derived runtime static IPs. Without `-Plan`, it writes only the ignored `configs\local.json` file.
+`configure-local -Plan` previews the detected host NAT subnet, target gateway/DNS, derived runtime static IPs, and field-level local config changes. A bare `configure-local` is also non-mutating. Use `-Apply` only after reviewing the plan; it writes only `configs\local.json` and backs up an existing file as `configs\local.json.bak.<timestamp>`. If you want to keep ADP's configured subnet instead, change VMware `VMnet8` in Virtual Network Editor rather than applying the local override.
 
 Preview the guest networking changes first:
 
