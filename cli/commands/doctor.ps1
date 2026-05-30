@@ -7,19 +7,19 @@ param(
     [switch]$Plan
 )
 
-Write-InfoLog -Message "Running: adp doctor" -Component "cli.doctor"
+Write-InfoLog -Message (Get-UIText -English "Running: adp doctor" -Chinese "正在运行: adp doctor") -Component "cli.doctor"
 
 . (Join-Path (Get-ProjectRoot) "runtimes\vmware\os-profiles.ps1")
 . (Join-Path (Get-ProjectRoot) "runtimes\vmware\vm-factory.ps1")
 . (Join-Path (Get-ProjectRoot) "adapters\windows\mutagen\mutagen.ps1")
 
 if ($Plan -and -not $FixMutagen) {
-    Write-ErrorLog -Message "-Plan is only supported with -FixMutagen." -Component "cli.doctor"
+    Write-ErrorLog -Message (Get-UIText -English "-Plan is only supported with -FixMutagen." -Chinese "-Plan 仅支持与 -FixMutagen 一起使用。") -Component "cli.doctor"
     exit 1
 }
 
 Write-Host ""
-Write-Host "ADP-OS Doctor — System Diagnostics" -ForegroundColor Cyan
+Write-UIHost -English "ADP-OS Doctor — System Diagnostics" -Chinese "ADP-OS Doctor — 系统诊断" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
@@ -195,7 +195,7 @@ function Test-ISOReasonable {
 }
 
 # --- Platform ---
-Write-Host "Platform:" -ForegroundColor Yellow
+Write-UIHost -English "Platform:" -Chinese "平台:" -ForegroundColor Yellow
 $platform = Get-Platform
 Test-Check -Name "Platform Detection" -Condition ($platform -eq "windows") -Detail "($platform)"
 
@@ -206,7 +206,7 @@ Test-Check -Name "PowerShell 7+" -Condition ($PSVersionTable.PSVersion.Major -ge
 
 # --- Configuration ---
 Write-Host ""
-Write-Host "Configuration:" -ForegroundColor Yellow
+Write-UIHost -English "Configuration:" -Chinese "配置:" -ForegroundColor Yellow
 $localConfigStatus = Get-LocalConfigStatus
 if ($localConfigStatus.Exists) {
     if ($localConfigStatus.Empty) {
@@ -215,11 +215,11 @@ if ($localConfigStatus.Exists) {
         Test-Check -Name "local config" -Condition $true -Detail "(applied sections: $($localConfigStatus.Sections -join ', '))"
     } else {
         Test-Check -Name "local config" -Condition $true -Detail "(present, no supported sections)"
-        Write-Host "  [INFO]  Supported sections: platform, topology, sync_profiles" -ForegroundColor DarkGray
+        Write-UIHost -English "  [INFO]  Supported sections: platform, topology, sync_profiles" -Chinese "  [INFO]  支持的配置段: platform, topology, sync_profiles" -ForegroundColor DarkGray
     }
 } else {
     Test-Check -Name "local config" -Condition $true -Detail "(not present, using committed defaults)"
-    Write-Host "  [INFO]  Optional: copy configs\local.example.json to configs\local.json for machine-local overrides." -ForegroundColor DarkGray
+    Write-UIHost -English "  [INFO]  Optional: copy configs\local.example.json to configs\local.json for machine-local overrides." -Chinese "  [INFO]  可选：复制 configs\local.example.json 到 configs\local.json，用于本机覆盖配置。" -ForegroundColor DarkGray
 }
 if ($localConfigStatus.Exists -and -not $localConfigStatus.Empty) {
     $unsupportedSections = @($localConfigStatus.UnsupportedSections)
@@ -243,9 +243,9 @@ if ($config.network.vmware_nat) {
         Test-Check -Name "VMware NAT host match" -Condition $hostNat.Matches -Detail "(configured $($hostNat.ConfiguredCidr), host $($hostNat.HostCidr) via $($hostNat.HostSource))"
         Test-Check -Name "VMware NAT gateway host range" -Condition $hostNat.GatewayInHostCidr -Detail "($($nat.gateway) in host $($hostNat.HostCidr))"
         if (-not $hostNat.Matches) {
-            Write-Host "  [INFO]  ADP configuration and host VMware NAT disagree; choose one remediation before creating VMs." -ForegroundColor DarkGray
-            Write-Host "  [INFO]  Option A: align ADP local overrides: .\cli\adp.ps1 network configure-local -Plan, then .\cli\adp.ps1 network configure-local -Apply" -ForegroundColor DarkGray
-            Write-Host "  [INFO]  Option B: keep ADP's configured subnet and change VMware VMnet8 to $($hostNat.ConfiguredCidr) in Virtual Network Editor." -ForegroundColor DarkGray
+            Write-UIHost -English "  [INFO]  ADP configuration and host VMware NAT disagree; choose one remediation before creating VMs." -Chinese "  [INFO]  ADP 配置与主机 VMware NAT 不一致；创建 VM 前需要先选择一种修复方式。" -ForegroundColor DarkGray
+            Write-UIHost -English "  [INFO]  Option A: align ADP local overrides: .\cli\adp.ps1 network configure-local -Plan, then .\cli\adp.ps1 network configure-local -Apply" -Chinese "  [INFO]  方案 A：将 ADP 本机覆盖对齐到当前主机：.\cli\adp.ps1 network configure-local -Plan，然后 .\cli\adp.ps1 network configure-local -Apply" -ForegroundColor DarkGray
+            Write-UIHost -English "  [INFO]  Option B: keep ADP's configured subnet and change VMware VMnet8 to $($hostNat.ConfiguredCidr) in Virtual Network Editor." -Chinese "  [INFO]  方案 B：保留 ADP 配置的网段，并在 VMware Virtual Network Editor 中把 VMnet8 改为 $($hostNat.ConfiguredCidr)。" -ForegroundColor DarkGray
         }
     } else {
         Write-InfoCheck -Name "VMware NAT host match" -Detail "($($hostNat.Reason); confirm VMnet8/NAT subnet in VMware Virtual Network Editor)"
@@ -295,13 +295,13 @@ Test-Check -Name "WSL xorriso" -Condition (Test-WSLCommand -Command "xorriso") -
 
 # --- Mutagen ---
 Write-Host ""
-Write-Host "Mutagen:" -ForegroundColor Yellow
+Write-UIHost -English "Mutagen:" -Chinese "Mutagen:" -ForegroundColor Yellow
 $mutagenPath = Find-Mutagen -ProjectRoot (Get-ProjectRoot)
 $hasMutagen = $null -ne $mutagenPath
 Test-Check -Name "mutagen" -Condition $hasMutagen
 if (-not $hasMutagen) {
-    Write-Host "  [INFO]  Install by placing mutagen.exe at .tools\mutagen\mutagen.exe or adding it to PATH." -ForegroundColor DarkGray
-    Write-Host "  [INFO]  Or run: .\cli\adp.ps1 doctor -FixMutagen -Plan" -ForegroundColor DarkGray
+    Write-UIHost -English "  [INFO]  Install by placing mutagen.exe at .tools\mutagen\mutagen.exe or adding it to PATH." -Chinese "  [INFO]  安装方式：将 mutagen.exe 放到 .tools\mutagen\mutagen.exe，或加入 PATH。" -ForegroundColor DarkGray
+    Write-UIHost -English "  [INFO]  Or run: .\cli\adp.ps1 doctor -FixMutagen -Plan" -Chinese "  [INFO]  或运行：.\cli\adp.ps1 doctor -FixMutagen -Plan" -ForegroundColor DarkGray
 }
 
 if ($hasMutagen) {
@@ -317,11 +317,11 @@ if ($hasMutagen) {
 
 if ($FixMutagen) {
     Write-Host ""
-    Write-Host "Mutagen remediation:" -ForegroundColor Cyan
+    Write-UIHost -English "Mutagen remediation:" -Chinese "Mutagen 修复:" -ForegroundColor Cyan
     $remediationPlan = Install-LocalMutagen -ProjectRoot (Get-ProjectRoot) -Plan
     if ($Plan) {
         $remediation = $remediationPlan
-        Write-Host "  Plan only: no files will be downloaded, expanded, or overwritten." -ForegroundColor Yellow
+        Write-UIHost -English "  Plan only: no files will be downloaded, expanded, or overwritten." -Chinese "  仅预览：不会下载、解压或覆盖任何文件。" -ForegroundColor Yellow
         Write-Host "  Version: $($remediation.Version)" -ForegroundColor DarkGray
         Write-Host "  Download: $($remediation.Url)" -ForegroundColor DarkGray
         if ($remediation.ConfiguredArchivePath) {
@@ -341,21 +341,21 @@ if ($FixMutagen) {
         } catch {
             $reason = $_.Exception.Message
             Write-ErrorLog -Message "Mutagen remediation failed: $reason" -Component "cli.doctor"
-            Write-Host "  Mutagen remediation failed." -ForegroundColor Red
-            Write-Host "  Reason: $reason" -ForegroundColor Red
-            Write-Host "  Retry:  .\cli\adp.ps1 doctor -FixMutagen" -ForegroundColor DarkGray
-            Write-Host "  Manual: download $($remediationPlan.Url)" -ForegroundColor DarkGray
-            Write-Host "          place it at $($remediationPlan.ZipPath), then rerun the command." -ForegroundColor DarkGray
+            Write-UIHost -English "  Mutagen remediation failed." -Chinese "  Mutagen 修复失败。" -ForegroundColor Red
+            Write-UIHost -English "  Reason: $reason" -Chinese "  原因: $reason" -ForegroundColor Red
+            Write-UIHost -English "  Retry:  .\cli\adp.ps1 doctor -FixMutagen" -Chinese "  重试:  .\cli\adp.ps1 doctor -FixMutagen" -ForegroundColor DarkGray
+            Write-UIHost -English "  Manual: download $($remediationPlan.Url)" -Chinese "  手动: 下载 $($remediationPlan.Url)" -ForegroundColor DarkGray
+            Write-UIHost -English "          place it at $($remediationPlan.ZipPath), then rerun the command." -Chinese "          放到 $($remediationPlan.ZipPath)，然后重新运行该命令。" -ForegroundColor DarkGray
             if ($remediationPlan.ConfiguredArchivePath) {
                 Write-Host "  Offline: configured archive path was $($remediationPlan.ConfiguredArchivePath)" -ForegroundColor DarkGray
             }
             Write-Host "  Verify: set platform.tools.mutagen.sha256 in configs\local.json to enforce archive hash verification." -ForegroundColor DarkGray
             Write-Host "  Or place mutagen.exe directly at: $($remediationPlan.TargetPath)" -ForegroundColor DarkGray
-            Write-Host "  No VMs, sync sessions, SSH config, or configs\local.json were changed by this failed remediation." -ForegroundColor DarkGray
+            Write-UIHost -English "  No VMs, sync sessions, SSH config, or configs\local.json were changed by this failed remediation." -Chinese "  本次失败的修复没有修改 VM、sync session、SSH 配置或 configs\local.json。" -ForegroundColor DarkGray
             exit 1
         }
 
-        Write-Host "  Mutagen installed locally." -ForegroundColor Green
+        Write-UIHost -English "  Mutagen installed locally." -Chinese "  Mutagen 已安装到本地。" -ForegroundColor Green
         Write-Host "  Version: $($remediation.VersionText)" -ForegroundColor DarkGray
         Write-Host "  Target:  $($remediation.TargetPath)" -ForegroundColor DarkGray
         Write-Host "  Archive: $($remediation.ZipPath)" -ForegroundColor DarkGray
@@ -366,13 +366,13 @@ if ($FixMutagen) {
 
 # --- SSH ---
 Write-Host ""
-Write-Host "SSH:" -ForegroundColor Yellow
+Write-UIHost -English "SSH:" -Chinese "SSH:" -ForegroundColor Yellow
 $hasSsh = $null -ne (Get-Command ssh -ErrorAction SilentlyContinue)
 Test-Check -Name "OpenSSH Client" -Condition $hasSsh
 
 # --- ISO ---
 Write-Host ""
-Write-Host "OS ISO:" -ForegroundColor Yellow
+Write-UIHost -English "OS ISO:" -Chinese "OS ISO:" -ForegroundColor Yellow
 $isoName = if ($config.defaults.iso_path) { $config.defaults.iso_path } else { $config.defaults.ubuntu_iso }
 $isoCache = Resolve-Path "iso_cache"
 $isoPath = Join-Path $isoCache $isoName
@@ -387,7 +387,7 @@ if (Test-Path $isoPath) {
 
 # --- Directories ---
 Write-Host ""
-Write-Host "Directories:" -ForegroundColor Yellow
+Write-UIHost -English "Directories:" -Chinese "目录:" -ForegroundColor Yellow
 $workspaceRoot = Resolve-Path "workspace_root"
 $vmStore = Resolve-Path "vm_store"
 Test-Check -Name "Workspace root" -Condition (Test-Path $workspaceRoot) -Detail "($workspaceRoot)"
@@ -396,7 +396,7 @@ Test-Check -Name "Logs" -Condition (Test-Path (Join-Path (Get-ProjectRoot) "logs
 
 # --- Runtime topology ---
 Write-Host ""
-Write-Host "Runtimes:" -ForegroundColor Yellow
+Write-UIHost -English "Runtimes:" -Chinese "运行时:" -ForegroundColor Yellow
 $staticIpOwners = @{}
 foreach ($name in (Get-AllRuntimeNames)) {
     $rt = $topology.$name
@@ -508,45 +508,45 @@ foreach ($name in (Get-AllRuntimeNames)) {
 # --- Summary ---
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Cyan
-Write-Host "  Results: $($ok.Count) OK, $($issues.Count) issues, $($info.Count) info" -ForegroundColor $(if ($issues.Count -eq 0) { "Green" } else { "Red" })
+Write-UIHost -English "  Results: $($ok.Count) OK, $($issues.Count) issues, $($info.Count) info" -Chinese "  结果: $($ok.Count) OK, $($issues.Count) 个问题, $($info.Count) 条信息" -ForegroundColor $(if ($issues.Count -eq 0) { "Green" } else { "Red" })
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
 if ($issues.Count -gt 0) {
-    Write-Host "Issues found:" -ForegroundColor Red
+    Write-UIHost -English "Issues found:" -Chinese "发现的问题:" -ForegroundColor Red
     foreach ($issue in $issues) {
         Write-Host "  - $issue" -ForegroundColor Red
     }
 } else {
-    Write-Host "All checks passed. Platform is healthy." -ForegroundColor Green
+    Write-UIHost -English "All checks passed. Platform is healthy." -Chinese "所有检查通过。平台状态健康。" -ForegroundColor Green
 }
 
 if ($FirstRun) {
     Write-Host ""
-    Write-Host "First-run checklist" -ForegroundColor Cyan
+    Write-UIHost -English "First-run checklist" -Chinese "首次使用检查清单" -ForegroundColor Cyan
     Write-Host "========================================" -ForegroundColor Cyan
-    Write-Host "  1. Review local VMware NAT alignment:" -ForegroundColor Yellow
+    Write-UIHost -English "  1. Review local VMware NAT alignment:" -Chinese "  1. 检查本机 VMware NAT 是否对齐:" -ForegroundColor Yellow
     Write-Host "     .\cli\adp.ps1 network configure-local -Plan" -ForegroundColor DarkGray
-    Write-Host "     Apply only if you choose to align ADP local overrides to host VMnet8:" -ForegroundColor DarkGray
+    Write-UIHost -English "     Apply only if you choose to align ADP local overrides to host VMnet8:" -Chinese "     只有当你选择把 ADP 本机覆盖对齐到 host VMnet8 时才执行:" -ForegroundColor DarkGray
     Write-Host "     .\cli\adp.ps1 network configure-local -Apply" -ForegroundColor DarkGray
-    Write-Host "     Or keep ADP's configured subnet and change VMware VMnet8 in Virtual Network Editor." -ForegroundColor DarkGray
-    Write-Host "     Manual local override path: Copy-Item configs\local.example.json configs\local.json" -ForegroundColor DarkGray
-    Write-Host "  2. Confirm ISO availability:" -ForegroundColor Yellow
+    Write-UIHost -English "     Or keep ADP's configured subnet and change VMware VMnet8 in Virtual Network Editor." -Chinese "     或者保留 ADP 配置的网段，并在 VMware Virtual Network Editor 中修改 VMnet8。" -ForegroundColor DarkGray
+    Write-UIHost -English "     Manual local override path: Copy-Item configs\local.example.json configs\local.json" -Chinese "     手动本机覆盖路径: Copy-Item configs\local.example.json configs\local.json" -ForegroundColor DarkGray
+    Write-UIHost -English "  2. Confirm ISO availability:" -Chinese "  2. 确认 ISO 可用:" -ForegroundColor Yellow
     Write-Host "     .\install.ps1 -IsoPath C:\path\to\ubuntu-26.04-live-server-amd64.iso" -ForegroundColor DarkGray
-    Write-Host "  3. Initialize platform:" -ForegroundColor Yellow
+    Write-UIHost -English "  3. Initialize platform:" -Chinese "  3. 初始化平台:" -ForegroundColor Yellow
     Write-Host "     .\install.ps1" -ForegroundColor DarkGray
     Write-Host "     .\cli\adp.ps1 init" -ForegroundColor DarkGray
-    Write-Host "  4. Preview runtime creation/startup:" -ForegroundColor Yellow
+    Write-UIHost -English "  4. Preview runtime creation/startup:" -Chinese "  4. 预览运行时创建/启动:" -ForegroundColor Yellow
     Write-Host "     .\cli\adp.ps1 up agent -Plan" -ForegroundColor DarkGray
-    Write-Host "  5. Start a runtime:" -ForegroundColor Yellow
+    Write-UIHost -English "  5. Start a runtime:" -Chinese "  5. 启动运行时:" -ForegroundColor Yellow
     Write-Host "     .\cli\adp.ps1 up agent" -ForegroundColor DarkGray
-    Write-Host "  6. Preview networking changes when needed:" -ForegroundColor Yellow
+    Write-UIHost -English "  6. Preview networking changes when needed:" -Chinese "  6. 需要时预览网络修复:" -ForegroundColor Yellow
     Write-Host "     .\cli\adp.ps1 network apply agent -Plan" -ForegroundColor DarkGray
-    Write-Host "  7. Place target projects under the matching workspace root:" -ForegroundColor Yellow
+    Write-UIHost -English "  7. Place target projects under the matching workspace root:" -Chinese "  7. 将目标项目放到对应的工作区根目录:" -ForegroundColor Yellow
     Write-Host "     $workspaceRoot\agent" -ForegroundColor DarkGray
-    Write-Host "  8. Start sync after the runtime is reachable:" -ForegroundColor Yellow
+    Write-UIHost -English "  8. Start sync after the runtime is reachable:" -Chinese "  8. 运行时可连接后启动同步:" -ForegroundColor Yellow
     Write-Host "     .\cli\adp.ps1 sync start agent" -ForegroundColor DarkGray
-    Write-Host "  9. Create a snapshot before risky agent work:" -ForegroundColor Yellow
+    Write-UIHost -English "  9. Create a snapshot before risky agent work:" -Chinese "  9. 高风险 agent 工作前创建快照:" -ForegroundColor Yellow
     Write-Host "     .\cli\adp.ps1 snapshot create agent before-large-agent-task" -ForegroundColor DarkGray
     Write-Host ""
 }

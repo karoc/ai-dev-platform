@@ -11,22 +11,22 @@ param(
 $ErrorActionPreference = "Stop"
 
 if (-not $SubCommand -or $SubCommand -notin @("apply", "configure-local", "local")) {
-    Write-ErrorLog -Message "Usage: adp network apply <runtime|all> [-Plan] | adp network configure-local [-Plan|-Apply]" -Component "cli.network"
+    Write-ErrorLog -Message (Get-UIText -English "Usage: adp network apply <runtime|all> [-Plan] | adp network configure-local [-Plan|-Apply]" -Chinese "用法: adp network apply <runtime|all> [-Plan] | adp network configure-local [-Plan|-Apply]") -Component "cli.network"
     exit 1
 }
 
 if ($SubCommand -eq "apply" -and -not $RuntimeName) {
-    Write-ErrorLog -Message "Usage: adp network apply <runtime|all> [-Plan]" -Component "cli.network"
+    Write-ErrorLog -Message (Get-UIText -English "Usage: adp network apply <runtime|all> [-Plan]" -Chinese "用法: adp network apply <runtime|all> [-Plan]") -Component "cli.network"
     exit 1
 }
 
 if ($SubCommand -eq "apply" -and $Apply) {
-    Write-ErrorLog -Message "-Apply is only supported with: adp network configure-local -Apply" -Component "cli.network"
+    Write-ErrorLog -Message (Get-UIText -English "-Apply is only supported with: adp network configure-local -Apply" -Chinese "-Apply 仅支持: adp network configure-local -Apply") -Component "cli.network"
     exit 1
 }
 
 if ($SubCommand -in @("configure-local", "local") -and $Plan -and $Apply) {
-    Write-ErrorLog -Message "Use either -Plan or -Apply, not both." -Component "cli.network"
+    Write-ErrorLog -Message (Get-UIText -English "Use either -Plan or -Apply, not both." -Chinese "-Plan 与 -Apply 只能二选一。") -Component "cli.network"
     exit 1
 }
 
@@ -224,9 +224,9 @@ function Write-LocalNetworkChangeSet {
     param([object[]]$Changes)
 
     $changed = @(Get-ChangedLocalNetworkFields -Changes $Changes)
-    Write-Host "  Proposed local config changes:" -ForegroundColor DarkGray
+    Write-UIHost -English "  Proposed local config changes:" -Chinese "  建议的本机配置变更:" -ForegroundColor DarkGray
     if ($changed.Count -eq 0) {
-        Write-Host "    none; local ADP configuration already matches detected host VMnet8." -ForegroundColor DarkGray
+        Write-UIHost -English "    none; local ADP configuration already matches detected host VMnet8." -Chinese "    无；本机 ADP 配置已匹配探测到的 host VMnet8。" -ForegroundColor DarkGray
         return
     }
 
@@ -292,38 +292,38 @@ function Invoke-ConfigureLocalNetwork {
     $nat = $config.network.vmware_nat
     $changes = @(Get-LocalNetworkChangeSet -NetworkPlan $plan)
 
-    Write-Host "Local VMware NAT override plan..." -ForegroundColor Yellow
-    Write-Host "  Host VMnet8: $($plan.HostCidr) ($($plan.HostAddress), $($plan.HostSource))" -ForegroundColor DarkGray
-    Write-Host "  Local config: $($plan.LocalConfigPath)" -ForegroundColor DarkGray
-    Write-Host "  Current configured NAT: $($nat.cidr), gateway $($nat.gateway)" -ForegroundColor DarkGray
-    Write-Host "  Target local NAT:      $($plan.HostCidr), gateway $($plan.Gateway)" -ForegroundColor DarkGray
-    Write-Host "  Target DNS:            $(@($plan.Dns) -join ', ')" -ForegroundColor DarkGray
-    Write-Host "  Runtime static IPs:" -ForegroundColor DarkGray
+    Write-UIHost -English "Local VMware NAT override plan..." -Chinese "本机 VMware NAT 覆盖计划..." -ForegroundColor Yellow
+    Write-UIHost -English "  Host VMnet8: $($plan.HostCidr) ($($plan.HostAddress), $($plan.HostSource))" -Chinese "  Host VMnet8: $($plan.HostCidr) ($($plan.HostAddress), $($plan.HostSource))" -ForegroundColor DarkGray
+    Write-UIHost -English "  Local config: $($plan.LocalConfigPath)" -Chinese "  本机配置: $($plan.LocalConfigPath)" -ForegroundColor DarkGray
+    Write-UIHost -English "  Current configured NAT: $($nat.cidr), gateway $($nat.gateway)" -Chinese "  当前配置 NAT: $($nat.cidr), gateway $($nat.gateway)" -ForegroundColor DarkGray
+    Write-UIHost -English "  Target local NAT:      $($plan.HostCidr), gateway $($plan.Gateway)" -Chinese "  目标本机 NAT: $($plan.HostCidr), gateway $($plan.Gateway)" -ForegroundColor DarkGray
+    Write-UIHost -English "  Target DNS:            $(@($plan.Dns) -join ', ')" -Chinese "  目标 DNS:      $(@($plan.Dns) -join ', ')" -ForegroundColor DarkGray
+    Write-UIHost -English "  Runtime static IPs:" -Chinese "  运行时 static IP:" -ForegroundColor DarkGray
     foreach ($runtimePlan in @($plan.RuntimePlans)) {
         Write-Host "    $($runtimePlan.Name): $($runtimePlan.CurrentIp) -> $($runtimePlan.StaticIp)" -ForegroundColor DarkGray
     }
     Write-LocalNetworkChangeSet -Changes $changes
-    Write-Host "  Preserved: unrelated configs\local.json fields are left unchanged." -ForegroundColor DarkGray
-    Write-Host "  Not changed: VMware VMnet8, VM files, guest networking, SSH, sync sessions, and runtimes." -ForegroundColor DarkGray
-    Write-Host "  Alternative: keep ADP's configured subnet and change VMware VMnet8 in Virtual Network Editor to match it." -ForegroundColor DarkGray
+    Write-UIHost -English "  Preserved: unrelated configs\local.json fields are left unchanged." -Chinese "  保留: configs\local.json 中无关字段保持不变。" -ForegroundColor DarkGray
+    Write-UIHost -English "  Not changed: VMware VMnet8, VM files, guest networking, SSH, sync sessions, and runtimes." -Chinese "  不会修改: VMware VMnet8、VM 文件、guest 网络、SSH、sync session 和运行时。" -ForegroundColor DarkGray
+    Write-UIHost -English "  Alternative: keep ADP's configured subnet and change VMware VMnet8 in Virtual Network Editor to match it." -Chinese "  替代方案: 保留 ADP 配置的网段，并在 VMware Virtual Network Editor 中修改 VMnet8 使其匹配。" -ForegroundColor DarkGray
 
     if (-not $ApplyChanges) {
-        Write-Host "  Plan only: configs\local.json will not be changed." -ForegroundColor Cyan
-        Write-Host "  No files changed." -ForegroundColor Cyan
-        Write-Host "  To apply this local override: .\cli\adp.ps1 network configure-local -Apply" -ForegroundColor DarkGray
-        Write-Host "  Then rerun: .\cli\adp.ps1 doctor -FirstRun" -ForegroundColor DarkGray
+        Write-UIHost -English "  Plan only: configs\local.json will not be changed." -Chinese "  仅预览：不会修改 configs\local.json。" -ForegroundColor Cyan
+        Write-UIHost -English "  No files changed." -Chinese "  未修改任何文件。" -ForegroundColor Cyan
+        Write-UIHost -English "  To apply this local override: .\cli\adp.ps1 network configure-local -Apply" -Chinese "  如要应用该本机覆盖: .\cli\adp.ps1 network configure-local -Apply" -ForegroundColor DarkGray
+        Write-UIHost -English "  Then rerun: .\cli\adp.ps1 doctor -FirstRun" -Chinese "  然后重新运行: .\cli\adp.ps1 doctor -FirstRun" -ForegroundColor DarkGray
         return
     }
 
     $backupPath = Set-LocalNetworkConfig -NetworkPlan $plan
-    Write-Host "  Updated configs\local.json with host VMnet8 NAT settings." -ForegroundColor Green
+    Write-UIHost -English "  Updated configs\local.json with host VMnet8 NAT settings." -Chinese "  已用 host VMnet8 NAT 设置更新 configs\local.json。" -ForegroundColor Green
     if ($backupPath) {
-        Write-Host "  Backup: $backupPath" -ForegroundColor DarkGray
+        Write-UIHost -English "  Backup: $backupPath" -Chinese "  备份: $backupPath" -ForegroundColor DarkGray
     } else {
-        Write-Host "  Backup: none; configs\local.json did not exist before apply." -ForegroundColor DarkGray
+        Write-UIHost -English "  Backup: none; configs\local.json did not exist before apply." -Chinese "  备份: 无；apply 前 configs\local.json 不存在。" -ForegroundColor DarkGray
     }
-    Write-Host "  Next: .\cli\adp.ps1 doctor -FirstRun" -ForegroundColor DarkGray
-    Write-Host "  Then: .\cli\adp.ps1 up <runtime> -Plan" -ForegroundColor DarkGray
+    Write-UIHost -English "  Next: .\cli\adp.ps1 doctor -FirstRun" -Chinese "  下一步: .\cli\adp.ps1 doctor -FirstRun" -ForegroundColor DarkGray
+    Write-UIHost -English "  Then: .\cli\adp.ps1 up <runtime> -Plan" -Chinese "  然后: .\cli\adp.ps1 up <runtime> -Plan" -ForegroundColor DarkGray
 }
 
 function Get-ConfiguredNetwork {
@@ -513,13 +513,13 @@ function Apply-RuntimeNetwork {
         $currentIp = $network.Address
     }
 
-    Write-Host "Applying static network for '$TargetRuntime'..." -ForegroundColor Yellow
-    Write-Host "  VM status: $status" -ForegroundColor DarkGray
-    Write-Host "  Current: $currentIp" -ForegroundColor DarkGray
-    Write-Host "  Target:  $($network.Address)/$($network.Prefix) via $($network.Gateway)" -ForegroundColor DarkGray
+    Write-UIHost -English "Applying static network for '$TargetRuntime'..." -Chinese "正在为 '$TargetRuntime' 应用静态网络..." -ForegroundColor Yellow
+    Write-UIHost -English "  VM status: $status" -Chinese "  VM 状态: $status" -ForegroundColor DarkGray
+    Write-UIHost -English "  Current: $currentIp" -Chinese "  当前: $currentIp" -ForegroundColor DarkGray
+    Write-UIHost -English "  Target:  $($network.Address)/$($network.Prefix) via $($network.Gateway)" -Chinese "  目标: $($network.Address)/$($network.Prefix) via $($network.Gateway)" -ForegroundColor DarkGray
 
     if ($PlanOnly) {
-        Write-Host "  Plan only: no guest files will be changed." -ForegroundColor Cyan
+        Write-UIHost -English "  Plan only: no guest files will be changed." -Chinese "  仅预览：不会修改任何 guest 文件。" -ForegroundColor Cyan
         if ($seedNetwork -and $seedNetwork.Address -and $seedNetwork.Address -ne $network.Address) {
             Write-Host "  Network drift detected: seed uses $($seedNetwork.Address)/$($seedNetwork.Prefix), target is $($network.Address)/$($network.Prefix)." -ForegroundColor Yellow
             Write-Host "  This plan covers the in-place guest netplan fix path only." -ForegroundColor Yellow
@@ -575,7 +575,7 @@ function Apply-RuntimeNetwork {
 }
 
 Write-Host ""
-Write-Host "ADP-OS Network" -ForegroundColor Cyan
+Write-UIHost -English "ADP-OS Network" -Chinese "ADP-OS 网络" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 

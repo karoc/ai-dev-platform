@@ -127,10 +127,24 @@ Assert-Command `
     -Patterns @("Plan only: no VM will be created", "Runtime:\s+agent", "ISO:\s+D:\\Share\\ubuntu-26\.04-live-server-amd64\.iso")
 
 Assert-Command `
+    -Name "up plan zh-CN" `
+    -Arguments @("up", "agent", "-Plan", "-IsoPath", "D:\Share\ubuntu-26.04-live-server-amd64.iso") `
+    -ExitCode 0 `
+    -Patterns @("ADP-OS: 正在启动 agent", "仅预览：不会创建、启动、provision 或 bootstrap 任何 VM", "运行时:\s+agent", "工作区:") `
+    -Environment @{ ADP_LANG = "zh-CN" }
+
+Assert-Command `
     -Name "status all runtimes" `
     -Arguments @("status") `
     -ExitCode 0 `
     -Patterns @("ADP-OS Status", "Status only: no VMs", "Local config:", "Network:\s+192\.168\.242\.0/24", "frontend", "configured IP:\s+192\.168\.242\.131", "connect:\s+ssh -i .*adp@192\.168\.242\.131", "backend", "agent")
+
+Assert-Command `
+    -Name "status all runtimes zh-CN" `
+    -Arguments @("status") `
+    -ExitCode 0 `
+    -Patterns @("ADP-OS 状态", "仅查看状态：不会修改 VM", "本机配置:", "网络:\s+192\.168\.242\.0/24", "frontend", "配置 IP:\s+192\.168\.242\.131", "connect:\s+ssh -i .*adp@192\.168\.242\.131", "backend", "agent") `
+    -Environment @{ ADP_LANG = "zh-CN" }
 
 Assert-Command `
     -Name "status single runtime" `
@@ -167,6 +181,13 @@ Assert-Command `
     -Arguments @("doctor", "-FixMutagen", "-Plan") `
     -ExitCode 0 `
     -Patterns @("Mutagen remediation:", "Plan only: no files will be downloaded", "mutagen_windows_amd64_v0\.18\.1\.zip", "\.tools\\mutagen\\mutagen\.exe", "Offline archive:", "SHA256:", "Timeout:\s+connection=30s hard=300s", "platform\.tools\.mutagen\.download_url", "To install: \.\\cli\\adp\.ps1 doctor -FixMutagen")
+
+Assert-Command `
+    -Name "doctor fix mutagen plan zh-CN" `
+    -Arguments @("doctor", "-FixMutagen", "-Plan") `
+    -ExitCode 0 `
+    -Patterns @("ADP-OS Doctor — 系统诊断", "Mutagen 修复:", "仅预览：不会下载、解压或覆盖任何文件", "mutagen_windows_amd64_v0\.18\.1\.zip", "\.tools\\mutagen\\mutagen\.exe", "SHA256:", "Timeout:\s+connection=30s hard=300s") `
+    -Environment @{ ADP_LANG = "zh-CN" }
 
 Assert-Command `
     -Name "doctor reports VMware NAT prerequisites" `

@@ -8,7 +8,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 if ($RuntimeName -and -not (Test-RuntimeExists $RuntimeName)) {
-    Write-ErrorLog -Message "Unknown runtime: $RuntimeName. Valid: $((Get-AllRuntimeNames) -join ', ')" -Component "cli.status"
+    Write-ErrorLog -Message (Get-UIText -English "Unknown runtime: $RuntimeName. Valid: $((Get-AllRuntimeNames) -join ', ')" -Chinese "未知运行时: $RuntimeName。可用: $((Get-AllRuntimeNames) -join ', ')") -Component "cli.status"
     exit 1
 }
 
@@ -192,11 +192,11 @@ function Write-StatusNetworkDriftRemediation {
         [string]$ConfiguredIp
     )
 
-    Write-Host "  remediation:" -ForegroundColor Yellow
-    Write-Host "    1. Rebuild when the VM can be recreated: adp destroy $TargetRuntime -Plan, then recreate with adp up $TargetRuntime." -ForegroundColor Yellow
-    Write-Host "    2. In-place guest fix when the seed-era address is reachable: adp network apply $TargetRuntime -Plan." -ForegroundColor Yellow
-    Write-Host "    3. Admin-only temporary host-route workaround only to regain SSH to $($SeedNetwork.Address); ADP will not apply host routes automatically." -ForegroundColor Yellow
-    Write-Host "    Seed-era network: $($SeedNetwork.Address)/$($SeedNetwork.Prefix)$(if ($SeedNetwork.Gateway) { ', gateway ' + $SeedNetwork.Gateway } else { '' }); target: $ConfiguredIp." -ForegroundColor DarkGray
+    Write-UIHost -English "  remediation:" -Chinese "  修复建议:" -ForegroundColor Yellow
+    Write-UIHost -English "    1. Rebuild when the VM can be recreated: adp destroy $TargetRuntime -Plan, then recreate with adp up $TargetRuntime." -Chinese "    1. 如果 VM 可以重建：先运行 adp destroy $TargetRuntime -Plan，再用 adp up $TargetRuntime 重建。" -ForegroundColor Yellow
+    Write-UIHost -English "    2. In-place guest fix when the seed-era address is reachable: adp network apply $TargetRuntime -Plan." -Chinese "    2. 如果 seed-era 地址可连接：运行 adp network apply $TargetRuntime -Plan 预览 guest 内修复。" -ForegroundColor Yellow
+    Write-UIHost -English "    3. Admin-only temporary host-route workaround only to regain SSH to $($SeedNetwork.Address); ADP will not apply host routes automatically." -Chinese "    3. 仅管理员可用的临时 host-route workaround 用于恢复到 $($SeedNetwork.Address) 的 SSH；ADP 不会自动应用 host routes。" -ForegroundColor Yellow
+    Write-UIHost -English "    Seed-era network: $($SeedNetwork.Address)/$($SeedNetwork.Prefix)$(if ($SeedNetwork.Gateway) { ', gateway ' + $SeedNetwork.Gateway } else { '' }); target: $ConfiguredIp." -Chinese "    Seed-era 网络: $($SeedNetwork.Address)/$($SeedNetwork.Prefix)$(if ($SeedNetwork.Gateway) { ', gateway ' + $SeedNetwork.Gateway } else { '' }); 目标: $ConfiguredIp。" -ForegroundColor DarkGray
 }
 
 function Write-StatusRuntime {
@@ -236,58 +236,58 @@ function Write-StatusRuntime {
     }
 
     Write-Host "$TargetRuntime" -ForegroundColor Yellow
-    Write-Host "  status:        $($state.Status)" -ForegroundColor DarkGray
-    Write-Host "  configured IP: $(if ($configuredIp) { $configuredIp } else { 'not configured' })" -ForegroundColor DarkGray
+    Write-UIHost -English "  status:        $($state.Status)" -Chinese "  状态:          $($state.Status)" -ForegroundColor DarkGray
+    Write-UIHost -English "  configured IP: $(if ($configuredIp) { $configuredIp } else { 'not configured' })" -Chinese "  配置 IP:       $(if ($configuredIp) { $configuredIp } else { '未配置' })" -ForegroundColor DarkGray
     if ($state.DetectedIp) {
-        Write-Host "  detected IP:   $($state.DetectedIp)" -ForegroundColor DarkGray
+        Write-UIHost -English "  detected IP:   $($state.DetectedIp)" -Chinese "  探测 IP:       $($state.DetectedIp)" -ForegroundColor DarkGray
         if ($configuredIp -and $state.DetectedIp -ne $configuredIp) {
-            Write-Host "  note:          VMware detected $($state.DetectedIp), but ADP-OS will use configured static IP $configuredIp" -ForegroundColor Yellow
+            Write-UIHost -English "  note:          VMware detected $($state.DetectedIp), but ADP-OS will use configured static IP $configuredIp" -Chinese "  说明:          VMware 探测到 $($state.DetectedIp)，但 ADP-OS 会使用配置的 static IP $configuredIp" -ForegroundColor Yellow
         }
     } elseif ($state.Status -match "running") {
-        Write-Host "  detected IP:   unavailable" -ForegroundColor Yellow
+        Write-UIHost -English "  detected IP:   unavailable" -Chinese "  探测 IP:       暂不可用" -ForegroundColor Yellow
     }
     if ($seedNetwork -and $configuredIp -and $seedNetwork.Address -and $seedNetwork.Address -ne $configuredIp) {
-        Write-Host "  network drift: seed uses $($seedNetwork.Address)/$($seedNetwork.Prefix), current config uses $configuredIp" -ForegroundColor Red
+        Write-UIHost -English "  network drift: seed uses $($seedNetwork.Address)/$($seedNetwork.Prefix), current config uses $configuredIp" -Chinese "  网络漂移:      seed 使用 $($seedNetwork.Address)/$($seedNetwork.Prefix)，当前配置使用 $configuredIp" -ForegroundColor Red
         Write-StatusNetworkDriftRemediation -TargetRuntime $TargetRuntime -SeedNetwork $seedNetwork -ConfiguredIp $configuredIp
     }
     Write-Host "  ssh:           $sshState" -ForegroundColor DarkGray
     if ($sshState -eq "auth-pending") {
-        Write-Host "  note:          SSH port is open, but the ADP key is not accepted yet. During autoinstall this usually means the installer or first boot is still preparing the target user." -ForegroundColor Yellow
+        Write-UIHost -English "  note:          SSH port is open, but the ADP key is not accepted yet. During autoinstall this usually means the installer or first boot is still preparing the target user." -Chinese "  说明:          SSH 端口已打开，但 ADP key 还未被接受。autoinstall 期间这通常表示安装器或首次启动仍在准备目标用户。" -ForegroundColor Yellow
     }
     if ($hasDuplicateRunningVm) {
-        Write-Host "  duplicate VM:  running ADP runtime name also found outside this checkout" -ForegroundColor Red
-        Write-Host "  current VMX:   $($state.VmxPath)" -ForegroundColor DarkGray
+        Write-UIHost -English "  duplicate VM:  running ADP runtime name also found outside this checkout" -Chinese "  重复 VM:       当前 checkout 外也发现同名 ADP runtime 正在运行" -ForegroundColor Red
+        Write-UIHost -English "  current VMX:   $($state.VmxPath)" -Chinese "  当前 VMX:      $($state.VmxPath)" -ForegroundColor DarkGray
         foreach ($vm in $adpRunningVms) {
-            $owner = if ($vm.IsManagedByCurrentCheckout) { "current checkout" } else { "other checkout or stale VM" }
+            $owner = if ($vm.IsManagedByCurrentCheckout) { Get-UIText -English "current checkout" -Chinese "当前 checkout" } else { Get-UIText -English "other checkout or stale VM" -Chinese "其他 checkout 或 stale VM" }
             Write-Host "  running VMX:   $($vm.NormalizedVmxPath) [$owner]" -ForegroundColor Yellow
         }
-        Write-Host "  remediation:   stop or rename the stale duplicate before diagnosing SSH or network issues" -ForegroundColor Yellow
+        Write-UIHost -English "  remediation:   stop or rename the stale duplicate before diagnosing SSH or network issues" -Chinese "  修复建议:      排查 SSH 或网络前，先停止或重命名 stale duplicate VM" -ForegroundColor Yellow
     }
     Write-Host "  sync:          $syncState" -ForegroundColor DarkGray
     if ($syncState -in @("wrong-local", "wrong-remote", "unhealthy")) {
-        Write-Host "  sync note:     existing Mutagen session is not usable for this checkout/runtime" -ForegroundColor Yellow
-        Write-Host "  sync fix:      adp sync stop $TargetRuntime; adp sync start $TargetRuntime" -ForegroundColor Yellow
+        Write-UIHost -English "  sync note:     existing Mutagen session is not usable for this checkout/runtime" -Chinese "  sync 说明:     现有 Mutagen session 不适用于当前 checkout/runtime" -ForegroundColor Yellow
+        Write-UIHost -English "  sync fix:      adp sync stop $TargetRuntime; adp sync start $TargetRuntime" -Chinese "  sync 修复:     adp sync stop $TargetRuntime; adp sync start $TargetRuntime" -ForegroundColor Yellow
     } elseif ($syncState -eq "stale-session") {
-        Write-Host "  sync note:     old Mutagen session exists, but this runtime is not created in the current checkout" -ForegroundColor Yellow
-        Write-Host "  sync cleanup:  adp sync stop $TargetRuntime" -ForegroundColor Yellow
-        Write-Host "  sync next:     adp up $TargetRuntime; adp sync start $TargetRuntime" -ForegroundColor DarkGray
+        Write-UIHost -English "  sync note:     old Mutagen session exists, but this runtime is not created in the current checkout" -Chinese "  sync 说明:     存在旧 Mutagen session，但当前 checkout 尚未创建该运行时" -ForegroundColor Yellow
+        Write-UIHost -English "  sync cleanup:  adp sync stop $TargetRuntime" -Chinese "  sync 清理:     adp sync stop $TargetRuntime" -ForegroundColor Yellow
+        Write-UIHost -English "  sync next:     adp up $TargetRuntime; adp sync start $TargetRuntime" -Chinese "  sync 下一步:   adp up $TargetRuntime; adp sync start $TargetRuntime" -ForegroundColor DarkGray
     }
-    Write-Host "  workspace:     $workspacePath" -ForegroundColor DarkGray
+    Write-UIHost -English "  workspace:     $workspacePath" -Chinese "  工作区:        $workspacePath" -ForegroundColor DarkGray
     Write-Host "  VMX:           $($state.VmxPath)" -ForegroundColor DarkGray
     if ($connectIp) {
         Write-Host "  connect:       ssh -i $KeyPath -p $port $AdminUser@$connectIp" -ForegroundColor Cyan
         Write-Host "  alias:         ssh $alias" -ForegroundColor DarkGray
     } else {
-        Write-Host "  connect:       unavailable until a static IP or detected guest IP is available" -ForegroundColor Yellow
+        Write-UIHost -English "  connect:       unavailable until a static IP or detected guest IP is available" -Chinese "  连接:          需要 static IP 或探测到 guest IP 后才可用" -ForegroundColor Yellow
     }
-    Write-Host "  next:          adp up $TargetRuntime | adp sync start $TargetRuntime | adp doctor" -ForegroundColor DarkGray
+    Write-UIHost -English "  next:          adp up $TargetRuntime | adp sync start $TargetRuntime | adp doctor" -Chinese "  下一步:        adp up $TargetRuntime | adp sync start $TargetRuntime | adp doctor" -ForegroundColor DarkGray
     Write-Host ""
 }
 
 Write-Host ""
-Write-Host "ADP-OS Status" -ForegroundColor Cyan
+Write-UIHost -English "ADP-OS Status" -Chinese "ADP-OS 状态" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
-Write-Host "Status only: no VMs, sync sessions, snapshots, guest files, or workspace files will be changed." -ForegroundColor Cyan
+Write-UIHost -English "Status only: no VMs, sync sessions, snapshots, guest files, or workspace files will be changed." -Chinese "仅查看状态：不会修改 VM、sync session、快照、guest 文件或工作区文件。" -ForegroundColor Cyan
 Write-Host ""
 
 $config = Get-PlatformConfig
@@ -297,20 +297,20 @@ $keyPath = Join-Path "$env:USERPROFILE\.ssh\adp-os" "adp-os"
 
 if ($localConfigStatus.Exists) {
     if ($localConfigStatus.Empty) {
-        Write-Host "Local config: empty, ignored ($($localConfigStatus.Path))" -ForegroundColor DarkGray
+        Write-UIHost -English "Local config: empty, ignored ($($localConfigStatus.Path))" -Chinese "本机配置: 空文件，已忽略 ($($localConfigStatus.Path))" -ForegroundColor DarkGray
     } elseif ($localConfigStatus.Applied) {
-        Write-Host "Local config: applied sections $($localConfigStatus.Sections -join ', ') ($($localConfigStatus.Path))" -ForegroundColor DarkGray
+        Write-UIHost -English "Local config: applied sections $($localConfigStatus.Sections -join ', ') ($($localConfigStatus.Path))" -Chinese "本机配置: 已应用配置段 $($localConfigStatus.Sections -join ', ') ($($localConfigStatus.Path))" -ForegroundColor DarkGray
     } else {
-        Write-Host "Local config: present, no supported sections ($($localConfigStatus.Path))" -ForegroundColor Yellow
+        Write-UIHost -English "Local config: present, no supported sections ($($localConfigStatus.Path))" -Chinese "本机配置: 文件存在，但没有支持的配置段 ($($localConfigStatus.Path))" -ForegroundColor Yellow
     }
 } else {
-    Write-Host "Local config: not present, using committed defaults" -ForegroundColor DarkGray
+    Write-UIHost -English "Local config: not present, using committed defaults" -Chinese "本机配置: 不存在，使用仓库默认配置" -ForegroundColor DarkGray
 }
 
 if ($config.network.vmware_nat) {
-    Write-Host "Network:      $($config.network.vmware_nat.cidr), gateway $($config.network.vmware_nat.gateway)" -ForegroundColor DarkGray
+    Write-UIHost -English "Network:      $($config.network.vmware_nat.cidr), gateway $($config.network.vmware_nat.gateway)" -Chinese "网络:        $($config.network.vmware_nat.cidr), gateway $($config.network.vmware_nat.gateway)" -ForegroundColor DarkGray
 }
-Write-Host "SSH key:      $keyPath" -ForegroundColor DarkGray
+Write-UIHost -English "SSH key:      $keyPath" -Chinese "SSH 密钥:    $keyPath" -ForegroundColor DarkGray
 Write-Host ""
 
 $vmwareAvailable = Test-VMwareAvailable
@@ -323,7 +323,7 @@ if ($vmwareAvailable) {
         $runningVmxPaths = @()
     }
 } else {
-    Write-Host "VMware:      unavailable; VM status is limited to local VMX presence." -ForegroundColor Yellow
+    Write-UIHost -English "VMware:      unavailable; VM status is limited to local VMX presence." -Chinese "VMware:      不可用；VM 状态仅能基于本地 VMX 是否存在判断。" -ForegroundColor Yellow
     Write-Host ""
 }
 

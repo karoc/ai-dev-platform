@@ -181,6 +181,8 @@ Merging is recursive for JSON objects. Arrays and scalar values replace the defa
 
 `platform.ui.language` controls user-facing installer and CLI language where localization has been implemented. The current supported values are `en` and `zh-CN`. `ADP_LANG` takes precedence over configuration for one-off commands, so users can run `ADP_LANG=zh-CN` in the current shell without editing `configs\local.json`. Unsupported values fall back to English.
 
+Simplified Chinese coverage includes the main fresh deployment path: `install.ps1`, `adp help`, `adp init`, `adp doctor -FirstRun`, `adp doctor -FixMutagen -Plan`, `adp up <runtime> -Plan`, the main `adp up <runtime>` user guidance, `adp status [runtime]`, and `adp network configure-local [-Plan|-Apply]`. Some low-level diagnostic check names and machine-readable state values intentionally remain in English so logs stay searchable and support output remains stable.
+
 `platform.tools.mutagen` controls only the explicit `.\cli\adp.ps1 doctor -FixMutagen` remediation path. Use it when GitHub release downloads are slow or blocked:
 
 - `download_url`: archive URL used when ADP needs to download Mutagen.

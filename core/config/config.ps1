@@ -167,6 +167,35 @@ function Get-UILanguage {
     return "en"
 }
 
+function Get-UIText {
+    param(
+        [string]$English,
+        [string]$Chinese
+    )
+
+    if ((Get-UILanguage) -eq "zh-CN") {
+        return $Chinese
+    }
+
+    return $English
+}
+
+function Write-UIHost {
+    param(
+        [string]$English,
+        [string]$Chinese,
+        [System.ConsoleColor]$ForegroundColor = [System.ConsoleColor]::Gray,
+        [switch]$NoNewline
+    )
+
+    $text = Get-UIText -English $English -Chinese $Chinese
+    if ($NoNewline) {
+        Write-Host $text -ForegroundColor $ForegroundColor -NoNewline
+    } else {
+        Write-Host $text -ForegroundColor $ForegroundColor
+    }
+}
+
 function Get-TopologyConfig {
     return $script:TopologyConfig
 }
