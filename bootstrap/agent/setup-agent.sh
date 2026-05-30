@@ -1,6 +1,6 @@
 #!/bin/bash
 # ADP-OS Bootstrap: Agent Runtime Setup
-# AI Agent Runtime — high IO tuning, sandbox prep, dangerous runtime config
+# AI Agent Runtime — high IO tuning, sandbox prep, agent profile config
 
 set -euo pipefail
 
@@ -78,7 +78,7 @@ apt-get install -y -qq watchman 2>/dev/null || true
 mkdir -p /home/adp/sandbox
 chmod 700 /home/adp/sandbox
 
-echo "WARNING: Agent runtime is configured for dangerous mode" > /home/adp/AGENT_DANGER_MODE.txt
+echo "Agent runtime profile: high-IO for AI agent workloads. Create snapshots before destructive or large-scale tasks." > /home/adp/AGENT_PROFILE.txt
 
 touch /home/adp/.adp-agent-done
 echo "Agent runtime bootstrap complete."

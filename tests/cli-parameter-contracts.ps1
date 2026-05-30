@@ -22,9 +22,22 @@ function Assert-Contains {
     }
 }
 
+function Assert-NotContains {
+    param(
+        [string]$Name,
+        [string]$Text,
+        [string]$Pattern
+    )
+
+    if ($Text -match $Pattern) {
+        throw "$Name contained retired or forbidden pattern: $Pattern"
+    }
+}
+
 $up = Read-Text "cli\commands\up.ps1"
 $init = Read-Text "cli\commands\init.ps1"
 $install = Read-Text "install.ps1"
+$agentBootstrap = Read-Text "bootstrap\agent\setup-agent.sh"
 $factory = Read-Text "runtimes\vmware\vm-factory.ps1"
 $cli = Read-Text "cli\adp.ps1"
 $configModule = Read-Text "core\config\config.ps1"
@@ -89,6 +102,14 @@ Assert-Contains -Name "CLI help includes local network configuration command" -T
 Assert-Contains -Name "configuration supports UI language preference" -Text $configModule -Pattern 'function\s+Get-UILanguage[\s\S]*ADP_LANG[\s\S]*config\.ui\.language[\s\S]*return "en"'
 Assert-Contains -Name "configuration normalizes Simplified Chinese language aliases" -Text $configModule -Pattern 'function\s+Normalize-UILanguage[\s\S]*"zh"\s*\{\s*return "zh-CN"[\s\S]*"zh-cn"\s*\{\s*return "zh-CN"[\s\S]*"zh_cn"\s*\{\s*return "zh-CN"'
 Assert-Contains -Name "configuration exposes shared localized UI helpers" -Text $configModule -Pattern 'function\s+Get-UIText[\s\S]*Get-UILanguage[\s\S]*zh-CN[\s\S]*function\s+Write-UIHost[\s\S]*Get-UIText'
+Assert-Contains -Name "configuration exposes centralized runtime profile helpers" -Text $configModule -Pattern 'function\s+Get-RuntimeProfileName[\s\S]*profile[\s\S]*agent-high-io[\s\S]*function\s+Get-RuntimeProfileBadge[\s\S]*\[agent/high-IO\][\s\S]*function\s+Get-RuntimeProfileNoticeItems[\s\S]*Agent profile: high-IO runtime'
+Assert-Contains -Name "runtime profile helpers keep danger as compatibility fallback only" -Text $configModule -Pattern 'Get-RuntimeProfileName[\s\S]*PSObject\.Properties\.Name -contains "profile"[\s\S]*PSObject\.Properties\.Name -contains "danger"[\s\S]*return "agent-high-io"[\s\S]*return "standard"'
+Assert-Contains -Name "up uses centralized runtime profile notice helper" -Text $up -Pattern 'Get-RuntimeProfileNoticeItems -RuntimeName \$RuntimeName -Runtime \$rt[\s\S]*Write-Host \$notice\.Text -ForegroundColor \$notice\.Color'
+Assert-Contains -Name "installer uses centralized runtime profile badge helper" -Text $install -Pattern 'Get-RuntimeProfileBadge -RuntimeName \$name -Runtime \$rt'
+Assert-Contains -Name "agent bootstrap writes profile marker" -Text $agentBootstrap -Pattern 'Agent runtime profile: high-IO[\s\S]*AGENT_PROFILE\.txt'
+Assert-NotContains -Name "installer no longer prints retired runtime danger badge" -Text $install -Pattern 'DANGER|\[高风险\]'
+Assert-NotContains -Name "up no longer branches on retired danger field for user-facing notices" -Text $up -Pattern '\$rt\.danger|DANGER|\[高风险\]'
+Assert-NotContains -Name "agent bootstrap no longer leaves retired danger-mode marker" -Text $agentBootstrap -Pattern 'dangerous mode|AGENT_DANGER_MODE\.txt|DANGER MODE'
 Assert-Contains -Name "installer uses UI language preference after config initialization" -Text $install -Pattern 'Initialize-Config -ProjectRoot \$script:ProjectRoot[\s\S]*function\s+Get-InstallText[\s\S]*Get-UILanguage[\s\S]*function\s+Write-InstallBanner[\s\S]*阶段 1'
 $installerSmoke = Read-Text "tests\install-smoke.ps1"
 Assert-Contains -Name "installer smoke has Simplified Chinese case" -Text $installerSmoke -Pattern 'install zh-CN skip checks missing ISO guidance'
@@ -127,7 +148,7 @@ Assert-Contains -Name "vm factory explains probes as readiness signals" -Text $f
 Assert-Contains -Name "vm factory tells users when action is needed" -Text $factory -Pattern 'Normal during install: the same signal can repeat[\s\S]*User action: keep this command running[\s\S]*\[install monitor\] INSTALLING Ubuntu in VM - heartbeat active, repeated signal is normal[\s\S]*normal=yes[\s\S]*unchanged readiness signals are normal[\s\S]*same signal has repeated for about \$\{sameMinutes\}min; keep the command running'
 Assert-Contains -Name "vm factory reports auth-pending as install readiness state" -Text $factory -Pattern 'auth-pending; SSH is up but installed-system user/key or provision marker is not ready'
 Assert-Contains -Name "vm factory avoids long blocking IP probes during autoinstall monitor" -Text $factory -Pattern 'Get-VMIPQuick\s+-VmxPath\s+\$VmxPath\s+-TimeoutSeconds\s+5'
-Assert-Contains -Name "vm factory captures xorriso output during autoinstall ISO remaster" -Text $factory -Pattern 'function\s+New-AutoinstallISO[\s\S]*RedirectStandardOutput[\s\S]*RedirectStandardError[\s\S]*xorriso failed with exit code'
+Assert-Contains -Name "vm factory captures xorriso output during autoinstall ISO remaster" -Text $factory -Pattern 'function\s+Invoke-CapturedNativeCommand[\s\S]*& \$FilePath @Arguments 2>&1[\s\S]*function\s+New-AutoinstallISO[\s\S]*Invoke-CapturedNativeCommand -FilePath \$tool\.Path -Arguments @\("bash", "-lc", \$command\)[\s\S]*xorriso failed with exit code'
 Assert-Contains -Name "vm factory readiness checks configured static IP" -Text $factory -Pattern 'function\s+Test-AutoinstallReady[\s\S]*Get-RuntimeStaticIP\s+\$RuntimeName[\s\S]*candidateIps'
 Assert-Contains -Name "init -SkipProvision propagation" -Text $init -Pattern 'NoProvision\s*=\s*\$SkipProvision'
 Assert-Contains -Name "init invokes up in shared script scope" -Text $init -Pattern '\.\s+\$upCommand\s+@upArgs'

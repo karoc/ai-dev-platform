@@ -73,6 +73,7 @@ $env:ADP_LANG = "zh-CN"
     "workspace": "frontend",
     "sync_profile": "frontend",
     "bootstrap_profile": "frontend",
+    "profile": "standard",
     "static_ip": "192.168.242.131",
     "ssh_port": 22
   }
@@ -87,6 +88,7 @@ $env:ADP_LANG = "zh-CN"
 - `workspace`：本地工作区子目录。
 - `sync_profile`：`sync-profiles.json` 中的 profile。
 - `bootstrap_profile`：`bootstrap` 下的 bootstrap 目录。
+- `profile`：用户可见的运行时 profile。支持值为 `standard` 和 `agent-high-io`。CLI profile badge 和启动提示都从该字段生成，避免不同命令中的 profile 文案漂移。
 - `static_ip`：用于 provisioning、CLI、SSH 和同步的 guest IP。
 - `ssh_port`：guest SSH 端口。
 

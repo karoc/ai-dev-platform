@@ -180,9 +180,8 @@ Write-Host "========================================" -ForegroundColor Cyan
 Write-UIHost -English "  ADP-OS: Starting $RuntimeName" -Chinese "  ADP-OS: 正在启动 $RuntimeName" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "  CPU: $($rt.cpu) cores  |  RAM: $($rt.memory) MB  |  Disk: $($rt.disk) GB" -ForegroundColor DarkGray
-if ($rt.danger) {
-    Write-UIHost -English "  Agent profile: high-IO runtime for AI agent workloads" -Chinese "  Agent profile: 面向 AI agent 工作负载的 high-IO 运行时" -ForegroundColor Yellow
-    Write-UIHost -English "  Snapshot recommended before destructive or large-scale tasks." -Chinese "  建议在破坏性或大规模任务前创建快照。" -ForegroundColor DarkGray
+foreach ($notice in (Get-RuntimeProfileNoticeItems -RuntimeName $RuntimeName -Runtime $rt)) {
+    Write-Host $notice.Text -ForegroundColor $notice.Color
 }
 Write-Host ""
 

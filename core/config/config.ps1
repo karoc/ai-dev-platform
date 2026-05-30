@@ -263,6 +263,80 @@ function Test-RuntimeExists {
     return $null -ne $topo.$RuntimeName
 }
 
+function Test-RuntimeAgentProfile {
+    param(
+        [string]$RuntimeName,
+        [object]$Runtime = $null
+    )
+
+    return (Get-RuntimeProfileName -RuntimeName $RuntimeName -Runtime $Runtime) -eq "agent-high-io"
+}
+
+function Get-RuntimeProfileName {
+    param(
+        [string]$RuntimeName,
+        [object]$Runtime = $null
+    )
+
+    $rt = if ($Runtime) { $Runtime } else { Get-RuntimeConfig $RuntimeName }
+
+    if ($rt.PSObject.Properties.Name -contains "profile" -and -not [string]::IsNullOrWhiteSpace([string]$rt.profile)) {
+        return [string]$rt.profile
+    }
+
+    if ($RuntimeName -eq "agent" -and
+        $rt.PSObject.Properties.Name -contains "danger" -and
+        [bool]$rt.danger) {
+        return "agent-high-io"
+    }
+
+    return "standard"
+}
+
+function Get-RuntimeProfileBadge {
+    param(
+        [string]$RuntimeName,
+        [object]$Runtime = $null
+    )
+
+    if (Test-RuntimeAgentProfile -RuntimeName $RuntimeName -Runtime $Runtime) {
+        return Get-UIText -English " [agent/high-IO]" -Chinese " [Agent 高 IO]"
+    }
+
+    return ""
+}
+
+function Get-RuntimeProfileNoticeLines {
+    param(
+        [string]$RuntimeName,
+        [object]$Runtime = $null
+    )
+
+    return @((Get-RuntimeProfileNoticeItems -RuntimeName $RuntimeName -Runtime $Runtime) | ForEach-Object { $_.Text })
+}
+
+function Get-RuntimeProfileNoticeItems {
+    param(
+        [string]$RuntimeName,
+        [object]$Runtime = $null
+    )
+
+    if (-not (Test-RuntimeAgentProfile -RuntimeName $RuntimeName -Runtime $Runtime)) {
+        return @()
+    }
+
+    return @(
+        [pscustomobject]@{
+            Text  = Get-UIText -English "  Agent profile: high-IO runtime for AI agent workloads" -Chinese "  Agent profile: 面向 AI agent 工作负载的高 IO 运行时"
+            Color = "Yellow"
+        },
+        [pscustomobject]@{
+            Text  = Get-UIText -English "  Snapshot recommended before destructive or large-scale tasks." -Chinese "  建议在破坏性或大范围任务前创建快照。"
+            Color = "DarkGray"
+        }
+    )
+}
+
 function Get-RuntimeStaticIP {
     param([string]$RuntimeName)
 

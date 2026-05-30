@@ -345,8 +345,8 @@ $runtimeNames = Get-AllRuntimeNames
 Write-InstallHost -English "  Configured runtimes:" -Chinese "  已配置运行时:" -ForegroundColor Cyan
 foreach ($name in $runtimeNames) {
     $rt = $topology.$name
-    $danger = if ($rt.danger) { Get-InstallText -English " [DANGER]" -Chinese " [高风险]" } else { "" }
-    Write-Host "    $name — CPU: $($rt.cpu), RAM: $($rt.memory)MB, Disk: $($rt.disk)GB$danger" -ForegroundColor DarkGray
+    $profileBadge = Get-RuntimeProfileBadge -RuntimeName $name -Runtime $rt
+    Write-Host "    $name — CPU: $($rt.cpu), RAM: $($rt.memory)MB, Disk: $($rt.disk)GB$profileBadge" -ForegroundColor DarkGray
 }
 
 # =============================================

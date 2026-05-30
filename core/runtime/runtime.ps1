@@ -99,6 +99,6 @@ function Get-RuntimeInfo {
         CPU    = $rt.cpu
         Memory = $rt.memory
         Disk   = $rt.disk
-        Danger = $rt.danger
+        Profile = Get-RuntimeProfileName -RuntimeName $RuntimeName -Runtime $rt
     }
 }

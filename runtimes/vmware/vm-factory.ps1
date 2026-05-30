@@ -434,6 +434,25 @@ fi
 "@
 }
 
+function Invoke-CapturedNativeCommand {
+    param(
+        [string]$FilePath,
+        [string[]]$Arguments
+    )
+
+    $output = & $FilePath @Arguments 2>&1
+    $exitCode = $LASTEXITCODE
+    $detail = ($output | Out-String).Trim()
+    if ([string]::IsNullOrWhiteSpace($detail)) {
+        $detail = "no command output captured"
+    }
+
+    return [pscustomobject]@{
+        ExitCode = $exitCode
+        Detail   = $detail
+    }
+}
+
 function New-AutoinstallISO {
     param(
         [string]$RuntimeName,
@@ -487,25 +506,9 @@ function New-AutoinstallISO {
                     "-volid $(Quote-BashArg $label)"
                 )
                 $command = $commandParts -join " "
-                $outFile = [System.IO.Path]::GetTempFileName()
-                $errFile = [System.IO.Path]::GetTempFileName()
-                try {
-                    $proc = Start-Process -FilePath $tool.Path `
-                        -ArgumentList @("bash", "-lc", $command) `
-                        -Wait -WindowStyle Hidden -PassThru `
-                        -RedirectStandardOutput $outFile `
-                        -RedirectStandardError $errFile
-                    if ($proc.ExitCode -ne 0) {
-                        $stdout = Get-Content -LiteralPath $outFile -Raw -ErrorAction SilentlyContinue
-                        $stderr = Get-Content -LiteralPath $errFile -Raw -ErrorAction SilentlyContinue
-                        $detail = (($stderr, $stdout) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }) -join "`n"
-                        if ([string]::IsNullOrWhiteSpace($detail)) {
-                            $detail = "no xorriso output captured"
-                        }
-                        throw "xorriso failed with exit code $($proc.ExitCode): $detail"
-                    }
-                } finally {
-                    Remove-Item -LiteralPath $outFile, $errFile -Force -ErrorAction SilentlyContinue
+                $result = Invoke-CapturedNativeCommand -FilePath $tool.Path -Arguments @("bash", "-lc", $command)
+                if ($result.ExitCode -ne 0) {
+                    throw "xorriso failed with exit code $($result.ExitCode): $($result.Detail)"
                 }
             }
             "xorriso" {
@@ -518,25 +521,9 @@ function New-AutoinstallISO {
                     "-boot_image", "any", "replay",
                     "-volid", "ADP_$($RuntimeName.ToUpperInvariant())"
                 )
-                $outFile = [System.IO.Path]::GetTempFileName()
-                $errFile = [System.IO.Path]::GetTempFileName()
-                try {
-                    $proc = Start-Process -FilePath $tool.Path `
-                        -ArgumentList $args `
-                        -Wait -WindowStyle Hidden -PassThru `
-                        -RedirectStandardOutput $outFile `
-                        -RedirectStandardError $errFile
-                    if ($proc.ExitCode -ne 0) {
-                        $stdout = Get-Content -LiteralPath $outFile -Raw -ErrorAction SilentlyContinue
-                        $stderr = Get-Content -LiteralPath $errFile -Raw -ErrorAction SilentlyContinue
-                        $detail = (($stderr, $stdout) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }) -join "`n"
-                        if ([string]::IsNullOrWhiteSpace($detail)) {
-                            $detail = "no xorriso output captured"
-                        }
-                        throw "xorriso failed with exit code $($proc.ExitCode): $detail"
-                    }
-                } finally {
-                    Remove-Item -LiteralPath $outFile, $errFile -Force -ErrorAction SilentlyContinue
+                $result = Invoke-CapturedNativeCommand -FilePath $tool.Path -Arguments $args
+                if ($result.ExitCode -ne 0) {
+                    throw "xorriso failed with exit code $($result.ExitCode): $($result.Detail)"
                 }
             }
             default {

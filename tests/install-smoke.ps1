@@ -99,6 +99,7 @@ Assert-Install `
         "ISO not found",
         "Or run: \.\\install\.ps1 -IsoPath <path-to-iso>",
         "VMware validation skipped by -SkipVMValidation",
+        "agent .* \[agent/high-IO\]",
         "Dependency checks were skipped",
         "ADP-OS Phase 1 Bootstrap Complete"
     ) `
@@ -128,6 +129,7 @@ Assert-Install `
         "未找到 ISO",
         "或运行: \.\\install\.ps1 -IsoPath <path-to-iso>",
         "已通过 -SkipVMValidation 跳过 VMware 验证",
+        "agent .* \[Agent 高 IO\]",
         "依赖检查已跳过",
         "ADP-OS 阶段 1 平台引导完成",
         "下一步:"

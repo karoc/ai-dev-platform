@@ -104,6 +104,17 @@ function Assert-LanguageValue {
     }
 }
 
+function Assert-RuntimeProfileValue {
+    param(
+        [string]$Name,
+        [string]$Profile
+    )
+
+    if ($Profile -notin @("standard", "agent-high-io")) {
+        throw "$Name must be one of: standard, agent-high-io"
+    }
+}
+
 function Assert-RuntimeName {
     param(
         [string]$Name,
@@ -216,6 +227,8 @@ function Assert-TopologyConfig {
         foreach ($field in @("runtime", "os", "workspace", "sync_profile", "bootstrap_profile", "snapshot_policy", "static_ip")) {
             Assert-StringProperty -Name "topology.json.$runtimeName" -Object $runtime -Property $field
         }
+        Assert-StringProperty -Name "topology.json.$runtimeName" -Object $runtime -Property "profile"
+        Assert-RuntimeProfileValue -Name "topology.json.$runtimeName.profile" -Profile ([string]$runtime.profile)
         foreach ($field in @("cpu", "memory", "disk", "ssh_port")) {
             Assert-PositiveIntProperty -Name "topology.json.$runtimeName" -Object $runtime -Property $field
         }

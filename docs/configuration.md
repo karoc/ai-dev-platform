@@ -73,6 +73,7 @@ Example:
     "workspace": "frontend",
     "sync_profile": "frontend",
     "bootstrap_profile": "frontend",
+    "profile": "standard",
     "static_ip": "192.168.242.131",
     "ssh_port": 22
   }
@@ -87,6 +88,7 @@ Fields:
 - `workspace`: local workspace subdirectory.
 - `sync_profile`: profile in `sync-profiles.json`.
 - `bootstrap_profile`: bootstrap folder under `bootstrap`.
+- `profile`: user-visible runtime profile. Supported values are `standard` and `agent-high-io`. CLI profile badges and startup notices are derived from this field so profile wording stays consistent across commands.
 - `static_ip`: configured guest IP used by provisioning, CLI, SSH, and sync.
 - `ssh_port`: guest SSH port.
 
