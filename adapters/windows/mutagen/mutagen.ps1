@@ -68,7 +68,9 @@ function Invoke-MutagenArchiveDownload {
     param(
         [string]$DownloadUrl,
         [string]$ZipPath,
-        [string]$TempPath
+        [string]$TempPath,
+        [int]$ConnectionTimeoutSeconds = 30,
+        [int]$DownloadTimeoutSeconds = 300
     )
 
     if (Test-Path -LiteralPath $TempPath) {
@@ -78,17 +80,61 @@ function Invoke-MutagenArchiveDownload {
     Write-Host "  [2/5] Downloading Mutagen archive..." -ForegroundColor Yellow
     Write-Host "        source: $DownloadUrl" -ForegroundColor DarkGray
     Write-Host "        target: $ZipPath" -ForegroundColor DarkGray
-    Write-Host "        timeout: connection=30s operation=300s" -ForegroundColor DarkGray
+    Write-Host "        timeout: connection=${ConnectionTimeoutSeconds}s hard=${DownloadTimeoutSeconds}s" -ForegroundColor DarkGray
+    Write-Host "        ADP will stop the download process if the hard timeout is reached." -ForegroundColor DarkGray
+
+    $outFile = [System.IO.Path]::GetTempFileName()
+    $errFile = [System.IO.Path]::GetTempFileName()
 
     try {
-        Invoke-WebRequest `
-            -Uri $DownloadUrl `
-            -OutFile $TempPath `
-            -ConnectionTimeoutSeconds 30 `
-            -OperationTimeoutSeconds 300
+        $pwsh = (Get-Command pwsh -ErrorAction SilentlyContinue).Source
+        if (-not $pwsh) {
+            $pwsh = (Get-Process -Id $PID).Path
+        }
+        if (-not $pwsh) {
+            throw "PowerShell executable was not found for controlled download."
+        }
+
+        $escapedUrl = $DownloadUrl.Replace("'", "''")
+        $escapedTempPath = $TempPath.Replace("'", "''")
+        $downloadScript = @"
+`$ErrorActionPreference = 'Stop'
+`$ProgressPreference = 'SilentlyContinue'
+Invoke-WebRequest -Uri '$escapedUrl' -OutFile '$escapedTempPath' -ConnectionTimeoutSeconds $ConnectionTimeoutSeconds -OperationTimeoutSeconds $DownloadTimeoutSeconds
+"@
+
+        $process = Start-Process -FilePath $pwsh `
+            -ArgumentList @("-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", $downloadScript) `
+            -WindowStyle Hidden -PassThru `
+            -RedirectStandardOutput $outFile `
+            -RedirectStandardError $errFile
+
+        $completed = $process.WaitForExit($DownloadTimeoutSeconds * 1000)
+        if (-not $completed) {
+            try {
+                $process.Kill($true)
+            } catch {
+                try { $process.Kill() } catch {}
+            }
+            Remove-Item -LiteralPath $TempPath -Force -ErrorAction SilentlyContinue
+            throw "Mutagen download timed out after ${DownloadTimeoutSeconds}s. You can retry, or manually download $DownloadUrl and place it at $ZipPath."
+        }
+
+        $stdout = Get-Content -LiteralPath $outFile -Raw -ErrorAction SilentlyContinue
+        $stderr = Get-Content -LiteralPath $errFile -Raw -ErrorAction SilentlyContinue
+        if ($process.ExitCode -ne 0) {
+            Remove-Item -LiteralPath $TempPath -Force -ErrorAction SilentlyContinue
+            $detail = (($stderr, $stdout) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }) -join "`n"
+            if ([string]::IsNullOrWhiteSpace($detail)) {
+                $detail = "download process exited with code $($process.ExitCode)"
+            }
+            throw "Mutagen download failed. You can retry, or manually download $DownloadUrl and place it at $ZipPath. Details: $detail"
+        }
     } catch {
         Remove-Item -LiteralPath $TempPath -Force -ErrorAction SilentlyContinue
-        throw "Mutagen download failed or timed out. You can retry, or manually download $DownloadUrl and place it at $ZipPath. Details: $_"
+        throw $_
+    } finally {
+        Remove-Item -LiteralPath $outFile, $errFile -Force -ErrorAction SilentlyContinue
     }
 
     if (-not (Test-Path -LiteralPath $TempPath)) {
