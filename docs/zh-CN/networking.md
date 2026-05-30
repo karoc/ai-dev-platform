@@ -87,10 +87,13 @@ agent     192.168.242.135
 对于本机专属的 NAT 设置，优先使用被忽略的本地覆盖文件，而不是直接修改已提交的默认配置：
 
 ```powershell
-Copy-Item configs\local.example.json configs\local.json
+.\cli\adp.ps1 network configure-local -Plan
+.\cli\adp.ps1 network configure-local
 ```
 
-然后在 `configs\local.json` 中更新 `platform.network.vmware_nat` 和 `topology.<runtime>.static_ip`。
+`network configure-local -Plan` 会探测 host `VMnet8`，显示目标 local NAT 设置和 runtime static IP，并且不会修改文件。不带 `-Plan` 时，它只会写入被忽略的 `configs\local.json` override。它不会创建、启动、停止或修改 VM，不会打开 SSH，也不会修改 guest networking。
+
+仍然可以手动编辑：把 `configs\local.example.json` 复制为 `configs\local.json`，然后更新 `platform.network.vmware_nat` 和 `topology.<runtime>.static_ip`。
 
 ## 对已有 VM 应用网络
 
@@ -118,7 +121,7 @@ Copy-Item configs\local.example.json configs\local.json
 
 对于新 provision 的 Ubuntu VM，ADP 会把静态网络注入 cloud-init autoinstall user data。这意味着新 VM 应直接使用配置的 `static_ip` 启动。
 
-创建新 VM 前，`adp up <runtime>` 会在 host 暴露相关信息时，比对配置的 VMware NAT 子网和 host `VMnet8` 网络。如果二者不一致，ADP 会在创建 VM 前退出，并提示你更新 `configs\local.json`。
+创建新 VM 前，`adp up <runtime>` 会在 host 暴露相关信息时，比对配置的 VMware NAT 子网和 host `VMnet8` 网络。如果二者不一致，ADP 会在创建 VM 前退出，并提示运行 `.\cli\adp.ps1 network configure-local -Plan`。
 
 VM 创建完成后再修改 `configs\local.json`，不会自动重写 guest 内部网络。运行 `.\cli\adp.ps1 status <runtime>` 或 `.\cli\adp.ps1 doctor`；如果看到 `network drift` 或 `seed network drift`，请重建该 runtime，或从旧 seed-era 地址进入 guest 后更新网络。
 

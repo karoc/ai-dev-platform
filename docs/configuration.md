@@ -150,7 +150,14 @@ Merging is recursive for JSON objects. Arrays and scalar values replace the defa
 
 `platform.defaults.iso_path` is resolved inside `platform.paths.iso_cache`. To import an ISO from any location, run `.\install.ps1 -IsoPath C:\path\to\ubuntu-26.04-live-server-amd64.iso`; the installer copies it into the configured ISO cache.
 
-For VMware NAT differences between machines, override `platform.network.vmware_nat` and each affected `topology.<runtime>.static_ip` in `configs\local.json`. Confirm the actual VMware NAT subnet in VMware Workstation's Virtual Network Editor first; see [Networking](networking.md#prerequisites).
+For VMware NAT differences between machines, prefer:
+
+```powershell
+.\cli\adp.ps1 network configure-local -Plan
+.\cli\adp.ps1 network configure-local
+```
+
+The command detects host `VMnet8`, previews the target `platform.network.vmware_nat` and `topology.<runtime>.static_ip` values, and writes only the ignored `configs\local.json` override when run without `-Plan`. Manual editing is still supported when host detection is unavailable. Confirm the actual VMware NAT subnet in VMware Workstation's Virtual Network Editor if needed; see [Networking](networking.md#prerequisites).
 
 Do not commit `configs\local.json`; commit shared defaults to the main config files instead.
 

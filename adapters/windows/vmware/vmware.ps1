@@ -290,6 +290,32 @@ function Get-ADPIPv4NetworkCidr {
     return "$(ConvertFrom-ADPIPv4UInt32 -Value $network)/$PrefixLength"
 }
 
+function Get-ADPIPv4AddressInCidr {
+    param(
+        [string]$Cidr,
+        [int]$HostOffset
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Cidr)) {
+        throw "CIDR is required"
+    }
+
+    $parts = $Cidr -split '/', 2
+    if ($parts.Count -ne 2) {
+        throw "Invalid CIDR: $Cidr"
+    }
+
+    $prefix = 0
+    if (-not [int]::TryParse($parts[1], [ref]$prefix)) {
+        throw "Invalid CIDR prefix: $Cidr"
+    }
+
+    $networkInt = ConvertTo-ADPIPv4UInt32 -Address $parts[0]
+    $mask = Get-ADPIPv4MaskUInt32 -PrefixLength $prefix
+    $network = $networkInt -band $mask
+    return ConvertFrom-ADPIPv4UInt32 -Value ([uint32]($network + [uint32]$HostOffset))
+}
+
 function Test-ADPIPv4InCidr {
     param(
         [string]$Address,

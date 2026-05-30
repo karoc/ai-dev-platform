@@ -87,10 +87,13 @@ Edit per-runtime IPs in `configs\topology.json`:
 For machine-specific NAT settings, prefer ignored local overrides instead of editing committed defaults:
 
 ```powershell
-Copy-Item configs\local.example.json configs\local.json
+.\cli\adp.ps1 network configure-local -Plan
+.\cli\adp.ps1 network configure-local
 ```
 
-Then update the `platform.network.vmware_nat` and `topology.<runtime>.static_ip` values in `configs\local.json`.
+`network configure-local -Plan` detects host `VMnet8`, shows the target local NAT settings and runtime static IPs, and does not change files. Without `-Plan`, it writes only the ignored `configs\local.json` override. It does not create, start, stop, or modify VMs, does not open SSH, and does not change guest networking.
+
+Manual editing is still supported: copy `configs\local.example.json` to `configs\local.json`, then update the `platform.network.vmware_nat` and `topology.<runtime>.static_ip` values.
 
 ## Apply Networking to Existing VMs
 
@@ -118,7 +121,7 @@ This command:
 
 For newly provisioned Ubuntu VMs, ADP injects static networking into cloud-init autoinstall user data. This means newly created VMs should come up directly on their configured `static_ip`.
 
-Before creating a new VM, `adp up <runtime>` checks the configured VMware NAT subnet against the host `VMnet8` network when the host exposes that information. If they differ, ADP exits before creating the VM and tells you to update `configs\local.json`.
+Before creating a new VM, `adp up <runtime>` checks the configured VMware NAT subnet against the host `VMnet8` network when the host exposes that information. If they differ, ADP exits before creating the VM and points you to `.\cli\adp.ps1 network configure-local -Plan`.
 
 Changing `configs\local.json` after a VM has already been created does not rewrite the guest network by itself. Run `.\cli\adp.ps1 status <runtime>` or `.\cli\adp.ps1 doctor`; if they report `network drift` or `seed network drift`, rebuild the runtime or update guest networking from the old seed-era address.
 

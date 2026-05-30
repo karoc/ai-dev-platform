@@ -101,6 +101,7 @@ function Test-StatusSSHReachable {
         "echo ok" 2>&1
 
     $sshExit = $LASTEXITCODE
+    $global:LASTEXITCODE = 0
     $sshText = ($sshOutput | Where-Object { $_ }) -join "`n"
 
     if ($sshExit -eq 0) {

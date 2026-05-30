@@ -63,6 +63,7 @@ function Show-Help {
     Write-Host "  adp sync status                Show workspace sync status"
     Write-Host "  adp workspace <init|show|plan|status|dashboard|report|recipes|create|open|sync|project|task>  Manage workspace manifests"
     Write-Host "  adp capabilities               Show supported and planned runtime capabilities"
+    Write-Host "  adp network configure-local [-Plan]  Align configs\local.json with host VMnet8"
     Write-Host "  adp network apply <rt|all> [-Plan]  Apply configured static IP networking"
     Write-Host "  adp snapshot create <rt> <name>  Create runtime snapshot"
     Write-Host "  adp restore <rt> <name>        Restore runtime snapshot"

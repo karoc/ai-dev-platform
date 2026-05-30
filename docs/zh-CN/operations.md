@@ -125,7 +125,7 @@ Installer 排障开关：
 
 `-IsoPath` 会直接用于 VM 创建，不需要位于配置的 ISO cache 中。
 
-首次创建新 VM 前，`adp up <runtime>` 会在 host 暴露相关信息时，比对配置的 VMware NAT CIDR 和 host `VMnet8` 网络。如果二者不一致，ADP 会在创建 VM 前退出，并要求更新 `configs\local.json`。这可以避免新 VM 被安装到 host 无法访问的静态 IP 上。
+首次创建新 VM 前，`adp up <runtime>` 会在 host 暴露相关信息时，比对配置的 VMware NAT CIDR 和 host `VMnet8` 网络。如果二者不一致，ADP 会在创建 VM 前退出，并提示运行 `.\cli\adp.ps1 network configure-local -Plan`。这可以避免新 VM 被安装到 host 无法访问的静态 IP 上。
 
 ## 停止运行时
 
@@ -278,6 +278,15 @@ pnpm exec playwright test
 ```
 
 编辑 `configs\platform.json`、`configs\topology.json`，或 `configs\local.json` 中受支持的 `platform`/`topology` 字段后使用此命令。
+
+在任何 VM 存在之前，可以用下面的命令把本机 NAT 设置对齐到 host `VMnet8`，且不会触碰 VM：
+
+```powershell
+.\cli\adp.ps1 network configure-local -Plan
+.\cli\adp.ps1 network configure-local
+```
+
+`configure-local -Plan` 会预览探测到的 host NAT subnet、目标 gateway/DNS，以及推导出的 runtime static IP。不带 `-Plan` 时，它只会写入被忽略的 `configs\local.json` 文件。
 
 可以先预览 guest 网络改动：
 

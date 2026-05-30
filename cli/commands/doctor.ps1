@@ -244,6 +244,7 @@ if ($config.network.vmware_nat) {
         Test-Check -Name "VMware NAT gateway host range" -Condition $hostNat.GatewayInHostCidr -Detail "($($nat.gateway) in host $($hostNat.HostCidr))"
         if (-not $hostNat.Matches) {
             Write-Host "  [INFO]  Update configs\local.json before creating VMs, or rebuild runtimes created with the old subnet." -ForegroundColor DarkGray
+            Write-Host "  [INFO]  Preview automatic local fix: .\cli\adp.ps1 network configure-local -Plan" -ForegroundColor DarkGray
         }
     } else {
         Write-InfoCheck -Name "VMware NAT host match" -Detail "($($hostNat.Reason); confirm VMnet8/NAT subnet in VMware Virtual Network Editor)"
@@ -479,7 +480,9 @@ if ($FirstRun) {
     Write-Host "First-run checklist" -ForegroundColor Cyan
     Write-Host "========================================" -ForegroundColor Cyan
     Write-Host "  1. Review or create local overrides:" -ForegroundColor Yellow
-    Write-Host "     Copy-Item configs\local.example.json configs\local.json" -ForegroundColor DarkGray
+    Write-Host "     .\cli\adp.ps1 network configure-local -Plan" -ForegroundColor DarkGray
+    Write-Host "     .\cli\adp.ps1 network configure-local" -ForegroundColor DarkGray
+    Write-Host "     Or manually copy/edit: Copy-Item configs\local.example.json configs\local.json" -ForegroundColor DarkGray
     Write-Host "  2. Confirm ISO availability:" -ForegroundColor Yellow
     Write-Host "     .\install.ps1 -IsoPath C:\path\to\ubuntu-26.04-live-server-amd64.iso" -ForegroundColor DarkGray
     Write-Host "  3. Initialize platform:" -ForegroundColor Yellow

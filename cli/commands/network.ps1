@@ -9,12 +9,12 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-if (-not $SubCommand -or $SubCommand -ne "apply") {
-    Write-ErrorLog -Message "Usage: adp network apply <runtime|all> [-Plan]" -Component "cli.network"
+if (-not $SubCommand -or $SubCommand -notin @("apply", "configure-local", "local")) {
+    Write-ErrorLog -Message "Usage: adp network apply <runtime|all> [-Plan] | adp network configure-local [-Plan]" -Component "cli.network"
     exit 1
 }
 
-if (-not $RuntimeName) {
+if ($SubCommand -eq "apply" -and -not $RuntimeName) {
     Write-ErrorLog -Message "Usage: adp network apply <runtime|all> [-Plan]" -Component "cli.network"
     exit 1
 }
@@ -22,8 +22,190 @@ if (-not $RuntimeName) {
 . (Join-Path (Get-ProjectRoot) "adapters\windows\ssh\ssh.ps1")
 . (Join-Path (Get-ProjectRoot) "adapters\windows\mutagen\mutagen.ps1")
 
-Initialize-VMware | Out-Null
-Initialize-SSH | Out-Null
+function Set-JsonProperty {
+    param(
+        [Parameter(Mandatory = $true)]
+        [pscustomobject]$Object,
+        [Parameter(Mandatory = $true)]
+        [string]$Name,
+        $Value
+    )
+
+    if ($Object.PSObject.Properties.Name -contains $Name) {
+        $Object.$Name = $Value
+    } else {
+        $Object | Add-Member -NotePropertyName $Name -NotePropertyValue $Value
+    }
+}
+
+function Ensure-JsonObjectProperty {
+    param(
+        [Parameter(Mandatory = $true)]
+        [pscustomobject]$Object,
+        [Parameter(Mandatory = $true)]
+        [string]$Name
+    )
+
+    if ($Object.PSObject.Properties.Name -notcontains $Name -or -not $Object.$Name) {
+        Set-JsonProperty -Object $Object -Name $Name -Value ([pscustomobject]@{})
+    }
+
+    return $Object.$Name
+}
+
+function Get-IPv4HostOffset {
+    param(
+        [string]$Address,
+        [string]$Cidr
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Address) -or [string]::IsNullOrWhiteSpace($Cidr)) {
+        return $null
+    }
+
+    try {
+        $parts = $Cidr -split '/', 2
+        if ($parts.Count -ne 2) {
+            return $null
+        }
+
+        $prefix = [int]$parts[1]
+        $networkInt = ConvertTo-ADPIPv4UInt32 -Address $parts[0]
+        $mask = Get-ADPIPv4MaskUInt32 -PrefixLength $prefix
+        $network = $networkInt -band $mask
+        $addressInt = ConvertTo-ADPIPv4UInt32 -Address $Address
+        return [int]($addressInt - $network)
+    } catch {
+        return $null
+    }
+}
+
+function Get-RuntimeHostOffset {
+    param(
+        [string]$RuntimeName,
+        [object]$Runtime,
+        [string]$ConfiguredCidr
+    )
+
+    if ($Runtime -and $Runtime.PSObject.Properties.Name -contains "static_ip" -and $Runtime.static_ip) {
+        $offset = Get-IPv4HostOffset -Address ([string]$Runtime.static_ip) -Cidr $ConfiguredCidr
+        if ($null -ne $offset -and $offset -gt 2) {
+            return $offset
+        }
+    }
+
+    switch ($RuntimeName) {
+        "frontend" { return 131 }
+        "backend" { return 133 }
+        "agent" { return 135 }
+        default { return 150 }
+    }
+}
+
+function Get-VMwareLocalNetworkPlan {
+    $hostNat = Get-VMwareNatNetwork
+    if (-not $hostNat) {
+        throw "VMnet8 host network was not detected. Open VMware Virtual Network Editor, confirm the NAT network, then update configs\local.json manually."
+    }
+
+    $config = Get-PlatformConfig
+    $topology = Get-TopologyConfig
+    $currentNat = $config.network.vmware_nat
+    $currentCidr = if ($currentNat -and $currentNat.cidr) { [string]$currentNat.cidr } else { $hostNat.Cidr }
+    $gateway = if ($hostNat.Source -eq "vmnetnat.conf" -and $hostNat.Address) {
+        [string]$hostNat.Address
+    } else {
+        Get-ADPIPv4AddressInCidr -Cidr $hostNat.Cidr -HostOffset 2
+    }
+
+    $runtimePlans = [System.Collections.Generic.List[object]]::new()
+    foreach ($name in (Get-AllRuntimeNames)) {
+        $rt = $topology.$name
+        $offset = Get-RuntimeHostOffset -RuntimeName $name -Runtime $rt -ConfiguredCidr $currentCidr
+        $runtimePlans.Add([pscustomobject]@{
+            Name      = $name
+            Offset    = $offset
+            StaticIp  = Get-ADPIPv4AddressInCidr -Cidr $hostNat.Cidr -HostOffset $offset
+            CurrentIp = if ($rt.PSObject.Properties.Name -contains "static_ip") { [string]$rt.static_ip } else { "" }
+        }) | Out-Null
+    }
+
+    return [pscustomobject]@{
+        HostCidr       = [string]$hostNat.Cidr
+        HostAddress    = [string]$hostNat.Address
+        HostSource     = [string]$hostNat.Source
+        HostInterface  = [string]$hostNat.InterfaceAlias
+        Prefix         = [int]$hostNat.Prefix
+        Gateway        = $gateway
+        Dns            = @($gateway, "1.1.1.1")
+        RuntimePlans   = @($runtimePlans)
+        LocalConfigPath = Join-Path (Get-ProjectRoot) "configs\local.json"
+    }
+}
+
+function Set-LocalNetworkConfig {
+    param([object]$NetworkPlan)
+
+    $localPath = $NetworkPlan.LocalConfigPath
+    if (Test-Path -LiteralPath $localPath) {
+        $raw = Get-Content -LiteralPath $localPath -Raw
+        $localConfig = if ([string]::IsNullOrWhiteSpace($raw)) { [pscustomobject]@{} } else { $raw | ConvertFrom-Json }
+    } else {
+        $localConfig = [pscustomobject]@{}
+    }
+
+    $platform = Ensure-JsonObjectProperty -Object $localConfig -Name "platform"
+    $network = Ensure-JsonObjectProperty -Object $platform -Name "network"
+    $vmwareNat = Ensure-JsonObjectProperty -Object $network -Name "vmware_nat"
+    Set-JsonProperty -Object $network -Name "mode" -Value "static"
+    Set-JsonProperty -Object $vmwareNat -Name "cidr" -Value $NetworkPlan.HostCidr
+    Set-JsonProperty -Object $vmwareNat -Name "prefix" -Value $NetworkPlan.Prefix
+    Set-JsonProperty -Object $vmwareNat -Name "gateway" -Value $NetworkPlan.Gateway
+    Set-JsonProperty -Object $vmwareNat -Name "dns" -Value @($NetworkPlan.Dns)
+    if ($vmwareNat.PSObject.Properties.Name -notcontains "interface_match" -or [string]::IsNullOrWhiteSpace([string]$vmwareNat.interface_match)) {
+        Set-JsonProperty -Object $vmwareNat -Name "interface_match" -Value "en*"
+    }
+
+    $topology = Ensure-JsonObjectProperty -Object $localConfig -Name "topology"
+    foreach ($runtimePlan in @($NetworkPlan.RuntimePlans)) {
+        $runtime = Ensure-JsonObjectProperty -Object $topology -Name $runtimePlan.Name
+        Set-JsonProperty -Object $runtime -Name "static_ip" -Value $runtimePlan.StaticIp
+    }
+
+    $json = $localConfig | ConvertTo-Json -Depth 20
+    Set-Content -LiteralPath $localPath -Value $json -Encoding utf8
+}
+
+function Invoke-ConfigureLocalNetwork {
+    param([switch]$PlanOnly)
+
+    $plan = Get-VMwareLocalNetworkPlan
+    $config = Get-PlatformConfig
+    $nat = $config.network.vmware_nat
+
+    Write-Host "Configuring local VMware NAT overrides..." -ForegroundColor Yellow
+    Write-Host "  Host VMnet8: $($plan.HostCidr) ($($plan.HostAddress), $($plan.HostSource))" -ForegroundColor DarkGray
+    Write-Host "  Local config: $($plan.LocalConfigPath)" -ForegroundColor DarkGray
+    Write-Host "  Current configured NAT: $($nat.cidr), gateway $($nat.gateway)" -ForegroundColor DarkGray
+    Write-Host "  Target local NAT:      $($plan.HostCidr), gateway $($plan.Gateway)" -ForegroundColor DarkGray
+    Write-Host "  Target DNS:            $(@($plan.Dns) -join ', ')" -ForegroundColor DarkGray
+    Write-Host "  Runtime static IPs:" -ForegroundColor DarkGray
+    foreach ($runtimePlan in @($plan.RuntimePlans)) {
+        Write-Host "    $($runtimePlan.Name): $($runtimePlan.CurrentIp) -> $($runtimePlan.StaticIp)" -ForegroundColor DarkGray
+    }
+
+    if ($PlanOnly) {
+        Write-Host "  Plan only: configs\local.json will not be changed." -ForegroundColor Cyan
+        Write-Host "  To apply: .\cli\adp.ps1 network configure-local" -ForegroundColor DarkGray
+        Write-Host "  Then rerun: .\cli\adp.ps1 doctor -FirstRun" -ForegroundColor DarkGray
+        return
+    }
+
+    Set-LocalNetworkConfig -NetworkPlan $plan
+    Write-Host "  Updated configs\local.json with host VMnet8 NAT settings." -ForegroundColor Green
+    Write-Host "  Next: .\cli\adp.ps1 doctor -FirstRun" -ForegroundColor DarkGray
+    Write-Host "  Then: .\cli\adp.ps1 up <runtime> -Plan" -ForegroundColor DarkGray
+}
 
 function Get-ConfiguredNetwork {
     param([string]$TargetRuntime)
@@ -278,7 +460,20 @@ Write-Host "ADP-OS Network" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
+if ($SubCommand -in @("configure-local", "local")) {
+    try {
+        Invoke-ConfigureLocalNetwork -PlanOnly:$Plan
+    } catch {
+        Write-ErrorLog -Message "local network configuration failed: $_" -Component "cli.network"
+        exit 1
+    }
+    return
+}
+
 $targets = if ($RuntimeName -eq "all") { Get-AllRuntimeNames } else { @($RuntimeName) }
+
+Initialize-VMware | Out-Null
+Initialize-SSH | Out-Null
 
 foreach ($target in $targets) {
     try {

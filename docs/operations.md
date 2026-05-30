@@ -125,7 +125,7 @@ When creating a runtime for the first time, you can pass an ISO from any locatio
 
 `-IsoPath` is used directly for VM creation. It does not need to be inside the configured ISO cache.
 
-Before creating a new VM, `adp up <runtime>` compares the configured VMware NAT CIDR with the host `VMnet8` network when the host exposes it. If they do not match, ADP exits before creating the VM and asks you to update `configs\local.json`. This prevents a new VM from being installed with a static IP that the host cannot reach.
+Before creating a new VM, `adp up <runtime>` compares the configured VMware NAT CIDR with the host `VMnet8` network when the host exposes it. If they do not match, ADP exits before creating the VM and points you to `.\cli\adp.ps1 network configure-local -Plan`. This prevents a new VM from being installed with a static IP that the host cannot reach.
 
 ## Stop Runtimes
 
@@ -278,6 +278,15 @@ Preview the deletion first:
 ```
 
 Use this after editing `configs\platform.json`, `configs\topology.json`, or the supported `platform`/`topology` sections in `configs\local.json`.
+
+Before any VM exists, use this to align local NAT settings with host `VMnet8` without touching VMs:
+
+```powershell
+.\cli\adp.ps1 network configure-local -Plan
+.\cli\adp.ps1 network configure-local
+```
+
+`configure-local -Plan` previews the detected host NAT subnet, target gateway/DNS, and derived runtime static IPs. Without `-Plan`, it writes only the ignored `configs\local.json` file.
 
 Preview the guest networking changes first:
 

@@ -37,6 +37,8 @@ $ci = Read-Text ".github\workflows\ci.yml"
 $validate = Read-Text "tests\validate.ps1"
 $networkingDocs = Read-Text "docs\networking.md"
 $networkingDocsZh = Read-Text "docs\zh-CN\networking.md"
+$configurationDocs = Read-Text "docs\configuration.md"
+$configurationDocsZh = Read-Text "docs\zh-CN\configuration.md"
 $workspaceDocs = Read-Text "docs\workspaces.md"
 $workspaceDocsZh = Read-Text "docs\zh-CN\workspaces.md"
 $capabilitiesDocs = Read-Text "docs\capabilities.md"
@@ -78,6 +80,7 @@ Assert-Contains -Name "CLI registers capabilities command" -Text $cli -Pattern '
 Assert-Contains -Name "CLI help includes status command" -Text $cli -Pattern 'adp status \[runtime\]'
 Assert-Contains -Name "CLI help includes workspace command" -Text $cli -Pattern 'adp workspace <init\|show\|plan\|status\|dashboard\|report\|recipes\|create\|open\|sync\|project\|task>'
 Assert-Contains -Name "CLI help includes capabilities command" -Text $cli -Pattern 'adp capabilities\s+Show supported and planned runtime capabilities'
+Assert-Contains -Name "CLI help includes local network configuration command" -Text $cli -Pattern 'adp network configure-local \[-Plan\]\s+Align configs\\local\.json with host VMnet8'
 Assert-Contains -Name "capabilities command documents supported and planned carriers" -Text (Read-Text "cli\commands\capabilities.ps1") -Pattern 'Capabilities only: no VMs[\s\S]*\[supported\] vmware-workstation[\s\S]*\[planned\] hyper-v[\s\S]*\[planned\] kvm-libvirt[\s\S]*\[planned\] macos-vm[\s\S]*Docker and dev containers are runtime-internal project tools today'
 Assert-Contains -Name "capabilities docs define support boundary" -Text $capabilitiesDocs -Pattern '## Runtime Carrier Matrix[\s\S]*VMware Workstation[\s\S]*Supported on Windows[\s\S]*Hyper-V[\s\S]*Not implemented[\s\S]*Docker and dev containers are runtime-internal project tools today'
 Assert-Contains -Name "Chinese capabilities docs define support boundary" -Text $capabilitiesDocsZh -Pattern '## 运行时承载矩阵[\s\S]*VMware Workstation[\s\S]*Windows 上已支持[\s\S]*Hyper-V[\s\S]*尚未实现[\s\S]*Docker 和 dev containers 当前是 runtime 内部项目工具'
@@ -116,24 +119,32 @@ Assert-Contains -Name "sync validates subcommand before mutagen" -Text $sync -Pa
 Assert-Contains -Name "doctor checks WSL xorriso" -Text $doctor -Pattern 'WSL xorriso'
 Assert-Contains -Name "doctor checks ISO shape" -Text $doctor -Pattern 'ISO shape'
 Assert-Contains -Name "doctor reports VMware NAT prerequisites" -Text $doctor -Pattern 'VMware NAT prerequisites[\s\S]*host VMnet8'
-Assert-Contains -Name "doctor compares configured NAT to host VMnet8" -Text $doctor -Pattern 'Test-VMwareNatConfigMatchesHost[\s\S]*VMware NAT host match[\s\S]*VMware NAT gateway host range'
+Assert-Contains -Name "doctor compares configured NAT to host VMnet8" -Text $doctor -Pattern 'Test-VMwareNatConfigMatchesHost[\s\S]*VMware NAT host match[\s\S]*VMware NAT gateway host range[\s\S]*network configure-local -Plan'
 Assert-Contains -Name "doctor reports VMware running VM count accurately" -Text $doctor -Pattern 'Get-RunningVMs[\s\S]*VMware running VMs[\s\S]*running'
-Assert-Contains -Name "up blocks VM creation on NAT mismatch" -Text $up -Pattern 'function\s+Assert-VMwareNatReadyForRuntimeCreate[\s\S]*VMware NAT mismatch detected before VM creation[\s\S]*No VM was created'
+Assert-Contains -Name "up blocks VM creation on NAT mismatch" -Text $up -Pattern 'function\s+Assert-VMwareNatReadyForRuntimeCreate[\s\S]*VMware NAT mismatch detected before VM creation[\s\S]*network configure-local -Plan[\s\S]*network configure-local[\s\S]*No VM was created'
 Assert-Contains -Name "status reports seed network drift" -Text (Read-Text "cli\commands\status.ps1") -Pattern 'network drift:[\s\S]*seed uses[\s\S]*Write-StatusNetworkDriftRemediation'
 Assert-Contains -Name "status explains stale networking remediation paths" -Text (Read-Text "cli\commands\status.ps1") -Pattern 'function\s+Write-StatusNetworkDriftRemediation[\s\S]*Rebuild when the VM can be recreated[\s\S]*In-place guest fix[\s\S]*Admin-only temporary host-route workaround'
 Assert-Contains -Name "status distinguishes SSH auth pending" -Text (Read-Text "cli\commands\status.ps1") -Pattern 'auth-pending[\s\S]*SSH port is open, but the ADP key is not accepted yet'
+Assert-Contains -Name "status does not leak SSH exit code" -Text (Read-Text "cli\commands\status.ps1") -Pattern '\$sshExit\s*=\s*\$LASTEXITCODE[\s\S]*\$global:LASTEXITCODE\s*=\s*0[\s\S]*return "unreachable"'
 Assert-Contains -Name "status reports duplicate running runtime VMs" -Text (Read-Text "cli\commands\status.ps1") -Pattern 'ambiguous-duplicate[\s\S]*duplicate VM:[\s\S]*running ADP runtime name also found outside this checkout[\s\S]*other checkout or stale VM'
 Assert-Contains -Name "doctor reports seed network drift" -Text $doctor -Pattern 'seed network drift[\s\S]*Write-NetworkDriftRemediation'
 Assert-Contains -Name "doctor explains stale networking remediation paths" -Text $doctor -Pattern 'function\s+Write-NetworkDriftRemediation[\s\S]*Remediation options for \$TargetRuntime network drift[\s\S]*Rebuild when the VM can be recreated[\s\S]*In-place guest fix[\s\S]*Admin-only temporary host-route workaround'
 Assert-Contains -Name "doctor reports duplicate running runtime VMs" -Text $doctor -Pattern 'duplicate running VM[\s\S]*Stop or rename stale duplicate ADP VMs before diagnosing SSH or network issues'
 Assert-Contains -Name "network apply plan guides stale networking remediation" -Text $network -Pattern 'Network drift detected:[\s\S]*in-place guest netplan fix path only[\s\S]*adp destroy \$TargetRuntime -Plan[\s\S]*ADP will not add, change, or remove host routes automatically'
 Assert-Contains -Name "network apply prefers seed-era SSH target during drift" -Text $network -Pattern 'if\s*\(-not\s+\$currentIp\s+-and\s+\$seedNetwork[\s\S]*\$currentIp\s*=\s*\$seedNetwork\.Address[\s\S]*if\s*\(-not\s+\$currentIp\)\s*\{[\s\S]*\$currentIp\s*=\s*\$network\.Address'
+Assert-Contains -Name "network configure-local supports plan and writes local overrides" -Text $network -Pattern 'configure-local[\s\S]*Get-VMwareLocalNetworkPlan[\s\S]*Host VMnet8[\s\S]*Runtime static IPs:[\s\S]*Plan only: configs\\local\.json will not be changed[\s\S]*Set-LocalNetworkConfig[\s\S]*Updated configs\\local\.json with host VMnet8 NAT settings'
+Assert-Contains -Name "network configure-local avoids SSH initialization before local config repair" -Text $network -Pattern 'if\s*\(\$SubCommand\s+-in\s+@\("configure-local", "local"\)\)[\s\S]*return[\s\S]*Initialize-VMware\s+\| Out-Null[\s\S]*Initialize-SSH\s+\| Out-Null'
 Assert-Contains -Name "VMware adapter detects host NAT network" -Text (Read-Text "adapters\windows\vmware\vmware.ps1") -Pattern 'function\s+Get-VMwareNatNetwork[\s\S]*function\s+Test-VMwareNatConfigMatchesHost'
+Assert-Contains -Name "VMware adapter can derive runtime IPs in detected NAT" -Text (Read-Text "adapters\windows\vmware\vmware.ps1") -Pattern 'function\s+Get-ADPIPv4AddressInCidr[\s\S]*HostOffset'
 Assert-Contains -Name "VMware adapter documents vmrun list as running-only" -Text (Read-Text "adapters\windows\vmware\vmware.ps1") -Pattern 'vmrun list returns only running VMs'
 Assert-Contains -Name "VMware adapter classifies ADP running runtime VMs" -Text (Read-Text "adapters\windows\vmware\vmware.ps1") -Pattern 'function\s+Get-ADPRuntimeNameFromVmxPath[\s\S]*function\s+Get-ADPRunningRuntimeVMs[\s\S]*IsManagedByCurrentCheckout'
 Assert-Contains -Name "VMware adapter exposes quick IP probe for progress loops" -Text (Read-Text "adapters\windows\vmware\vmware.ps1") -Pattern 'function\s+Get-VMIPQuick[\s\S]*getGuestIPAddress[\s\S]*Get-VMIPFromDhcpLeases'
 Assert-Contains -Name "networking docs explain NAT prerequisites" -Text $networkingDocs -Pattern '## Prerequisites[\s\S]*Virtual Network Editor[\s\S]*VMware NAT prerequisites'
 Assert-Contains -Name "Chinese networking docs explain NAT prerequisites" -Text $networkingDocsZh -Pattern '## 前置条件[\s\S]*Virtual Network Editor[\s\S]*VMware NAT prerequisites'
+Assert-Contains -Name "networking docs prefer configure-local for local NAT overrides" -Text $networkingDocs -Pattern 'network configure-local -Plan[\s\S]*detects host `VMnet8`[\s\S]*writes only the ignored `configs\\local\.json` override'
+Assert-Contains -Name "Chinese networking docs prefer configure-local for local NAT overrides" -Text $networkingDocsZh -Pattern 'network configure-local -Plan[\s\S]*探测 host `VMnet8`[\s\S]*只会写入被忽略的 `configs\\local\.json` override'
+Assert-Contains -Name "configuration docs explain configure-local local override repair" -Text $configurationDocs -Pattern 'network configure-local -Plan[\s\S]*detects host `VMnet8`[\s\S]*writes only the ignored `configs\\local\.json` override'
+Assert-Contains -Name "Chinese configuration docs explain configure-local local override repair" -Text $configurationDocsZh -Pattern 'network configure-local -Plan[\s\S]*探测 host `VMnet8`[\s\S]*只会写入被忽略的 `configs\\local\.json` override'
 Assert-Contains -Name "operations docs explain duplicate runtime diagnostics" -Text (Read-Text "docs\operations.md") -Pattern 'duplicate running ADP runtime[\s\S]*same runtime name[\s\S]*another checkout or a stale VM store'
 Assert-Contains -Name "Chinese operations docs explain duplicate runtime diagnostics" -Text (Read-Text "docs\zh-CN\operations.md") -Pattern 'duplicate running ADP runtime[\s\S]*另一个 checkout 或 stale VM store[\s\S]*同名 runtime'
 Assert-Contains -Name "operations docs explain ambiguous duplicate SSH" -Text (Read-Text "docs\operations.md") -Pattern 'ambiguous-duplicate[\s\S]*does not prove that the current checkout'

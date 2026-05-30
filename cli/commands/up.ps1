@@ -112,6 +112,8 @@ function Assert-VMwareNatReadyForRuntimeCreate {
         Write-Host "  Configured: $($hostNat.ConfiguredCidr), gateway $($nat.gateway)" -ForegroundColor DarkGray
         Write-Host "  Host VMnet8: $($hostNat.HostCidr) ($($hostNat.HostAddress), $($hostNat.HostSource))" -ForegroundColor DarkGray
         Write-Host "  Fix configs\local.json so platform.network.vmware_nat and topology.$TargetRuntime.static_ip match host VMnet8." -ForegroundColor Yellow
+        Write-Host "  Preview automatic local fix: .\cli\adp.ps1 network configure-local -Plan" -ForegroundColor DarkGray
+        Write-Host "  Apply automatic local fix:   .\cli\adp.ps1 network configure-local" -ForegroundColor DarkGray
         Write-Host "  Then rerun: .\cli\adp.ps1 doctor -FirstRun" -ForegroundColor DarkGray
         Write-Host "  No VM was created." -ForegroundColor DarkGray
         exit 1
