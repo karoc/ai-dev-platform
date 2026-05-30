@@ -13,6 +13,7 @@ The project does not yet publish versioned releases. Entries are grouped by date
 - Centralized runtime profile wording in shared configuration helpers and added an explicit `topology.<runtime>.profile` field. The agent runtime now renders as `agent/high-IO` / `Agent 高 IO` in startup and installer output instead of the retired danger/high-risk runtime labels, while snapshot-first language remains reserved for destructive or broad task work.
 - Updated the agent bootstrap marker from the retired danger-mode wording to `AGENT_PROFILE.txt`, and added regression checks so current installer, startup, and bootstrap paths do not reintroduce the retired runtime danger labels.
 - Fixed WSL `xorriso` argument passing during autoinstall ISO remastering. `adp up <runtime>` no longer invokes WSL in a way that can pass only the bare `xorriso` command and trigger usage output instead of creating the autoinstall ISO.
+- Localized the nested VMware VM factory autoinstall monitor used by `adp up <runtime>`, so Simplified Chinese UI settings now carry through the long Ubuntu installation wait instead of falling back to English heartbeat text. The monitor now also uses PowerShell `Write-Progress` as an indeterminate activity indicator while keeping copyable heartbeat logs and avoiding fake install percentages.
 
 ## 2026-05-30
 

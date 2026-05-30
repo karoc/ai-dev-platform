@@ -38,7 +38,7 @@
 | Mutagen 缺失或版本不对 | `.\cli\adp.ps1 doctor -FixMutagen -Plan` | local Mutagen remediation、offline archive、可选 SHA256 | [操作指南](operations.md#健康检查) |
 | Runtime startup 使用了非预期 ISO path | `.\cli\adp.ps1 up <runtime> -IsoPath <path> -Plan` | explicit ISO path、local config | [操作指南](operations.md#启动运行时) |
 | Runtime 已存在但无法连接 | `.\cli\adp.ps1 status <runtime>` | VM state、static IP、SSH reachability | [操作指南](operations.md#运行时状态)、[网络说明](networking.md) |
-| Runtime 创建看起来卡住 | 只要 `[install monitor] INSTALLING Ubuntu in VM` 心跳仍在继续，就保持 `adp up <runtime>` 运行 | Ubuntu autoinstall、first boot、IP/SSH/provision marker readiness signals | [操作指南](operations.md#启动运行时) |
+| Runtime 创建看起来卡住 | 只要 `[安装监视器] 正在 VM 中安装 Ubuntu` 或 `[install monitor] INSTALLING Ubuntu in VM` 心跳仍在继续，就保持 `adp up <runtime>` 运行 | Ubuntu autoinstall、first boot、IP/SSH/provision marker readiness signals | [操作指南](operations.md#启动运行时) |
 | `status` 报告 `auth-pending` | 等待后再次运行 `.\cli\adp.ps1 status <runtime>` | SSH 端口已打开，但 ADP key/user 尚未 ready | [操作指南](operations.md#运行时状态) |
 | `up` 因 VMware NAT mismatch 停止 | `.\cli\adp.ps1 network configure-local -Plan` | host VMnet8 与 local config 不一致 | [网络说明](networking.md#前置条件)、[配置说明](configuration.md#本地覆盖) |
 | `status` 报告 `duplicate VM` | `.\cli\adp.ps1 doctor` | 另一个 checkout 或 stale VM store 中有同名 runtime 正在运行 | [操作指南](operations.md#运行时状态) |

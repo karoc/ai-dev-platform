@@ -13,6 +13,7 @@
 - 将 runtime profile 文案集中到共享配置 helper，并新增明确的 `topology.<runtime>.profile` 字段。agent runtime 现在会在启动和 installer 输出中显示为 `agent/high-IO` / `Agent 高 IO`，不再使用已退役的 danger/high-risk runtime 标签；snapshot-first 语义仍保留给破坏性或大范围 task 工作。
 - 将 agent bootstrap marker 从已退役的 danger-mode 文案更新为 `AGENT_PROFILE.txt`，并新增回归检查，防止当前 installer、startup 和 bootstrap 路径重新引入退役的 runtime danger 标签。
 - 修复 autoinstall ISO 重制阶段传递 WSL `xorriso` 参数的问题。`adp up <runtime>` 不再以可能只传入裸 `xorriso` 命令的方式调用 WSL，从而避免打印 usage 而没有创建 autoinstall ISO。
+- 将 `adp up <runtime>` 使用的嵌套 VMware VM factory autoinstall monitor 一并本地化。简体中文 UI 现在会一路传递到长时间的 Ubuntu 安装等待，而不会在 VM factory 内回退成英文心跳；同时引入 PowerShell `Write-Progress` 的不确定活动指示，继续保留可复制日志，并明确不伪造安装百分比。
 
 ## 2026-05-30
 
