@@ -92,6 +92,8 @@ Use the explicit reset path:
 .\cli\adp.ps1 sync status
 ```
 
+If the runtime has not been created in this checkout, `sync status`, `status`, and `doctor` may report the same stale session as `stale-session` or cleanup guidance. That is not a VM health failure yet. Stop the stale session, create the runtime, then start sync.
+
 `sync start <runtime>` does not silently replace an unusable same-name session. It asks for the explicit stop/start sequence so users can see that an existing sync relationship is being terminated and recreated.
 
 ## When to Change Local Configuration

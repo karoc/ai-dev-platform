@@ -92,6 +92,8 @@ New-Item -ItemType Directory -Path .tools\mutagen -Force
 .\cli\adp.ps1 sync status
 ```
 
+如果 runtime 尚未在当前 checkout 创建，`sync status`、`status` 和 `doctor` 可能会把同一个 stale session 报告为 `stale-session` 或 cleanup guidance。这还不是 VM 健康失败。先停止 stale session，创建 runtime，然后再启动 sync。
+
 `sync start <runtime>` 不会静默替换不可用的同名 session。它会要求显式执行 stop/start，让用户清楚知道已有同步关系将被终止并重建。
 
 ## 何时修改本地配置

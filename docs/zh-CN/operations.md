@@ -231,11 +231,19 @@ ssh -i $env:USERPROFILE\.ssh\adp-os\adp-os adp@192.168.242.131
 .\cli\adp.ps1 sync status
 ```
 
-`sync status` 会先打印 ADP runtime summary，然后再显示原始 Mutagen session 列表。summary 会把每个 `adp-<runtime>` session 与当前 checkout 期望的本地 workspace path 和 SSH alias 对比。某个 session 即使存在，也可能对当前 checkout 不可用，例如它指向旧 workspace、不同 remote alias，或 Mutagen 报告 halted/error 状态。此时 ADP 会显示 `wrong-local`、`wrong-remote` 或 `unhealthy`，并打印显式恢复命令：
+`sync status` 会先打印 ADP runtime summary，然后再显示原始 Mutagen session 列表。summary 会把每个 `adp-<runtime>` session 与当前 checkout 期望的本地 workspace path 和 SSH alias 对比。某个 session 即使存在，也可能对当前 checkout 不可用，例如它指向旧 workspace、不同 remote alias，或 Mutagen 报告 halted/error 状态。对于当前 checkout 中已经创建的 runtime，ADP 会显示 `wrong-local`、`wrong-remote` 或 `unhealthy`，并打印显式恢复命令：
 
 ```powershell
 .\cli\adp.ps1 sync stop agent
 .\cli\adp.ps1 sync start agent
+```
+
+如果对应 runtime 尚未在当前 checkout 创建，ADP 会把同名 stale session 显示为 cleanup guidance，而不是当前平台健康失败。先停止旧 session，再创建 runtime，然后启动 sync：
+
+```powershell
+.\cli\adp.ps1 sync stop frontend
+.\cli\adp.ps1 up frontend
+.\cli\adp.ps1 sync start frontend
 ```
 
 `sync start <runtime>` 不会把不可用的同名 session 当作成功。它会在创建或重写 runtime SSH alias 前停止，并要求你显式 stop 后重新创建 session。

@@ -405,6 +405,7 @@ foreach ($name in (Get-AllRuntimeNames)) {
     $vmPath = Join-Path $vmStore $vmName
     $vmxPath = Join-Path $vmPath "$vmName.vmx"
     $vmdkPath = Join-Path $vmPath "$vmName.vmdk"
+    $hasCurrentRuntimeVm = Test-Path -LiteralPath $vmPath
 
     $topologyOk = ($profile.seedType -eq "cloud-init" -and $rt.ssh_port -eq 22 -and $rt.cpu -gt 0 -and $rt.memory -gt 0 -and $rt.disk -gt 0 -and $rt.workspace -and $rt.sync_profile -and $rt.bootstrap_profile)
     Test-Check -Name "$name topology" -Condition $topologyOk -Detail "($($rt.os), cpu:$($rt.cpu), memory:$($rt.memory), disk:$($rt.disk), ssh:$($rt.ssh_port))"
@@ -437,7 +438,6 @@ foreach ($name in (Get-AllRuntimeNames)) {
         $adpRunningVms = @(Get-ADPRunningRuntimeVMs -RunningVmxPaths $runningVmxPaths -RuntimeName $name -ManagedVmxPath $vmxPath)
         $duplicateRunningVms = @($adpRunningVms | Where-Object { -not $_.IsManagedByCurrentCheckout })
         $hasDuplicateRunningVm = ($adpRunningVms.Count -gt 1 -or $duplicateRunningVms.Count -gt 0)
-        $hasCurrentRuntimeVm = Test-Path -LiteralPath $vmPath
         if ($hasCurrentRuntimeVm) {
             Test-Check -Name "$name duplicate running VM" -Condition (-not $hasDuplicateRunningVm) -Detail "$(if ($hasDuplicateRunningVm) { '(' + ($duplicateRunningVms.NormalizedVmxPath -join '; ') + ')' } else { '(none)' })"
         } elseif ($hasDuplicateRunningVm) {
@@ -482,8 +482,16 @@ foreach ($name in (Get-AllRuntimeNames)) {
             $syncSession = Get-SyncSessionInfo -SessionName $sessionName -ExpectedLocalPath $expectedLocalPath -ExpectedRemoteUrl $expectedRemoteUrl
             if ($syncSession.Exists) {
                 $syncOk = ($syncSession.Health -in @("healthy", "present"))
-                Test-Check -Name "$name Mutagen session" -Condition $syncOk -Detail "($sessionName, $($syncSession.Health), $($syncSession.Detail))"
-                if (-not $syncOk) {
+                if (-not $hasCurrentRuntimeVm) {
+                    Write-InfoCheck -Name "$name Mutagen session" -Detail "(stale before runtime creation: $sessionName, $($syncSession.Health), $($syncSession.Detail))"
+                    Write-Host "  [INFO]  Cleanup stale session: .\cli\adp.ps1 sync stop $name" -ForegroundColor DarkGray
+                    Write-Host "  [INFO]  Create runtime before starting sync: .\cli\adp.ps1 up $name; .\cli\adp.ps1 sync start $name" -ForegroundColor DarkGray
+                    Write-Host "  [INFO]  Current local: $($syncSession.AlphaUrl); expected: $expectedLocalPath" -ForegroundColor DarkGray
+                    Write-Host "  [INFO]  Current remote: $($syncSession.BetaUrl); expected: $expectedRemoteUrl" -ForegroundColor DarkGray
+                } else {
+                    Test-Check -Name "$name Mutagen session" -Condition $syncOk -Detail "($sessionName, $($syncSession.Health), $($syncSession.Detail))"
+                }
+                if ($hasCurrentRuntimeVm -and -not $syncOk) {
                     Write-Host "  [INFO]  Remediation: .\cli\adp.ps1 sync stop $name; .\cli\adp.ps1 sync start $name" -ForegroundColor DarkGray
                     Write-Host "  [INFO]  Current local: $($syncSession.AlphaUrl); expected: $expectedLocalPath" -ForegroundColor DarkGray
                     Write-Host "  [INFO]  Current remote: $($syncSession.BetaUrl); expected: $expectedRemoteUrl" -ForegroundColor DarkGray

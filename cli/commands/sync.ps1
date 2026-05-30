@@ -56,6 +56,10 @@ function Write-SyncRuntimeSummary {
     param([string]$TargetRuntime)
 
     $expected = Get-SyncExpectedEndpoints -TargetRuntime $TargetRuntime
+    $vmStore = Resolve-Path "vm_store"
+    $vmName = "adp-$TargetRuntime"
+    $vmxPath = Join-Path $vmStore "$vmName\$vmName.vmx"
+    $runtimeCreated = Test-Path -LiteralPath $vmxPath
     try {
         $session = Get-SyncSessionInfo -SessionName $expected.SessionName -ExpectedLocalPath $expected.LocalPath -ExpectedRemoteUrl $expected.RemoteUrl
     } catch {
@@ -65,6 +69,15 @@ function Write-SyncRuntimeSummary {
 
     if (-not $session.Exists) {
         Write-Host "  ${TargetRuntime}: not-started — run adp sync start $TargetRuntime" -ForegroundColor Yellow
+        return
+    }
+
+    if (-not $runtimeCreated) {
+        Write-Host "  ${TargetRuntime}: stale-session — existing session was found before this runtime was created in the current checkout" -ForegroundColor Yellow
+        Write-Host "    local:  $($session.AlphaUrl)" -ForegroundColor DarkGray
+        Write-Host "    remote: $($session.BetaUrl)" -ForegroundColor DarkGray
+        Write-Host "    cleanup: adp sync stop $TargetRuntime" -ForegroundColor Yellow
+        Write-Host "    next:    adp up $TargetRuntime; adp sync start $TargetRuntime" -ForegroundColor DarkGray
         return
     }
 

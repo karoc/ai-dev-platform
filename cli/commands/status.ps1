@@ -119,7 +119,8 @@ function Get-StatusSyncState {
         [string]$TargetRuntime,
         [bool]$MutagenAvailable,
         [string]$ExpectedLocalPath,
-        [string]$ExpectedRemoteUrl
+        [string]$ExpectedRemoteUrl,
+        [bool]$RuntimeCreated
     )
 
     if (-not $MutagenAvailable) {
@@ -131,6 +132,9 @@ function Get-StatusSyncState {
         $session = Get-SyncSessionInfo -SessionName $sessionName -ExpectedLocalPath $ExpectedLocalPath -ExpectedRemoteUrl $ExpectedRemoteUrl
         if (-not $session.Exists) {
             return "not-started"
+        }
+        if (-not $RuntimeCreated) {
+            return "stale-session"
         }
         if ($session.Health -eq "healthy") {
             return "healthy"
@@ -215,7 +219,8 @@ function Write-StatusRuntime {
     $workspaceRoot = Resolve-Path "workspace_root"
     $workspacePath = Join-Path $workspaceRoot $rt.workspace
     $expectedRemoteUrl = "${alias}:/home/adp/workspace"
-    $syncState = Get-StatusSyncState -TargetRuntime $TargetRuntime -MutagenAvailable $MutagenAvailable -ExpectedLocalPath $workspacePath -ExpectedRemoteUrl $expectedRemoteUrl
+    $runtimeCreated = ($state.Status -ne "not-created")
+    $syncState = Get-StatusSyncState -TargetRuntime $TargetRuntime -MutagenAvailable $MutagenAvailable -ExpectedLocalPath $workspacePath -ExpectedRemoteUrl $expectedRemoteUrl -RuntimeCreated $runtimeCreated
     $adpRunningVms = @()
     if ($VmwareAvailable) {
         $adpRunningVms = @(Get-ADPRunningRuntimeVMs -RunningVmxPaths $RunningVmxPaths -RuntimeName $TargetRuntime -ManagedVmxPath $state.VmxPath)
@@ -262,6 +267,10 @@ function Write-StatusRuntime {
     if ($syncState -in @("wrong-local", "wrong-remote", "unhealthy")) {
         Write-Host "  sync note:     existing Mutagen session is not usable for this checkout/runtime" -ForegroundColor Yellow
         Write-Host "  sync fix:      adp sync stop $TargetRuntime; adp sync start $TargetRuntime" -ForegroundColor Yellow
+    } elseif ($syncState -eq "stale-session") {
+        Write-Host "  sync note:     old Mutagen session exists, but this runtime is not created in the current checkout" -ForegroundColor Yellow
+        Write-Host "  sync cleanup:  adp sync stop $TargetRuntime" -ForegroundColor Yellow
+        Write-Host "  sync next:     adp up $TargetRuntime; adp sync start $TargetRuntime" -ForegroundColor DarkGray
     }
     Write-Host "  workspace:     $workspacePath" -ForegroundColor DarkGray
     Write-Host "  VMX:           $($state.VmxPath)" -ForegroundColor DarkGray
