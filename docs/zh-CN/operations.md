@@ -38,7 +38,7 @@ All checks passed. Platform is healthy.
 .\cli\adp.ps1 doctor -FixMutagen
 ```
 
-`-FixMutagen` 会下载官方 Mutagen 0.18.x Windows AMD64 archive，将 `mutagen.exe` 解压到 `.tools\mutagen\mutagen.exe`，并验证安装后的版本。`.tools` 目录已被 Git 忽略，因此下载的 archive 和本地 binary 不会被提交。
+`-FixMutagen` 会下载官方 Mutagen 0.18.x Windows AMD64 archive，将 `mutagen.exe` 解压到 `.tools\mutagen\mutagen.exe`，并验证安装后的版本。安装路径会打印明确阶段、下载 source/target、连接和操作 timeout，以及下载失败时的手动恢复路径。`.tools` 目录已被 Git 忽略，因此下载的 archive 和本地 binary 不会被提交。
 
 运行集成检查：
 

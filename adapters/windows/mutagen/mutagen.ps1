@@ -64,6 +64,40 @@ function Test-MutagenVersionSupported {
     return ("$VersionText" -match '^0\.18\.')
 }
 
+function Invoke-MutagenArchiveDownload {
+    param(
+        [string]$DownloadUrl,
+        [string]$ZipPath,
+        [string]$TempPath
+    )
+
+    if (Test-Path -LiteralPath $TempPath) {
+        Remove-Item -LiteralPath $TempPath -Force
+    }
+
+    Write-Host "  [2/5] Downloading Mutagen archive..." -ForegroundColor Yellow
+    Write-Host "        source: $DownloadUrl" -ForegroundColor DarkGray
+    Write-Host "        target: $ZipPath" -ForegroundColor DarkGray
+    Write-Host "        timeout: connection=30s operation=300s" -ForegroundColor DarkGray
+
+    try {
+        Invoke-WebRequest `
+            -Uri $DownloadUrl `
+            -OutFile $TempPath `
+            -ConnectionTimeoutSeconds 30 `
+            -OperationTimeoutSeconds 300
+    } catch {
+        Remove-Item -LiteralPath $TempPath -Force -ErrorAction SilentlyContinue
+        throw "Mutagen download failed or timed out. You can retry, or manually download $DownloadUrl and place it at $ZipPath. Details: $_"
+    }
+
+    if (-not (Test-Path -LiteralPath $TempPath)) {
+        throw "Mutagen download did not create an archive: $TempPath"
+    }
+
+    Move-Item -LiteralPath $TempPath -Destination $ZipPath -Force
+}
+
 function Install-LocalMutagen {
     param(
         [string]$ProjectRoot,
@@ -79,6 +113,7 @@ function Install-LocalMutagen {
     $targetPath = Get-LocalMutagenPath -ProjectRoot $ProjectRoot
     $zipName = "mutagen_windows_amd64_v$Version.zip"
     $zipPath = Join-Path $toolRoot $zipName
+    $tempZipPath = "$zipPath.download"
     $extractPath = Join-Path $toolRoot "extract-$Version"
     $downloadUrl = Get-MutagenDownloadUrl -Version $Version
 
@@ -89,31 +124,67 @@ function Install-LocalMutagen {
             Url         = $downloadUrl
             ZipPath     = $zipPath
             ExtractPath = $extractPath
+            TempZipPath = $tempZipPath
             TargetPath  = $targetPath
         }
     }
 
+    Write-Host "  Installing Mutagen locally..." -ForegroundColor Yellow
+    Write-Host "  Version: $Version" -ForegroundColor DarkGray
+    Write-Host "  Local tools are kept under ignored .tools and must not be committed." -ForegroundColor DarkGray
+
+    Write-Host "  [1/5] Preparing local tool directory..." -ForegroundColor Yellow
     if (-not (Test-Path -LiteralPath $toolRoot)) {
         New-Item -ItemType Directory -Path $toolRoot -Force | Out-Null
     }
+    Write-Host "        directory: $toolRoot" -ForegroundColor DarkGray
 
-    Invoke-WebRequest -Uri $downloadUrl -OutFile $zipPath
+    $archiveWasReused = $false
+    if (Test-Path -LiteralPath $zipPath) {
+        $archiveWasReused = $true
+        $archiveSize = [math]::Round((Get-Item -LiteralPath $zipPath).Length / 1MB, 1)
+        Write-Host "  [2/5] Reusing existing Mutagen archive..." -ForegroundColor Yellow
+        Write-Host "        archive: $zipPath ($archiveSize MB)" -ForegroundColor DarkGray
+        Write-Host "        If extraction fails, ADP will delete it and download a fresh copy." -ForegroundColor DarkGray
+    } else {
+        Invoke-MutagenArchiveDownload -DownloadUrl $downloadUrl -ZipPath $zipPath -TempPath $tempZipPath
+    }
+
+    Write-Host "  [3/5] Extracting Mutagen archive..." -ForegroundColor Yellow
     if (Test-Path -LiteralPath $extractPath) {
         Remove-Item -LiteralPath $extractPath -Recurse -Force
     }
     New-Item -ItemType Directory -Path $extractPath -Force | Out-Null
-    Expand-Archive -LiteralPath $zipPath -DestinationPath $extractPath -Force
+    try {
+        Expand-Archive -LiteralPath $zipPath -DestinationPath $extractPath -Force
+    } catch {
+        if (-not $archiveWasReused) {
+            throw "Mutagen archive could not be expanded: $zipPath. Details: $_"
+        }
+
+        Write-Host "        existing archive was invalid; downloading a fresh copy." -ForegroundColor Yellow
+        Remove-Item -LiteralPath $zipPath -Force -ErrorAction SilentlyContinue
+        Remove-Item -LiteralPath $extractPath -Recurse -Force -ErrorAction SilentlyContinue
+        Invoke-MutagenArchiveDownload -DownloadUrl $downloadUrl -ZipPath $zipPath -TempPath $tempZipPath
+        New-Item -ItemType Directory -Path $extractPath -Force | Out-Null
+        Expand-Archive -LiteralPath $zipPath -DestinationPath $extractPath -Force
+    }
 
     $extracted = Get-ChildItem -LiteralPath $extractPath -Recurse -Filter "mutagen.exe" -File | Select-Object -First 1
     if (-not $extracted) {
         throw "Downloaded Mutagen archive did not contain mutagen.exe: $zipPath"
     }
-    Copy-Item -LiteralPath $extracted.FullName -Destination $targetPath -Force
 
+    Write-Host "  [4/5] Installing mutagen.exe..." -ForegroundColor Yellow
+    Copy-Item -LiteralPath $extracted.FullName -Destination $targetPath -Force
+    Write-Host "        target: $targetPath" -ForegroundColor DarkGray
+
+    Write-Host "  [5/5] Verifying Mutagen version..." -ForegroundColor Yellow
     $versionText = Get-MutagenVersion -Path $targetPath
     if (-not (Test-MutagenVersionSupported -VersionText $versionText)) {
         throw "Installed Mutagen version is unsupported: $versionText. Expected 0.18.x."
     }
+    Write-Host "        detected: $versionText" -ForegroundColor DarkGray
     Remove-Item -LiteralPath $extractPath -Recurse -Force
 
     return [pscustomobject]@{
@@ -123,6 +194,7 @@ function Install-LocalMutagen {
         Url         = $downloadUrl
         ZipPath     = $zipPath
         ExtractPath = $extractPath
+        TempZipPath = $tempZipPath
         TargetPath  = $targetPath
     }
 }

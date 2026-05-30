@@ -23,6 +23,7 @@ The project does not yet publish versioned releases. Entries are grouped by date
 
 ### Changed
 
+- Improved `adp doctor -FixMutagen` first-run remediation output with explicit install phases, download source/target, connection and operation timeout guidance, temporary archive downloads, reuse of existing archives, invalid-archive retry, and manual recovery guidance if the download fails.
 - Expanded default frontend, backend, and agent sync profile ignore lists for common dependency directories, build outputs, framework caches, browser-test output, Python virtual environments, Python caches, and local ADP/Codex tool state, reducing the chance that generated artifacts are synchronized before users customize profiles.
 
 ## 2026-05-29
