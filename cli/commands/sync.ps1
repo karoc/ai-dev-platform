@@ -9,29 +9,29 @@ param(
 Write-InfoLog -Message "Sync command: $SubCommand $RuntimeName" -Component "cli.sync"
 
 if (-not $SubCommand) {
-    Write-ErrorLog -Message "Usage: adp sync <status|start|stop|list>" -Component "cli.sync"
+    Write-ErrorLog -Message (Get-UIText -English "Usage: adp sync <status|start|stop|list>" -Chinese "用法: adp sync <status|start|stop|list>") -Component "cli.sync"
     exit 1
 }
 
 $validSubCommands = @("status", "start", "stop", "list")
 if ($SubCommand -notin $validSubCommands) {
-    Write-ErrorLog -Message "Unknown sync command: $SubCommand. Valid: $($validSubCommands -join ', ')" -Component "cli.sync"
+    Write-ErrorLog -Message (Get-UIText -English "Unknown sync command: $SubCommand. Valid: $($validSubCommands -join ', ')" -Chinese "未知同步命令: $SubCommand。可用: $($validSubCommands -join ', ')") -Component "cli.sync"
     exit 1
 }
 
 if ($SubCommand -in @("start", "stop")) {
     if (-not $RuntimeName) {
-        Write-ErrorLog -Message "Usage: adp sync $SubCommand <runtime>" -Component "cli.sync"
+        Write-ErrorLog -Message (Get-UIText -English "Usage: adp sync $SubCommand <runtime>" -Chinese "用法: adp sync $SubCommand <runtime>") -Component "cli.sync"
         exit 1
     }
     if (-not (Test-RuntimeExists $RuntimeName)) {
-        Write-ErrorLog -Message "Unknown runtime: $RuntimeName. Valid: $((Get-AllRuntimeNames) -join ', ')" -Component "cli.sync"
+        Write-ErrorLog -Message (Get-UIText -English "Unknown runtime: $RuntimeName. Valid: $((Get-AllRuntimeNames) -join ', ')" -Chinese "未知运行时: $RuntimeName。可用: $((Get-AllRuntimeNames) -join ', ')") -Component "cli.sync"
         exit 1
     }
 }
 
 Write-Host ""
-Write-Host "ADP-OS Sync" -ForegroundColor Cyan
+Write-UIHost -English "ADP-OS Sync" -Chinese "ADP-OS 同步" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
@@ -68,12 +68,12 @@ function Write-SyncRuntimeSummary {
     }
 
     if (-not $session.Exists) {
-        Write-Host "  ${TargetRuntime}: not-started — run adp sync start $TargetRuntime" -ForegroundColor Yellow
+        Write-UIHost -English "  ${TargetRuntime}: not-started — run adp sync start $TargetRuntime" -Chinese "  ${TargetRuntime}: 未启动 — 运行 adp sync start $TargetRuntime" -ForegroundColor Yellow
         return
     }
 
     if (-not $runtimeCreated) {
-        Write-Host "  ${TargetRuntime}: stale-session — existing session was found before this runtime was created in the current checkout" -ForegroundColor Yellow
+        Write-UIHost -English "  ${TargetRuntime}: stale-session — existing session was found before this runtime was created in the current checkout" -Chinese "  ${TargetRuntime}: 陈旧会话 — 在当前检出中创建此运行时之前已存在该会话" -ForegroundColor Yellow
         Write-Host "    local:  $($session.AlphaUrl)" -ForegroundColor DarkGray
         Write-Host "    remote: $($session.BetaUrl)" -ForegroundColor DarkGray
         Write-Host "    cleanup: adp sync stop $TargetRuntime" -ForegroundColor Yellow
@@ -93,7 +93,7 @@ function Write-SyncRuntimeSummary {
 try {
     Initialize-Mutagen -ProjectRoot (Get-ProjectRoot) | Out-Null
 } catch {
-    Write-Host "Mutagen is not installed." -ForegroundColor Red
+    Write-UIHost -English "Mutagen is not installed." -Chinese "Mutagen 未安装。" -ForegroundColor Red
     Write-Host "  Download: https://github.com/mutagen-io/mutagen/releases" -ForegroundColor DarkGray
     Write-Host "  Place:    .tools\mutagen\mutagen.exe" -ForegroundColor DarkGray
     Write-Host "  Or add mutagen.exe to PATH." -ForegroundColor DarkGray
@@ -103,20 +103,20 @@ try {
 
 switch ($SubCommand) {
     "status" {
-        Write-Host "ADP runtime sync summary:" -ForegroundColor Yellow
+        Write-UIHost -English "ADP runtime sync summary:" -Chinese "ADP 运行时同步摘要:" -ForegroundColor Yellow
         foreach ($name in (Get-AllRuntimeNames)) {
             Write-SyncRuntimeSummary -TargetRuntime $name
         }
         Write-Host ""
-        Write-Host "Sync status:" -ForegroundColor Yellow
+        Write-UIHost -English "Sync status:" -Chinese "同步状态:" -ForegroundColor Yellow
         Invoke-Mutagen -Arguments @("sync", "list")
     }
     "list" {
-        Write-Host "Active sync sessions:" -ForegroundColor Yellow
+        Write-UIHost -English "Active sync sessions:" -Chinese "活跃的同步会话:" -ForegroundColor Yellow
         Invoke-Mutagen -Arguments @("sync", "list")
     }
     "start" {
-        Write-Host "Starting sync for: $RuntimeName" -ForegroundColor Yellow
+        Write-UIHost -English "Starting sync for: $RuntimeName" -Chinese "正在启动同步: $RuntimeName" -ForegroundColor Yellow
         $rt = Get-RuntimeConfig $RuntimeName
         $profile = Get-SyncProfile $rt.sync_profile
         $workspaceRoot = Resolve-Path "workspace_root"
@@ -126,14 +126,14 @@ switch ($SubCommand) {
         $vmxPath = Join-Path $vmStore "$vmName\$vmName.vmx"
 
         if (-not (Test-Path $vmxPath)) {
-            Write-ErrorLog -Message "VM not found for runtime '$RuntimeName'. Run: adp up $RuntimeName" -Component "cli.sync"
+            Write-ErrorLog -Message (Get-UIText -English "VM not found for runtime '$RuntimeName'. Run: adp up $RuntimeName" -Chinese "运行时 '$RuntimeName' 的 VM 未找到。请运行: adp up $RuntimeName") -Component "cli.sync"
             exit 1
         }
 
         Initialize-VMware | Out-Null
         $status = Get-VMStatus $vmxPath
         if ($status -notmatch "running") {
-            Write-ErrorLog -Message "Runtime '$RuntimeName' is not running. Run: adp up $RuntimeName" -Component "cli.sync"
+            Write-ErrorLog -Message (Get-UIText -English "Runtime '$RuntimeName' is not running. Run: adp up $RuntimeName" -Chinese "运行时 '$RuntimeName' 未运行。请运行: adp up $RuntimeName") -Component "cli.sync"
             exit 1
         }
 
@@ -142,7 +142,7 @@ switch ($SubCommand) {
             $ip = Get-VMIP $vmxPath
         }
         if (-not $ip -or $ip -eq "0.0.0.0" -or $ip -match "unknown") {
-            Write-ErrorLog -Message "Could not resolve VM IP for runtime '$RuntimeName'" -Component "cli.sync"
+            Write-ErrorLog -Message (Get-UIText -English "Could not resolve VM IP for runtime '$RuntimeName'" -Chinese "无法解析运行时 '$RuntimeName' 的 VM IP") -Component "cli.sync"
             exit 1
         }
 
@@ -164,7 +164,7 @@ switch ($SubCommand) {
     }
     "stop" {
         $sessionName = "adp-$RuntimeName"
-        Write-Host "Stopping sync for: $RuntimeName" -ForegroundColor Yellow
+        Write-UIHost -English "Stopping sync for: $RuntimeName" -Chinese "正在停止同步: $RuntimeName" -ForegroundColor Yellow
         Stop-SyncSession -SessionName $sessionName
     }
 }

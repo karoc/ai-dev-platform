@@ -48,6 +48,11 @@ $network = Read-Text "cli\commands\network.ps1"
 $doctor = Read-Text "cli\commands\doctor.ps1"
 $status = Read-Text "cli\commands\status.ps1"
 $workspace = Read-Text "cli\commands\workspace.ps1"
+$destroy = Read-Text "cli\commands\destroy.ps1"
+$stop = Read-Text "cli\commands\stop.ps1"
+$snapshot = Read-Text "cli\commands\snapshot.ps1"
+$restore = Read-Text "cli\commands\restore.ps1"
+$capabilities = Read-Text "cli\commands\capabilities.ps1"
 $ci = Read-Text ".github\workflows\ci.yml"
 $validate = Read-Text "tests\validate.ps1"
 $networkingDocs = Read-Text "docs\networking.md"
@@ -167,6 +172,15 @@ Assert-Contains -Name "sync validates subcommand before mutagen" -Text $sync -Pa
 Assert-Contains -Name "sync status reports ADP runtime summary before raw Mutagen list" -Text $sync -Pattern 'ADP runtime sync summary:[\s\S]*Write-SyncRuntimeSummary[\s\S]*Sync status:[\s\S]*sync", "list"'
 Assert-Contains -Name "sync summary gives stale session remediation" -Text $sync -Pattern 'fix:\s+adp sync stop \$TargetRuntime; adp sync start \$TargetRuntime'
 Assert-Contains -Name "sync summary treats uncreated runtime stale sessions as cleanup guidance" -Text $sync -Pattern 'Test-Path -LiteralPath \$vmxPath[\s\S]*stale-session[\s\S]*cleanup:\s+adp sync stop \$TargetRuntime[\s\S]*next:\s+adp up \$TargetRuntime; adp sync start \$TargetRuntime'
+
+# Localization coverage: extended runtime commands use bilingual Write-UIHost
+Assert-Contains -Name "destroy uses bilingual UI output" -Text $destroy -Pattern 'Write-UIHost[\s\S]*?-English[\s\S]*?-Chinese[\s\S]*?DESTROY[\s\S]*?Plan only[\s\S]*?PERMANENTLY DELETE'
+Assert-Contains -Name "stop uses bilingual UI output" -Text $stop -Pattern 'Write-UIHost[\s\S]*?-English[\s\S]*?-Chinese[\s\S]*?Stopping[\s\S]*?force-stopped'
+Assert-Contains -Name "snapshot uses bilingual UI output" -Text $snapshot -Pattern 'Write-UIHost[\s\S]*?-English[\s\S]*?-Chinese[\s\S]*?already exists[\s\S]*?created successfully'
+Assert-Contains -Name "restore uses bilingual UI output" -Text $restore -Pattern 'Write-UIHost[\s\S]*?-English[\s\S]*?-Chinese[\s\S]*?discard[\s\S]*?Restored'
+Assert-Contains -Name "logs uses bilingual UI output" -Text $logs -Pattern 'Write-UIHost[\s\S]*?-English[\s\S]*?-Chinese[\s\S]*?Platform Log[\s\S]*?VM console'
+Assert-Contains -Name "sync uses bilingual UI output" -Text $sync -Pattern 'Write-UIHost[\s\S]*?-English[\s\S]*?-Chinese[\s\S]*?sync summary[\s\S]*?Starting sync[\s\S]*?Stopping sync'
+Assert-Contains -Name "capabilities uses bilingual UI output" -Text $capabilities -Pattern 'Write-UIHost[\s\S]*?-English[\s\S]*?-Chinese[\s\S]*?Current support[\s\S]*?carrier matrix[\s\S]*?adapter matrix'
 Assert-Contains -Name "doctor checks WSL xorriso" -Text $doctor -Pattern 'WSL xorriso'
 Assert-Contains -Name "doctor checks ISO shape" -Text $doctor -Pattern 'ISO shape'
 Assert-Contains -Name "doctor reports VMware NAT prerequisites" -Text $doctor -Pattern 'VMware NAT prerequisites[\s\S]*host VMnet8'

@@ -4,12 +4,12 @@
 $ErrorActionPreference = "Stop"
 
 Write-Host ""
-Write-Host "ADP-OS Capabilities" -ForegroundColor Cyan
+Write-UIHost -English "ADP-OS Capabilities" -Chinese "ADP-OS 运行时能力" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
-Write-Host "Capabilities only: no VMs, sync sessions, snapshots, guest files, workspace files, downloads, or host networking will be changed." -ForegroundColor DarkGray
+Write-UIHost -English "Capabilities only: no VMs, sync sessions, snapshots, guest files, workspace files, downloads, or host networking will be changed." -Chinese "仅查看能力：不会更改 VM、同步会话、快照、guest 文件、工作区文件、下载或主机网络。" -ForegroundColor DarkGray
 Write-Host ""
 
-Write-Host "Current support:" -ForegroundColor Yellow
+Write-UIHost -English "Current support:" -Chinese "当前支持:" -ForegroundColor Yellow
 Write-Host "  Host control plane: Windows PowerShell" -ForegroundColor DarkGray
 Write-Host "  Runtime carrier:    VMware Workstation" -ForegroundColor DarkGray
 Write-Host "  Guest OS profile:   Ubuntu Server 26.04" -ForegroundColor DarkGray
@@ -20,7 +20,7 @@ Write-Host "  Rollback lifecycle: snapshot create, restore" -ForegroundColor Dar
 Write-Host "  Evidence workflow:  workspace dashboard, report, report -Markdown, task validation recording" -ForegroundColor DarkGray
 Write-Host ""
 
-Write-Host "Runtime carrier matrix:" -ForegroundColor Yellow
+Write-UIHost -English "Runtime carrier matrix:" -Chinese "运行时载体矩阵:" -ForegroundColor Yellow
 Write-Host "  [supported] vmware-workstation" -ForegroundColor Green
 Write-Host "      host: Windows" -ForegroundColor DarkGray
 Write-Host "      lifecycle: create/start/status/stop/snapshot/restore/destroy/network/bootstrap" -ForegroundColor DarkGray
@@ -36,7 +36,7 @@ Write-Host "      status: not implemented as an ADP outer runtime carrier" -Fore
 Write-Host "      boundary: Docker and dev containers are runtime-internal project tools today, not the ADP outer lifecycle" -ForegroundColor DarkGray
 Write-Host ""
 
-Write-Host "Host adapter matrix:" -ForegroundColor Yellow
+Write-UIHost -English "Host adapter matrix:" -Chinese "主机适配器矩阵:" -ForegroundColor Yellow
 Write-Host "  [supported] windows" -ForegroundColor Green
 Write-Host "      adapters: filesystem, VMware, SSH, Mutagen" -ForegroundColor DarkGray
 Write-Host "  [planned] linux" -ForegroundColor Yellow
@@ -45,13 +45,13 @@ Write-Host "  [planned] macos" -ForegroundColor Yellow
 Write-Host "      adapters/mac/mac.ps1 exists as a stub and returns unavailable" -ForegroundColor DarkGray
 Write-Host ""
 
-Write-Host "Inner environment integrations:" -ForegroundColor Yellow
+Write-UIHost -English "Inner environment integrations:" -Chinese "内部环境集成:" -ForegroundColor Yellow
 Write-Host "  Docker:       installed inside bootstrapped Ubuntu runtimes; not a replacement for the ADP outer runtime lifecycle" -ForegroundColor DarkGray
 Write-Host "  Devcontainer: detected non-destructively as project metadata in workspace views; not executed by ADP workspace planning commands" -ForegroundColor DarkGray
 Write-Host "  Browser tests: frontend helper can install browser dependencies on demand inside the runtime; browser binaries are not committed" -ForegroundColor DarkGray
 Write-Host ""
 
-Write-Host "Expansion rules:" -ForegroundColor Yellow
+Write-UIHost -English "Expansion rules:" -Chinese "扩展规则:" -ForegroundColor Yellow
 Write-Host "  Keep host-specific behavior behind adapters." -ForegroundColor DarkGray
 Write-Host "  Preserve the same user-facing lifecycle before adding a new runtime carrier." -ForegroundColor DarkGray
 Write-Host "  Do not label a carrier supported until create/start/status/stop/snapshot or equivalent rollback behavior is documented and tested." -ForegroundColor DarkGray
