@@ -92,8 +92,8 @@ function Invoke-BoundaryCommand {
             -RedirectStandardError $stderr `
             -Environment @{ USERPROFILE = $UserProfile; HOME = $UserProfile }
 
-        $outText = Get-Content -LiteralPath $stdout -Raw -ErrorAction SilentlyContinue
-        $errText = Get-Content -LiteralPath $stderr -Raw -ErrorAction SilentlyContinue
+        $outText = Get-Content -LiteralPath $stdout -Raw -Encoding UTF8 -ErrorAction SilentlyContinue
+        $errText = Get-Content -LiteralPath $stderr -Raw -Encoding UTF8 -ErrorAction SilentlyContinue
         return [pscustomobject]@{
             ExitCode = $process.ExitCode
             Output   = "$outText`n$errText"

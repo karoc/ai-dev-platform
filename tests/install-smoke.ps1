@@ -16,21 +16,27 @@ function Invoke-Install {
     $stdout = [System.IO.Path]::GetTempFileName()
     $stderr = [System.IO.Path]::GetTempFileName()
     try {
-        $processArguments = @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $install) + $Arguments
-        $processEnvironment = @{ USERPROFILE = $UserProfile }
-        foreach ($name in $Environment.Keys) {
-            $processEnvironment[$name] = [string]$Environment[$name]
+        $savedOutputEncoding = [Console]::OutputEncoding
+        [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+        try {
+            $processArguments = @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $install) + $Arguments
+            $processEnvironment = @{ USERPROFILE = $UserProfile }
+            foreach ($name in $Environment.Keys) {
+                $processEnvironment[$name] = [string]$Environment[$name]
+            }
+
+            $process = Start-Process -FilePath "pwsh" `
+                -ArgumentList $processArguments `
+                -NoNewWindow -Wait -PassThru `
+                -RedirectStandardOutput $stdout `
+                -RedirectStandardError $stderr `
+                -Environment $processEnvironment
+        } finally {
+            [Console]::OutputEncoding = $savedOutputEncoding
         }
 
-        $process = Start-Process -FilePath "pwsh" `
-            -ArgumentList $processArguments `
-            -NoNewWindow -Wait -PassThru `
-            -RedirectStandardOutput $stdout `
-            -RedirectStandardError $stderr `
-            -Environment $processEnvironment
-
-        $outText = Get-Content -LiteralPath $stdout -Raw -ErrorAction SilentlyContinue
-        $errText = Get-Content -LiteralPath $stderr -Raw -ErrorAction SilentlyContinue
+        $outText = Get-Content -LiteralPath $stdout -Raw -Encoding UTF8 -ErrorAction SilentlyContinue
+        $errText = Get-Content -LiteralPath $stderr -Raw -Encoding UTF8 -ErrorAction SilentlyContinue
         return [pscustomobject]@{
             ExitCode = $process.ExitCode
             Output   = "$outText`n$errText"

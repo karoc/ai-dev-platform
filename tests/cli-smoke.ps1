@@ -21,15 +21,21 @@ function Invoke-Cli {
             [System.Environment]::SetEnvironmentVariable($name, [string]$Environment[$name], "Process")
         }
 
-        $processArguments = @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $cli) + $Arguments
-        $process = Start-Process -FilePath "pwsh" `
-            -ArgumentList $processArguments `
-            -NoNewWindow -Wait -PassThru `
-            -RedirectStandardOutput $stdout `
-            -RedirectStandardError $stderr
+        $savedOutputEncoding = [Console]::OutputEncoding
+        [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+        try {
+            $processArguments = @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $cli) + $Arguments
+            $process = Start-Process -FilePath "pwsh" `
+                -ArgumentList $processArguments `
+                -NoNewWindow -Wait -PassThru `
+                -RedirectStandardOutput $stdout `
+                -RedirectStandardError $stderr
+        } finally {
+            [Console]::OutputEncoding = $savedOutputEncoding
+        }
 
-        $outText = Get-Content -LiteralPath $stdout -Raw -ErrorAction SilentlyContinue
-        $errText = Get-Content -LiteralPath $stderr -Raw -ErrorAction SilentlyContinue
+        $outText = Get-Content -LiteralPath $stdout -Raw -Encoding UTF8 -ErrorAction SilentlyContinue
+        $errText = Get-Content -LiteralPath $stderr -Raw -Encoding UTF8 -ErrorAction SilentlyContinue
         return [pscustomobject]@{
             ExitCode = $process.ExitCode
             Output   = "$outText`n$errText"
