@@ -211,11 +211,87 @@ ADP 在这个阶段也会使用 PowerShell `Write-Progress` 显示不确定进�
 
 ## SSH 访问
 
+ADP 使用自己管理的 SSH 密钥对进行运行时通信。密钥自动创建，存储在仓库之外。
+
+### 密钥位置
+
+```text
+%USERPROFILE%\.ssh\adp-os\
+├── adp-os        # 私钥（ed25519）
+└── adp-os.pub    # 公钥
+```
+
+`%USERPROFILE%\.ssh\adp-os\` 目录在首次使用时创建。密钥对不会被提交到仓库。
+
+### 密钥格式
+
+- 算法：**ed25519**
+- 密码：**无**（生成密钥时不设密码，以支持无人值守自动化）
+- 注释：`adp-os-runtime`
+- 权限：ADP 不修改文件权限。密钥对使用用户配置文件目录的默认 Windows 文件权限。
+
+### 密钥生命周期
+
+**首次创建** — ADP 在首次需要 SSH 访问时自动创建密钥。在 `adp up`、`adp status`、`adp doctor` 或任何连接运行时的命令中触发。如果密钥目录不存在，ADP 会创建 `%USERPROFILE%\.ssh\adp-os\` 并生成新的 ed25519 密钥对。公钥在 bootstrap 阶段注入运行时 VM，因此在密钥存在之前创建的 VM 不会包含该公钥。
+
+**密钥已存在** — 如果密钥对已存在，ADP 直接使用，不做修改。同一个密钥会被同一主机用户配置文件创建的所有 ADP 运行时共享。不支持将同一密钥移动或复制到另一台机器；如需迁移，必须重建受影响的 VM。
+
+**检查密钥状态** — 运行 `adp status <runtime>` 查看 SSH 状态。`key-missing` 状态表示密钥对尚未创建。在首次 `adp up` 或 SSH 操作之前，这在全新安装中是正常的。
+
+**重新生成密钥** — ADP 不会自动重新生成密钥。如果需要新的密钥对：
+
+1. 备份现有密钥目录：
+   ```powershell
+   Copy-Item -Recurse $env:USERPROFILE\.ssh\adp-os $env:USERPROFILE\.ssh\adp-os.bak
+   ```
+2. 删除现有密钥对：
+   ```powershell
+   Remove-Item $env:USERPROFILE\.ssh\adp-os\adp-os*
+   ```
+3. ADP 将在下次 SSH 操作时自动生成新密钥。
+
+**⚠️ 重要**：重新生成密钥会使所有现有运行时的 SSH 访问失效。旧公钥不再被接受，你必须用 `adp destroy <runtime>` 和 `adp up <runtime>` 重建受影响的 VM。
+
+### 密钥安全
+
+- 私钥（`adp-os`）绝对不应分享、提交到版本控制或公开发布。
+- `.ssh\adp-os\` 目录位于仓库之外，不会被 Git 追踪。
+- ADP 不为密钥设置密码，以支持无人值守自动化。请保护好你的 Windows 用户账户和配置文件目录。
+- 如果主机被多人共享，请考虑从你的用户配置文件自动 SSH 访问是否可接受。ADP 目前不支持按运行时分配独立密钥。
+
+### 直接使用密钥
+
+连接运行时：
+
 ```powershell
 ssh -i $env:USERPROFILE\.ssh\adp-os\adp-os adp@192.168.242.131
 ```
 
 默认地址见[网络说明](networking.md)。如果你用 `configs\local.json` 覆盖了 `topology.<runtime>.static_ip`，启动后运行 `.\cli\adp.ps1 status <runtime>`，然后连接输出中显示的地址。
+
+用 `scp` 拷贝文件到运行时：
+
+```powershell
+scp -i $env:USERPROFILE\.ssh\adp-os\adp-os .\some-file adp@192.168.242.131:/home/adp/
+```
+
+通过 SSH 运行命令：
+
+```powershell
+ssh -i $env:USERPROFILE\.ssh\adp-os\adp-os adp@192.168.242.131 "ls /home/adp/workspace"
+```
+
+### SSH 密钥故障排除
+
+| 症状 | 可能原因 | 操作 |
+|---|---|---|
+| `status` 报告 `key-missing` | 密钥尚未创建 | 运行 `adp up <runtime>` 或任何 SSH 操作；ADP 会自动创建密钥。 |
+| `status` 报告 `auth-pending` | 密钥存在但 guest 尚未 ready | 等待 VM bootstrap 完成。首次 autoinstall 期间这是正常的。 |
+| `status` 报告 `unreachable` | SSH 端口未开放或 IP 错误 | 检查 VM 是否运行，确认 static IP 与 host `VMnet8` 子网匹配。 |
+| `ssh` 命令失败，提示 `Permission denied` | 密钥与 guest authorized_keys 不匹配 | VM 是用不同密钥创建的。请重建 VM。 |
+| `ssh` 命令失败，提示 `bad permissions` | 密钥文件权限过宽 | Windows OpenSSH 可能拒绝继承的宽泛权限。参见 [Microsoft OpenSSH 密钥权限](https://learn.microsoft.com/zh-cn/windows-server/administration/openssh/openssh_keymanagement)。 |
+| 密钥被意外删除 | `adp-os` 私钥丢失 | 同时删除 `adp-os.pub`，重建受影响的 VM。ADP 会重新生成密钥对。 |
+| 同一台机器上有多个用户 | 每个 Windows profile 拥有独立密钥 | ADP 密钥按用户配置文件隔离。每个用户的 `%USERPROFILE%\.ssh\adp-os\` 是独立的。 |
 
 ## 工作区同步
 

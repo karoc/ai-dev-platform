@@ -53,6 +53,7 @@ $stop = Read-Text "cli\commands\stop.ps1"
 $snapshot = Read-Text "cli\commands\snapshot.ps1"
 $restore = Read-Text "cli\commands\restore.ps1"
 $capabilities = Read-Text "cli\commands\capabilities.ps1"
+$validateCmd = Read-Text "cli\commands\validate.ps1"
 $ci = Read-Text ".github\workflows\ci.yml"
 $validate = Read-Text "tests\validate.ps1"
 $networkingDocs = Read-Text "docs\networking.md"
@@ -100,6 +101,12 @@ Assert-Contains -Name "shared validation supports local skip switches" -Text $va
 Assert-Contains -Name "CLI registers workspace command" -Text $cli -Pattern '\$validCommands\s*=\s*@\([\s\S]*"workspace"'
 Assert-Contains -Name "CLI registers status command" -Text $cli -Pattern '\$validCommands\s*=\s*@\([\s\S]*"status"'
 Assert-Contains -Name "CLI registers capabilities command" -Text $cli -Pattern '\$validCommands\s*=\s*@\([\s\S]*"capabilities"'
+Assert-Contains -Name "CLI registers validate command" -Text $cli -Pattern '\$validCommands\s*=\s*@\([\s\S]*"validate"'
+Assert-Contains -Name "validate command delegates to shared validation" -Text $validateCmd -Pattern 'tests\\validate\.ps1'
+Assert-Contains -Name "validate command supports bilingual UI output" -Text $validateCmd -Pattern 'Write-UIHost[\s\S]*ADP-OS Repository Validation[\s\S]*ADP-OS 仓库验证'
+Assert-Contains -Name "validate command propagates Quick flag" -Text $validateCmd -Pattern '\[switch\]\$Quick[\s\S]*-Quick'
+Assert-Contains -Name "CLI help includes validate command in English" -Text $cli -Pattern 'adp validate \[-Quick\] \[-SkipCliSmoke\] \[-SkipInstallerSmoke\] \[-SkipShellSyntax\]  Run repository validation tests'
+Assert-Contains -Name "CLI help includes validate command in Chinese" -Text $cli -Pattern 'adp validate \[-Quick\] \[-SkipCliSmoke\] \[-SkipInstallerSmoke\] \[-SkipShellSyntax\]  运行仓库验证测试'
 Assert-Contains -Name "CLI help includes status command" -Text $cli -Pattern 'adp status \[runtime\]'
 Assert-Contains -Name "CLI help includes workspace command" -Text $cli -Pattern 'adp workspace <init\|show\|plan\|status\|dashboard\|report\|recipes\|create\|open\|sync\|project\|task>'
 Assert-Contains -Name "CLI help includes capabilities command" -Text $cli -Pattern 'adp capabilities\s+Show supported and planned runtime capabilities'

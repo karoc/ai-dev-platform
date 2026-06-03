@@ -6,6 +6,13 @@ All notable public changes to AI Dev Platform OS are documented here.
 
 The project does not yet publish versioned releases. Entries are grouped by date until release tags are introduced.
 
+## 2026-06-04
+
+### Added
+
+- Added SSH key lifecycle documentation to operations and troubleshooting guides in English and Simplified Chinese. The new docs cover key location (`%USERPROFILE%\\.ssh\\adp-os\\`), key format (ed25519, no passphrase), automatic first-time creation, regeneration with backup and VM-impact warnings, key security, direct SSH/scp usage, and troubleshooting for `key-missing`, `auth-pending`, `Permission denied`, `bad permissions`, deleted keys, and multi-user setups. (Phase 2 roadmap item.)
+- Added `adp validate` command as a standalone CLI entry point for the shared repository validation suite. Supports `-Quick`, `-SkipCliSmoke`, `-SkipInstallerSmoke`, and `-SkipShellSyntax` flags with bilingual output. (Phase 2 roadmap item.)
+
 ## 2026-05-31
 
 ### Changed

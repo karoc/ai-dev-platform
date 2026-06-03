@@ -39,7 +39,10 @@ Do not publish secrets, tokens, private keys, VM disks, ISO files, downloaded ar
 | Runtime startup uses an unexpected ISO path | `.\cli\adp.ps1 up <runtime> -IsoPath <path> -Plan` | explicit ISO path, local config | [Operations](operations.md#start-runtimes) |
 | Runtime exists but connection fails | `.\cli\adp.ps1 status <runtime>` | VM state, static IP, SSH reachability | [Operations](operations.md#runtime-status), [Networking](networking.md) |
 | Runtime creation looks stuck | keep `adp up <runtime>` running while `[install monitor] INSTALLING Ubuntu in VM` heartbeats continue | Ubuntu autoinstall, first boot, readiness signals from IP/SSH/provision marker | [Operations](operations.md#start-runtimes) |
-| `status` reports `auth-pending` | wait, then rerun `.\cli\adp.ps1 status <runtime>` | SSH port is open but ADP key/user is not ready | [Operations](operations.md#runtime-status) |
+| `status` reports `auth-pending` | wait, then rerun `.\\cli\\adp.ps1 status <runtime>` | SSH port is open but ADP key/user is not ready | [Operations](operations.md#runtime-status) |
+| SSH connection fails with `Permission denied` | `.\\cli\\adp.ps1 status <runtime>` | SSH key mismatch, VM was created with a different key | [Operations](operations.md#troubleshooting-ssh-keys) |
+| `status` reports `key-missing` | run any `adp up` or SSH operation | SSH key pair not yet created | [Operations](operations.md#troubleshooting-ssh-keys) |
+| SSH key was accidentally deleted | regenerate by running any SSH operation | `%USERPROFILE%\\.ssh\\adp-os\\` key pair missing | [Operations](operations.md#troubleshooting-ssh-keys) |
 | `up` stops with VMware NAT mismatch | `.\cli\adp.ps1 network configure-local -Plan` | host VMnet8 versus local config | [Networking](networking.md#prerequisites), [Configuration](configuration.md#local-overrides) |
 | `status` reports `duplicate VM` | `.\cli\adp.ps1 doctor` | same runtime name running from another checkout or stale VM store | [Operations](operations.md#runtime-status) |
 | `status` reports network drift | `.\cli\adp.ps1 doctor` and `.\cli\adp.ps1 network apply <runtime> -Plan` | existing VM seed network versus current config; rebuild, guest netplan fix, or host-route workaround | [Operations](operations.md#runtime-status), [Networking](networking.md#static-networking-for-new-vms) |

@@ -39,7 +39,10 @@
 | Runtime startup 使用了非预期 ISO path | `.\cli\adp.ps1 up <runtime> -IsoPath <path> -Plan` | explicit ISO path、local config | [操作指南](operations.md#启动运行时) |
 | Runtime 已存在但无法连接 | `.\cli\adp.ps1 status <runtime>` | VM state、static IP、SSH reachability | [操作指南](operations.md#运行时状态)、[网络说明](networking.md) |
 | Runtime 创建看起来卡住 | 只要 `[安装监视器] 正在 VM 中安装 Ubuntu` 或 `[install monitor] INSTALLING Ubuntu in VM` 心跳仍在继续，就保持 `adp up <runtime>` 运行 | Ubuntu autoinstall、first boot、IP/SSH/provision marker readiness signals | [操作指南](operations.md#启动运行时) |
-| `status` 报告 `auth-pending` | 等待后再次运行 `.\cli\adp.ps1 status <runtime>` | SSH 端口已打开，但 ADP key/user 尚未 ready | [操作指南](operations.md#运行时状态) |
+| `status` 报告 `auth-pending` | 等待后再次运行 `.\\cli\\adp.ps1 status <runtime>` | SSH 端口已打开，但 ADP key/user 尚未 ready | [操作指南](operations.md#运行时状态) |
+| SSH 连接失败，提示 `Permission denied` | `.\\cli\\adp.ps1 status <runtime>` | SSH 密钥不匹配，VM 是用不同密钥创建的 | [操作指南](operations.md#ssh-密钥故障排除) |
+| `status` 报告 `key-missing` | 运行任意 `adp up` 或 SSH 操作 | SSH 密钥对尚未创建 | [操作指南](operations.md#ssh-密钥故障排除) |
+| SSH 密钥被意外删除 | 运行任意 SSH 操作后会重新生成 | `%USERPROFILE%\\.ssh\\adp-os\\` 密钥对缺失 | [操作指南](operations.md#ssh-密钥故障排除) |
 | `up` 因 VMware NAT mismatch 停止 | `.\cli\adp.ps1 network configure-local -Plan` | host VMnet8 与 local config 不一致 | [网络说明](networking.md#前置条件)、[配置说明](configuration.md#本地覆盖) |
 | `status` 报告 `duplicate VM` | `.\cli\adp.ps1 doctor` | 另一个 checkout 或 stale VM store 中有同名 runtime 正在运行 | [操作指南](operations.md#运行时状态) |
 | `status` 报告 network drift | `.\cli\adp.ps1 doctor` 和 `.\cli\adp.ps1 network apply <runtime> -Plan` | 已有 VM seed 网络与当前配置不一致；rebuild、guest netplan fix 或 host-route workaround | [操作指南](operations.md#运行时状态)、[网络说明](networking.md#新-vm-的静态网络) |

@@ -211,11 +211,87 @@ If `status` reports `auth-pending`, the SSH port is open but the ADP key is not 
 
 ## SSH Access
 
+ADP manages its own SSH key pair for runtime communication. The key is created automatically and stored outside the repository.
+
+### Key Location
+
+```text
+%USERPROFILE%\.ssh\adp-os\
+├── adp-os        # private key (ed25519)
+└── adp-os.pub    # public key
+```
+
+The `%USERPROFILE%\.ssh\adp-os\` directory is created on first use. The key pair is not committed to the repository.
+
+### Key Format
+
+- Algorithm: **ed25519**
+- Passphrase: **none** (key is generated without a passphrase for unattended automation)
+- Comment: `adp-os-runtime`
+- Permissions: ADP does not modify file permissions. The key pair uses the default Windows file permissions for the user profile.
+
+### Key Lifecycle
+
+**First-time creation** — ADP creates the key automatically when it first needs SSH access. This happens during `adp up`, `adp status`, `adp doctor`, or any command that connects to a runtime. If the key directory does not exist, ADP creates `%USERPROFILE%\.ssh\adp-os\` and generates a new ed25519 key pair. The public key is injected into runtime VMs during bootstrap, so VMs created before the key exists will not have it.
+
+**Key already exists** — If the key pair already exists, ADP uses it without modification. The key is shared across all ADP runtimes created from the same host user profile. Moving or copying the same key to another machine is not supported and would require re-creating affected VMs.
+
+**Checking key status** — Run `adp status <runtime>` and look at the SSH state. A `key-missing` state means the key pair has not been created. This is normal on a fresh installation before the first `adp up` or SSH operation.
+
+**Regenerating keys** — ADP does not automatically regenerate keys. If you need a new key pair:
+
+1. Back up the existing key directory:
+   ```powershell
+   Copy-Item -Recurse $env:USERPROFILE\.ssh\adp-os $env:USERPROFILE\.ssh\adp-os.bak
+   ```
+2. Delete the existing key pair:
+   ```powershell
+   Remove-Item $env:USERPROFILE\.ssh\adp-os\adp-os*
+   ```
+3. ADP will generate a new key on the next SSH operation.
+
+**⚠️ Important**: Regenerating the key invalidates SSH access to all existing runtimes. The old public key is no longer accepted, and you must recreate affected VMs with `adp destroy <runtime>` followed by `adp up <runtime>`.
+
+### Key Security
+
+- The private key (`adp-os`) should never be shared, committed to version control, or published.
+- The `.ssh\adp-os\` directory is outside the repository and is not tracked by Git.
+- ADP does not add a passphrase to the key to support unattended automation. Protect your Windows user account and profile directory.
+- If the host machine is shared, consider whether automatic SSH access from your user profile is acceptable. ADP does not support per-runtime keys today.
+
+### Using the Key Directly
+
+Connect to a runtime:
+
 ```powershell
 ssh -i $env:USERPROFILE\.ssh\adp-os\adp-os adp@192.168.242.131
 ```
 
 Default addresses are documented in `docs\networking.md`. If you use `configs\local.json` to override `topology.<runtime>.static_ip`, use `.\cli\adp.ps1 status <runtime>` after startup and connect to the address shown there.
+
+Copy files to a runtime with `scp`:
+
+```powershell
+scp -i $env:USERPROFILE\.ssh\adp-os\adp-os .\some-file adp@192.168.242.131:/home/adp/
+```
+
+Run a command over SSH:
+
+```powershell
+ssh -i $env:USERPROFILE\.ssh\adp-os\adp-os adp@192.168.242.131 "ls /home/adp/workspace"
+```
+
+### Troubleshooting SSH Keys
+
+| Symptom | Likely cause | Action |
+|---|---|---|
+| `status` reports `key-missing` | Key not yet created | Run `adp up <runtime>` or any SSH operation; ADP creates the key automatically. |
+| `status` reports `auth-pending` | Key exists but guest is not ready | Wait for VM bootstrap to complete. This is normal during first-time autoinstall. |
+| `status` reports `unreachable` | SSH port closed or wrong IP | Check VM is running, verify the static IP matches host `VMnet8` subnet. |
+| `ssh` command fails with `Permission denied` | Key does not match guest authorized_keys | VM was created with a different key. Recreate the VM. |
+| `ssh` command fails with `bad permissions` | Key file permissions too open | Windows OpenSSH may reject keys with inherited broad permissions. See [Microsoft OpenSSH key permissions](https://learn.microsoft.com/en-us/windows-server/administration/openssh/openssh_keymanagement). |
+| Key was accidentally deleted | `adp-os` private key missing | Delete `adp-os.pub` too, recreate affected VMs. ADP will regenerate the key pair. |
+| Multiple users on same machine | Each Windows profile has its own key | ADP keys are per-user-profile. Each user's `%USERPROFILE%\.ssh\adp-os\` is independent. |
 
 ## Workspace Sync
 

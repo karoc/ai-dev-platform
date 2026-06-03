@@ -23,7 +23,7 @@ Initialize-Config -ProjectRoot $script:ProjectRoot
 Initialize-Logging -LogDirectory (Join-Path $script:ProjectRoot "logs")
 
 # --- Command Router ---
-$validCommands = @("init", "up", "status", "stop", "sync", "snapshot", "restore", "logs", "doctor", "destroy", "network", "workspace", "capabilities", "help")
+$validCommands = @("init", "up", "status", "stop", "sync", "snapshot", "restore", "logs", "doctor", "destroy", "network", "workspace", "capabilities", "validate", "help")
 
 function Quote-PowerShellArgument {
     param([string]$Value)
@@ -71,6 +71,7 @@ function Show-Help {
         Write-Host "  adp restore <rt> <name>        恢复运行时快照"
         Write-Host "  adp logs <runtime>             显示运行时日志"
         Write-Host "  adp doctor [-FirstRun] [-FixMutagen] [-Plan]  运行诊断和可选 Mutagen 修复"
+        Write-Host "  adp validate [-Quick] [-SkipCliSmoke] [-SkipInstallerSmoke] [-SkipShellSyntax]  运行仓库验证测试"
         Write-Host "  adp destroy <runtime> [-Plan]  销毁运行时"
         Write-Host "  adp help                       显示此帮助"
     } else {
@@ -89,6 +90,7 @@ function Show-Help {
         Write-Host "  adp restore <rt> <name>        Restore runtime snapshot"
         Write-Host "  adp logs <runtime>             Show runtime logs"
         Write-Host "  adp doctor [-FirstRun] [-FixMutagen] [-Plan]  Run diagnostics and optional Mutagen remediation"
+        Write-Host "  adp validate [-Quick] [-SkipCliSmoke] [-SkipInstallerSmoke] [-SkipShellSyntax]  Run repository validation tests"
         Write-Host "  adp destroy <runtime> [-Plan]  Destroy a runtime"
         Write-Host "  adp help                       Show this help"
     }
