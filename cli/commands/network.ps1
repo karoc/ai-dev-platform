@@ -521,17 +521,17 @@ function Apply-RuntimeNetwork {
     if ($PlanOnly) {
         Write-UIHost -English "  Plan only: no guest files will be changed." -Chinese "  仅预览：不会修改任何 guest 文件。" -ForegroundColor Cyan
         if ($seedNetwork -and $seedNetwork.Address -and $seedNetwork.Address -ne $network.Address) {
-            Write-Host "  Network drift detected: seed uses $($seedNetwork.Address)/$($seedNetwork.Prefix), target is $($network.Address)/$($network.Prefix)." -ForegroundColor Yellow
-            Write-Host "  This plan covers the in-place guest netplan fix path only." -ForegroundColor Yellow
-            Write-Host "  If the VM can be recreated, preview rebuild first: adp destroy $TargetRuntime -Plan" -ForegroundColor DarkGray
-            Write-Host "  If SSH is only reachable through the seed-era network, use an admin-only temporary host-route workaround outside ADP, then rerun this command." -ForegroundColor DarkGray
-            Write-Host "  ADP will not add, change, or remove host routes automatically." -ForegroundColor DarkGray
+             Write-UIHost -English "  Network drift detected: seed uses $($seedNetwork.Address)/$($seedNetwork.Prefix), target is $($network.Address)/$($network.Prefix)." -Chinese "  检测到网络漂移：seed 使用 $($seedNetwork.Address)/$($seedNetwork.Prefix)，目标是 $($network.Address)/$($network.Prefix)。" -ForegroundColor Yellow
+             Write-UIHost -English "  This plan covers the in-place guest netplan fix path only." -Chinese "  此计划仅涵盖 guest netplan 原地修复路径。" -ForegroundColor Yellow
+             Write-UIHost -English "  If the VM can be recreated, preview rebuild first: adp destroy $TargetRuntime -Plan" -Chinese "  如果可以重建 VM，请先预览重建: adp destroy $TargetRuntime -Plan" -ForegroundColor DarkGray
+             Write-UIHost -English "  If SSH is only reachable through the seed-era network, use an admin-only temporary host-route workaround outside ADP, then rerun this command." -Chinese "  如果 SSH 只能通过 seed 时期网络连接，请在 ADP 外部使用管理员临时 host route 变通方法，然后重新运行此命令。" -ForegroundColor DarkGray
+             Write-UIHost -English "  ADP will not add, change, or remove host routes automatically." -Chinese "  ADP 不会自动添加、修改或删除 host route。" -ForegroundColor DarkGray
         }
-        Write-Host "  Would verify SSH at: $currentIp" -ForegroundColor DarkGray
-        Write-Host "  Would upload: /tmp/99-adp-static.yaml" -ForegroundColor DarkGray
-        Write-Host "  Would install: /etc/netplan/99-adp-static.yaml" -ForegroundColor DarkGray
-        Write-Host "  Would wait for target SSH: $($network.Address)" -ForegroundColor DarkGray
-        Write-Host "  Would update Mutagen SSH alias: adp-os-adp-$TargetRuntime" -ForegroundColor DarkGray
+        Write-UIHost -English "  Would verify SSH at: $currentIp" -Chinese "  将验证 SSH: $currentIp" -ForegroundColor DarkGray
+        Write-UIHost -English "  Would upload: /tmp/99-adp-static.yaml" -Chinese "  将上传: /tmp/99-adp-static.yaml" -ForegroundColor DarkGray
+        Write-UIHost -English "  Would install: /etc/netplan/99-adp-static.yaml" -Chinese "  将安装: /etc/netplan/99-adp-static.yaml" -ForegroundColor DarkGray
+        Write-UIHost -English "  Would wait for target SSH: $($network.Address)" -Chinese "  将等待目标 SSH: $($network.Address)" -ForegroundColor DarkGray
+        Write-UIHost -English "  Would update Mutagen SSH alias: adp-os-adp-$TargetRuntime" -Chinese "  将更新 Mutagen SSH 别名: adp-os-adp-$TargetRuntime" -ForegroundColor DarkGray
         return
     }
 
@@ -571,7 +571,7 @@ function Apply-RuntimeNetwork {
         Write-WarnLog -Message "Static IP applied, but Mutagen SSH alias update failed: $_" -Component "cli.network"
     }
 
-    Write-Host "  Static IP active: $($network.Address)" -ForegroundColor Green
+    Write-UIHost -English "  Static IP active: $($network.Address)" -Chinese "  静态 IP 已激活: $($network.Address)" -ForegroundColor Green
 }
 
 Write-Host ""

@@ -14,6 +14,7 @@ The project does not yet publish versioned releases. Entries are grouped by date
 - Added `adp validate` command as a standalone CLI entry point for the shared repository validation suite. Supports `-Quick`, `-SkipCliSmoke`, `-SkipInstallerSmoke`, and `-SkipShellSyntax` flags with bilingual output. (Phase 2 roadmap item.)
 - Localized remaining user-facing diagnostic output in `adp doctor`: network drift remediation options, VMware/xorriso guidance, Mutagen remediation plan and installation details, duplicate VM warnings, stale session cleanup guidance, and issue listing. English and Simplified Chinese text is now consistent across all `adp doctor` output paths.
 - Localized remaining user-facing data labels in `adp status` (ssh, running VMX, sync, VMX, connect, alias) and `adp up` connection summary (IP, SSH, Alias, Workspace, Sync, Status, Doctor, CPU/RAM/Disk, VMX, ISO). All CLI output labels now respect the configured UI language preference.
+- Localized remaining user-facing output in `adp network`: seed-network drift detection messages, in-place netplan fix guidance, rebuild/host-route workaround options, plan-preview operation steps (verify SSH, upload, install, wait, update Mutagen alias), and the static-IP activation success message. English and Simplified Chinese text is now consistent across the `network apply` plan-only output and `network configure-local` paths.
 
 ### Fixed
 

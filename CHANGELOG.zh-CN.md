@@ -14,6 +14,7 @@
 - 新增 `adp validate` 命令，作为共享仓库验证套件的独立 CLI 入口。支持 `-Quick`、`-SkipCliSmoke`、`-SkipInstallerSmoke` 和 `-SkipShellSyntax` 标志，提供双语输出。（Phase 2 roadmap 项目。）
 - 新增 `adp doctor` 剩余用户界面诊断输出的本地化：网络漂移修复选项、VMware/xorriso 指导、Mutagen 修复计划和安装详情、重复 VM 警告、stale session 清理指导以及问题列表。现在所有 `adp doctor` 输出路径的英文和简体中文文本保持一致。
 - 新增 `adp status`（ssh、running VMX、sync、VMX、connect、alias）和 `adp up` 连接摘要（IP、SSH、Alias、Workspace、Sync、Status、Doctor、CPU/RAM/Disk、VMX、ISO）中剩余用户界面数据标签的本地化。所有 CLI 输出标签现在均遵循配置的 UI 语言偏好。
+- 新增 `adp network` 剩余用户界面输出的本地化：seed 网络漂移检测消息、guest netplan 原地修复指导、重建/host route 变通方案、plan-preview 操作步骤（验证 SSH、上传、安装、等待、更新 Mutagen 别名）以及静态 IP 激活成功消息。现在 `network apply` plan-only 输出和 `network configure-local` 路径的英文和简体中文文本保持一致。
 
 ### 修复
 
