@@ -198,7 +198,7 @@ Assert-Command `
     -Name "doctor fix mutagen plan zh-CN" `
     -Arguments @("doctor", "-FixMutagen", "-Plan") `
     -ExitCode 0 `
-    -Patterns @("ADP-OS Doctor — 系统诊断", "Mutagen 修复:", "仅预览：不会下载、解压或覆盖任何文件", "mutagen_windows_amd64_v0\.18\.1\.zip", "\.tools\\mutagen\\mutagen\.exe", "SHA256:", "Timeout:\s+connection=30s hard=300s") `
+    -Patterns @("ADP-OS Doctor — 系统诊断", "Mutagen 修复:", "仅预览：不会下载、解压或覆盖任何文件", "mutagen_windows_amd64_v0\.18\.1\.zip", "\.tools\\mutagen\\mutagen\.exe", "SHA256:", "超时:\s+连接=30s 硬性=300s") `
     -Environment @{ ADP_LANG = "zh-CN" }
 
 Assert-Command `

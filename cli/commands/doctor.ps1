@@ -164,11 +164,11 @@ function Write-NetworkDriftRemediation {
         [string]$ConfiguredIp
     )
 
-    Write-Host "  [INFO]  Remediation options for $TargetRuntime network drift:" -ForegroundColor DarkGray
-    Write-Host "          1. Rebuild when the VM can be recreated: adp destroy $TargetRuntime -Plan, then adp up $TargetRuntime." -ForegroundColor DarkGray
-    Write-Host "          2. In-place guest fix when the seed-era address is reachable: adp network apply $TargetRuntime -Plan." -ForegroundColor DarkGray
-    Write-Host "          3. Admin-only temporary host-route workaround only to regain SSH to $($SeedNetwork.Address); ADP will not apply host routes automatically." -ForegroundColor DarkGray
-    Write-Host "          Seed-era network: $($SeedNetwork.Address)/$($SeedNetwork.Prefix)$(if ($SeedNetwork.Gateway) { ', gateway ' + $SeedNetwork.Gateway } else { '' }); target: $ConfiguredIp." -ForegroundColor DarkGray
+    Write-UIHost -English "  [INFO]  Remediation options for $TargetRuntime network drift:" -Chinese "  [INFO]  $TargetRuntime 网络漂移修复选项:" -ForegroundColor DarkGray
+    Write-UIHost -English "          1. Rebuild when the VM can be recreated: adp destroy $TargetRuntime -Plan, then adp up $TargetRuntime." -Chinese "          1. 如果 VM 可以重建：先运行 adp destroy $TargetRuntime -Plan，再用 adp up $TargetRuntime 重建。" -ForegroundColor DarkGray
+    Write-UIHost -English "          2. In-place guest fix when the seed-era address is reachable: adp network apply $TargetRuntime -Plan." -Chinese "          2. 如果 seed-era 地址可连接：运行 adp network apply $TargetRuntime -Plan 预览 guest 内修复。" -ForegroundColor DarkGray
+    Write-UIHost -English "          3. Admin-only temporary host-route workaround only to regain SSH to $($SeedNetwork.Address); ADP will not apply host routes automatically." -Chinese "          3. 仅管理员可用的临时 host-route workaround 用于恢复到 $($SeedNetwork.Address) 的 SSH；ADP 不会自动应用 host routes。" -ForegroundColor DarkGray
+    Write-UIHost -English "          Seed-era network: $($SeedNetwork.Address)/$($SeedNetwork.Prefix)$(if ($SeedNetwork.Gateway) { ', gateway ' + $SeedNetwork.Gateway } else { '' }); target: $ConfiguredIp." -Chinese "          Seed-era 网络: $($SeedNetwork.Address)/$($SeedNetwork.Prefix)$(if ($SeedNetwork.Gateway) { ', gateway ' + $SeedNetwork.Gateway } else { '' }); 目标: $ConfiguredIp。" -ForegroundColor DarkGray
 }
 
 function Test-WSLCommand {
@@ -255,7 +255,7 @@ if ($config.network.vmware_nat) {
 
 # --- VMware ---
 Write-Host ""
-Write-Host "VMware:" -ForegroundColor Yellow
+Write-UIHost -English "VMware:" -Chinese "VMware:" -ForegroundColor Yellow
 $vmwareOk = Test-VMwareAvailable
 $runningVmxPaths = @()
 Test-Check -Name "vmrun.exe" -Condition $vmwareOk
@@ -276,8 +276,8 @@ if ($vmwareOk) {
     $isoRemasterDetail = if ($isoRemasterTool) { "$($isoRemasterTool.Type): $($isoRemasterTool.Path)" } else { "missing" }
     Test-Check -Name "install ISO remaster" -Condition ($null -ne $isoRemasterTool) -Detail "($isoRemasterDetail)"
     if (-not $isoRemasterTool) {
-        Write-Host "  [INFO]  Install xorriso natively or in WSL:" -ForegroundColor DarkGray
-        Write-Host "          wsl -u root bash -lc `"apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y xorriso`"" -ForegroundColor DarkGray
+        Write-UIHost -English "  [INFO]  Install xorriso natively or in WSL:" -Chinese "  [INFO]  在本地或 WSL 中安装 xorriso:" -ForegroundColor DarkGray
+        Write-UIHost -English "          wsl -u root bash -lc `"apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y xorriso`"" -Chinese "          wsl -u root bash -lc `"apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y xorriso`"" -ForegroundColor DarkGray
     }
 
     try {
@@ -310,8 +310,8 @@ if ($hasMutagen) {
     $mutagenVersionOk = Test-MutagenVersionSupported -VersionText $mutagenVersion
     Test-Check -Name "mutagen version" -Condition $mutagenVersionOk -Detail "($mutagenVersion, $mutagenPath)"
     if (-not $mutagenVersionOk) {
-        Write-Host "  [INFO]  ADP-OS is tested with Mutagen 0.18.x." -ForegroundColor DarkGray
-        Write-Host "  [INFO]  To install the tested local version, run: .\cli\adp.ps1 doctor -FixMutagen -Plan" -ForegroundColor DarkGray
+        Write-UIHost -English "  [INFO]  ADP-OS is tested with Mutagen 0.18.x." -Chinese "  [INFO]  ADP-OS 已测试 Mutagen 0.18.x。" -ForegroundColor DarkGray
+        Write-UIHost -English "  [INFO]  To install the tested local version, run: .\cli\adp.ps1 doctor -FixMutagen -Plan" -Chinese "  [INFO]  安装测试版本，请运行：.\cli\adp.ps1 doctor -FixMutagen -Plan" -ForegroundColor DarkGray
     }
 }
 
@@ -322,19 +322,19 @@ if ($FixMutagen) {
     if ($Plan) {
         $remediation = $remediationPlan
         Write-UIHost -English "  Plan only: no files will be downloaded, expanded, or overwritten." -Chinese "  仅预览：不会下载、解压或覆盖任何文件。" -ForegroundColor Yellow
-        Write-Host "  Version: $($remediation.Version)" -ForegroundColor DarkGray
-        Write-Host "  Download: $($remediation.Url)" -ForegroundColor DarkGray
+        Write-UIHost -English "  Version: $($remediation.Version)" -Chinese "  版本: $($remediation.Version)" -ForegroundColor DarkGray
+        Write-UIHost -English "  Download: $($remediation.Url)" -Chinese "  下载: $($remediation.Url)" -ForegroundColor DarkGray
         if ($remediation.ConfiguredArchivePath) {
-            Write-Host "  Offline archive: $($remediation.ConfiguredArchivePath)" -ForegroundColor DarkGray
+            Write-UIHost -English "  Offline archive: $($remediation.ConfiguredArchivePath)" -Chinese "  离线归档: $($remediation.ConfiguredArchivePath)" -ForegroundColor DarkGray
         } else {
-            Write-Host "  Offline archive: not configured; place the archive at $($remediation.ZipPath) to avoid downloading." -ForegroundColor DarkGray
+            Write-UIHost -English "  Offline archive: not configured; place the archive at $($remediation.ZipPath) to avoid downloading." -Chinese "  离线归档: 未配置；将归档放到 $($remediation.ZipPath) 可跳过下载。" -ForegroundColor DarkGray
         }
-        Write-Host "  Archive:  $($remediation.ZipPath)" -ForegroundColor DarkGray
-        Write-Host "  Target:   $($remediation.TargetPath)" -ForegroundColor DarkGray
-        Write-Host "  SHA256:   $(if ($remediation.Sha256) { $remediation.Sha256 } else { 'not configured; archive hash verification will be skipped' })" -ForegroundColor DarkGray
-        Write-Host "  Timeout:  connection=$($remediation.ConnectionTimeoutSeconds)s hard=$($remediation.DownloadTimeoutSeconds)s" -ForegroundColor DarkGray
-        Write-Host "  Local overrides: platform.tools.mutagen.download_url, archive_path, sha256, connection_timeout_seconds, download_timeout_seconds" -ForegroundColor DarkGray
-        Write-Host "  To install: .\cli\adp.ps1 doctor -FixMutagen" -ForegroundColor DarkGray
+        Write-UIHost -English "  Archive:  $($remediation.ZipPath)" -Chinese "  归档:  $($remediation.ZipPath)" -ForegroundColor DarkGray
+        Write-UIHost -English "  Target:   $($remediation.TargetPath)" -Chinese "  目标:   $($remediation.TargetPath)" -ForegroundColor DarkGray
+        Write-UIHost -English "  SHA256:   $(if ($remediation.Sha256) { $remediation.Sha256 } else { 'not configured; archive hash verification will be skipped' })" -Chinese "  SHA256:   $(if ($remediation.Sha256) { $remediation.Sha256 } else { '未配置；将跳过归档哈希校验' })" -ForegroundColor DarkGray
+        Write-UIHost -English "  Timeout:  connection=$($remediation.ConnectionTimeoutSeconds)s hard=$($remediation.DownloadTimeoutSeconds)s" -Chinese "  超时:  连接=$($remediation.ConnectionTimeoutSeconds)s 硬性=$($remediation.DownloadTimeoutSeconds)s" -ForegroundColor DarkGray
+        Write-UIHost -English "  Local overrides: platform.tools.mutagen.download_url, archive_path, sha256, connection_timeout_seconds, download_timeout_seconds" -Chinese "  本机覆盖: platform.tools.mutagen.download_url, archive_path, sha256, connection_timeout_seconds, download_timeout_seconds" -ForegroundColor DarkGray
+        Write-UIHost -English "  To install: .\cli\adp.ps1 doctor -FixMutagen" -Chinese "  安装: .\cli\adp.ps1 doctor -FixMutagen" -ForegroundColor DarkGray
     } else {
         try {
             $remediation = Install-LocalMutagen -ProjectRoot (Get-ProjectRoot)
@@ -347,18 +347,18 @@ if ($FixMutagen) {
             Write-UIHost -English "  Manual: download $($remediationPlan.Url)" -Chinese "  手动: 下载 $($remediationPlan.Url)" -ForegroundColor DarkGray
             Write-UIHost -English "          place it at $($remediationPlan.ZipPath), then rerun the command." -Chinese "          放到 $($remediationPlan.ZipPath)，然后重新运行该命令。" -ForegroundColor DarkGray
             if ($remediationPlan.ConfiguredArchivePath) {
-                Write-Host "  Offline: configured archive path was $($remediationPlan.ConfiguredArchivePath)" -ForegroundColor DarkGray
+                Write-UIHost -English "  Offline: configured archive path was $($remediationPlan.ConfiguredArchivePath)" -Chinese "  离线: 配置的归档路径为 $($remediationPlan.ConfiguredArchivePath)" -ForegroundColor DarkGray
             }
-            Write-Host "  Verify: set platform.tools.mutagen.sha256 in configs\local.json to enforce archive hash verification." -ForegroundColor DarkGray
-            Write-Host "  Or place mutagen.exe directly at: $($remediationPlan.TargetPath)" -ForegroundColor DarkGray
+            Write-UIHost -English "  Verify: set platform.tools.mutagen.sha256 in configs\\local.json to enforce archive hash verification." -Chinese "  校验: 在 configs\\local.json 中设置 platform.tools.mutagen.sha256 来强制归档哈希校验。" -ForegroundColor DarkGray
+            Write-UIHost -English "  Or place mutagen.exe directly at: $($remediationPlan.TargetPath)" -Chinese "  或将 mutagen.exe 直接放到: $($remediationPlan.TargetPath)" -ForegroundColor DarkGray
             Write-UIHost -English "  No VMs, sync sessions, SSH config, or configs\local.json were changed by this failed remediation." -Chinese "  本次失败的修复没有修改 VM、sync session、SSH 配置或 configs\local.json。" -ForegroundColor DarkGray
             exit 1
         }
 
         Write-UIHost -English "  Mutagen installed locally." -Chinese "  Mutagen 已安装到本地。" -ForegroundColor Green
-        Write-Host "  Version: $($remediation.VersionText)" -ForegroundColor DarkGray
-        Write-Host "  Target:  $($remediation.TargetPath)" -ForegroundColor DarkGray
-        Write-Host "  Archive: $($remediation.ZipPath)" -ForegroundColor DarkGray
+        Write-UIHost -English "  Version: $($remediation.VersionText)" -Chinese "  版本: $($remediation.VersionText)" -ForegroundColor DarkGray
+        Write-UIHost -English "  Target:  $($remediation.TargetPath)" -Chinese "  目标:  $($remediation.TargetPath)" -ForegroundColor DarkGray
+        Write-UIHost -English "  Archive: $($remediation.ZipPath)" -Chinese "  归档: $($remediation.ZipPath)" -ForegroundColor DarkGray
         $script:issues = @($script:issues | Where-Object { $_ -notin @("mutagen", "mutagen version") })
         $script:ok += "mutagen remediation"
     }
@@ -446,8 +446,8 @@ foreach ($name in (Get-AllRuntimeNames)) {
             Test-Check -Name "$name duplicate running VM" -Condition $true -Detail "(none)"
         }
         if ($hasDuplicateRunningVm -and $hasCurrentRuntimeVm) {
-            Write-Host "  [INFO]  Stop or rename stale duplicate ADP VMs before diagnosing SSH or network issues." -ForegroundColor DarkGray
-            Write-Host "  [INFO]  Current checkout VMX: $vmxPath" -ForegroundColor DarkGray
+            Write-UIHost -English "  [INFO]  Stop or rename stale duplicate ADP VMs before diagnosing SSH or network issues." -Chinese "  [INFO]  排查 SSH 或网络前，请先停止或重命名 stale duplicate ADP VM。" -ForegroundColor DarkGray
+            Write-UIHost -English "  [INFO]  Current checkout VMX: $vmxPath" -Chinese "  [INFO]  当前 checkout VMX: $vmxPath" -ForegroundColor DarkGray
         }
     }
 
@@ -484,17 +484,17 @@ foreach ($name in (Get-AllRuntimeNames)) {
                 $syncOk = ($syncSession.Health -in @("healthy", "present"))
                 if (-not $hasCurrentRuntimeVm) {
                     Write-InfoCheck -Name "$name Mutagen session" -Detail "(stale before runtime creation: $sessionName, $($syncSession.Health), $($syncSession.Detail))"
-                    Write-Host "  [INFO]  Cleanup stale session: .\cli\adp.ps1 sync stop $name" -ForegroundColor DarkGray
-                    Write-Host "  [INFO]  Create runtime before starting sync: .\cli\adp.ps1 up $name; .\cli\adp.ps1 sync start $name" -ForegroundColor DarkGray
-                    Write-Host "  [INFO]  Current local: $($syncSession.AlphaUrl); expected: $expectedLocalPath" -ForegroundColor DarkGray
-                    Write-Host "  [INFO]  Current remote: $($syncSession.BetaUrl); expected: $expectedRemoteUrl" -ForegroundColor DarkGray
+                    Write-UIHost -English "  [INFO]  Cleanup stale session: .\cli\adp.ps1 sync stop $name" -Chinese "  [INFO]  清理 stale session: .\cli\adp.ps1 sync stop $name" -ForegroundColor DarkGray
+                    Write-UIHost -English "  [INFO]  Create runtime before starting sync: .\cli\adp.ps1 up $name; .\cli\adp.ps1 sync start $name" -Chinese "  [INFO]  启动 sync 前请先创建 runtime: .\cli\adp.ps1 up $name; .\cli\adp.ps1 sync start $name" -ForegroundColor DarkGray
+                    Write-UIHost -English "  [INFO]  Current local: $($syncSession.AlphaUrl); expected: $expectedLocalPath" -Chinese "  [INFO]  当前 local: $($syncSession.AlphaUrl); 期望: $expectedLocalPath" -ForegroundColor DarkGray
+                    Write-UIHost -English "  [INFO]  Current remote: $($syncSession.BetaUrl); expected: $expectedRemoteUrl" -Chinese "  [INFO]  当前 remote: $($syncSession.BetaUrl); 期望: $expectedRemoteUrl" -ForegroundColor DarkGray
                 } else {
                     Test-Check -Name "$name Mutagen session" -Condition $syncOk -Detail "($sessionName, $($syncSession.Health), $($syncSession.Detail))"
                 }
                 if ($hasCurrentRuntimeVm -and -not $syncOk) {
-                    Write-Host "  [INFO]  Remediation: .\cli\adp.ps1 sync stop $name; .\cli\adp.ps1 sync start $name" -ForegroundColor DarkGray
-                    Write-Host "  [INFO]  Current local: $($syncSession.AlphaUrl); expected: $expectedLocalPath" -ForegroundColor DarkGray
-                    Write-Host "  [INFO]  Current remote: $($syncSession.BetaUrl); expected: $expectedRemoteUrl" -ForegroundColor DarkGray
+                    Write-UIHost -English "  [INFO]  Remediation: .\cli\adp.ps1 sync stop $name; .\cli\adp.ps1 sync start $name" -Chinese "  [INFO]  修复: .\cli\adp.ps1 sync stop $name; .\cli\adp.ps1 sync start $name" -ForegroundColor DarkGray
+                    Write-UIHost -English "  [INFO]  Current local: $($syncSession.AlphaUrl); expected: $expectedLocalPath" -Chinese "  [INFO]  当前 local: $($syncSession.AlphaUrl); 期望: $expectedLocalPath" -ForegroundColor DarkGray
+                    Write-UIHost -English "  [INFO]  Current remote: $($syncSession.BetaUrl); expected: $expectedRemoteUrl" -Chinese "  [INFO]  当前 remote: $($syncSession.BetaUrl); 期望: $expectedRemoteUrl" -ForegroundColor DarkGray
                 }
             } else {
                 Write-InfoCheck -Name "$name Mutagen session" -Detail "(not started: $sessionName)"
@@ -515,7 +515,7 @@ Write-Host ""
 if ($issues.Count -gt 0) {
     Write-UIHost -English "Issues found:" -Chinese "发现的问题:" -ForegroundColor Red
     foreach ($issue in $issues) {
-        Write-Host "  - $issue" -ForegroundColor Red
+        Write-UIHost -English "  - $issue" -Chinese "  - $issue" -ForegroundColor Red
     }
 } else {
     Write-UIHost -English "All checks passed. Platform is healthy." -Chinese "所有检查通过。平台状态健康。" -ForegroundColor Green

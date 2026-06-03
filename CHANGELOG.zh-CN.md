@@ -12,6 +12,7 @@
 
 - 在操作指南和故障排除文档中添加了 SSH 密钥生命周期文档（英文和简体中文）。新文档涵盖密钥位置（`%USERPROFILE%\\.ssh\\adp-os\\`）、密钥格式（ed25519，无密码）、首次自动创建、带备份和 VM 影响警告的密钥重新生成、密钥安全、直接 SSH/scp 用法，以及 `key-missing`、`auth-pending`、`Permission denied`、`bad permissions`、密钥删除和多用户环境的故障排除。（Phase 2 roadmap 项目。）
 - 新增 `adp validate` 命令，作为共享仓库验证套件的独立 CLI 入口。支持 `-Quick`、`-SkipCliSmoke`、`-SkipInstallerSmoke` 和 `-SkipShellSyntax` 标志，提供双语输出。（Phase 2 roadmap 项目。）
+- 新增 `adp doctor` 剩余用户界面诊断输出的本地化：网络漂移修复选项、VMware/xorriso 指导、Mutagen 修复计划和安装详情、重复 VM 警告、stale session 清理指导以及问题列表。现在所有 `adp doctor` 输出路径的英文和简体中文文本保持一致。
 
 ### 修复
 
