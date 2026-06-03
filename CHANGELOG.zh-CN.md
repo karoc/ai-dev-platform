@@ -16,6 +16,7 @@
 ### 修复
 
 - 修复 `install.ps1`、`cli/commands/doctor.ps1` 和 `runtimes/vmware/vm-factory.ps1` 中 `Test-WSLCommand` 的 PowerShell 管道泄漏问题：`wsl.exe` shim 的 stdout 泄漏到函数返回值中，将布尔结果污染为 `Object[]`，导致 CI 中报 `Cannot convert value "System.Object[]" to type "System.Boolean"` 错误。修复方法是通过 `$null = &` 捕获外部命令输出，防止管道污染。
+- 加固测试基础设施：`local-config-boundary.ps1`、`cli-smoke.ps1` 和 `install-smoke.ps1` 中的 `Start-Process` 现在从当前进程解析 pwsh 完整路径，而非依赖 PATH 中的裸 `pwsh` 命令，避免在某些 CI runner 实例上失败。
 
 ## 2026-05-31
 

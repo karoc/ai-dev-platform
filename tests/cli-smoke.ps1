@@ -6,6 +6,12 @@ $ErrorActionPreference = "Stop"
 $projectRoot = Split-Path $PSScriptRoot -Parent
 $cli = Join-Path $projectRoot "cli\adp.ps1"
 
+# Resolve pwsh full path for Start-Process (bare "pwsh" not always in PATH on CI runners)
+$script:PwshPath = try { (Get-Process -Id $PID).Path } catch { $null }
+if (-not $script:PwshPath) {
+    $script:PwshPath = (Get-Command pwsh -ErrorAction Stop).Source
+}
+
 function Invoke-Cli {
     param(
         [string[]]$Arguments,
@@ -25,7 +31,7 @@ function Invoke-Cli {
         [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
         try {
             $processArguments = @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $cli) + $Arguments
-            $process = Start-Process -FilePath "pwsh" `
+            $process = Start-Process -FilePath $script:PwshPath `
                 -ArgumentList $processArguments `
                 -NoNewWindow -Wait -PassThru `
                 -RedirectStandardOutput $stdout `

@@ -80,11 +80,21 @@ function Invoke-BoundaryCommand {
         [string[]]$Arguments
     )
 
+    # Resolve pwsh full path from the current process, falling back to PATH lookup.
+    # On some CI runners, bare "pwsh" is not in PATH even when pwsh is the active shell.
+    $pwshPath = try { (Get-Process -Id $PID).Path } catch { $null }
+    if (-not $pwshPath) {
+        $pwshPath = (Get-Command pwsh -ErrorAction SilentlyContinue).Source
+    }
+    if (-not $pwshPath) {
+        throw "Cannot resolve pwsh executable path for sandboxed test execution."
+    }
+
     $stdout = [System.IO.Path]::GetTempFileName()
     $stderr = [System.IO.Path]::GetTempFileName()
     try {
         $processArguments = @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $ScriptPath) + $Arguments
-        $process = Start-Process -FilePath "pwsh" `
+        $process = Start-Process -FilePath $pwshPath `
             -ArgumentList $processArguments `
             -WorkingDirectory $SandboxRoot `
             -NoNewWindow -Wait -PassThru `

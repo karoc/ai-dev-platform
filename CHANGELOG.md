@@ -16,6 +16,7 @@ The project does not yet publish versioned releases. Entries are grouped by date
 ### Fixed
 
 - Fixed `Test-WSLCommand` PowerShell pipeline leak in `install.ps1`, `cli/commands/doctor.ps1`, and `runtimes/vmware/vm-factory.ps1` where `wsl.exe` shim stdout leaked into function return values, corrupting the boolean result into `Object[]` and causing `Cannot convert value "System.Object[]" to type "System.Boolean"` errors in CI. External command output is now captured with `$null = &` to prevent pipeline pollution.
+- Hardened test infrastructure so `Start-Process -FilePath "pwsh"` in `local-config-boundary.ps1`, `cli-smoke.ps1`, and `install-smoke.ps1` resolves the full pwsh path from the current process rather than relying on bare `pwsh` being in PATH, which fails on some CI runner instances.
 
 ## 2026-05-31
 

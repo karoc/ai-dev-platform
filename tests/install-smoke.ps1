@@ -6,6 +6,12 @@ $ErrorActionPreference = "Stop"
 $projectRoot = Split-Path $PSScriptRoot -Parent
 $install = Join-Path $projectRoot "install.ps1"
 
+# Resolve pwsh full path for Start-Process (bare "pwsh" not always in PATH on CI runners)
+$script:PwshPath = try { (Get-Process -Id $PID).Path } catch { $null }
+if (-not $script:PwshPath) {
+    $script:PwshPath = (Get-Command pwsh -ErrorAction Stop).Source
+}
+
 function Invoke-Install {
     param(
         [string[]]$Arguments,
@@ -25,7 +31,7 @@ function Invoke-Install {
                 $processEnvironment[$name] = [string]$Environment[$name]
             }
 
-            $process = Start-Process -FilePath "pwsh" `
+            $process = Start-Process -FilePath $script:PwshPath `
                 -ArgumentList $processArguments `
                 -NoNewWindow -Wait -PassThru `
                 -RedirectStandardOutput $stdout `
