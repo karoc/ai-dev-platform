@@ -155,7 +155,7 @@ Assert-Command `
     -Name "status all runtimes zh-CN" `
     -Arguments @("status") `
     -ExitCode 0 `
-    -Patterns @("ADP-OS 状态", "仅查看状态：不会修改 VM", "本机配置:", "网络:\s+192\.168\.242\.0/24", "frontend", "配置 IP:\s+192\.168\.242\.131", "connect:\s+ssh -i .*adp@192\.168\.242\.131", "backend", "agent") `
+    -Patterns @("ADP-OS 状态", "仅查看状态：不会修改 VM", "本机配置:", "网络:\s+192\.168\.242\.0/24", "frontend", "配置 IP:\s+192\.168\.242\.131", "连接:\s+ssh -i .*adp@192\.168\.242\.131", "backend", "agent") `
     -Environment @{ ADP_LANG = "zh-CN" }
 
 Assert-Command `

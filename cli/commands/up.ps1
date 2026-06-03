@@ -73,20 +73,20 @@ function Write-RuntimeConnectionSummary {
     Write-Host ""
     Write-UIHost -English "Connection details:" -Chinese "连接信息:" -ForegroundColor Cyan
     if ($ip) {
-        Write-Host "  IP:        $ip" -ForegroundColor Cyan
+        Write-UIHost -English "  IP:        $ip" -Chinese "  IP:        $ip" -ForegroundColor Cyan
         if ($staticIp -and $detectedIp -and $staticIp -ne $detectedIp) {
             Write-UIHost -English "  Detected:  $detectedIp (VMware reported this, but ADP-OS is using configured static IP)" -Chinese "  探测到:  $detectedIp (VMware 报告了该地址，但 ADP-OS 会使用配置的 static IP)" -ForegroundColor Yellow
         }
-        Write-Host "  SSH:       ssh -i $keyPath -p $port $user@$ip" -ForegroundColor DarkGray
-        Write-Host "  Alias:     ssh $alias" -ForegroundColor DarkGray
+        Write-UIHost -English "  SSH:       ssh -i $keyPath -p $port $user@$ip" -Chinese "  SSH:       ssh -i $keyPath -p $port $user@$ip" -ForegroundColor DarkGray
+        Write-UIHost -English "  Alias:     ssh $alias" -Chinese "  别名:      ssh $alias" -ForegroundColor DarkGray
     } else {
         Write-UIHost -English "  IP:        unavailable yet" -Chinese "  IP:        暂不可用" -ForegroundColor Yellow
         Write-UIHost -English "  SSH:       run adp status $TargetRuntime after the guest finishes booting" -Chinese "  SSH:       guest 启动完成后运行 adp status $TargetRuntime" -ForegroundColor DarkGray
     }
-    Write-Host "  Workspace: $workspacePath" -ForegroundColor DarkGray
-    Write-Host "  Sync:      adp sync start $TargetRuntime" -ForegroundColor DarkGray
-    Write-Host "  Status:    adp status $TargetRuntime" -ForegroundColor DarkGray
-    Write-Host "  Doctor:    adp doctor" -ForegroundColor DarkGray
+    Write-UIHost -English "  Workspace: $workspacePath" -Chinese "  工作区:    $workspacePath" -ForegroundColor DarkGray
+    Write-UIHost -English "  Sync:      adp sync start $TargetRuntime" -Chinese "  同步:      adp sync start $TargetRuntime" -ForegroundColor DarkGray
+    Write-UIHost -English "  Status:    adp status $TargetRuntime" -Chinese "  状态:      adp status $TargetRuntime" -ForegroundColor DarkGray
+    Write-UIHost -English "  Doctor:    adp doctor" -Chinese "  诊断:      adp doctor" -ForegroundColor DarkGray
 }
 
 function Assert-VMwareNatReadyForRuntimeCreate {
@@ -179,7 +179,7 @@ Write-Host ""
 Write-Host "========================================" -ForegroundColor Cyan
 Write-UIHost -English "  ADP-OS: Starting $RuntimeName" -Chinese "  ADP-OS: 正在启动 $RuntimeName" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
-Write-Host "  CPU: $($rt.cpu) cores  |  RAM: $($rt.memory) MB  |  Disk: $($rt.disk) GB" -ForegroundColor DarkGray
+Write-UIHost -English "  CPU: $($rt.cpu) cores  |  RAM: $($rt.memory) MB  |  Disk: $($rt.disk) GB" -Chinese "  CPU: $($rt.cpu) 核  |  内存: $($rt.memory) MB  |  磁盘: $($rt.disk) GB" -ForegroundColor DarkGray
 foreach ($notice in (Get-RuntimeProfileNoticeItems -RuntimeName $RuntimeName -Runtime $rt)) {
     Write-Host $notice.Text -ForegroundColor $notice.Color
 }
@@ -200,9 +200,9 @@ if ($Plan) {
     }
     Write-UIHost -English "Plan only: no VM will be created, started, provisioned, or bootstrapped." -Chinese "仅预览：不会创建、启动、provision 或 bootstrap 任何 VM。" -ForegroundColor Cyan
     Write-UIHost -English "  Runtime:      $RuntimeName" -Chinese "  运行时:      $RuntimeName" -ForegroundColor DarkGray
-    Write-Host "  VMX:          $vmxPath" -ForegroundColor DarkGray
+    Write-UIHost -English "  VMX:          $vmxPath" -Chinese "  VMX:          $vmxPath" -ForegroundColor DarkGray
     Write-UIHost -English "  Current:      $status" -Chinese "  当前状态:    $status" -ForegroundColor DarkGray
-    Write-Host "  ISO:          $plannedIsoPath" -ForegroundColor DarkGray
+    Write-UIHost -English "  ISO:          $plannedIsoPath" -Chinese "  ISO:          $plannedIsoPath" -ForegroundColor DarkGray
     Write-UIHost -English "  Static IP:    $(if ($rt.static_ip) { $rt.static_ip } else { 'not configured' })" -Chinese "  Static IP:    $(if ($rt.static_ip) { $rt.static_ip } else { '未配置' })" -ForegroundColor DarkGray
     Write-UIHost -English "  Workspace:    $(Join-Path (Resolve-Path 'workspace_root') $rt.workspace)" -Chinese "  工作区:      $(Join-Path (Resolve-Path 'workspace_root') $rt.workspace)" -ForegroundColor DarkGray
     if (-not $exists) {
@@ -223,7 +223,7 @@ if (Test-Path $vmxPath) {
 
     if ($NoProvision) {
         Write-UIHost -English "Runtime '$RuntimeName' definition exists (status: $status). Provisioning/start skipped." -Chinese "运行时 '$RuntimeName' 定义已存在（状态: $status）。已跳过 provisioning/start。" -ForegroundColor Yellow
-        Write-Host "  VMX: $vmxPath" -ForegroundColor DarkGray
+        Write-UIHost -English "  VMX: $vmxPath" -Chinese "  VMX: $vmxPath" -ForegroundColor DarkGray
         return
     }
 
@@ -282,7 +282,7 @@ if ($NoProvision) {
     Write-Host ""
     Write-UIHost -English "Runtime '$RuntimeName' definition is ready. Provisioning, startup, and bootstrap were skipped." -Chinese "运行时 '$RuntimeName' 定义已就绪。已跳过 provisioning、startup 和 bootstrap。" -ForegroundColor Yellow
     Write-UIHost -English "  Start later: adp up $RuntimeName" -Chinese "  稍后启动: adp up $RuntimeName" -ForegroundColor DarkGray
-    Write-Host "  Status:      adp status $RuntimeName" -ForegroundColor DarkGray
+    Write-UIHost -English "  Status:      adp status $RuntimeName" -Chinese "  状态:      adp status $RuntimeName" -ForegroundColor DarkGray
     return
 }
 

@@ -250,7 +250,7 @@ function Write-StatusRuntime {
         Write-UIHost -English "  network drift: seed uses $($seedNetwork.Address)/$($seedNetwork.Prefix), current config uses $configuredIp" -Chinese "  网络漂移:      seed 使用 $($seedNetwork.Address)/$($seedNetwork.Prefix)，当前配置使用 $configuredIp" -ForegroundColor Red
         Write-StatusNetworkDriftRemediation -TargetRuntime $TargetRuntime -SeedNetwork $seedNetwork -ConfiguredIp $configuredIp
     }
-    Write-Host "  ssh:           $sshState" -ForegroundColor DarkGray
+    Write-UIHost -English "  ssh:           $sshState" -Chinese "  SSH:           $sshState" -ForegroundColor DarkGray
     if ($sshState -eq "auth-pending") {
         Write-UIHost -English "  note:          SSH port is open, but the ADP key is not accepted yet. During autoinstall this usually means the installer or first boot is still preparing the target user." -Chinese "  说明:          SSH 端口已打开，但 ADP key 还未被接受。autoinstall 期间这通常表示安装器或首次启动仍在准备目标用户。" -ForegroundColor Yellow
     }
@@ -259,11 +259,11 @@ function Write-StatusRuntime {
         Write-UIHost -English "  current VMX:   $($state.VmxPath)" -Chinese "  当前 VMX:      $($state.VmxPath)" -ForegroundColor DarkGray
         foreach ($vm in $adpRunningVms) {
             $owner = if ($vm.IsManagedByCurrentCheckout) { Get-UIText -English "current checkout" -Chinese "当前 checkout" } else { Get-UIText -English "other checkout or stale VM" -Chinese "其他 checkout 或 stale VM" }
-            Write-Host "  running VMX:   $($vm.NormalizedVmxPath) [$owner]" -ForegroundColor Yellow
+            Write-UIHost -English "  running VMX:   $($vm.NormalizedVmxPath) [$owner]" -Chinese "  运行 VMX:      $($vm.NormalizedVmxPath) [$owner]" -ForegroundColor Yellow
         }
         Write-UIHost -English "  remediation:   stop or rename the stale duplicate before diagnosing SSH or network issues" -Chinese "  修复建议:      排查 SSH 或网络前，先停止或重命名 stale duplicate VM" -ForegroundColor Yellow
     }
-    Write-Host "  sync:          $syncState" -ForegroundColor DarkGray
+    Write-UIHost -English "  sync:          $syncState" -Chinese "  同步:          $syncState" -ForegroundColor DarkGray
     if ($syncState -in @("wrong-local", "wrong-remote", "unhealthy")) {
         Write-UIHost -English "  sync note:     existing Mutagen session is not usable for this checkout/runtime" -Chinese "  sync 说明:     现有 Mutagen session 不适用于当前 checkout/runtime" -ForegroundColor Yellow
         Write-UIHost -English "  sync fix:      adp sync stop $TargetRuntime; adp sync start $TargetRuntime" -Chinese "  sync 修复:     adp sync stop $TargetRuntime; adp sync start $TargetRuntime" -ForegroundColor Yellow
@@ -273,10 +273,10 @@ function Write-StatusRuntime {
         Write-UIHost -English "  sync next:     adp up $TargetRuntime; adp sync start $TargetRuntime" -Chinese "  sync 下一步:   adp up $TargetRuntime; adp sync start $TargetRuntime" -ForegroundColor DarkGray
     }
     Write-UIHost -English "  workspace:     $workspacePath" -Chinese "  工作区:        $workspacePath" -ForegroundColor DarkGray
-    Write-Host "  VMX:           $($state.VmxPath)" -ForegroundColor DarkGray
+    Write-UIHost -English "  VMX:           $($state.VmxPath)" -Chinese "  VMX:           $($state.VmxPath)" -ForegroundColor DarkGray
     if ($connectIp) {
-        Write-Host "  connect:       ssh -i $KeyPath -p $port $AdminUser@$connectIp" -ForegroundColor Cyan
-        Write-Host "  alias:         ssh $alias" -ForegroundColor DarkGray
+        Write-UIHost -English "  connect:       ssh -i $KeyPath -p $port $AdminUser@$connectIp" -Chinese "  连接:          ssh -i $KeyPath -p $port $AdminUser@$connectIp" -ForegroundColor Cyan
+        Write-UIHost -English "  alias:         ssh $alias" -Chinese "  别名:          ssh $alias" -ForegroundColor DarkGray
     } else {
         Write-UIHost -English "  connect:       unavailable until a static IP or detected guest IP is available" -Chinese "  连接:          需要 static IP 或探测到 guest IP 后才可用" -ForegroundColor Yellow
     }
