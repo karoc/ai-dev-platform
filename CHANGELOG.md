@@ -13,6 +13,10 @@ The project does not yet publish versioned releases. Entries are grouped by date
 - Added SSH key lifecycle documentation to operations and troubleshooting guides in English and Simplified Chinese. The new docs cover key location (`%USERPROFILE%\\.ssh\\adp-os\\`), key format (ed25519, no passphrase), automatic first-time creation, regeneration with backup and VM-impact warnings, key security, direct SSH/scp usage, and troubleshooting for `key-missing`, `auth-pending`, `Permission denied`, `bad permissions`, deleted keys, and multi-user setups. (Phase 2 roadmap item.)
 - Added `adp validate` command as a standalone CLI entry point for the shared repository validation suite. Supports `-Quick`, `-SkipCliSmoke`, `-SkipInstallerSmoke`, and `-SkipShellSyntax` flags with bilingual output. (Phase 2 roadmap item.)
 
+### Fixed
+
+- Fixed `Test-WSLCommand` PowerShell pipeline leak in `install.ps1`, `cli/commands/doctor.ps1`, and `runtimes/vmware/vm-factory.ps1` where `wsl.exe` shim stdout leaked into function return values, corrupting the boolean result into `Object[]` and causing `Cannot convert value "System.Object[]" to type "System.Boolean"` errors in CI. External command output is now captured with `$null = &` to prevent pipeline pollution.
+
 ## 2026-05-31
 
 ### Changed

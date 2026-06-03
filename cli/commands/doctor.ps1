@@ -179,7 +179,7 @@ function Test-WSLCommand {
         return $false
     }
 
-    & $wsl.Source bash -lc "command -v $Command >/dev/null 2>&1" 2>$null
+    $null = & $wsl.Source bash -lc "command -v $Command >/dev/null 2>&1" 2>$null
     return $LASTEXITCODE -eq 0
 }
 

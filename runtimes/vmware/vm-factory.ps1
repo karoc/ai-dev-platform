@@ -60,7 +60,7 @@ function Find-ISOCreator {
     $wsl = Get-Command wsl.exe -ErrorAction SilentlyContinue
     if ($wsl) {
         foreach ($tool in @("genisoimage", "mkisofs", "xorriso")) {
-            & $wsl.Source bash -lc "command -v $tool >/dev/null 2>&1" 2>$null
+            $null = & $wsl.Source bash -lc "command -v $tool >/dev/null 2>&1" 2>$null
             if ($LASTEXITCODE -eq 0) {
                 return @{
                     Type = "wsl-$tool"
@@ -93,7 +93,7 @@ function Find-ISORemasterTool {
 
     $wsl = Get-Command wsl.exe -ErrorAction SilentlyContinue
     if ($wsl) {
-        & $wsl.Source bash -lc "command -v xorriso >/dev/null 2>&1" 2>$null
+        $null = & $wsl.Source bash -lc "command -v xorriso >/dev/null 2>&1" 2>$null
         if ($LASTEXITCODE -eq 0) {
             return @{
                 Type = "wsl-xorriso"

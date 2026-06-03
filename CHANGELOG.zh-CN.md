@@ -13,6 +13,10 @@
 - 在操作指南和故障排除文档中添加了 SSH 密钥生命周期文档（英文和简体中文）。新文档涵盖密钥位置（`%USERPROFILE%\\.ssh\\adp-os\\`）、密钥格式（ed25519，无密码）、首次自动创建、带备份和 VM 影响警告的密钥重新生成、密钥安全、直接 SSH/scp 用法，以及 `key-missing`、`auth-pending`、`Permission denied`、`bad permissions`、密钥删除和多用户环境的故障排除。（Phase 2 roadmap 项目。）
 - 新增 `adp validate` 命令，作为共享仓库验证套件的独立 CLI 入口。支持 `-Quick`、`-SkipCliSmoke`、`-SkipInstallerSmoke` 和 `-SkipShellSyntax` 标志，提供双语输出。（Phase 2 roadmap 项目。）
 
+### 修复
+
+- 修复 `install.ps1`、`cli/commands/doctor.ps1` 和 `runtimes/vmware/vm-factory.ps1` 中 `Test-WSLCommand` 的 PowerShell 管道泄漏问题：`wsl.exe` shim 的 stdout 泄漏到函数返回值中，将布尔结果污染为 `Object[]`，导致 CI 中报 `Cannot convert value "System.Object[]" to type "System.Boolean"` 错误。修复方法是通过 `$null = &` 捕获外部命令输出，防止管道污染。
+
 ## 2026-05-31
 
 ### 变更
