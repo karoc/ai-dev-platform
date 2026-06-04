@@ -1,15 +1,15 @@
-# AI Dev Platform OS — Windows-First Local AI Agent Development Sandbox
+# AI Dev Platform OS — Windows-First Programmable Sandbox for AI Agent Development
 
 [简体中文](README.zh-CN.md) | English
 
 [![CI](https://github.com/karoc/ai-dev-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/karoc/ai-dev-platform/actions/workflows/ci.yml)
 [![MCP](https://img.shields.io/badge/MCP-18_tools-4B8BBE?logo=python)](cli/mcp/server.py)
 
-AI Dev Platform OS, or ADP-OS, is a local AI development runtime platform for Windows, VMware Workstation, Ubuntu Server, and Mutagen.
+AI Dev Platform OS, or ADP-OS, is a local programmable sandbox with hardware-level isolation for AI agent development on Windows, VMware Workstation, Ubuntu Server, and Mutagen.
 
 The project provisions isolated Linux runtimes for frontend, backend, and AI agent workloads, keeps workspaces synchronized from Windows into each VM, and creates rollback snapshots for repeatable local AI coding workflows.
 
-ADP-OS does not replace Docker. It provisions Docker-capable local Linux runtimes and adds VM lifecycle management, workspace synchronization, role-specific bootstrap, diagnostics, static networking, and snapshot rollback around those runtimes.
+ADP-OS does not replace Docker. It provisions Docker-capable local Linux runtimes and adds VM lifecycle management, workspace synchronization, role-specific bootstrap, diagnostics, static networking, snapshot rollback, and agent governance — an audit chain of workspace recipes, task state tracking, and release evidence — around those runtimes.
 
 > Status: Windows MVP. macOS, Linux hosts, Hyper-V, KVM, container runtimes, and richer workspace orchestration are planned but not implemented yet.
 
@@ -26,6 +26,7 @@ ADP-OS does not replace Docker. It provisions Docker-capable local Linux runtime
 - VMware snapshot commands for clean rollback points.
 - Diagnostics and deployment pre-check scripts.
 - Agent-native MCP server exposing 18 platform, workspace, and runtime tools.
+- Agent governance audit chain: task state tracking, milestone checkpoints, evaluation hooks, and release evidence.
 
 ## Agent-Native API (MCP)
 

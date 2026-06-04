@@ -1,15 +1,15 @@
-# AI Dev Platform OS —— Windows 原生的本地 AI Agent 开发沙箱
+# AI Dev Platform OS —— Windows 原生的可编程 AI Agent 开发沙箱
 
 简体中文 | [English](README.md)
 
 [![CI](https://github.com/karoc/ai-dev-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/karoc/ai-dev-platform/actions/workflows/ci.yml)
 [![MCP](https://img.shields.io/badge/MCP-18_tools-4B8BBE?logo=python)](cli/mcp/server.py)
 
-AI Dev Platform OS，简称 ADP-OS，是一个面向 Windows、VMware Workstation、Ubuntu Server 和 Mutagen 的本地 AI 开发运行时平台。
+AI Dev Platform OS，简称 ADP-OS，是一个面向 Windows、VMware Workstation、Ubuntu Server 和 Mutagen 的本地可编程沙箱，提供硬件级隔离的 AI Agent 开发环境。
 
 本项目会为前端、后端和 AI Agent 工作负载创建隔离的 Linux 运行时，将 Windows 工作区同步到各个 VM 中，并提供回滚快照，以支持可复现的本地 AI 编码工作流。
 
-ADP-OS 不替代 Docker。它创建可运行 Docker 的本地 Linux 运行时，并在其外层提供 VM 生命周期管理、工作区同步、角色化 bootstrap、诊断、静态网络和快照回滚。
+ADP-OS 不替代 Docker。它创建可运行 Docker 的本地 Linux 运行时，并在其外层提供 VM 生命周期管理、工作区同步、角色化 bootstrap、诊断、静态网络、快照回滚，以及 Agent 治理（工作区配方、任务状态追踪和发布证据审计链）。
 
 > 状态：Windows MVP。macOS、Linux 主机、Hyper-V、KVM、容器运行时以及更完整的工作区编排仍在计划中，尚未实现。
 
@@ -26,6 +26,7 @@ ADP-OS 不替代 Docker。它创建可运行 Docker 的本地 Linux 运行时，
 - VMware 快照命令，用于创建可回滚的干净检查点。
 - 诊断脚本和部署预检查脚本。
 - Agent-native MCP 服务器，暴露 18 个平台、工作区和运行时工具。
+- Agent 治理审计链：任务状态追踪、里程碑检查点、评估钩子和发布证据。
 
 ## Agent-Native API（MCP）
 
