@@ -19,6 +19,7 @@
 - 开始 `adp workspace` 入口命令的双语本地化。调度部分和五个入口命令界面现使用 `Write-UIHost` 进行一致的语言选择：`workspace show`/`plan`（Write-WorkspaceSummary）、`workspace create`（Write-WorkspaceCreate）、`workspace open`（Write-WorkspaceOpen）和 `workspace sync`（Write-WorkspaceSyncGuide）。共享的 `Write-WorkspaceCheck` helper 现已支持双语输出，可选择性传入 `-ChineseName` 和 `-ChineseDetail` 参数。
 - 继续 `adp workspace` 双语本地化，完成 `workspace status`（Write-WorkspaceStatus），涵盖清单信息、项目就绪状态、里程碑、评估和任务生命周期字段。所有面向用户的标签、区块标题和检查项名称现在均遵循配置的 UI 语言偏好。其余 workspace 界面（dashboard、report、recipes、project、task lifecycle）将在后续批次跟随。
 - 继续 `adp workspace` 双语本地化，完成 `workspace dashboard`（Write-WorkspaceDashboard），涵盖区块标题（概览、项目就绪状态、里程碑检查点、评估钩子、任务生命周期）、检查项名称（清单、状态、项目、里程碑、评估、任务）、空状态消息以及任务生命周期命令提示（准备、运行、审查）。所有仪表盘输出现在均遵循配置的 UI 语言偏好。其余 workspace 界面（report、recipes、project、task lifecycle）将在后续批次跟随。
+- 完成 `workspace.ps1` 中所有剩余 Write-Host 调用的双语本地化：用法/帮助示例（Show-WorkspaceUsage）、审查/提交决策下一步提示行（Write-WorkspaceReviewDecision、Write-WorkspaceCommitDecision）、验证详情行（Write-WorkspaceValidationDetailLines）、检查点标题（Write-WorkspaceTaskSnapshot），以及所有任务标记边界消息和状态显示（Write-WorkspaceTaskMark）。现在所有 `adp workspace` 面向用户的输出均使用 `Write-UIHost`，支持英文和简体中文（共 521 处 Write-UIHost 调用，Write-Host 已清零）。
 
 ### 修复
 

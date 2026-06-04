@@ -17,15 +17,15 @@ $ErrorActionPreference = "Stop"
 
 function Show-WorkspaceUsage {
     Write-ErrorLog -Message "Usage: adp workspace <init|show|plan|status|dashboard|report|recipes|create|open|sync|project|task> [-ManifestPath <path>]" -Component "cli.workspace"
-    Write-Host "  adp workspace recipes [-ManifestPath <path>]" -ForegroundColor DarkGray
-    Write-Host "  adp workspace create [-Plan] [-ManifestPath <path>]" -ForegroundColor DarkGray
-    Write-Host "  adp workspace open [project-name] [-ManifestPath <path>]" -ForegroundColor DarkGray
-    Write-Host "  adp workspace sync [project-name] [-ManifestPath <path>]" -ForegroundColor DarkGray
-    Write-Host "  adp workspace project [project-name] [-ManifestPath <path>]" -ForegroundColor DarkGray
-    Write-Host "  adp workspace report [-Markdown] [-ManifestPath <path>]" -ForegroundColor DarkGray
-    Write-Host "  adp workspace task <prepare|snapshot|run|validate|review|rollback|commit> <task-name> [-ManifestPath <path>]" -ForegroundColor DarkGray
-    Write-Host "  adp workspace task validate <task-name> [-Execute] [-Plan] [-ManifestPath <path>]" -ForegroundColor DarkGray
-    Write-Host "  adp workspace task mark <task-name> <prepared|checkpointed|checkpoint-waived|running|validated|reviewed|rollback|committed> [-StatePath <path>]" -ForegroundColor DarkGray
+    Write-UIHost -English "  adp workspace recipes [-ManifestPath <path>]" -Chinese "  adp workspace recipes [-ManifestPath <path>]" -ForegroundColor DarkGray
+    Write-UIHost -English "  adp workspace create [-Plan] [-ManifestPath <path>]" -Chinese "  adp workspace create [-Plan] [-ManifestPath <path>]" -ForegroundColor DarkGray
+    Write-UIHost -English "  adp workspace open [project-name] [-ManifestPath <path>]" -Chinese "  adp workspace open [project-name] [-ManifestPath <path>]" -ForegroundColor DarkGray
+    Write-UIHost -English "  adp workspace sync [project-name] [-ManifestPath <path>]" -Chinese "  adp workspace sync [project-name] [-ManifestPath <path>]" -ForegroundColor DarkGray
+    Write-UIHost -English "  adp workspace project [project-name] [-ManifestPath <path>]" -Chinese "  adp workspace project [project-name] [-ManifestPath <path>]" -ForegroundColor DarkGray
+    Write-UIHost -English "  adp workspace report [-Markdown] [-ManifestPath <path>]" -Chinese "  adp workspace report [-Markdown] [-ManifestPath <path>]" -ForegroundColor DarkGray
+    Write-UIHost -English "  adp workspace task <prepare|snapshot|run|validate|review|rollback|commit> <task-name> [-ManifestPath <path>]" -Chinese "  adp workspace task <prepare|snapshot|run|validate|review|rollback|commit> <task-name> [-ManifestPath <path>]" -ForegroundColor DarkGray
+    Write-UIHost -English "  adp workspace task validate <task-name> [-Execute] [-Plan] [-ManifestPath <path>]" -Chinese "  adp workspace task validate <task-name> [-Execute] [-Plan] [-ManifestPath <path>]" -ForegroundColor DarkGray
+    Write-UIHost -English "  adp workspace task mark <task-name> <prepared|checkpointed|checkpoint-waived|running|validated|reviewed|rollback|committed> [-StatePath <path>]" -Chinese "  adp workspace task mark <task-name> <prepared|checkpointed|checkpoint-waived|running|validated|reviewed|rollback|committed> [-StatePath <path>]" -ForegroundColor DarkGray
 }
 
 function Read-WorkspaceManifest {
@@ -967,7 +967,7 @@ function Write-WorkspaceReviewDecision {
     param([object]$Decision)
 
     Write-WorkspaceCheck -Level $Decision.Level -Name "review verdict" -Detail "($($Decision.Verdict): $($Decision.Detail))"
-    Write-Host "     next: $($Decision.NextStep)" -ForegroundColor DarkGray
+    Write-UIHost -English "     next: $($Decision.NextStep)" -Chinese "     下一步: $($Decision.NextStep)" -ForegroundColor DarkGray
 }
 
 function Get-WorkspaceRecordedTaskStateName {
@@ -1066,26 +1066,26 @@ function Write-WorkspaceCommitDecision {
     param([object]$Decision)
 
     Write-WorkspaceCheck -Level $Decision.Level -Name "commit readiness" -Detail "($($Decision.Verdict): $($Decision.Detail))"
-    Write-Host "     next: $($Decision.NextStep)" -ForegroundColor DarkGray
+    Write-UIHost -English "     next: $($Decision.NextStep)" -Chinese "     下一步: $($Decision.NextStep)" -ForegroundColor DarkGray
 }
 
 function Write-WorkspaceValidationDetailLines {
     param([object]$RecordedState)
 
     if (-not $RecordedState -or -not ($RecordedState.PSObject.Properties.Name -contains "validation") -or -not $RecordedState.validation) {
-        Write-Host "     validation detail: no recorded execution result" -ForegroundColor DarkGray
+        Write-UIHost -English "     validation detail: no recorded execution result" -Chinese "     验证详情: 无已记录的执行结果" -ForegroundColor DarkGray
         return
     }
 
     $validation = $RecordedState.validation
     if ($validation.PSObject.Properties.Name -contains "failed_command" -and -not [string]::IsNullOrWhiteSpace([string]$validation.failed_command)) {
-        Write-Host "     failed command: $($validation.failed_command)" -ForegroundColor DarkGray
+        Write-UIHost -English "     failed command: $($validation.failed_command)" -Chinese "     失败的命令: $($validation.failed_command)" -ForegroundColor DarkGray
     }
     if ($validation.PSObject.Properties.Name -contains "remote_path" -and -not [string]::IsNullOrWhiteSpace([string]$validation.remote_path)) {
-        Write-Host "     remote path: $($validation.remote_path)" -ForegroundColor DarkGray
+        Write-UIHost -English "     remote path: $($validation.remote_path)" -Chinese "     远程路径: $($validation.remote_path)" -ForegroundColor DarkGray
     }
     if ($validation.PSObject.Properties.Name -contains "command_count") {
-        Write-Host "     command count: $($validation.command_count)" -ForegroundColor DarkGray
+        Write-UIHost -English "     command count: $($validation.command_count)" -Chinese "     命令计数: $($validation.command_count)" -ForegroundColor DarkGray
     }
 }
 
@@ -3565,8 +3565,8 @@ function Write-WorkspaceTaskSnapshot {
     $snapshotStatus = Get-WorkspaceSnapshotStatus -RuntimeName $Task.runtime -SnapshotName $Task.snapshot
     $snapshotGate = Get-WorkspaceSnapshotGate -Task $Task -SnapshotStatus $snapshotStatus -RecordedState $recordedState
     $snapshotNaming = Get-WorkspaceSnapshotNamingStatus -Task $Task
-    Write-Host ""
-    Write-Host "Checkpoint:" -ForegroundColor Yellow
+    Write-UIHost -English "" -Chinese ""
+    Write-UIHost -English "Checkpoint:" -Chinese "检查点:" -ForegroundColor Yellow
     Write-WorkspaceCheck -Level $snapshotNaming.Level -Name "snapshot naming" -ChineseName "快照命名" -Detail "($($snapshotNaming.Status): $($snapshotNaming.Detail))"
     Write-WorkspaceCheck -Level $snapshotStatus.Level -Name "snapshot" -ChineseName "快照" -Detail "($($snapshotStatus.Status)$(if ($snapshotStatus.Detail) { ': ' + $snapshotStatus.Detail }))"
     Write-WorkspaceCheck -Level $snapshotGate.Level -Name "snapshot-first gate" -ChineseName "快照优先门控" -Detail "($($snapshotGate.Status): $($snapshotGate.Detail))"
@@ -3945,34 +3945,34 @@ function Write-WorkspaceTaskMark {
     }
     Write-WorkspaceState -State $state -Path $resolvedStatePath
 
-    Write-Host ""
-    Write-Host "Workspace task mark: $($Task.name)" -ForegroundColor Cyan
-    Write-Host "Recorded local lifecycle state only. No VM, sync, snapshot, file, Git, or validation command was run." -ForegroundColor DarkGray
-    Write-Host ""
-    Write-Host "  State: $StateName" -ForegroundColor Green
-    Write-Host "  File:  $resolvedStatePath" -ForegroundColor DarkGray
+    Write-UIHost -English "" -Chinese ""
+    Write-UIHost -English "Workspace task mark: $($Task.name)" -Chinese "工作空间任务标记: $($Task.name)" -ForegroundColor Cyan
+    Write-UIHost -English "Recorded local lifecycle state only. No VM, sync, snapshot, file, Git, or validation command was run." -Chinese "仅记录本地生命周期状态。未运行任何 VM、同步、快照、文件、Git 或验证命令。" -ForegroundColor DarkGray
+    Write-UIHost -English "" -Chinese ""
+    Write-UIHost -English "  State: $StateName" -Chinese "  状态: $StateName" -ForegroundColor Green
+    Write-UIHost -English "  File:  $resolvedStatePath" -Chinese "  文件:  $resolvedStatePath" -ForegroundColor DarkGray
     switch ($StateName) {
         "checkpoint-waived" {
-            Write-Host "  Boundary: checkpoint-waived records explicit human acceptance of missing VM snapshot protection. It does not create a snapshot, prove rollback safety, or restore rollback capability." -ForegroundColor Yellow
-            Write-Host "  Evidence: workspace status, dashboard, project, report, review, rollback, and commit will show the checkpoint gate as waived instead of ready." -ForegroundColor DarkGray
+            Write-UIHost -English "  Boundary: checkpoint-waived records explicit human acceptance of missing VM snapshot protection. It does not create a snapshot, prove rollback safety, or restore rollback capability." -Chinese "  边界: checkpoint-waived 记录了人工明确接受缺少 VM 快照保护的状态。它不会创建快照、不会证明回滚安全、也不会恢复回滚能力。" -ForegroundColor Yellow
+            Write-UIHost -English "  Evidence: workspace status, dashboard, project, report, review, rollback, and commit will show the checkpoint gate as waived instead of ready." -Chinese "  证据: workspace status、dashboard、project、report、review、rollback 和 commit 将显示检查点门控为已豁免而非就绪。" -ForegroundColor DarkGray
         }
         "running" {
-            Write-Host "  Boundary: running means manual execution began or was attempted; ADP-OS did not start the agent, approve execution, validate output, or satisfy review/commit readiness." -ForegroundColor Yellow
+            Write-UIHost -English "  Boundary: running means manual execution began or was attempted; ADP-OS did not start the agent, approve execution, validate output, or satisfy review/commit readiness." -Chinese "  边界: running 表示人工执行已开始或已尝试；ADP-OS 并未启动 agent、未批准执行、未验证输出、也未满足审查/提交就绪条件。" -ForegroundColor Yellow
         }
         "validated" {
-            Write-Host "  Boundary: validated is a local lifecycle note only. Use 'adp workspace task validate <task> -Execute' to record executable validation evidence." -ForegroundColor Yellow
+            Write-UIHost -English "  Boundary: validated is a local lifecycle note only. Use 'adp workspace task validate <task> -Execute' to record executable validation evidence." -Chinese "  边界: validated 仅为本机生命周期备注。使用 'adp workspace task validate <task> -Execute' 记录可执行的验证证据。" -ForegroundColor Yellow
         }
         "reviewed" {
-            Write-Host "  Boundary: reviewed should be used only after human source review accepts the diff, rollback path, snapshot context, and recorded validation evidence." -ForegroundColor Yellow
+            Write-UIHost -English "  Boundary: reviewed should be used only after human source review accepts the diff, rollback path, snapshot context, and recorded validation evidence." -Chinese "  边界: reviewed 应仅在人工源码审查接受 diff、回滚路径、快照上下文和已记录的验证证据后使用。" -ForegroundColor Yellow
         }
         "committed" {
-            Write-Host "  Boundary: committed is a local lifecycle note only; ADP-OS did not stage files or run git commit." -ForegroundColor Yellow
+            Write-UIHost -English "  Boundary: committed is a local lifecycle note only; ADP-OS did not stage files or run git commit." -Chinese "  边界: committed 仅为本机生命周期备注；ADP-OS 并未暂存文件或运行 git commit。" -ForegroundColor Yellow
         }
         "rollback" {
-            Write-Host "  Boundary: rollback is a local lifecycle note only; ADP-OS did not restore snapshots or modify source files." -ForegroundColor Yellow
+            Write-UIHost -English "  Boundary: rollback is a local lifecycle note only; ADP-OS did not restore snapshots or modify source files." -Chinese "  边界: rollback 仅为本机生命周期备注；ADP-OS 并未恢复快照或修改源文件。" -ForegroundColor Yellow
         }
         default {
-            Write-Host "  Boundary: this state does not prove execution, validation, review acceptance, rollback readiness, or commit readiness." -ForegroundColor DarkGray
+            Write-UIHost -English "  Boundary: this state does not prove execution, validation, review acceptance, rollback readiness, or commit readiness." -Chinese "  边界: 此状态不证明执行、验证、审查通过、回滚就绪或提交就绪。" -ForegroundColor DarkGray
         }
     }
 }
