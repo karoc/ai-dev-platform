@@ -1,15 +1,15 @@
-# AI Dev Platform OS — Secure Windows-First Programmable Sandbox for AI Agent & Computer-Use Agent Development
+# AI Dev Platform OS — Secure, Spec-Driven Windows-First Programmable Sandbox for AI Agent & Computer-Use Agent Development
 
 [简体中文](README.zh-CN.md) | English
 
 [![CI](https://github.com/karoc/ai-dev-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/karoc/ai-dev-platform/actions/workflows/ci.yml)
 [![MCP](https://img.shields.io/badge/MCP_SDK-18_tools-4B8BBE?logo=python)](cli/mcp/server.py)
 
-AI Dev Platform OS, or ADP-OS, is a secure, enterprise-grade local programmable sandbox with hardware-level isolation for AI agent and computer-use agent development on Windows, VMware Workstation, Ubuntu Server, and Mutagen.
+AI Dev Platform OS, or ADP-OS, is a secure, enterprise-grade, spec-driven local programmable sandbox with hardware-level isolation for AI agent and computer-use agent development on Windows, VMware Workstation, Ubuntu Server, and Mutagen. ADP-OS takes a spec-driven approach: workspace recipes declare projects, tasks, validation commands, milestones, and evaluation hooks upfront, then the platform executes them in an auditable lifecycle with task state tracking and release evidence.
 
 The project provisions isolated Linux runtimes for frontend, backend, and AI agent workloads, keeps workspaces synchronized from Windows into each VM, and creates rollback snapshots for repeatable local AI coding workflows.
 
-ADP-OS does not replace Docker. It provisions Docker-capable local Linux runtimes and adds VM lifecycle management, workspace synchronization, role-specific bootstrap, diagnostics, static networking, snapshot rollback, and agent governance — an audit chain of workspace recipes, task state tracking, and release evidence — around those runtimes.
+ADP-OS does not replace Docker. It provisions Docker-capable local Linux runtimes and adds VM lifecycle management, workspace synchronization, role-specific bootstrap, diagnostics, static networking, snapshot rollback, and agent governance — a spec-driven audit chain of workspace recipes, task state tracking, and release evidence — around those runtimes.
 
 > Status: Windows MVP. macOS, Linux hosts, Hyper-V, KVM, container runtimes, and richer workspace orchestration are planned but not implemented yet.
 
@@ -273,7 +273,7 @@ Examples:
 See [Workspaces](docs/workspaces.md) for target-project layout and ADP-OS dogfooding guidance.
 See [Capabilities](docs/capabilities.md) for the current supported runtime and adapter boundary. See [Roadmap](docs/roadmap.md) for the public product direction across workspace orchestration, agent-native development, and runtime expansion. See [Release Readiness](docs/release-readiness.md) for the release decision policy, stale-task remediation flow, and maintainer checklist. See [Release Process](docs/release-process.md) for validation, evidence, safety checks, and publication boundaries. See [Contributor Workflows](docs/contributor-workflows.md) for task templates, maintainer review ritual, and pull request expectations.
 
-ADP-OS also includes a multi-scenario workspace recipes manifest for common agent-native workflows:
+ADP-OS also includes a multi-scenario, spec-driven workspace recipes manifest for common agent-native workflows. Treat the manifest as a spec: declare what to build, how to validate, and which milestones gate progress, then let the platform execute and produce auditable release evidence:
 
 ```powershell
 adp workspace show -ManifestPath configs\workspace.recipes.example.json

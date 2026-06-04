@@ -1,15 +1,15 @@
-# AI Dev Platform OS —— 安全的 Windows 原生可编程 AI Agent 与 Computer-Use Agent 开发沙箱
+# AI Dev Platform OS —— 安全、Spec 驱动的 Windows 原生可编程 AI Agent 与 Computer-Use Agent 开发沙箱
 
 简体中文 | [English](README.md)
 
 [![CI](https://github.com/karoc/ai-dev-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/karoc/ai-dev-platform/actions/workflows/ci.yml)
 [![MCP](https://img.shields.io/badge/MCP_SDK-18_tools-4B8BBE?logo=python)](cli/mcp/server.py)
 
-AI Dev Platform OS，简称 ADP-OS，是一个安全的企业级本地可编程沙箱，面向 Windows、VMware Workstation、Ubuntu Server 和 Mutagen，提供硬件级隔离的 AI Agent 和 Computer-Use Agent 开发环境。
+AI Dev Platform OS，简称 ADP-OS，是一个安全、企业级、Spec 驱动的本地可编程沙箱，面向 Windows、VMware Workstation、Ubuntu Server 和 Mutagen，提供硬件级隔离的 AI Agent 和 Computer-Use Agent 开发环境。ADP-OS 采用 Spec 驱动方式：workspace recipe 预先声明项目、任务、验证命令、里程碑和评估钩子，平台按照声明执行，产出可审计的任务状态追踪和发布证据。
 
 本项目会为前端、后端和 AI Agent 工作负载创建隔离的 Linux 运行时，将 Windows 工作区同步到各个 VM 中，并提供回滚快照，以支持可复现的本地 AI 编码工作流。
 
-ADP-OS 不替代 Docker。它创建可运行 Docker 的本地 Linux 运行时，并在其外层提供 VM 生命周期管理、工作区同步、角色化 bootstrap、诊断、静态网络、快照回滚，以及 Agent 治理（工作区配方、任务状态追踪和发布证据审计链）。
+ADP-OS 不替代 Docker。它创建可运行 Docker 的本地 Linux 运行时，并在其外层提供 VM 生命周期管理、工作区同步、角色化 bootstrap、诊断、静态网络、快照回滚，以及 Agent 治理（Spec 驱动的工作区配方、任务状态追踪和发布证据审计链）。
 
 > 状态：Windows MVP。macOS、Linux 主机、Hyper-V、KVM、容器运行时以及更完整的工作区编排仍在计划中，尚未实现。
 
@@ -226,7 +226,7 @@ git clone <project-url> my-project
 
 目标项目布局和 ADP-OS dogfooding 指南见[工作区](docs/zh-CN/workspaces.md)。当前支持的 runtime 和 adapter 边界见[能力边界](docs/zh-CN/capabilities.md)。Workspace orchestration、agent-native development 和 runtime expansion 的公开产品方向见[路线图](docs/zh-CN/roadmap.md)。Release decision policy、stale-task remediation flow 和维护者 checklist 见[发布就绪](docs/zh-CN/release-readiness.md)。Validation、evidence、safety checks 和 publication boundaries 见[发布流程](docs/zh-CN/release-process.md)。Task templates、维护者 review ritual 和 pull request expectations 见[贡献者工作流](docs/zh-CN/contributor-workflows.md)。
 
-ADP-OS 还提供一个多场景 workspace recipes manifest，用于常见 agent-native workflow：
+ADP-OS 还提供一个多场景、Spec 驱动的 workspace recipes manifest，用于常见 agent-native workflow。把 manifest 当作 Spec：声明要构建什么、如何验证、哪些里程碑把关进度，然后由平台执行并产出可审计的发布证据：
 
 ```powershell
 adp workspace show -ManifestPath configs\workspace.recipes.example.json
