@@ -394,6 +394,30 @@ Exploratory:
             result = server._resolve_adp_home_win()
             assert result == "D:\\Test\\adp-os"
 
+    def test_resolve_adp_home_win_windows_native(self):
+        """_resolve_adp_home_win returns adp_home directly on Windows (no wslpath)."""
+        import cli.mcp.server as server
+
+        with patch.object(server, 'IS_WINDOWS', True):
+            with patch.object(server, '_resolve_adp_home') as mock_home:
+                mock_home.return_value = Path("D:/Dev/ai-dev-platform")
+                # ADP_HOME_WIN is NOT set — should return ADP_HOME directly
+                with patch.dict(os.environ, {}, clear=True):
+                    result = server._resolve_adp_home_win()
+                    assert result == str(Path("D:/Dev/ai-dev-platform"))
+
+    def test_resolve_adp_home_windows_fallback(self):
+        """_resolve_adp_home searches Windows-native paths when IS_WINDOWS."""
+        import cli.mcp.server as server
+
+        # On Windows, it should not try WSL mount paths
+        with patch.object(server, 'IS_WINDOWS', True):
+            # Step 2 (relative to script) should still work
+            # The actual file exists, so it should find it
+            home = server._resolve_adp_home()
+            assert home.exists()
+            assert (home / "cli" / "adp.ps1").exists()
+
 
 def run_tests():
     """Run all tests and report results."""

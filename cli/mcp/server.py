@@ -46,6 +46,12 @@ from typing import Optional, Any
 from mcp.server.fastmcp import FastMCP
 
 # ---------------------------------------------------------------------------
+# Platform detection
+# ---------------------------------------------------------------------------
+
+IS_WINDOWS = sys.platform == "win32"
+
+# ---------------------------------------------------------------------------
 # ADP-OS path resolution
 # ---------------------------------------------------------------------------
 
@@ -63,15 +69,25 @@ def _resolve_adp_home() -> Path:
     if cli_entry.exists():
         return candidate
 
-    # 3. Common WSL mount paths
-    for p in [
-        Path("/mnt/d/Dev/ai-dev-platform"),
-        Path("/mnt/c/Users").glob("*/dev/adp-os"),
-    ]:
-        if isinstance(p, Path):
-            check = p / "cli" / "adp.ps1"
-            if check.exists():
+    # 3. Platform-specific fallback paths
+    if IS_WINDOWS:
+        # Windows native: check well-known installation paths
+        for p in [
+            Path("D:/Dev/ai-dev-platform"),
+            Path.home() / "ai-dev-platform",
+        ]:
+            if (p / "cli" / "adp.ps1").exists():
                 return p
+    else:
+        # WSL/Linux: check common WSL mount paths
+        for p in [
+            Path("/mnt/d/Dev/ai-dev-platform"),
+            Path("/mnt/c/Users").glob("*/dev/adp-os"),
+        ]:
+            if isinstance(p, Path):
+                check = p / "cli" / "adp.ps1"
+                if check.exists():
+                    return p
 
     raise FileNotFoundError(
         "Cannot locate ADP-OS installation. Set ADP_HOME environment variable "
@@ -86,6 +102,12 @@ def _resolve_adp_home_win() -> str:
         return adp_home_win
 
     adp_home = _resolve_adp_home()
+
+    # On Windows, ADP_HOME is already a native Windows path — no conversion needed
+    if IS_WINDOWS:
+        return str(adp_home)
+
+    # On WSL/Linux, convert WSL path to Windows path via wslpath
     try:
         result = subprocess.run(
             ["wslpath", "-w", str(adp_home)],
@@ -111,6 +133,17 @@ def _find_pwsh() -> str:
     pwsh = shutil.which("pwsh.exe") or shutil.which("pwsh")
     if pwsh:
         return pwsh
+
+    # Platform-specific fallback locations
+    if IS_WINDOWS:
+        for loc in [
+            Path("C:/Program Files/PowerShell/7/pwsh.exe"),
+            Path.home() / "AppData/Local/Programs/PowerShell/7/pwsh.exe",
+            Path.home() / "AppData/Local/Microsoft/WindowsApps/pwsh.exe",
+        ]:
+            if loc.exists():
+                return str(loc)
+
     raise FileNotFoundError("PowerShell 7+ (pwsh) not found in PATH")
 
 

@@ -56,6 +56,26 @@ pip install -r requirements.txt
 
 Add to your MCP client configuration (e.g., Claude Desktop `claude_desktop_config.json`):
 
+#### Windows (Native)
+
+```json
+{
+  "mcpServers": {
+    "adp-os": {
+      "command": "python",
+      "args": ["D:\\Dev\\ai-dev-platform\\cli\\mcp\\server.py"],
+      "env": {
+        "ADP_HOME": "D:\\Dev\\ai-dev-platform"
+      }
+    }
+  }
+}
+```
+
+On Windows, only `ADP_HOME` is needed. The server auto-detects the platform and treats paths as native Windows paths.
+
+#### WSL
+
 ```json
 {
   "mcpServers": {
@@ -63,7 +83,7 @@ Add to your MCP client configuration (e.g., Claude Desktop `claude_desktop_confi
       "command": "python",
       "args": ["path/to/cli/mcp/server.py"],
       "env": {
-        "ADP_HOME": "D:\\Dev\\ai-dev-platform",
+        "ADP_HOME": "/home/user/ai-dev-platform",
         "ADP_HOME_WIN": "D:\\Dev\\ai-dev-platform"
       }
     }
@@ -71,7 +91,7 @@ Add to your MCP client configuration (e.g., Claude Desktop `claude_desktop_confi
 }
 ```
 
-On WSL, set `ADP_HOME` to the WSL path (e.g. `/home/user/ai-dev-platform`) and `ADP_HOME_WIN` to the Windows path (e.g. `D:\Dev\ai-dev-platform`).
+On WSL, set `ADP_HOME` to the WSL path (e.g. `/home/user/ai-dev-platform`) and `ADP_HOME_WIN` to the Windows path (e.g. `D:\\Dev\\ai-dev-platform`). The server converts between WSL and Windows paths automatically via `wslpath`.
 
 ### Claude Desktop Setup
 
@@ -86,6 +106,8 @@ On WSL, set `ADP_HOME` to the WSL path (e.g. `/home/user/ai-dev-platform`) and `
    - **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
 
 3. Add the ADP-OS server entry:
+
+   **Windows native**:
    ```json
    {
      "mcpServers": {
@@ -93,7 +115,22 @@ On WSL, set `ADP_HOME` to the WSL path (e.g. `/home/user/ai-dev-platform`) and `
          "command": "python",
          "args": ["D:\\Dev\\ai-dev-platform\\cli\\mcp\\server.py"],
          "env": {
-           "ADP_HOME": "D:\\Dev\\ai-dev-platform",
+           "ADP_HOME": "D:\\Dev\\ai-dev-platform"
+         }
+       }
+     }
+   }
+   ```
+
+   **WSL** (Python in WSL, pwsh.exe on Windows host):
+   ```json
+   {
+     "mcpServers": {
+       "adp-os": {
+         "command": "wsl",
+         "args": ["python3", "/home/user/ai-dev-platform/cli/mcp/server.py"],
+         "env": {
+           "ADP_HOME": "/home/user/ai-dev-platform",
            "ADP_HOME_WIN": "D:\\Dev\\ai-dev-platform"
          }
        }
