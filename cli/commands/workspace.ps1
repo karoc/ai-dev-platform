@@ -16,16 +16,25 @@ param(
 $ErrorActionPreference = "Stop"
 
 function Show-WorkspaceUsage {
-    Write-ErrorLog -Message "Usage: adp workspace <init|show|plan|status|dashboard|report|recipes|create|open|sync|project|task> [-ManifestPath <path>]" -Component "cli.workspace"
-    Write-UIHost -English "  adp workspace recipes [-ManifestPath <path>]" -Chinese "  adp workspace recipes [-ManifestPath <path>]" -ForegroundColor DarkGray
-    Write-UIHost -English "  adp workspace create [-Plan] [-ManifestPath <path>]" -Chinese "  adp workspace create [-Plan] [-ManifestPath <path>]" -ForegroundColor DarkGray
-    Write-UIHost -English "  adp workspace open [project-name] [-ManifestPath <path>]" -Chinese "  adp workspace open [project-name] [-ManifestPath <path>]" -ForegroundColor DarkGray
-    Write-UIHost -English "  adp workspace sync [project-name] [-ManifestPath <path>]" -Chinese "  adp workspace sync [project-name] [-ManifestPath <path>]" -ForegroundColor DarkGray
-    Write-UIHost -English "  adp workspace project [project-name] [-ManifestPath <path>]" -Chinese "  adp workspace project [project-name] [-ManifestPath <path>]" -ForegroundColor DarkGray
-    Write-UIHost -English "  adp workspace report [-Markdown] [-ManifestPath <path>]" -Chinese "  adp workspace report [-Markdown] [-ManifestPath <path>]" -ForegroundColor DarkGray
-    Write-UIHost -English "  adp workspace task <prepare|snapshot|run|validate|review|rollback|commit> <task-name> [-ManifestPath <path>]" -Chinese "  adp workspace task <prepare|snapshot|run|validate|review|rollback|commit> <task-name> [-ManifestPath <path>]" -ForegroundColor DarkGray
-    Write-UIHost -English "  adp workspace task validate <task-name> [-Execute] [-Plan] [-ManifestPath <path>]" -Chinese "  adp workspace task validate <task-name> [-Execute] [-Plan] [-ManifestPath <path>]" -ForegroundColor DarkGray
-    Write-UIHost -English "  adp workspace task mark <task-name> <prepared|checkpointed|checkpoint-waived|running|validated|reviewed|rollback|committed> [-StatePath <path>]" -Chinese "  adp workspace task mark <task-name> <prepared|checkpointed|checkpoint-waived|running|validated|reviewed|rollback|committed> [-StatePath <path>]" -ForegroundColor DarkGray
+    Write-ErrorLog -Message "Usage: adp workspace <command> [-ManifestPath <path>]" -Component "cli.workspace"
+    Write-Host ""
+
+    Write-UIHost -English "Inspect:" -Chinese "查看:" -ForegroundColor Yellow
+    Write-UIHost -English "  adp workspace show [-ManifestPath <path>]          Show workspace manifest details" -Chinese "  adp workspace show [-ManifestPath <path>]          显示工作区 manifest 详情" -ForegroundColor DarkGray
+    Write-UIHost -English "  adp workspace plan [-ManifestPath <path>]          Preview workspace plan" -Chinese "  adp workspace plan [-ManifestPath <path>]          预览工作区计划" -ForegroundColor DarkGray
+    Write-UIHost -English "  adp workspace status [project-name] [-ManifestPath <path>]   Show workspace task status" -Chinese "  adp workspace status [project-name] [-ManifestPath <path>]   显示工作区任务状态" -ForegroundColor DarkGray
+    Write-UIHost -English "  adp workspace dashboard [-ManifestPath <path>]      Show workspace health dashboard" -Chinese "  adp workspace dashboard [-ManifestPath <path>]      显示工作区健康仪表板" -ForegroundColor DarkGray
+    Write-UIHost -English "  adp workspace report [-Markdown] [-ManifestPath <path>]   Generate workspace report" -Chinese "  adp workspace report [-Markdown] [-ManifestPath <path>]   生成工作区报告" -ForegroundColor DarkGray
+    Write-UIHost -English "  adp workspace recipes [-ManifestPath <path>]        Show workspace recipes" -Chinese "  adp workspace recipes [-ManifestPath <path>]        显示工作区配方" -ForegroundColor DarkGray
+    Write-Host ""
+    Write-UIHost -English "Manage:" -Chinese "管理:" -ForegroundColor Yellow
+    Write-UIHost -English "  adp workspace init [-ManifestPath <path>]           Initialize workspace manifest" -Chinese "  adp workspace init [-ManifestPath <path>]           初始化工作区 manifest" -ForegroundColor DarkGray
+    Write-UIHost -English "  adp workspace create [-Plan] [-ManifestPath <path>]  Create workspace projects" -Chinese "  adp workspace create [-Plan] [-ManifestPath <path>]  创建工作区项目" -ForegroundColor DarkGray
+    Write-UIHost -English "  adp workspace open [project-name] [-ManifestPath <path>]   Show open guide for a project" -Chinese "  adp workspace open [project-name] [-ManifestPath <path>]   显示项目打开指南" -ForegroundColor DarkGray
+    Write-UIHost -English "  adp workspace sync [project-name] [-ManifestPath <path>]   Show sync guide for a project" -Chinese "  adp workspace sync [project-name] [-ManifestPath <path>]   显示项目同步指南" -ForegroundColor DarkGray
+    Write-UIHost -English "  adp workspace project [project-name] [-ManifestPath <path>]  Show project lifecycle" -Chinese "  adp workspace project [project-name] [-ManifestPath <path>]  显示项目生命周期" -ForegroundColor DarkGray
+    Write-UIHost -English "  adp workspace task <prepare|snapshot|run|validate|review|rollback|commit> <task-name> [-ManifestPath <path>]  Manage workspace tasks" -Chinese "  adp workspace task <prepare|snapshot|run|validate|review|rollback|commit> <task-name> [-ManifestPath <path>]  管理工作区任务" -ForegroundColor DarkGray
+    Write-UIHost -English "  adp workspace task mark <task-name> <state> [-StatePath <path>]  Mark task state" -Chinese "  adp workspace task mark <task-name> <state> [-StatePath <path>]  标记任务状态" -ForegroundColor DarkGray
 }
 
 function Read-WorkspaceManifest {
@@ -4037,10 +4046,14 @@ function Invoke-WorkspaceTask {
 
 if (-not $SubCommand) {
     Show-WorkspaceUsage
-    exit 1
+    exit 0
 }
 
 switch ($SubCommand) {
+    "help" {
+        Show-WorkspaceUsage
+        exit 0
+    }
     "init" {
         if (Test-Path -LiteralPath $ManifestPath) {
             Write-UIHost -English "Workspace manifest already exists: $ManifestPath" -Chinese "工作区清单已存在: $ManifestPath" -ForegroundColor Yellow
@@ -4132,7 +4145,7 @@ switch ($SubCommand) {
         Invoke-WorkspaceTask -Manifest $manifest -Command $TaskCommand -Name $TaskName -StateName $TaskState -Path $ManifestPath -LocalStatePath $StatePath -ExecuteValidation:$Execute -PlanOnly:$Plan
     }
     default {
-        Write-ErrorLog -Message (Get-UIText -English "Unknown workspace command: $SubCommand. Valid: init, show, plan, status, dashboard, report, recipes, create, open, sync, project, task" -Chinese "未知工作区命令: $SubCommand。可用: init, show, plan, status, dashboard, report, recipes, create, open, sync, project, task") -Component "cli.workspace"
+        Write-ErrorLog -Message (Get-UIText -English "Unknown workspace command: $SubCommand. Use 'adp workspace help' to see grouped subcommands." -Chinese "未知工作区命令: $SubCommand。使用 'adp workspace help' 查看分组子命令。") -Component "cli.workspace"
         exit 1
     }
 }
