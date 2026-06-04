@@ -23,6 +23,7 @@
 - 新增 ADP-OS MCP (Model Context Protocol) 服务器，位于 `cli/mcp/server.py`。暴露 11 个 MCP 工具用于 agent-native 沙箱编排：`adp_status`、`adp_doctor`、`adp_workspace_list`、`adp_workspace_create`、`adp_workspace_open`、`adp_workspace_sync`、`adp_workspace_status`、`adp_workspace_recipes`、`adp_sync_status`、`adp_sync_stop` 和 `adp_capabilities`。服务器通过 `pwsh.exe` 子进程调用 ADP-OS PowerShell CLI，使用 FastMCP 通过 stdio 通信。包含 `README.md`，提供针对 Claude Desktop 等 MCP 客户端的安装和配置指南。
 - 将 MCP 服务器从 11 个工具扩展到 18 个，新增运行时管理、工作空间生命周期和关闭支持。新工具：`adp_up`（启动 VM，默认 plan-only）、`adp_down`（销毁 VM，默认 plan-only）、`adp_stop`（优雅关闭）、`adp_workspace_close`（停止项目运行时的同步，默认 plan-only）、`adp_workspace_project`（单项目生命周期视图）、`adp_workspace_dashboard`（任务生命周期概览）和 `adp_workspace_report`（Markdown 发布证据）。更新 `README.md`，添加 Claude Desktop 安装说明和故障排除指南。
 - 新增 MCP 服务器测试套件 `tests/test-mcp-server.py`，包含 14 个测试：模块导入、工具注册（验证 18 个工具）、输出格式化（成功/stderr/失败/空/超时）、清单加载、项目到运行时解析、路径解析、pwsh 检测和工具签名默认值验证。
+- 新增 MCP 服务器 JSON 结构化输出。所有 18 个工具现在返回结构化字典（包含 `_text`、`_exit_code`、`_success` 元数据字段），取代纯文本字符串。平台工具（`adp_status`、`adp_doctor`、`adp_capabilities`）和工作空间/运行时工具（`adp_workspace_list`、`adp_sync_status`）输出包含命令特定的解析字段，便于 Agent 程序化消费。新增 9 个结构化输出和解析测试（共 23 个）。更新 `cli/mcp/README.md` 记录结构化响应格式。
 
 ### 修复
 

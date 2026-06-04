@@ -38,9 +38,10 @@ import os
 import sys
 import subprocess
 import json
+import re
 import shutil
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Any
 
 from mcp.server.fastmcp import FastMCP
 
@@ -173,6 +174,193 @@ def _format_output(result: dict) -> str:
     return "\n".join(parts) if parts else "(no output)"
 
 
+# ---------------------------------------------------------------------------
+# Structured output parsing
+# ---------------------------------------------------------------------------
+
+def _structured_result(result: dict, parsed: Optional[dict] = None) -> dict:
+    """Build a structured result dict from raw CLI output.
+
+    Always includes:
+      - _text: formatted human-readable output
+      - _exit_code: process exit code
+      - _success: whether the command succeeded
+
+    Additional parsed fields from command-specific parsers are merged in.
+    """
+    base: dict[str, Any] = {
+        "_text": _format_output(result),
+        "_exit_code": result["exit_code"],
+        "_success": result["success"],
+    }
+    if parsed:
+        base.update(parsed)
+    return base
+
+
+def _parse_status(stdout: str) -> dict:
+    """Parse 'adp status' output into structured fields."""
+    runtimes: list[dict] = []
+    # Match runtime entries like: "agent      running      192.168.242.135  reachable  healthy"
+    # The status output format varies; try common patterns
+    for line in stdout.split("\n"):
+        line = line.strip()
+        if not line or line.startswith("===") or line.startswith("---"):
+            continue
+        # Match lines that start with a known runtime name
+        for rt_name in ["frontend", "backend", "agent"]:
+            if line.lower().startswith(rt_name):
+                parts = line.split()
+                rt = {"name": rt_name}
+                if len(parts) > 1:
+                    rt["status"] = parts[1]
+                if len(parts) > 2:
+                    rt["ip"] = parts[2]
+                if len(parts) > 3:
+                    rt["ssh"] = parts[3]
+                if len(parts) > 4:
+                    rt["sync"] = parts[4]
+                runtimes.append(rt)
+                break
+
+    # Count running/stopped
+    running_count = sum(1 for r in runtimes if r.get("status", "").lower() == "running")
+    parsed: dict[str, Any] = {
+        "runtimes": runtimes,
+        "runtime_count": len(runtimes),
+        "running_count": running_count,
+    }
+    return parsed
+
+
+def _parse_doctor(stdout: str) -> dict:
+    """Parse 'adp doctor' output into structured fields."""
+    # Extract OK count and issue count
+    ok_match = re.search(r"(\d+)\s*OK", stdout)
+    issue_match = re.search(r"(\d+)\s*(?:issue|问题)", stdout, re.IGNORECASE)
+    info_match = re.search(r"(\d+)\s*info", stdout, re.IGNORECASE)
+
+    issues: list[dict] = []
+    # Parse issue lines — they typically follow a pattern like:
+    #   [ISSUE] description or ! description
+    for line in stdout.split("\n"):
+        stripped = line.strip()
+        if re.match(r"^[!⚠].+", stripped) or "[ISSUE]" in stripped:
+            # Clean up the issue text
+            text = re.sub(r"^[!⚠]\s*", "", stripped)
+            text = re.sub(r"\[ISSUE\]\s*", "", text)
+            if text:
+                issues.append({"description": text})
+
+    parsed: dict[str, Any] = {
+        "ok_count": int(ok_match.group(1)) if ok_match else 0,
+        "issue_count": int(issue_match.group(1)) if issue_match else 0,
+        "info_count": int(info_match.group(1)) if info_match else 0,
+        "issues": issues,
+        "healthy": not issues,
+    }
+    return parsed
+
+
+def _parse_workspace_show(stdout: str) -> dict:
+    """Parse 'adp workspace show' output into structured fields."""
+    projects: list[dict] = []
+    current_project: Optional[dict] = None
+
+    for line in stdout.split("\n"):
+        stripped = line.strip()
+        # Try: "- project-name (runtime: runtime-name)"
+        proj_match = re.match(r"^[-*]\s*(\S+)\s*\(runtime:\s*(.+?)\)", stripped)
+        # Try: "- project-name: runtime-name"
+        if not proj_match:
+            proj_match = re.match(r"^[-*]\s*(\S+)\s*:\s*(.+?)$", stripped)
+        if proj_match:
+            if current_project:
+                projects.append(current_project)
+            current_project = {"name": proj_match.group(1), "runtime": proj_match.group(2).strip()}
+            continue
+        # Detect runtime mapping on separate line
+        rt_match = re.match(r"(?:runtime|运行时)[:\s]+(\S+)", stripped, re.IGNORECASE)
+        if rt_match and current_project and "runtime" not in current_project:
+            current_project["runtime"] = rt_match.group(1)
+
+    if current_project:
+        projects.append(current_project)
+
+    parsed: dict[str, Any] = {
+        "projects": projects,
+        "project_count": len(projects),
+    }
+    return parsed
+
+
+def _parse_sync_status(stdout: str) -> dict:
+    """Parse 'adp sync status' output into structured fields."""
+    sessions: list[dict] = []
+
+    for line in stdout.split("\n"):
+        stripped = line.strip()
+        for rt_name in ["frontend", "backend", "agent"]:
+            if rt_name in stripped.lower():
+                # Extract status keywords
+                status = "unknown"
+                for kw in ["healthy", "halted", "connecting", "stale", "paused",
+                           "watching", "waiting", "disconnected"]:
+                    if kw in stripped.lower():
+                        status = kw
+                        break
+                sessions.append({
+                    "runtime": rt_name,
+                    "status": status,
+                })
+                break
+
+    healthy_count = sum(1 for s in sessions if s["status"] == "healthy")
+    parsed: dict[str, Any] = {
+        "sessions": sessions,
+        "session_count": len(sessions),
+        "healthy_count": healthy_count,
+    }
+    return parsed
+
+
+def _parse_capabilities(stdout: str) -> dict:
+    """Parse 'adp capabilities' output into structured fields."""
+    supported: list[str] = []
+    planned: list[str] = []
+    exploratory: list[str] = []
+    current_section = ""
+
+    for line in stdout.split("\n"):
+        stripped = line.strip()
+        if "supported" in stripped.lower() or "支持" in stripped:
+            current_section = "supported"
+            continue
+        if "planned" in stripped.lower() or "计划" in stripped or "规划" in stripped:
+            current_section = "planned"
+            continue
+        if "explor" in stripped.lower() or "探索" in stripped:
+            current_section = "exploratory"
+            continue
+        # Capture capability names (indented items or bullet points)
+        cap_match = re.match(r"^\s*[-•*]\s*(.+)$", stripped)
+        if cap_match and current_section:
+            name = cap_match.group(1).strip()
+            if current_section == "supported":
+                supported.append(name)
+            elif current_section == "planned":
+                planned.append(name)
+            elif current_section == "exploratory":
+                exploratory.append(name)
+
+    parsed: dict[str, Any] = {
+        "supported": supported,
+        "planned": planned,
+        "exploratory": exploratory,
+    }
+    return parsed
+
+
 def _load_manifest() -> dict:
     """Load the workspace manifest JSON. Tries adp-workspace.json, then
     configs/workspace.example.json, then configs/workspace.recipes.example.json.
@@ -212,7 +400,7 @@ mcp = FastMCP("ADP-OS")
 # ===========================================================================
 
 @mcp.tool()
-def adp_status(runtime: Optional[str] = None) -> str:
+def adp_status(runtime: Optional[str] = None) -> dict:
     """Get ADP-OS platform and runtime health status.
 
     Shows running VMs, SSH reachability, sync session health, and connection guidance.
@@ -226,11 +414,11 @@ def adp_status(runtime: Optional[str] = None) -> str:
     if runtime:
         args.append(runtime)
     result = _run_adp(args)
-    return _format_output(result)
+    return _structured_result(result, _parse_status(result["stdout"]))
 
 
 @mcp.tool()
-def adp_doctor() -> str:
+def adp_doctor() -> dict:
     """Run ADP-OS platform diagnostics.
 
     Checks: configuration shape, VMware NAT, static IP, sync profiles,
@@ -238,17 +426,17 @@ def adp_doctor() -> str:
     Reports OK count, issue count, and per-issue remediation guidance.
     """
     result = _run_adp(["doctor"])
-    return _format_output(result)
+    return _structured_result(result, _parse_doctor(result["stdout"]))
 
 
 @mcp.tool()
-def adp_capabilities() -> str:
+def adp_capabilities() -> dict:
     """Show ADP-OS platform capabilities and roadmap.
 
     Lists supported runtime carriers, host adapters, and planned expansions.
     """
     result = _run_adp(["capabilities"])
-    return _format_output(result)
+    return _structured_result(result, _parse_capabilities(result["stdout"]))
 
 
 # ===========================================================================
@@ -256,28 +444,28 @@ def adp_capabilities() -> str:
 # ===========================================================================
 
 @mcp.tool()
-def adp_workspace_list() -> str:
+def adp_workspace_list() -> dict:
     """List all workspace projects defined in the manifest.
 
     Shows project names, runtime mappings, and basic readiness.
     """
     result = _run_adp(["workspace", "show"])
-    return _format_output(result)
+    return _structured_result(result, _parse_workspace_show(result["stdout"]))
 
 
 @mcp.tool()
-def adp_workspace_status() -> str:
+def adp_workspace_status() -> dict:
     """Get detailed workspace readiness status.
 
     Reports manifest state, project paths, runtime status, sync sessions,
     snapshot recommendations, and validation command declarations.
     """
     result = _run_adp(["workspace", "status"])
-    return _format_output(result)
+    return _structured_result(result)
 
 
 @mcp.tool()
-def adp_workspace_dashboard() -> str:
+def adp_workspace_dashboard() -> dict:
     """Get workspace dashboard with task lifecycle overview.
 
     Summarizes project readiness, milestone checkpoints, evaluation hooks,
@@ -285,11 +473,11 @@ def adp_workspace_dashboard() -> str:
     execution, validation, review, rollback, and commit gates.
     """
     result = _run_adp(["workspace", "dashboard"])
-    return _format_output(result)
+    return _structured_result(result)
 
 
 @mcp.tool()
-def adp_workspace_project(project_name: str) -> str:
+def adp_workspace_project(project_name: str) -> dict:
     """Get a single project's full operational lifecycle view.
 
     Combines path, runtime, sync, sync hygiene, devcontainer metadata,
@@ -301,11 +489,11 @@ def adp_workspace_project(project_name: str) -> str:
         project_name: Project name from manifest to inspect
     """
     result = _run_adp(["workspace", "project", project_name])
-    return _format_output(result)
+    return _structured_result(result)
 
 
 @mcp.tool()
-def adp_workspace_create(project_name: str, plan_only: bool = True) -> str:
+def adp_workspace_create(project_name: str, plan_only: bool = True) -> dict:
     """Create workspace project directories.
 
     Creates only missing local project directories declared in the manifest.
@@ -320,11 +508,11 @@ def adp_workspace_create(project_name: str, plan_only: bool = True) -> str:
     if plan_only:
         args.append("-Plan")
     result = _run_adp(args)
-    return _format_output(result)
+    return _structured_result(result)
 
 
 @mcp.tool()
-def adp_workspace_open(project_name: str) -> str:
+def adp_workspace_open(project_name: str) -> dict:
     """Get guidance for entering a workspace project.
 
     Resolves local/remote project paths, reports runtime readiness,
@@ -336,11 +524,11 @@ def adp_workspace_open(project_name: str) -> str:
         project_name: Project name from manifest to open
     """
     result = _run_adp(["workspace", "open", project_name])
-    return _format_output(result)
+    return _structured_result(result)
 
 
 @mcp.tool()
-def adp_workspace_sync(project_name: str) -> str:
+def adp_workspace_sync(project_name: str) -> dict:
     """Get per-project file sync guidance.
 
     Maps a manifest project to its runtime-level Mutagen session,
@@ -352,11 +540,11 @@ def adp_workspace_sync(project_name: str) -> str:
         project_name: Project name from manifest for sync guidance
     """
     result = _run_adp(["workspace", "sync", project_name])
-    return _format_output(result)
+    return _structured_result(result)
 
 
 @mcp.tool()
-def adp_workspace_close(project_name: str, plan_only: bool = True) -> str:
+def adp_workspace_close(project_name: str, plan_only: bool = True) -> dict:
     """Close a workspace by stopping file sync for its runtime.
 
     First shows the project's current sync status, then stops the Mutagen
@@ -374,45 +562,47 @@ def adp_workspace_close(project_name: str, plan_only: bool = True) -> str:
     if not runtime:
         # Fall back to workspace sync for guidance
         guidance = _run_adp(["workspace", "sync", project_name])
-        return (
-            f"[workspace close] Could not resolve runtime for project '{project_name}'.\n"
-            f"Please use adp_sync_stop with the runtime name directly.\n\n"
-            f"Project sync guidance:\n{_format_output(guidance)}"
-        )
-
-    lines = [f"[workspace close] Project '{project_name}' → runtime '{runtime}'"]
+        return _structured_result(guidance, {
+            "action": "close_failed",
+            "reason": f"Could not resolve runtime for project '{project_name}'",
+            "suggestion": f"Use adp_sync_stop with the runtime name directly.",
+        })
 
     # Show current sync status
     sync_result = _run_adp(["sync", "status"])
-    lines.append(f"\nCurrent sync status:\n{_format_output(sync_result)}")
 
     if plan_only:
-        lines.append(
-            f"\n[PLAN ONLY] Would stop sync for runtime '{runtime}'.\n"
-            f"To execute: adp_workspace_close(project_name='{project_name}', plan_only=False)\n"
-            f"Or directly: adp_sync_stop(runtime='{runtime}')"
-        )
-        return "\n".join(lines)
+        return _structured_result(sync_result, {
+            "action": "close_plan",
+            "project": project_name,
+            "runtime": runtime,
+            "plan_only": True,
+            "execution_command": f"adp_workspace_close(project_name='{project_name}', plan_only=False)",
+            "alternative_command": f"adp_sync_stop(runtime='{runtime}')",
+        })
 
     # Actually stop sync
     stop_result = _run_adp(["sync", "stop", runtime])
-    lines.append(f"\nSync stop result:\n{_format_output(stop_result)}")
-    return "\n".join(lines)
+    return _structured_result(stop_result, {
+        "action": "close_executed",
+        "project": project_name,
+        "runtime": runtime,
+    })
 
 
 @mcp.tool()
-def adp_workspace_recipes() -> str:
+def adp_workspace_recipes() -> dict:
     """List available workspace recipes.
 
     Shows project recipes, task recipes, milestone checkpoints,
     evaluation hooks, and evidence commands from the manifest.
     """
     result = _run_adp(["workspace", "recipes"])
-    return _format_output(result)
+    return _structured_result(result)
 
 
 @mcp.tool()
-def adp_workspace_report() -> str:
+def adp_workspace_report() -> dict:
     """Generate workspace release evidence in Markdown format.
 
     Produces a comprehensive report covering governance loop, action
@@ -425,7 +615,7 @@ def adp_workspace_report() -> str:
     or maintainer handoff evidence.
     """
     result = _run_adp(["workspace", "report", "-Markdown"])
-    return _format_output(result)
+    return _structured_result(result)
 
 
 # ===========================================================================
@@ -437,7 +627,7 @@ def adp_up(
     runtime: str,
     plan_only: bool = True,
     iso_path: Optional[str] = None,
-) -> str:
+) -> dict:
     """Start a runtime VM (creates it from ISO if first time).
 
     Defaults to plan-only mode for safety — shows what would happen
@@ -461,7 +651,11 @@ def adp_up(
         args.append(iso_path)
     timeout = 300 if not plan_only else 120
     result = _run_adp(args, timeout=timeout)
-    return _format_output(result)
+    return _structured_result(result, {
+        "runtime": runtime,
+        "plan_only": plan_only,
+        "iso_path": iso_path,
+    })
 
 
 @mcp.tool()
@@ -469,7 +663,7 @@ def adp_down(
     runtime: str,
     plan_only: bool = True,
     force: bool = False,
-) -> str:
+) -> dict:
     """Destroy a runtime VM completely.
 
     Defaults to plan-only mode for safety — shows what would be destroyed
@@ -487,11 +681,15 @@ def adp_down(
     if force:
         args.append("-Force")
     result = _run_adp(args)
-    return _format_output(result)
+    return _structured_result(result, {
+        "runtime": runtime,
+        "plan_only": plan_only,
+        "force": force,
+    })
 
 
 @mcp.tool()
-def adp_stop(runtime: str) -> str:
+def adp_stop(runtime: str) -> dict:
     """Gracefully stop a runtime VM.
 
     Shuts down the VM gracefully without destroying it. The VM can be
@@ -501,21 +699,21 @@ def adp_stop(runtime: str) -> str:
         runtime: Runtime name to stop (frontend, backend, agent)
     """
     result = _run_adp(["stop", runtime])
-    return _format_output(result)
+    return _structured_result(result, {"runtime": runtime})
 
 
 @mcp.tool()
-def adp_sync_status() -> str:
+def adp_sync_status() -> dict:
     """Get Mutagen sync session status for all runtimes.
 
     Shows session health, endpoint connectivity, and per-runtime sync state.
     """
     result = _run_adp(["sync", "status"])
-    return _format_output(result)
+    return _structured_result(result, _parse_sync_status(result["stdout"]))
 
 
 @mcp.tool()
-def adp_sync_stop(runtime: str) -> str:
+def adp_sync_stop(runtime: str) -> dict:
     """Stop a Mutagen sync session for a runtime.
 
     This is the equivalent of "closing" a workspace — it stops bidirectional
@@ -525,7 +723,7 @@ def adp_sync_stop(runtime: str) -> str:
         runtime: Runtime name (frontend, backend, agent)
     """
     result = _run_adp(["sync", "stop", runtime])
-    return _format_output(result)
+    return _structured_result(result, {"runtime": runtime})
 
 
 # ---------------------------------------------------------------------------

@@ -137,6 +137,160 @@ class TestMCPServer:
         assert "timed out" in output
         assert "[exit code: -1]" in output
 
+    # --- Structured output tests ---
+
+    def test_structured_result_success(self):
+        """_structured_result wraps raw result with metadata."""
+        import cli.mcp.server as server
+
+        result = {
+            "stdout": "OK\nAll systems go",
+            "stderr": "",
+            "exit_code": 0,
+            "success": True,
+        }
+        structured = server._structured_result(result)
+        assert structured["_success"] == True
+        assert structured["_exit_code"] == 0
+        assert "OK" in structured["_text"]
+        assert "All systems go" in structured["_text"]
+
+    def test_structured_result_with_parsed(self):
+        """_structured_result merges parsed fields."""
+        import cli.mcp.server as server
+
+        result = {
+            "stdout": "agent running",
+            "stderr": "",
+            "exit_code": 0,
+            "success": True,
+        }
+        parsed = {"runtimes": [{"name": "agent"}], "runtime_count": 1}
+        structured = server._structured_result(result, parsed)
+        assert structured["_success"] == True
+        assert structured["runtimes"] == [{"name": "agent"}]
+        assert structured["runtime_count"] == 1
+        # _text still preserved
+        assert "agent running" in structured["_text"]
+
+    def test_parse_status(self):
+        """_parse_status extracts runtime info from status output."""
+        import cli.mcp.server as server
+
+        stdout = """
+=== ADP-OS Status ===
+agent       running      192.168.242.135  reachable  healthy
+frontend    stopped      --               --         --
+backend     stopped      --               --         --
+"""
+        parsed = server._parse_status(stdout)
+        assert parsed["runtime_count"] == 3
+        assert parsed["running_count"] == 1
+        assert parsed["runtimes"][0]["name"] == "agent"
+        assert parsed["runtimes"][0]["status"] == "running"
+        assert parsed["runtimes"][0]["ip"] == "192.168.242.135"
+
+    def test_parse_doctor(self):
+        """_parse_doctor extracts health counts from doctor output."""
+        import cli.mcp.server as server
+
+        stdout = """
+=== ADP-OS Doctor ===
+47 OK
+0 issues
+5 info
+"""
+        parsed = server._parse_doctor(stdout)
+        assert parsed["ok_count"] == 47
+        assert parsed["issue_count"] == 0
+        assert parsed["info_count"] == 5
+        assert parsed["healthy"] == True
+
+    def test_parse_doctor_with_issues(self):
+        """_parse_doctor detects issues."""
+        import cli.mcp.server as server
+
+        stdout = """
+45 OK
+2 issues
+! Mutagen not installed
+! Sync session halted
+3 info
+"""
+        parsed = server._parse_doctor(stdout)
+        assert parsed["ok_count"] == 45
+        assert parsed["issue_count"] == 2
+        assert parsed["healthy"] == False
+        assert len(parsed["issues"]) == 2
+
+    def test_parse_workspace_show(self):
+        """_parse_workspace_show extracts project list."""
+        import cli.mcp.server as server
+
+        stdout = """
+Projects:
+  - frontend-app (runtime: frontend)
+  - backend-api (runtime: backend)
+"""
+        parsed = server._parse_workspace_show(stdout)
+        assert parsed["project_count"] == 2
+        assert parsed["projects"][0]["name"] == "frontend-app"
+        assert parsed["projects"][0]["runtime"] == "frontend"
+
+    def test_parse_sync_status(self):
+        """_parse_sync_status extracts session states."""
+        import cli.mcp.server as server
+
+        stdout = """
+agent: healthy
+frontend: halted
+backend: stale
+"""
+        parsed = server._parse_sync_status(stdout)
+        assert parsed["session_count"] == 3
+        assert parsed["healthy_count"] == 1
+
+    def test_parse_capabilities(self):
+        """_parse_capabilities extracts capability matrix."""
+        import cli.mcp.server as server
+
+        stdout = """
+Supported:
+  - Windows + VMware
+Planned:
+  - Hyper-V backend
+  - KVM/libvirt
+Exploratory:
+  - Docker carrier
+"""
+        parsed = server._parse_capabilities(stdout)
+        assert "Windows + VMware" in parsed["supported"]
+        assert "Hyper-V backend" in parsed["planned"]
+        assert "KVM/libvirt" in parsed["planned"]
+        assert "Docker carrier" in parsed["exploratory"]
+
+    def test_all_tools_return_dict(self):
+        """All tool return type hints are dict (not str)."""
+        import cli.mcp.server as server
+        import inspect
+
+        tool_names = [
+            "adp_status", "adp_doctor", "adp_capabilities",
+            "adp_workspace_list", "adp_workspace_status", "adp_workspace_dashboard",
+            "adp_workspace_project", "adp_workspace_create", "adp_workspace_open",
+            "adp_workspace_sync", "adp_workspace_close", "adp_workspace_recipes",
+            "adp_workspace_report",
+            "adp_up", "adp_down", "adp_stop",
+            "adp_sync_status", "adp_sync_stop",
+        ]
+
+        for name in tool_names:
+            func = getattr(server, name)
+            sig = inspect.signature(func)
+            # Return annotation should be dict
+            assert sig.return_annotation == dict, \
+                f"{name} returns {sig.return_annotation}, expected dict"
+
     def test_load_manifest_from_example(self):
         """_load_manifest loads configs/workspace.example.json."""
         import cli.mcp.server as server

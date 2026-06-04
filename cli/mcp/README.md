@@ -133,6 +133,36 @@ To execute destructive operations, explicitly set `plan_only=False`.
 
 The MCP server invokes ADP-OS PowerShell CLI via `pwsh.exe` subprocess calls. Each tool maps to an `adp` CLI command and returns structured output.
 
+All 18 tools return **JSON structured dicts** with the following base fields:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `_text` | string | Human-readable formatted CLI output |
+| `_exit_code` | integer | Process exit code (0 = success) |
+| `_success` | boolean | Whether the command succeeded |
+
+**Command-specific parsed fields** (included when applicable):
+
+- `adp_status` → `runtimes[]`, `runtime_count`, `running_count`
+- `adp_doctor` → `ok_count`, `issue_count`, `info_count`, `issues[]`, `healthy`
+- `adp_capabilities` → `supported[]`, `planned[]`, `exploratory[]`
+- `adp_workspace_list` → `projects[]`, `project_count`
+- `adp_sync_status` → `sessions[]`, `session_count`, `healthy_count`
+- `adp_workspace_close` → `action`, `project`, `runtime`, `plan_only`
+- `adp_up`/`adp_down`/`adp_stop`/`adp_sync_stop` → `runtime` (+ `plan_only`/`force` where applicable)
+
+Example response from `adp_status`:
+```json
+{
+  "_text": "agent       running      192.168.242.135  reachable  healthy",
+  "_exit_code": 0,
+  "_success": true,
+  "runtimes": [{"name": "agent", "status": "running", "ip": "192.168.242.135", "ssh": "reachable", "sync": "healthy"}],
+  "runtime_count": 1,
+  "running_count": 1
+}
+```
+
 Path resolution:
 1. `ADP_HOME` / `ADP_HOME_WIN` environment variables (explicit)
 2. Relative to the server script location (`../../` from `cli/mcp/server.py`)
