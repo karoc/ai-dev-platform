@@ -73,6 +73,39 @@ Before publishing, verify the public repository does not contain:
 
 If a release needs destructive operations, credential changes, legal decisions, account changes, or cost-bearing infrastructure, stop and get explicit owner approval first.
 
-## Version Tags
+## Versioned Releases
 
-The project currently records public changes in the changelog by date. When versioned release tags are introduced, this process should be extended with tag naming, release-note, and rollback expectations.
+ADP-OS uses [Semantic Versioning](https://semver.org/) (`MAJOR.MINOR.PATCH`):
+
+- **MAJOR**: breaking changes (e.g., VMware → Hyper-V switch, public API renames).
+- **MINOR**: new features (new commands, new runtime profiles, localization expansion, MCP server tools).
+- **PATCH**: bug fixes, documentation corrections, non-breaking diagnostic improvements.
+
+The current version is recorded in the `VERSION` file at the repository root. The changelog is organized by release version, then by date within the version.
+
+### Publishing a Release
+
+1. Ensure the `VERSION` file contains the correct SemVer version.
+2. Ensure `CHANGELOG.md` and `CHANGELOG.zh-CN.md` are updated for the release.
+3. Run the full validation suite:
+   ```powershell
+   .\tests\validate.ps1
+   ```
+4. Run the release script:
+   ```powershell
+   .\scripts\release.ps1
+   ```
+   This validates the repository, confirms the tag name, and pushes a `v<version>` Git tag.
+   Use `-DryRun` to preview without tagging:
+   ```powershell
+   .\scripts\release.ps1 -DryRun
+   ```
+5. Pushing the `v<version>` tag triggers the GitHub Actions release workflow (`.github/workflows/release.yml`), which:
+   - Runs the full validation suite on `windows-latest`.
+   - Creates a GitHub Release with the changelog as release notes.
+6. Monitor the workflow at `https://github.com/karoc/ai-dev-platform/actions`.
+
+### After a Release
+
+- Bump the version in `VERSION` for the next development cycle.
+- Add a new version header in `CHANGELOG.md` and `CHANGELOG.zh-CN.md` for upcoming changes.

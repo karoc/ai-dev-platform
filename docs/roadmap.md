@@ -127,13 +127,16 @@ These signals support ADP-OS's product direction: local/self-managed runtimes, e
 
 ## Release and Publication
 
+ADP-OS uses [Semantic Versioning](https://semver.org/). The current version is recorded in the `VERSION` file. Versioned releases are published by pushing a `v<version>` Git tag, which triggers the GitHub Actions release workflow.
+
 Public updates should follow the release process:
 
 - Run `.\tests\validate.ps1`.
 - Update English and Simplified Chinese documentation together when translated docs exist.
+- Update `CHANGELOG.md` and `CHANGELOG.zh-CN.md` with the changes for the release.
 - Generate `adp workspace report -Markdown` evidence when workflow, validation, release-readiness, or task behavior changes.
 - Check for local artifacts, credentials, generated state, VM files, ISO files, downloaded tools, and private maintainer material.
-- Commit only after validation and review.
-- Push or publish only after owner authorization.
+- Run `.\scripts\release.ps1` to validate and tag the release (or `-DryRun` to preview).
+- Pushing the tag automatically creates a GitHub Release via CI.
 
 See [Release Process](release-process.md) and [Release Readiness](release-readiness.md) for the detailed release boundary.

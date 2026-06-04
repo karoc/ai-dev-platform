@@ -4,9 +4,13 @@
 
 All notable public changes to AI Dev Platform OS are documented here.
 
-The project does not yet publish versioned releases. Entries are grouped by date until release tags are introduced.
+Versions follow [Semantic Versioning](https://semver.org/) (`MAJOR.MINOR.PATCH`). Entries are grouped by release version, then by date within the version. The latest release is at the top.
 
-## 2026-06-04
+## [v1.0.0] — 2026-06-04
+
+Initial public release.
+
+### 2026-06-04
 
 ### Added
 
@@ -30,7 +34,7 @@ The project does not yet publish versioned releases. Entries are grouped by date
 - Fixed `Test-WSLCommand` PowerShell pipeline leak in `install.ps1`, `cli/commands/doctor.ps1`, and `runtimes/vmware/vm-factory.ps1` where `wsl.exe` shim stdout leaked into function return values, corrupting the boolean result into `Object[]` and causing `Cannot convert value "System.Object[]" to type "System.Boolean"` errors in CI. External command output is now captured with `$null = &` to prevent pipeline pollution.
 - Hardened test infrastructure so `Start-Process -FilePath "pwsh"` in `local-config-boundary.ps1`, `cli-smoke.ps1`, and `install-smoke.ps1` resolves the full pwsh path from the current process rather than relying on bare `pwsh` being in PATH, which fails on some CI runner instances.
 
-## 2026-05-31
+### 2026-05-31
 
 ### Changed
 
@@ -39,7 +43,7 @@ The project does not yet publish versioned releases. Entries are grouped by date
 - Fixed WSL `xorriso` argument passing during autoinstall ISO remastering. `adp up <runtime>` no longer invokes WSL in a way that can pass only the bare `xorriso` command and trigger usage output instead of creating the autoinstall ISO.
 - Localized the nested VMware VM factory autoinstall monitor used by `adp up <runtime>`, so Simplified Chinese UI settings now carry through the long Ubuntu installation wait instead of falling back to English heartbeat text. The monitor now also uses PowerShell `Write-Progress` as an indeterminate activity indicator while keeping copyable heartbeat logs and avoiding fake install percentages.
 
-## 2026-05-30
+### 2026-05-30
 
 ### Added
 
@@ -66,7 +70,7 @@ The project does not yet publish versioned releases. Entries are grouped by date
 - Expanded default frontend, backend, and agent sync profile ignore lists for common dependency directories, build outputs, framework caches, browser-test output, Python virtual environments, Python caches, and local ADP/Codex tool state, reducing the chance that generated artifacts are synchronized before users customize profiles.
 - Clarified the ADP-OS dogfooding guidance for first-run usage: a minimal POSIX shell project is enough to validate the workspace lifecycle end to end. The public workspaces docs now tell maintainers to start with a tiny syncable project that can be validated, reviewed, and committed without browser downloads or package installation.
 
-## 2026-05-29
+### 2026-05-29
 
 ### Added
 
@@ -109,7 +113,7 @@ The project does not yet publish versioned releases. Entries are grouped by date
 - Added non-destructive workspace detection for `.devcontainer/devcontainer.json` and `.devcontainer.json` so dev container metadata is visible as runtime-internal project context.
 - Expanded non-destructive `adp workspace report` output with governance loop queues, action decision queues, release decision policy, stale-task remediation guidance, and task governance fields.
 
-## 2026-05-28
+### 2026-05-28
 
 ### Added
 
@@ -125,7 +129,7 @@ The project does not yet publish versioned releases. Entries are grouped by date
 - Added CI and CLI smoke coverage for the workspace recipes manifest.
 - Documented the workspace recipes in English and Simplified Chinese README and workspace docs.
 
-## 2026-05-27
+### 2026-05-27
 
 ### Added
 
@@ -180,7 +184,7 @@ The project does not yet publish versioned releases. Entries are grouped by date
 - Updated `adp doctor` to report local config override status.
 - Expanded `adp doctor` checks for configuration shape, VMware NAT range, runtime static IP uniqueness, sync profiles, running-runtime SSH reachability, Mutagen version, and Mutagen sessions.
 
-## 2026-05-26
+### 2026-05-26
 
 ### Added
 

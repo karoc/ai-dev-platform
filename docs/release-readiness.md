@@ -88,3 +88,9 @@ Contributors should make release readiness easy to verify:
 - Use `tasks[].requires_snapshot` and `tasks[].snapshot` for high-risk work, with `before-<task-name>` or `milestone-<name>` snapshot names.
 
 These fields are lightweight by design. They make the release conversation explicit without adding a database, service, or hidden automation layer.
+
+## Versioned Releases
+
+ADP-OS uses [Semantic Versioning](https://semver.org/). The current version is in the `VERSION` file at the repository root. A GitHub Actions workflow (`.github/workflows/release.yml`) automatically creates GitHub Releases when a `v<version>` tag is pushed.
+
+See [Release Process](release-process.md#versioned-releases) for the full versioned release flow, including how to publish a release with `.\scripts\release.ps1`.

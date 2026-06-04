@@ -4,9 +4,13 @@
 
 这里记录 AI Dev Platform OS 的重要公开变更。
 
-项目尚未发布版本化 release。在引入 release tags 前，变更按日期分组。
+版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)（`MAJOR.MINOR.PATCH`）。变更按发布版本分组，版本内按日期排列。最新版本在最上方。
 
-## 2026-06-04
+## [v1.0.0] — 2026-06-04
+
+首次公开发布。
+
+### 2026-06-04
 
 ### 新增
 
@@ -30,7 +34,7 @@
 - 修复 `install.ps1`、`cli/commands/doctor.ps1` 和 `runtimes/vmware/vm-factory.ps1` 中 `Test-WSLCommand` 的 PowerShell 管道泄漏问题：`wsl.exe` shim 的 stdout 泄漏到函数返回值中，将布尔结果污染为 `Object[]`，导致 CI 中报 `Cannot convert value "System.Object[]" to type "System.Boolean"` 错误。修复方法是通过 `$null = &` 捕获外部命令输出，防止管道污染。
 - 加固测试基础设施：`local-config-boundary.ps1`、`cli-smoke.ps1` 和 `install-smoke.ps1` 中的 `Start-Process` 现在从当前进程解析 pwsh 完整路径，而非依赖 PATH 中的裸 `pwsh` 命令，避免在某些 CI runner 实例上失败。
 
-## 2026-05-31
+### 2026-05-31
 
 ### 变更
 
@@ -39,7 +43,7 @@
 - 修复 autoinstall ISO 重制阶段传递 WSL `xorriso` 参数的问题。`adp up <runtime>` 不再以可能只传入裸 `xorriso` 命令的方式调用 WSL，从而避免打印 usage 而没有创建 autoinstall ISO。
 - 将 `adp up <runtime>` 使用的嵌套 VMware VM factory autoinstall monitor 一并本地化。简体中文 UI 现在会一路传递到长时间的 Ubuntu 安装等待，而不会在 VM factory 内回退成英文心跳；同时引入 PowerShell `Write-Progress` 的不确定活动指示，继续保留可复制日志，并明确不伪造安装百分比。
 
-## 2026-05-30
+### 2026-05-30
 
 ### 新增
 
@@ -66,7 +70,7 @@
 - 扩充默认 frontend、backend 和 agent sync profile ignore 列表，覆盖常见依赖目录、构建输出、框架缓存、浏览器测试输出、Python virtual environments、Python caches，以及本地 ADP/Codex 工具状态，降低用户自定义 profile 前同步生成物的概率。
 - 澄清 ADP-OS 的 first-run dogfooding 指南：一个最小的 POSIX shell 项目就足以端到端验证 workspace lifecycle。公开的 workspaces 文档现在会提示维护者先从一个足够小、能够被 sync、验证、review 和 commit 的项目开始，而不需要先下载浏览器或安装额外 packages。
 
-## 2026-05-29
+### 2026-05-29
 
 ### 新增
 
@@ -109,7 +113,7 @@
 - 新增非破坏性的 workspace dev container metadata 识别，可发现 `.devcontainer/devcontainer.json` 和 `.devcontainer.json`，并将其作为 runtime 内部项目上下文展示。
 - 扩展非破坏性的 `adp workspace report` 输出，加入 governance loop queues、action decision queues、release decision policy、stale-task remediation guidance 和 task governance fields。
 
-## 2026-05-28
+### 2026-05-28
 
 ### 新增
 
@@ -125,7 +129,7 @@
 - 新增 workspace recipes manifest 的 CI 和 CLI smoke 覆盖。
 - 在英文和简体中文 README、workspace 文档中补充 workspace recipes 说明。
 
-## 2026-05-27
+### 2026-05-27
 
 ### 新增
 
@@ -180,7 +184,7 @@
 - 更新 `adp doctor`，报告本地配置覆盖状态。
 - 扩展 `adp doctor`，检查配置结构、VMware NAT 网段、运行时静态 IP 唯一性、sync profiles、运行中 VM 的 SSH 可达性、Mutagen 版本和 Mutagen sessions。
 
-## 2026-05-26
+### 2026-05-26
 
 ### 新增
 

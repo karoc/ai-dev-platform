@@ -73,6 +73,39 @@ Markdown report 是非破坏性的。它只读取 manifest 和被忽略的本地
 
 如果一次 release 需要破坏性操作、credential changes、legal decisions、account changes 或 cost-bearing infrastructure，应先停止并取得 owner 明确授权。
 
-## 版本标签
+## 版本化发布
 
-当前项目仍按日期在 changelog 中记录公开变更。引入版本化 release tag 后，应扩展本流程，补充 tag naming、release-note 和 rollback expectations。
+ADP-OS 使用 [语义化版本](https://semver.org/lang/zh-CN/)（`MAJOR.MINOR.PATCH`）：
+
+- **MAJOR**：破坏性变更（如 VMware → Hyper-V 切换、公开 API 重命名）。
+- **MINOR**：新功能（新命令、新运行时 profile、本地化扩展、MCP server 工具）。
+- **PATCH**：Bug 修复、文档修正、非破坏性诊断改进。
+
+当前版本记录在仓库根目录的 `VERSION` 文件中。Changelog 按发布版本分组，版本内按日期排列。
+
+### 发布流程
+
+1. 确保 `VERSION` 文件包含正确的 SemVer 版本号。
+2. 确保 `CHANGELOG.md` 和 `CHANGELOG.zh-CN.md` 已针对本次发布更新。
+3. 运行完整验证套件：
+   ```powershell
+   .\tests\validate.ps1
+   ```
+4. 运行发布脚本：
+   ```powershell
+   .\scripts\release.ps1
+   ```
+   该脚本验证仓库状态、确认 tag 名称，并推送 `v<version>` Git tag。
+   使用 `-DryRun` 预览而不实际打 tag：
+   ```powershell
+   .\scripts\release.ps1 -DryRun
+   ```
+5. 推送 `v<version>` tag 会触发 GitHub Actions release workflow（`.github/workflows/release.yml`），该 workflow 将：
+   - 在 `windows-latest` 上运行完整验证套件。
+   - 创建 GitHub Release，以 changelog 作为 release notes。
+6. 在 `https://github.com/karoc/ai-dev-platform/actions` 监控 workflow 进度。
+
+### 发布后
+
+- 在 `VERSION` 中更新版本号以进入下一个开发周期。
+- 在 `CHANGELOG.md` 和 `CHANGELOG.zh-CN.md` 中为即将到来的变更添加新的版本标题。

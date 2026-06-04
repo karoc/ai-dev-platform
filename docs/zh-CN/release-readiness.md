@@ -88,3 +88,9 @@ Snapshot naming 也是 rollback clarity 的 review 内容。task 级 checkpoint 
 - 对高风险工作使用 `tasks[].requires_snapshot` 和 `tasks[].snapshot`，snapshot 名称采用 `before-<task-name>` 或 `milestone-<name>`。
 
 这些字段有意保持轻量。它们让 release 对话显式化，而不引入数据库、服务或隐藏自动化层。
+
+## 版本化发布
+
+ADP-OS 使用 [语义化版本](https://semver.org/lang/zh-CN/)。当前版本记录在仓库根目录的 `VERSION` 文件中。推送 `v<version>` tag 时，GitHub Actions workflow（`.github/workflows/release.yml`）会自动创建 GitHub Release。
+
+完整的版本化发布流程（包括如何使用 `.\scripts\release.ps1` 发布）请参见 [发布流程](release-process.md#版本化发布)。

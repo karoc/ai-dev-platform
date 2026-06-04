@@ -127,13 +127,16 @@ ADP-OS 当前面向 Windows 和 VMware Workstation。未来 runtime expansion �
 
 ## 发布与公开
 
+ADP-OS 使用 [语义化版本](https://semver.org/lang/zh-CN/)。当前版本记录在 `VERSION` 文件中。通过推送 `v<version>` Git tag 发布版本化 release，该 tag 会触发 GitHub Actions release workflow。
+
 公开更新应遵循 release process：
 
 - 运行 `.\tests\validate.ps1`。
 - 当已有翻译文档时，英文和简体中文文档一起更新。
+- 更新 `CHANGELOG.md` 和 `CHANGELOG.zh-CN.md` 以反映本次发布的变更。
 - 当 workflow、validation、release-readiness 或 task behavior 变化时，生成 `adp workspace report -Markdown` evidence。
 - 检查 local artifacts、credentials、generated state、VM files、ISO files、downloaded tools 和 private maintainer material。
-- 只有 validation 和 review 完成后才 commit。
-- 只有 owner 授权后才 push 或 publish。
+- 运行 `.\scripts\release.ps1` 验证并打 tag（或 `-DryRun` 预览）。
+- 推送 tag 后，CI 自动创建 GitHub Release。
 
 详细 release boundary 见 [Release Process](release-process.md) 和 [Release Readiness](release-readiness.md)。
