@@ -2254,16 +2254,16 @@ function Write-WorkspaceReportSummary {
     $cadenceGaps = @($Items | Where-Object { $_.ReviewCadence -eq "not set" } | ForEach-Object { $_.TaskName })
     $dueTasks = @($Items | Where-Object { $_.DueStatus -in @("overdue", "due soon") } | ForEach-Object { "$($_.TaskName) ($($_.DueStatus))" })
 
-    Write-Host ""
-    Write-Host "Release handoff summary:" -ForegroundColor Yellow
-    Write-WorkspaceCheck -Level $highestLevel -Name "handoff" -Detail "($handoffState; tasks: $total; milestones linked: $milestoned; validation passed: $passed; failed: $failed; missing: $missing; snapshot blocked: $snapshotBlocked; review ready: $reviewReady; commit ready: $commitReady; owned: $owned; cadence set: $cadenced; overdue: $overdue; due soon: $dueSoon)"
-    Write-Host "     blocked tasks: $(if ($blockedTasks.Count -gt 0) { $blockedTasks -join ', ' } else { 'none' })" -ForegroundColor DarkGray
-    Write-Host "     ready for review: $(if ($reviewTasks.Count -gt 0) { $reviewTasks -join ', ' } else { 'none' })" -ForegroundColor DarkGray
-    Write-Host "     ready to commit: $(if ($commitTasks.Count -gt 0) { $commitTasks -join ', ' } else { 'none' })" -ForegroundColor DarkGray
-    Write-Host "     owner gaps: $(if ($ownerGaps.Count -gt 0) { $ownerGaps -join ', ' } else { 'none' })" -ForegroundColor DarkGray
-    Write-Host "     cadence gaps: $(if ($cadenceGaps.Count -gt 0) { $cadenceGaps -join ', ' } else { 'none' })" -ForegroundColor DarkGray
-    Write-Host "     due attention: $(if ($dueTasks.Count -gt 0) { $dueTasks -join ', ' } else { 'none' })" -ForegroundColor DarkGray
-    Write-Host "     release gate: $handoffState" -ForegroundColor DarkGray
+    Write-UIHost -English "" -Chinese ""
+    Write-UIHost -English "Release handoff summary:" -Chinese "发布交接摘要:" -ForegroundColor Yellow
+    Write-WorkspaceCheck -Level $highestLevel -Name "handoff" -ChineseName "交接" -Detail "(handoff: $handoffState; tasks: $total; milestones linked: $milestoned; validation passed: $passed; failed: $failed; missing: $missing; snapshot blocked: $snapshotBlocked; review ready: $reviewReady; commit ready: $commitReady; owned: $owned; cadence set: $cadenced; overdue: $overdue; due soon: $dueSoon)" -ChineseDetail "(状态: $handoffState; 任务: $total; 里程碑关联: $milestoned; 验证通过: $passed; 失败: $failed; 缺失: $missing; 快照阻塞: $snapshotBlocked; 审查就绪: $reviewReady; 提交就绪: $commitReady; 有负责人: $owned; 有节奏: $cadenced; 逾期: $overdue; 即将到期: $dueSoon)"
+    Write-UIHost -English "     blocked tasks: $(if ($blockedTasks.Count -gt 0) { $blockedTasks -join ', ' } else { 'none' })" -Chinese "     阻塞任务: $(if ($blockedTasks.Count -gt 0) { $blockedTasks -join ', ' } else { '无' })" -ForegroundColor DarkGray
+    Write-UIHost -English "     ready for review: $(if ($reviewTasks.Count -gt 0) { $reviewTasks -join ', ' } else { 'none' })" -Chinese "     审查就绪: $(if ($reviewTasks.Count -gt 0) { $reviewTasks -join ', ' } else { '无' })" -ForegroundColor DarkGray
+    Write-UIHost -English "     ready to commit: $(if ($commitTasks.Count -gt 0) { $commitTasks -join ', ' } else { 'none' })" -Chinese "     提交就绪: $(if ($commitTasks.Count -gt 0) { $commitTasks -join ', ' } else { '无' })" -ForegroundColor DarkGray
+    Write-UIHost -English "     owner gaps: $(if ($ownerGaps.Count -gt 0) { $ownerGaps -join ', ' } else { 'none' })" -Chinese "     负责人缺口: $(if ($ownerGaps.Count -gt 0) { $ownerGaps -join ', ' } else { '无' })" -ForegroundColor DarkGray
+    Write-UIHost -English "     cadence gaps: $(if ($cadenceGaps.Count -gt 0) { $cadenceGaps -join ', ' } else { 'none' })" -Chinese "     节奏缺口: $(if ($cadenceGaps.Count -gt 0) { $cadenceGaps -join ', ' } else { '无' })" -ForegroundColor DarkGray
+    Write-UIHost -English "     due attention: $(if ($dueTasks.Count -gt 0) { $dueTasks -join ', ' } else { 'none' })" -Chinese "     需关注: $(if ($dueTasks.Count -gt 0) { $dueTasks -join ', ' } else { '无' })" -ForegroundColor DarkGray
+    Write-UIHost -English "     release gate: $handoffState" -Chinese "     发布门控: $handoffState" -ForegroundColor DarkGray
 }
 
 function Write-WorkspaceGovernanceLoop {
@@ -2281,21 +2281,21 @@ function Write-WorkspaceGovernanceLoop {
             "$($_.TaskName) [$reason; due: $($_.DueStatus)]"
         })
 
-    Write-Host ""
-    Write-Host "Governance loop:" -ForegroundColor Yellow
-    Write-Host "     owner queues:" -ForegroundColor DarkGray
+    Write-UIHost -English "" -Chinese ""
+    Write-UIHost -English "Governance loop:" -Chinese "治理循环:" -ForegroundColor Yellow
+    Write-UIHost -English "     owner queues:" -Chinese "     负责人队列:" -ForegroundColor DarkGray
     foreach ($group in $ownerGroups) {
         $tasks = @($group.Group | ForEach-Object { $_.TaskName })
-        Write-Host "       $($group.Name): $($tasks -join ', ')" -ForegroundColor DarkGray
+        Write-UIHost -English "       $($group.Name): $($tasks -join ', ')" -Chinese "       $($group.Name): $($tasks -join ', ')" -ForegroundColor DarkGray
     }
 
-    Write-Host "     review cadence:" -ForegroundColor DarkGray
+    Write-UIHost -English "     review cadence:" -Chinese "     审查节奏:" -ForegroundColor DarkGray
     foreach ($group in $cadenceGroups) {
         $tasks = @($group.Group | ForEach-Object { $_.TaskName })
-        Write-Host "       $($group.Name): $($tasks -join ', ')" -ForegroundColor DarkGray
+        Write-UIHost -English "       $($group.Name): $($tasks -join ', ')" -Chinese "       $($group.Name): $($tasks -join ', ')" -ForegroundColor DarkGray
     }
 
-    Write-Host "     attention queue: $(if ($attentionTasks.Count -gt 0) { $attentionTasks -join '; ' } else { 'none' })" -ForegroundColor DarkGray
+    Write-UIHost -English "     attention queue: $(if ($attentionTasks.Count -gt 0) { $attentionTasks -join '; ' } else { 'none' })" -Chinese "     关注队列: $(if ($attentionTasks.Count -gt 0) { $attentionTasks -join '; ' } else { '无' })" -ForegroundColor DarkGray
 }
 
 function Write-WorkspaceDecisionQueues {
@@ -2305,27 +2305,27 @@ function Write-WorkspaceDecisionQueues {
     $releaseGroups = @($Items | Group-Object -Property ReleaseReadiness | Sort-Object Name)
     $milestoneGroups = @($Items | Where-Object { $_.MilestoneText -ne "not set" } | Group-Object -Property MilestoneText | Sort-Object Name)
 
-    Write-Host ""
-    Write-Host "Decision queues:" -ForegroundColor Yellow
-    Write-Host "     actions:" -ForegroundColor DarkGray
+    Write-UIHost -English "" -Chinese ""
+    Write-UIHost -English "Decision queues:" -Chinese "决策队列:" -ForegroundColor Yellow
+    Write-UIHost -English "     actions:" -Chinese "     操作:" -ForegroundColor DarkGray
     foreach ($group in $actionGroups) {
         $tasks = @($group.Group | ForEach-Object { $_.TaskName })
-        Write-Host "       $($group.Name): $($tasks -join ', ')" -ForegroundColor DarkGray
+        Write-UIHost -English "       $($group.Name): $($tasks -join ', ')" -Chinese "       $($group.Name): $($tasks -join ', ')" -ForegroundColor DarkGray
     }
 
-    Write-Host "     release readiness:" -ForegroundColor DarkGray
+    Write-UIHost -English "     release readiness:" -Chinese "     发布就绪:" -ForegroundColor DarkGray
     foreach ($group in $releaseGroups) {
         $tasks = @($group.Group | ForEach-Object { $_.TaskName })
-        Write-Host "       $($group.Name): $($tasks -join ', ')" -ForegroundColor DarkGray
+        Write-UIHost -English "       $($group.Name): $($tasks -join ', ')" -Chinese "       $($group.Name): $($tasks -join ', ')" -ForegroundColor DarkGray
     }
 
-    Write-Host "     milestones:" -ForegroundColor DarkGray
+    Write-UIHost -English "     milestones:" -Chinese "     里程碑:" -ForegroundColor DarkGray
     if ($milestoneGroups.Count -eq 0) {
-        Write-Host "       none: no milestone-linked tasks" -ForegroundColor DarkGray
+        Write-UIHost -English "       none: no milestone-linked tasks" -Chinese "       无: 没有里程碑关联任务" -ForegroundColor DarkGray
     }
     foreach ($group in $milestoneGroups) {
         $tasks = @($group.Group | ForEach-Object { $_.TaskName })
-        Write-Host "       $($group.Name): $($tasks -join ', ')" -ForegroundColor DarkGray
+        Write-UIHost -English "       $($group.Name): $($tasks -join ', ')" -Chinese "       $($group.Name): $($tasks -join ', ')" -ForegroundColor DarkGray
     }
 }
 
@@ -2335,23 +2335,23 @@ function Write-WorkspaceMilestoneCheckpoints {
         [object[]]$Milestones
     )
 
-    Write-Host ""
-    Write-Host "Milestone checkpoints:" -ForegroundColor Yellow
+    Write-UIHost -English "" -Chinese ""
+    Write-UIHost -English "Milestone checkpoints:" -Chinese "里程碑检查点:" -ForegroundColor Yellow
     if ($Milestones.Count -eq 0) {
-        Write-Host "     milestones: none configured" -ForegroundColor DarkGray
+        Write-UIHost -English "     milestones: none configured" -Chinese "     里程碑: 未配置" -ForegroundColor DarkGray
         return
     }
 
     foreach ($milestone in $Milestones) {
         $status = Get-WorkspaceMilestoneStatus -Manifest $Manifest -Milestone $milestone
-        Write-WorkspaceCheck -Level $status.Level -Name $status.Name -Detail "(runtime: $($status.RuntimeName); snapshot: $($status.SnapshotName); snapshot: $($status.SnapshotStatus.Status); naming: $($status.SnapshotNaming.Status); tasks: $(if ($status.TaskNames.Count -gt 0) { $status.TaskNames -join ', ' } else { 'none' }))"
+        Write-WorkspaceCheck -Level $status.Level -Name $status.Name -ChineseName $status.Name -Detail "(runtime: $($status.RuntimeName); snapshot: $($status.SnapshotName); snapshot: $($status.SnapshotStatus.Status); naming: $($status.SnapshotNaming.Status); tasks: $(if ($status.TaskNames.Count -gt 0) { $status.TaskNames -join ', ' } else { 'none' }))" -ChineseDetail "(运行时: $($status.RuntimeName); 快照: $($status.SnapshotName); 快照: $($status.SnapshotStatus.Status); 命名: $($status.SnapshotNaming.Status); 任务: $(if ($status.TaskNames.Count -gt 0) { $status.TaskNames -join ', ' } else { '无' }))"
         if ($milestone.description) {
-            Write-Host "       description: $($milestone.description)" -ForegroundColor DarkGray
+            Write-UIHost -English "       description: $($milestone.description)" -Chinese "       描述: $($milestone.description)" -ForegroundColor DarkGray
         }
         if ($status.RuntimeName -ne "not configured") {
-            Write-Host "       checkpoint command: adp snapshot create $($status.RuntimeName) $($status.SnapshotName)" -ForegroundColor DarkGray
+            Write-UIHost -English "       checkpoint command: adp snapshot create $($status.RuntimeName) $($status.SnapshotName)" -Chinese "       检查点命令: adp snapshot create $($status.RuntimeName) $($status.SnapshotName)" -ForegroundColor DarkGray
         } else {
-            Write-Host "       checkpoint command: set milestones[].runtime or use tasks from a single runtime first" -ForegroundColor DarkGray
+            Write-UIHost -English "       checkpoint command: set milestones[].runtime or use tasks from a single runtime first" -Chinese "       检查点命令: 先设置 milestones[].runtime 或使用同一运行时的任务" -ForegroundColor DarkGray
         }
     }
 }
@@ -2397,23 +2397,23 @@ function Write-WorkspaceMilestoneReviewRollup {
 
     $rollups = Get-WorkspaceMilestoneReviewRollups -Items $Items
 
-    Write-Host ""
-    Write-Host "Milestone review rollup:" -ForegroundColor Yellow
+    Write-UIHost -English "" -Chinese ""
+    Write-UIHost -English "Milestone review rollup:" -Chinese "里程碑审查汇总:" -ForegroundColor Yellow
     if ($rollups.Count -eq 0) {
-        Write-Host "     milestones: no milestone-linked tasks" -ForegroundColor DarkGray
+        Write-UIHost -English "     milestones: no milestone-linked tasks" -Chinese "     里程碑: 没有里程碑关联任务" -ForegroundColor DarkGray
         return
     }
 
     foreach ($rollup in $rollups) {
-        Write-WorkspaceCheck -Level $rollup.Level -Name $rollup.Milestone -Detail "(tasks: $($rollup.TaskCount); blocked: $($rollup.Blocked.Count); validation required: $($rollup.ValidationRequired.Count); review required: $($rollup.ReviewRequired.Count); ready to commit: $($rollup.ReadyToCommit.Count))"
-        Write-Host "       actions: $(if ($rollup.Actions.Count -gt 0) { $rollup.Actions -join '; ' } else { 'none' })" -ForegroundColor DarkGray
-        Write-Host "       release: $(if ($rollup.ReleaseStates.Count -gt 0) { $rollup.ReleaseStates -join '; ' } else { 'none' })" -ForegroundColor DarkGray
-        Write-Host "       blocked tasks: $(if ($rollup.Blocked.Count -gt 0) { $rollup.Blocked -join ', ' } else { 'none' })" -ForegroundColor DarkGray
-        Write-Host "       validation required: $(if ($rollup.ValidationRequired.Count -gt 0) { $rollup.ValidationRequired -join ', ' } else { 'none' })" -ForegroundColor DarkGray
-        Write-Host "       review required: $(if ($rollup.ReviewRequired.Count -gt 0) { $rollup.ReviewRequired -join ', ' } else { 'none' })" -ForegroundColor DarkGray
-        Write-Host "       ready to commit: $(if ($rollup.ReadyToCommit.Count -gt 0) { $rollup.ReadyToCommit -join ', ' } else { 'none' })" -ForegroundColor DarkGray
-        Write-Host "       owners: $(if ($rollup.Owners.Count -gt 0) { $rollup.Owners -join ', ' } else { 'not set' })" -ForegroundColor DarkGray
-        Write-Host "       due attention: $(if ($rollup.DueAttention.Count -gt 0) { $rollup.DueAttention -join ', ' } else { 'none' })" -ForegroundColor DarkGray
+        Write-WorkspaceCheck -Level $rollup.Level -Name $rollup.Milestone -ChineseName $rollup.Milestone -Detail "(tasks: $($rollup.TaskCount); blocked: $($rollup.Blocked.Count); validation required: $($rollup.ValidationRequired.Count); review required: $($rollup.ReviewRequired.Count); ready to commit: $($rollup.ReadyToCommit.Count))" -ChineseDetail "(任务: $($rollup.TaskCount); 阻塞: $($rollup.Blocked.Count); 需验证: $($rollup.ValidationRequired.Count); 需审查: $($rollup.ReviewRequired.Count); 可提交: $($rollup.ReadyToCommit.Count))"
+        Write-UIHost -English "       actions: $(if ($rollup.Actions.Count -gt 0) { $rollup.Actions -join '; ' } else { 'none' })" -Chinese "       操作: $(if ($rollup.Actions.Count -gt 0) { $rollup.Actions -join '; ' } else { '无' })" -ForegroundColor DarkGray
+        Write-UIHost -English "       release: $(if ($rollup.ReleaseStates.Count -gt 0) { $rollup.ReleaseStates -join '; ' } else { 'none' })" -Chinese "       发布: $(if ($rollup.ReleaseStates.Count -gt 0) { $rollup.ReleaseStates -join '; ' } else { '无' })" -ForegroundColor DarkGray
+        Write-UIHost -English "       blocked tasks: $(if ($rollup.Blocked.Count -gt 0) { $rollup.Blocked -join ', ' } else { 'none' })" -Chinese "       阻塞任务: $(if ($rollup.Blocked.Count -gt 0) { $rollup.Blocked -join ', ' } else { '无' })" -ForegroundColor DarkGray
+        Write-UIHost -English "       validation required: $(if ($rollup.ValidationRequired.Count -gt 0) { $rollup.ValidationRequired -join ', ' } else { 'none' })" -Chinese "       需验证: $(if ($rollup.ValidationRequired.Count -gt 0) { $rollup.ValidationRequired -join ', ' } else { '无' })" -ForegroundColor DarkGray
+        Write-UIHost -English "       review required: $(if ($rollup.ReviewRequired.Count -gt 0) { $rollup.ReviewRequired -join ', ' } else { 'none' })" -Chinese "       需审查: $(if ($rollup.ReviewRequired.Count -gt 0) { $rollup.ReviewRequired -join ', ' } else { '无' })" -ForegroundColor DarkGray
+        Write-UIHost -English "       ready to commit: $(if ($rollup.ReadyToCommit.Count -gt 0) { $rollup.ReadyToCommit -join ', ' } else { 'none' })" -Chinese "       可提交: $(if ($rollup.ReadyToCommit.Count -gt 0) { $rollup.ReadyToCommit -join ', ' } else { '无' })" -ForegroundColor DarkGray
+        Write-UIHost -English "       owners: $(if ($rollup.Owners.Count -gt 0) { $rollup.Owners -join ', ' } else { 'not set' })" -Chinese "       负责人: $(if ($rollup.Owners.Count -gt 0) { $rollup.Owners -join ', ' } else { '未设置' })" -ForegroundColor DarkGray
+        Write-UIHost -English "       due attention: $(if ($rollup.DueAttention.Count -gt 0) { $rollup.DueAttention -join ', ' } else { 'none' })" -Chinese "       需关注: $(if ($rollup.DueAttention.Count -gt 0) { $rollup.DueAttention -join ', ' } else { '无' })" -ForegroundColor DarkGray
     }
 }
 
@@ -2479,19 +2479,19 @@ function Write-WorkspaceValidationQueue {
 
     $queue = Get-WorkspaceValidationQueueItems -Items $Items -ManifestPath $ManifestPath
 
-    Write-Host ""
-    Write-Host "Validation execution queue:" -ForegroundColor Yellow
+    Write-UIHost -English "" -Chinese ""
+    Write-UIHost -English "Validation execution queue:" -Chinese "验证执行队列:" -ForegroundColor Yellow
     if ($queue.Count -eq 0) {
-        Write-Host "     validation: no tasks configured" -ForegroundColor DarkGray
+        Write-UIHost -English "     validation: no tasks configured" -Chinese "     验证: 没有配置任务" -ForegroundColor DarkGray
         return
     }
 
     foreach ($entry in $queue) {
-        Write-WorkspaceCheck -Level $entry.Level -Name $entry.TaskName -Detail "(validation: $($entry.Validation); commands: $($entry.CommandCount); readiness: $($entry.Readiness))"
-        Write-Host "       blockers: $(if ($entry.Blockers.Count -gt 0) { $entry.Blockers -join ', ' } else { 'none' })" -ForegroundColor DarkGray
-        Write-Host "       plan: $($entry.PlanCommand)" -ForegroundColor DarkGray
-        Write-Host "       execute preview: $($entry.ExecutePreview)" -ForegroundColor DarkGray
-        Write-Host "       execute: $($entry.ExecuteCommand)" -ForegroundColor DarkGray
+        Write-WorkspaceCheck -Level $entry.Level -Name $entry.TaskName -ChineseName $entry.TaskName -Detail "(validation: $($entry.Validation); commands: $($entry.CommandCount); readiness: $($entry.Readiness))" -ChineseDetail "(验证: $($entry.Validation); 命令: $($entry.CommandCount); 就绪: $($entry.Readiness))"
+        Write-UIHost -English "       blockers: $(if ($entry.Blockers.Count -gt 0) { $entry.Blockers -join ', ' } else { 'none' })" -Chinese "       阻塞: $(if ($entry.Blockers.Count -gt 0) { $entry.Blockers -join ', ' } else { '无' })" -ForegroundColor DarkGray
+        Write-UIHost -English "       plan: $($entry.PlanCommand)" -Chinese "       计划: $($entry.PlanCommand)" -ForegroundColor DarkGray
+        Write-UIHost -English "       execute preview: $($entry.ExecutePreview)" -Chinese "       执行预览: $($entry.ExecutePreview)" -ForegroundColor DarkGray
+        Write-UIHost -English "       execute: $($entry.ExecuteCommand)" -Chinese "       执行: $($entry.ExecuteCommand)" -ForegroundColor DarkGray
     }
 }
 
@@ -2531,20 +2531,20 @@ function Write-WorkspaceEvaluationQueue {
 
     $queue = Get-WorkspaceEvaluationQueueItems -Manifest $Manifest -ManifestPath $ManifestPath
 
-    Write-Host ""
-    Write-Host "Evaluation queue:" -ForegroundColor Yellow
-    Write-Host "     Evaluation queue only: no evaluation commands will be run." -ForegroundColor DarkGray
+    Write-UIHost -English "" -Chinese ""
+    Write-UIHost -English "Evaluation queue:" -Chinese "评估队列:" -ForegroundColor Yellow
+    Write-UIHost -English "     Evaluation queue only: no evaluation commands will be run." -Chinese "     仅评估队列: 不会运行评估命令。" -ForegroundColor DarkGray
     if ($queue.Count -eq 0) {
-        Write-Host "     evaluations: none configured" -ForegroundColor DarkGray
+        Write-UIHost -English "     evaluations: none configured" -Chinese "     评估: 未配置" -ForegroundColor DarkGray
         return
     }
 
     foreach ($entry in $queue) {
-        Write-WorkspaceCheck -Level $entry.Level -Name $entry.Name -Detail "(readiness: $($entry.Readiness); runtime: $($entry.RuntimeName); project: $($entry.ProjectName); cadence: $($entry.Cadence); metrics: $($entry.Metrics.Count); commands: $($entry.Commands.Count); tasks: $(if ($entry.TaskNames.Count -gt 0) { $entry.TaskNames -join ', ' } else { 'none' }))"
-        Write-Host "       blockers: $(if ($entry.Blockers.Count -gt 0) { $entry.Blockers -join ', ' } else { 'none' })" -ForegroundColor DarkGray
-        Write-Host "       metrics: $(if ($entry.Metrics.Count -gt 0) { $entry.Metrics -join ', ' } else { 'none' })" -ForegroundColor DarkGray
-        Write-Host "       commands: $(if ($entry.Commands.Count -gt 0) { $entry.Commands -join '; ' } else { 'none' })" -ForegroundColor DarkGray
-        Write-Host "       evidence: $($entry.ReportCommand)" -ForegroundColor DarkGray
+        Write-WorkspaceCheck -Level $entry.Level -Name $entry.Name -ChineseName $entry.Name -Detail "(readiness: $($entry.Readiness); runtime: $($entry.RuntimeName); project: $($entry.ProjectName); cadence: $($entry.Cadence); metrics: $($entry.Metrics.Count); commands: $($entry.Commands.Count); tasks: $(if ($entry.TaskNames.Count -gt 0) { $entry.TaskNames -join ', ' } else { 'none' }))" -ChineseDetail "(就绪: $($entry.Readiness); 运行时: $($entry.RuntimeName); 项目: $($entry.ProjectName); 节奏: $($entry.Cadence); 指标: $($entry.Metrics.Count); 命令: $($entry.Commands.Count); 任务: $(if ($entry.TaskNames.Count -gt 0) { $entry.TaskNames -join ', ' } else { '无' }))"
+        Write-UIHost -English "       blockers: $(if ($entry.Blockers.Count -gt 0) { $entry.Blockers -join ', ' } else { 'none' })" -Chinese "       阻塞: $(if ($entry.Blockers.Count -gt 0) { $entry.Blockers -join ', ' } else { '无' })" -ForegroundColor DarkGray
+        Write-UIHost -English "       metrics: $(if ($entry.Metrics.Count -gt 0) { $entry.Metrics -join ', ' } else { 'none' })" -Chinese "       指标: $(if ($entry.Metrics.Count -gt 0) { $entry.Metrics -join ', ' } else { '无' })" -ForegroundColor DarkGray
+        Write-UIHost -English "       commands: $(if ($entry.Commands.Count -gt 0) { $entry.Commands -join '; ' } else { 'none' })" -Chinese "       命令: $(if ($entry.Commands.Count -gt 0) { $entry.Commands -join '; ' } else { '无' })" -ForegroundColor DarkGray
+        Write-UIHost -English "       evidence: $($entry.ReportCommand)" -Chinese "       证据: $($entry.ReportCommand)" -ForegroundColor DarkGray
     }
 }
 
@@ -2555,8 +2555,8 @@ function Write-WorkspaceRecipes {
         [string]$StatePath
     )
 
-    Write-Host "Workspace recipes: $($Manifest.name)" -ForegroundColor Cyan
-    Write-Host "Recipes only: no projects will be cloned, no sync sessions will be changed, no snapshots will be created, no validation or evaluation commands will be run, no SSH connection will be opened, and no Git commands will be run." -ForegroundColor DarkGray
+    Write-UIHost -English "Workspace recipes: $($Manifest.name)" -Chinese "工作区食谱: $($Manifest.name)" -ForegroundColor Cyan
+    Write-UIHost -English "Recipes only: no projects will be cloned, no sync sessions will be changed, no snapshots will be created, no validation or evaluation commands will be run, no SSH connection will be opened, and no Git commands will be run." -Chinese "仅食谱: 不会克隆项目、不会更改同步会话、不会创建快照、不会运行验证或评估命令、不会打开 SSH 连接、不会运行 Git 命令。" -ForegroundColor DarkGray
 
     $projects = Get-WorkspaceArray $Manifest.projects
     $tasks = Get-WorkspaceArray $Manifest.tasks
@@ -2566,16 +2566,16 @@ function Write-WorkspaceRecipes {
     $state = Read-WorkspaceState -Path $resolvedStatePath
     $reportItems = @($tasks | ForEach-Object { New-WorkspaceReportItem -Manifest $Manifest -Task $_ -State $state })
 
-    Write-Host ""
-    Write-Host "Overview:" -ForegroundColor Yellow
-    Write-WorkspaceCheck -Level "OK" -Name "manifest" -Detail "(projects: $($projects.Count), tasks: $($tasks.Count), milestones: $($milestones.Count), evaluations: $($evaluations.Count), path: $ManifestPath)"
-    Write-WorkspaceCheck -Level "INFO" -Name "state" -Detail "(path: $resolvedStatePath)"
-    Write-Host "     recipes are discovery and planning records; use explicit lifecycle commands when you choose to execute work." -ForegroundColor DarkGray
+    Write-UIHost -English "" -Chinese ""
+    Write-UIHost -English "Overview:" -Chinese "概览:" -ForegroundColor Yellow
+    Write-WorkspaceCheck -Level "OK" -Name "manifest" -ChineseName "清单" -Detail "(projects: $($projects.Count), tasks: $($tasks.Count), milestones: $($milestones.Count), evaluations: $($evaluations.Count), path: $ManifestPath)" -ChineseDetail "(项目: $($projects.Count), 任务: $($tasks.Count), 里程碑: $($milestones.Count), 评估: $($evaluations.Count), 路径: $ManifestPath)"
+    Write-WorkspaceCheck -Level "INFO" -Name "state" -ChineseName "状态" -Detail "(path: $resolvedStatePath)" -ChineseDetail "(路径: $resolvedStatePath)"
+    Write-UIHost -English "     recipes are discovery and planning records; use explicit lifecycle commands when you choose to execute work." -Chinese "     食谱是发现和规划记录; 使用明确的生命周期命令来执行工作。" -ForegroundColor DarkGray
 
-    Write-Host ""
-    Write-Host "Project recipes:" -ForegroundColor Yellow
+    Write-UIHost -English "" -Chinese ""
+    Write-UIHost -English "Project recipes:" -Chinese "项目食谱:" -ForegroundColor Yellow
     if ($projects.Count -eq 0) {
-        Write-WorkspaceCheck -Level "WARN" -Name "projects" -Detail "(none configured)"
+        Write-WorkspaceCheck -Level "WARN" -Name "projects" -ChineseName "项目" -Detail "(none configured)" -ChineseDetail "(未配置)"
     }
 
     foreach ($project in $projects) {
@@ -2595,26 +2595,26 @@ function Write-WorkspaceRecipes {
         $linkedTasks = Get-WorkspaceTasksForProject -Manifest $Manifest -Project $project
         $level = if ($validationCommands.Count -gt 0) { $syncHygieneStatus.Level } else { Select-WorstWorkspaceLevel -Levels @($syncHygieneStatus.Level, "WARN") }
 
-        Write-WorkspaceCheck -Level $level -Name $projectName -Detail "(runtime: $runtimeName; sync: $(if ($syncExpected) { 'requested' } else { 'not requested' }); validation commands: $($validationCommands.Count); linked tasks: $($linkedTasks.Count); devcontainer: $($devContainerStatus.Status); sync hygiene: $($syncHygieneStatus.Status))"
-        Write-Host "       local path:  $(if ($localPath) { $localPath } else { 'not configured' })" -ForegroundColor DarkGray
-        Write-Host "       remote path: $remotePath" -ForegroundColor DarkGray
+        Write-WorkspaceCheck -Level $level -Name $projectName -ChineseName $projectName -Detail "(runtime: $runtimeName; sync: $(if ($syncExpected) { 'requested' } else { 'not requested' }); validation commands: $($validationCommands.Count); linked tasks: $($linkedTasks.Count); devcontainer: $($devContainerStatus.Status); sync hygiene: $($syncHygieneStatus.Status))" -ChineseDetail "(运行时: $runtimeName; 同步: $(if ($syncExpected) { '已请求' } else { '未请求' }); 验证命令: $($validationCommands.Count); 关联任务: $($linkedTasks.Count); devcontainer: $($devContainerStatus.Status); 同步卫生: $($syncHygieneStatus.Status))"
+        Write-UIHost -English "       local path:  $(if ($localPath) { $localPath } else { 'not configured' })" -Chinese "       本地路径: $(if ($localPath) { $localPath } else { '未配置' })" -ForegroundColor DarkGray
+        Write-UIHost -English "       remote path: $remotePath" -Chinese "       远程路径: $remotePath" -ForegroundColor DarkGray
         if ($validationCommands.Count -gt 0) {
-            Write-Host "       validation recipe:" -ForegroundColor DarkGray
+            Write-UIHost -English "       validation recipe:" -Chinese "       验证食谱:" -ForegroundColor DarkGray
             foreach ($command in $validationCommands) {
-                Write-Host "         - $command" -ForegroundColor DarkGray
+                Write-UIHost -English "         - $command" -Chinese "         - $command" -ForegroundColor DarkGray
             }
         } else {
-            Write-Host "       validation recipe: none configured" -ForegroundColor Yellow
+            Write-UIHost -English "       validation recipe: none configured" -Chinese "       验证食谱: 未配置" -ForegroundColor Yellow
         }
-        Write-Host "       next: adp workspace open $projectName -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
-        Write-Host "       sync: adp workspace sync $projectName -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
-        Write-Host "       lifecycle: adp workspace project $projectName -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
+        Write-UIHost -English "       next: adp workspace open $projectName -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -Chinese "       下一步: adp workspace open $projectName -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
+        Write-UIHost -English "       sync: adp workspace sync $projectName -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -Chinese "       同步: adp workspace sync $projectName -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
+        Write-UIHost -English "       lifecycle: adp workspace project $projectName -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -Chinese "       生命周期: adp workspace project $projectName -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
     }
 
-    Write-Host ""
-    Write-Host "Task recipes:" -ForegroundColor Yellow
+    Write-UIHost -English "" -Chinese ""
+    Write-UIHost -English "Task recipes:" -Chinese "任务食谱:" -ForegroundColor Yellow
     if ($reportItems.Count -eq 0) {
-        Write-WorkspaceCheck -Level "WARN" -Name "tasks" -Detail "(none configured)"
+        Write-WorkspaceCheck -Level "WARN" -Name "tasks" -ChineseName "任务" -Detail "(none configured)" -ChineseDetail "(未配置)"
     }
 
     foreach ($item in $reportItems) {
@@ -2624,54 +2624,54 @@ function Write-WorkspaceRecipes {
         $milestoneText = if ($item.MilestoneText -ne "not set") { $item.MilestoneText } else { "none" }
         $level = if ($item.SnapshotBlocked -or $item.SyncHygieneBlocking) { "FAIL" } elseif ($validationCommands.Count -gt 0) { "WARN" } else { "WARN" }
 
-        Write-WorkspaceCheck -Level $level -Name $item.TaskName -Detail "(project: $($item.ProjectName); runtime: $($item.RuntimeName); risk: $($item.Risk); snapshot required: $($item.RequiresSnapshot); milestone: $milestoneText; evaluation: $evaluationText; action: $($item.Action); release: $($item.ReleaseReadiness))"
-        Write-Host "       snapshot: $($item.SnapshotName); gate: $($item.SnapshotGate.Status); naming: $($item.SnapshotNaming.Status)" -ForegroundColor DarkGray
-        Write-Host "       validation recipe: $($validationCommands.Count) command(s)" -ForegroundColor DarkGray
+        Write-WorkspaceCheck -Level $level -Name $item.TaskName -ChineseName $item.TaskName -Detail "(project: $($item.ProjectName); runtime: $($item.RuntimeName); risk: $($item.Risk); snapshot required: $($item.RequiresSnapshot); milestone: $milestoneText; evaluation: $evaluationText; action: $($item.Action); release: $($item.ReleaseReadiness))" -ChineseDetail "(项目: $($item.ProjectName); 运行时: $($item.RuntimeName); 风险: $($item.Risk); 快照必需: $($item.RequiresSnapshot); 里程碑: $milestoneText; 评估: $evaluationText; 操作: $($item.Action); 发布: $($item.ReleaseReadiness))"
+        Write-UIHost -English "       snapshot: $($item.SnapshotName); gate: $($item.SnapshotGate.Status); naming: $($item.SnapshotNaming.Status)" -Chinese "       快照: $($item.SnapshotName); 门控: $($item.SnapshotGate.Status); 命名: $($item.SnapshotNaming.Status)" -ForegroundColor DarkGray
+        Write-UIHost -English "       validation recipe: $($validationCommands.Count) command(s)" -Chinese "       验证食谱: $($validationCommands.Count) 条命令" -ForegroundColor DarkGray
         foreach ($command in $validationCommands) {
-            Write-Host "         - $command" -ForegroundColor DarkGray
+            Write-UIHost -English "         - $command" -Chinese "         - $command" -ForegroundColor DarkGray
         }
-        Write-Host "       prepare: adp workspace task prepare $($item.TaskName) -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
+        Write-UIHost -English "       prepare: adp workspace task prepare $($item.TaskName) -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -Chinese "       准备: adp workspace task prepare $($item.TaskName) -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
         if ($item.RequiresSnapshot) {
             if ($item.SnapshotName -ne "not configured") {
-                Write-Host "       checkpoint: adp snapshot create $($item.RuntimeName) $($item.SnapshotName)" -ForegroundColor DarkGray
+                Write-UIHost -English "       checkpoint: adp snapshot create $($item.RuntimeName) $($item.SnapshotName)" -Chinese "       检查点: adp snapshot create $($item.RuntimeName) $($item.SnapshotName)" -ForegroundColor DarkGray
             } else {
-                Write-Host "       checkpoint: set tasks[].snapshot before creating a task checkpoint" -ForegroundColor Yellow
+                Write-UIHost -English "       checkpoint: set tasks[].snapshot before creating a task checkpoint" -Chinese "       检查点: 在创建任务检查点之前设置 tasks[].snapshot" -ForegroundColor Yellow
             }
         }
-        Write-Host "       validate plan: adp workspace task validate $($item.TaskName) -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
-        Write-Host "       execute preview: adp workspace task validate $($item.TaskName) -Execute -Plan -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
-        Write-Host "       review: adp workspace task review $($item.TaskName) -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
+        Write-UIHost -English "       validate plan: adp workspace task validate $($item.TaskName) -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -Chinese "       验证计划: adp workspace task validate $($item.TaskName) -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
+        Write-UIHost -English "       execute preview: adp workspace task validate $($item.TaskName) -Execute -Plan -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -Chinese "       执行预览: adp workspace task validate $($item.TaskName) -Execute -Plan -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
+        Write-UIHost -English "       review: adp workspace task review $($item.TaskName) -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -Chinese "       审查: adp workspace task review $($item.TaskName) -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
     }
 
-    Write-Host ""
-    Write-Host "Milestone recipes:" -ForegroundColor Yellow
+    Write-UIHost -English "" -Chinese ""
+    Write-UIHost -English "Milestone recipes:" -Chinese "里程碑食谱:" -ForegroundColor Yellow
     if ($milestones.Count -eq 0) {
-        Write-WorkspaceCheck -Level "INFO" -Name "milestones" -Detail "(none configured)"
+        Write-WorkspaceCheck -Level "INFO" -Name "milestones" -ChineseName "里程碑" -Detail "(none configured)" -ChineseDetail "(未配置)"
     }
     foreach ($milestone in $milestones) {
         $status = Get-WorkspaceMilestoneStatus -Manifest $Manifest -Milestone $milestone
-        Write-WorkspaceCheck -Level $status.Level -Name $status.Name -Detail "(runtime: $($status.RuntimeName); snapshot: $($status.SnapshotName); tasks: $(if ($status.TaskNames.Count -gt 0) { $status.TaskNames -join ', ' } else { 'none' }))"
-        Write-Host "       checkpoint command: adp snapshot create $($status.RuntimeName) $($status.SnapshotName)" -ForegroundColor DarkGray
+        Write-WorkspaceCheck -Level $status.Level -Name $status.Name -ChineseName $status.Name -Detail "(runtime: $($status.RuntimeName); snapshot: $($status.SnapshotName); tasks: $(if ($status.TaskNames.Count -gt 0) { $status.TaskNames -join ', ' } else { 'none' }))" -ChineseDetail "(运行时: $($status.RuntimeName); 快照: $($status.SnapshotName); 任务: $(if ($status.TaskNames.Count -gt 0) { $status.TaskNames -join ', ' } else { '无' }))"
+        Write-UIHost -English "       checkpoint command: adp snapshot create $($status.RuntimeName) $($status.SnapshotName)" -Chinese "       检查点命令: adp snapshot create $($status.RuntimeName) $($status.SnapshotName)" -ForegroundColor DarkGray
     }
 
-    Write-Host ""
-    Write-Host "Evaluation recipes:" -ForegroundColor Yellow
-    Write-Host "     Evaluation hooks are plan-only; evaluation commands are listed for evidence and are not executed." -ForegroundColor DarkGray
+    Write-UIHost -English "" -Chinese ""
+    Write-UIHost -English "Evaluation recipes:" -Chinese "评估食谱:" -ForegroundColor Yellow
+    Write-UIHost -English "     Evaluation hooks are plan-only; evaluation commands are listed for evidence and are not executed." -Chinese "     评估钩子仅用于规划; 评估命令仅为证据列出，不会执行。" -ForegroundColor DarkGray
     if ($evaluations.Count -eq 0) {
-        Write-WorkspaceCheck -Level "INFO" -Name "evaluations" -Detail "(none configured)"
+        Write-WorkspaceCheck -Level "INFO" -Name "evaluations" -ChineseName "评估" -Detail "(none configured)" -ChineseDetail "(未配置)"
     }
     foreach ($entry in (Get-WorkspaceEvaluationQueueItems -Manifest $Manifest -ManifestPath $ManifestPath)) {
-        Write-WorkspaceCheck -Level $entry.Level -Name $entry.Name -Detail "(readiness: $($entry.Readiness); runtime: $($entry.RuntimeName); project: $($entry.ProjectName); cadence: $($entry.Cadence); metrics: $($entry.Metrics.Count); commands: $($entry.Commands.Count); tasks: $(if ($entry.TaskNames.Count -gt 0) { $entry.TaskNames -join ', ' } else { 'none' }))"
-        Write-Host "       metrics: $(if ($entry.Metrics.Count -gt 0) { $entry.Metrics -join ', ' } else { 'none' })" -ForegroundColor DarkGray
-        Write-Host "       commands: $(if ($entry.Commands.Count -gt 0) { $entry.Commands -join '; ' } else { 'none' })" -ForegroundColor DarkGray
-        Write-Host "       evidence: $($entry.ReportCommand)" -ForegroundColor DarkGray
+        Write-WorkspaceCheck -Level $entry.Level -Name $entry.Name -ChineseName $entry.Name -Detail "(readiness: $($entry.Readiness); runtime: $($entry.RuntimeName); project: $($entry.ProjectName); cadence: $($entry.Cadence); metrics: $($entry.Metrics.Count); commands: $($entry.Commands.Count); tasks: $(if ($entry.TaskNames.Count -gt 0) { $entry.TaskNames -join ', ' } else { 'none' }))" -ChineseDetail "(就绪: $($entry.Readiness); 运行时: $($entry.RuntimeName); 项目: $($entry.ProjectName); 节奏: $($entry.Cadence); 指标: $($entry.Metrics.Count); 命令: $($entry.Commands.Count); 任务: $(if ($entry.TaskNames.Count -gt 0) { $entry.TaskNames -join ', ' } else { '无' }))"
+        Write-UIHost -English "       metrics: $(if ($entry.Metrics.Count -gt 0) { $entry.Metrics -join ', ' } else { 'none' })" -Chinese "       指标: $(if ($entry.Metrics.Count -gt 0) { $entry.Metrics -join ', ' } else { '无' })" -ForegroundColor DarkGray
+        Write-UIHost -English "       commands: $(if ($entry.Commands.Count -gt 0) { $entry.Commands -join '; ' } else { 'none' })" -Chinese "       命令: $(if ($entry.Commands.Count -gt 0) { $entry.Commands -join '; ' } else { '无' })" -ForegroundColor DarkGray
+        Write-UIHost -English "       evidence: $($entry.ReportCommand)" -Chinese "       证据: $($entry.ReportCommand)" -ForegroundColor DarkGray
     }
 
-    Write-Host ""
-    Write-Host "Evidence commands:" -ForegroundColor Yellow
-    Write-Host "  adp workspace dashboard -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
-    Write-Host "  adp workspace report -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
-    Write-Host "  adp workspace report -Markdown -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
+    Write-UIHost -English "" -Chinese ""
+    Write-UIHost -English "Evidence commands:" -Chinese "证据命令:" -ForegroundColor Yellow
+    Write-UIHost -English "  adp workspace dashboard -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -Chinese "  adp workspace dashboard -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
+    Write-UIHost -English "  adp workspace report -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -Chinese "  adp workspace report -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
+    Write-UIHost -English "  adp workspace report -Markdown -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -Chinese "  adp workspace report -Markdown -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
 }
 
 function Write-WorkspaceReleasePolicy {
@@ -2700,14 +2700,14 @@ function Write-WorkspaceReleasePolicy {
         "not ready"
     }
 
-    Write-Host ""
-    Write-Host "Release decision policy:" -ForegroundColor Yellow
-    Write-Host "     decision: $decision" -ForegroundColor DarkGray
-    Write-Host "     blockers: $(if ($releaseBlocked.Count -gt 0) { $releaseBlocked -join ', ' } else { 'none' })" -ForegroundColor DarkGray
-    Write-Host "     validation required: $(if ($validationRequired.Count -gt 0) { $validationRequired -join ', ' } else { 'none' })" -ForegroundColor DarkGray
-    Write-Host "     review required: $(if ($reviewRequired.Count -gt 0) { $reviewRequired -join ', ' } else { 'none' })" -ForegroundColor DarkGray
-    Write-Host "     release candidates: $(if ($releaseCandidates.Count -gt 0) { $releaseCandidates -join ', ' } else { 'none' })" -ForegroundColor DarkGray
-    Write-Host "     governance gaps: $(if ($ownerGaps.Count -gt 0 -or $cadenceGaps.Count -gt 0) { (@($ownerGaps + $cadenceGaps) | Select-Object -Unique) -join ', ' } else { 'none' })" -ForegroundColor DarkGray
+    Write-UIHost -English "" -Chinese ""
+    Write-UIHost -English "Release decision policy:" -Chinese "发布决策策略:" -ForegroundColor Yellow
+    Write-UIHost -English "     decision: $decision" -Chinese "     决策: $decision" -ForegroundColor DarkGray
+    Write-UIHost -English "     blockers: $(if ($releaseBlocked.Count -gt 0) { $releaseBlocked -join ', ' } else { 'none' })" -Chinese "     阻塞: $(if ($releaseBlocked.Count -gt 0) { $releaseBlocked -join ', ' } else { '无' })" -ForegroundColor DarkGray
+    Write-UIHost -English "     validation required: $(if ($validationRequired.Count -gt 0) { $validationRequired -join ', ' } else { 'none' })" -Chinese "     需验证: $(if ($validationRequired.Count -gt 0) { $validationRequired -join ', ' } else { '无' })" -ForegroundColor DarkGray
+    Write-UIHost -English "     review required: $(if ($reviewRequired.Count -gt 0) { $reviewRequired -join ', ' } else { 'none' })" -Chinese "     需审查: $(if ($reviewRequired.Count -gt 0) { $reviewRequired -join ', ' } else { '无' })" -ForegroundColor DarkGray
+    Write-UIHost -English "     release candidates: $(if ($releaseCandidates.Count -gt 0) { $releaseCandidates -join ', ' } else { 'none' })" -Chinese "     候选发布: $(if ($releaseCandidates.Count -gt 0) { $releaseCandidates -join ', ' } else { '无' })" -ForegroundColor DarkGray
+    Write-UIHost -English "     governance gaps: $(if ($ownerGaps.Count -gt 0 -or $cadenceGaps.Count -gt 0) { (@($ownerGaps + $cadenceGaps) | Select-Object -Unique) -join ', ' } else { 'none' })" -Chinese "     治理缺口: $(if ($ownerGaps.Count -gt 0 -or $cadenceGaps.Count -gt 0) { (@($ownerGaps + $cadenceGaps) | Select-Object -Unique) -join ', ' } else { '无' })" -ForegroundColor DarkGray
 }
 
 function Write-WorkspaceStaleTaskRemediation {
@@ -2721,10 +2721,10 @@ function Write-WorkspaceStaleTaskRemediation {
             $_.Action -in @("review sync ignore", "create snapshot", "validate now", "review now", "rollback or revise")
         })
 
-    Write-Host ""
-    Write-Host "Stale-task remediation:" -ForegroundColor Yellow
+    Write-UIHost -English "" -Chinese ""
+    Write-UIHost -English "Stale-task remediation:" -Chinese "陈旧任务修复:" -ForegroundColor Yellow
     if ($staleTasks.Count -eq 0) {
-        Write-Host "     queue: none" -ForegroundColor DarkGray
+        Write-UIHost -English "     queue: none" -Chinese "     队列: 无" -ForegroundColor DarkGray
         return
     }
 
@@ -2732,7 +2732,7 @@ function Write-WorkspaceStaleTaskRemediation {
         $owner = if ($item.OwnerName -ne "not set") { $item.OwnerName } else { "assign owner" }
         $cadence = if ($item.ReviewCadence -ne "not set") { $item.ReviewCadence } else { "set cadence" }
         $timing = if ($item.DueStatus -in @("overdue", "due soon")) { "$($item.DueDate) ($($item.DueStatus))" } else { "not urgent" }
-        Write-Host "     $($item.TaskName): owner=$owner; cadence=$cadence; timing=$timing; action=$($item.Action); release=$($item.ReleaseReadiness)" -ForegroundColor DarkGray
+        Write-UIHost -English "     $($item.TaskName): owner=$owner; cadence=$cadence; timing=$timing; action=$($item.Action); release=$($item.ReleaseReadiness)" -Chinese "     $($item.TaskName): 负责人=$owner; 节奏=$cadence; 时间=$timing; 操作=$($item.Action); 发布=$($item.ReleaseReadiness)" -ForegroundColor DarkGray
     }
 }
 
@@ -3358,23 +3358,23 @@ function Write-WorkspaceReport {
         return
     }
 
-    Write-Host "Workspace report: $($Manifest.name)" -ForegroundColor Cyan
-    Write-Host "Report only: no projects will be cloned, no sync sessions will be changed, no snapshots will be created, no validation or evaluation commands will be run, and no Git commands will be run." -ForegroundColor DarkGray
+    Write-UIHost -English "Workspace report: $($Manifest.name)" -Chinese "工作区报告: $($Manifest.name)" -ForegroundColor Cyan
+    Write-UIHost -English "Report only: no projects will be cloned, no sync sessions will be changed, no snapshots will be created, no validation or evaluation commands will be run, and no Git commands will be run." -Chinese "仅报告: 不会克隆项目、不会更改同步会话、不会创建快照、不会运行验证或评估命令、不会运行 Git 命令。" -ForegroundColor DarkGray
 
     $tasks = Get-WorkspaceArray $Manifest.tasks
     $milestones = Get-WorkspaceMilestones -Manifest $Manifest
     $resolvedStatePath = Resolve-WorkspaceStatePath -Path $StatePath
     $state = Read-WorkspaceState -Path $resolvedStatePath
 
-    Write-Host ""
-    Write-Host "Sources:" -ForegroundColor Yellow
-    Write-WorkspaceCheck -Level "OK" -Name "manifest" -Detail "($ManifestPath)"
-    Write-WorkspaceCheck -Level "INFO" -Name "state" -Detail "($resolvedStatePath)"
+    Write-UIHost -English "" -Chinese ""
+    Write-UIHost -English "Sources:" -Chinese "来源:" -ForegroundColor Yellow
+    Write-WorkspaceCheck -Level "OK" -Name "manifest" -ChineseName "清单" -Detail "($ManifestPath)" -ChineseDetail "($ManifestPath)"
+    Write-WorkspaceCheck -Level "INFO" -Name "state" -ChineseName "状态" -Detail "($resolvedStatePath)" -ChineseDetail "($resolvedStatePath)"
 
     if ($tasks.Count -eq 0) {
-        Write-Host ""
-        Write-Host "Task reports:" -ForegroundColor Yellow
-        Write-WorkspaceCheck -Level "WARN" -Name "tasks" -Detail "(none configured)"
+        Write-UIHost -English "" -Chinese ""
+        Write-UIHost -English "Task reports:" -Chinese "任务报告:" -ForegroundColor Yellow
+        Write-WorkspaceCheck -Level "WARN" -Name "tasks" -ChineseName "任务" -Detail "(none configured)" -ChineseDetail "(未配置)"
         return
     }
 
@@ -3389,42 +3389,42 @@ function Write-WorkspaceReport {
     Write-WorkspaceReleasePolicy -Items $reportItems
     Write-WorkspaceStaleTaskRemediation -Items $reportItems
 
-    Write-Host ""
-    Write-Host "Task reports:" -ForegroundColor Yellow
+    Write-UIHost -English "" -Chinese ""
+    Write-UIHost -English "Task reports:" -Chinese "任务报告:" -ForegroundColor Yellow
     foreach ($item in $reportItems) {
-        Write-WorkspaceCheck -Level $item.Level -Name $item.TaskName -Detail "(state: $($item.RecordedTaskState); risk: $($item.Risk); snapshot required: $($item.RequiresSnapshot))"
-        Write-Host "     review bundle:" -ForegroundColor DarkGray
-        Write-Host "       project: $($item.ProjectName)" -ForegroundColor DarkGray
-        Write-Host "       milestone: $($item.MilestoneText)" -ForegroundColor DarkGray
-        Write-Host "       evaluation: $($item.EvaluationText)" -ForegroundColor DarkGray
-        Write-Host "       sync hygiene: $($item.SyncHygiene.Status)$(if ($item.SyncHygiene.Detail) { ' - ' + $item.SyncHygiene.Detail })" -ForegroundColor DarkGray
-        Write-Host "       owner: $($item.OwnerName)" -ForegroundColor DarkGray
-        Write-Host "       review cadence: $($item.ReviewCadence)" -ForegroundColor DarkGray
-        Write-Host "       due: $($item.DueDate) ($($item.DueStatus))" -ForegroundColor DarkGray
-        Write-Host "       runtime: $($item.RuntimeName)" -ForegroundColor DarkGray
-        Write-Host "       checkpoint: $($item.SnapshotName)" -ForegroundColor DarkGray
-        Write-Host "       snapshot gate: $($item.SnapshotGate.Status) - $($item.SnapshotGate.Detail)" -ForegroundColor DarkGray
-        Write-Host "       snapshot naming: $($item.SnapshotNaming.Status) - $($item.SnapshotNaming.Detail)" -ForegroundColor DarkGray
-        Write-Host "       validation commands: $($item.ValidationCommands.Count)" -ForegroundColor DarkGray
-        Write-Host "       action: $($item.Action)" -ForegroundColor DarkGray
-        Write-Host "       release readiness: $($item.ReleaseReadiness)" -ForegroundColor DarkGray
-        Write-Host "     validation result: $($item.ValidationStateText)" -ForegroundColor DarkGray
+        Write-WorkspaceCheck -Level $item.Level -Name $item.TaskName -ChineseName $item.TaskName -Detail "(state: $($item.RecordedTaskState); risk: $($item.Risk); snapshot required: $($item.RequiresSnapshot))" -ChineseDetail "(状态: $($item.RecordedTaskState); 风险: $($item.Risk); 快照必需: $($item.RequiresSnapshot))"
+        Write-UIHost -English "     review bundle:" -Chinese "     审查包:" -ForegroundColor DarkGray
+        Write-UIHost -English "       project: $($item.ProjectName)" -Chinese "       项目: $($item.ProjectName)" -ForegroundColor DarkGray
+        Write-UIHost -English "       milestone: $($item.MilestoneText)" -Chinese "       里程碑: $($item.MilestoneText)" -ForegroundColor DarkGray
+        Write-UIHost -English "       evaluation: $($item.EvaluationText)" -Chinese "       评估: $($item.EvaluationText)" -ForegroundColor DarkGray
+        Write-UIHost -English "       sync hygiene: $($item.SyncHygiene.Status)$(if ($item.SyncHygiene.Detail) { ' - ' + $item.SyncHygiene.Detail })" -Chinese "       同步卫生: $($item.SyncHygiene.Status)$(if ($item.SyncHygiene.Detail) { ' - ' + $item.SyncHygiene.Detail })" -ForegroundColor DarkGray
+        Write-UIHost -English "       owner: $($item.OwnerName)" -Chinese "       负责人: $($item.OwnerName)" -ForegroundColor DarkGray
+        Write-UIHost -English "       review cadence: $($item.ReviewCadence)" -Chinese "       审查节奏: $($item.ReviewCadence)" -ForegroundColor DarkGray
+        Write-UIHost -English "       due: $($item.DueDate) ($($item.DueStatus))" -Chinese "       截止: $($item.DueDate) ($($item.DueStatus))" -ForegroundColor DarkGray
+        Write-UIHost -English "       runtime: $($item.RuntimeName)" -Chinese "       运行时: $($item.RuntimeName)" -ForegroundColor DarkGray
+        Write-UIHost -English "       checkpoint: $($item.SnapshotName)" -Chinese "       检查点: $($item.SnapshotName)" -ForegroundColor DarkGray
+        Write-UIHost -English "       snapshot gate: $($item.SnapshotGate.Status) - $($item.SnapshotGate.Detail)" -Chinese "       快照门控: $($item.SnapshotGate.Status) - $($item.SnapshotGate.Detail)" -ForegroundColor DarkGray
+        Write-UIHost -English "       snapshot naming: $($item.SnapshotNaming.Status) - $($item.SnapshotNaming.Detail)" -Chinese "       快照命名: $($item.SnapshotNaming.Status) - $($item.SnapshotNaming.Detail)" -ForegroundColor DarkGray
+        Write-UIHost -English "       validation commands: $($item.ValidationCommands.Count)" -Chinese "       验证命令: $($item.ValidationCommands.Count)" -ForegroundColor DarkGray
+        Write-UIHost -English "       action: $($item.Action)" -Chinese "       操作: $($item.Action)" -ForegroundColor DarkGray
+        Write-UIHost -English "       release readiness: $($item.ReleaseReadiness)" -Chinese "       发布就绪: $($item.ReleaseReadiness)" -ForegroundColor DarkGray
+        Write-UIHost -English "     validation result: $($item.ValidationStateText)" -Chinese "     验证结果: $($item.ValidationStateText)" -ForegroundColor DarkGray
         Write-WorkspaceValidationDetailLines -RecordedState $item.RecordedState
-        Write-Host "     review: $($item.ReviewDecision.Verdict) - $($item.ReviewDecision.Detail)" -ForegroundColor DarkGray
-        Write-Host "     rollback: $($item.RollbackState)" -ForegroundColor DarkGray
-        Write-Host "     commit: $($item.CommitDecision.Verdict) - $($item.CommitDecision.Detail)" -ForegroundColor DarkGray
-        Write-Host "     next: $($item.CommitDecision.NextStep)" -ForegroundColor DarkGray
-        Write-Host "     checklist:" -ForegroundColor DarkGray
-        Write-Host "       validation: confirm the latest recorded result matches the task output being reviewed" -ForegroundColor DarkGray
-        Write-Host "       sync hygiene: confirm clean, covered, not requested, or intentionally reviewed before release" -ForegroundColor DarkGray
-        Write-Host "       source: inspect git status, diff stat, and full diff in the target project" -ForegroundColor DarkGray
-        Write-Host "       rollback: confirm the VM checkpoint and Git rollback path before accepting risky work" -ForegroundColor DarkGray
-        Write-Host "       commit: commit only after sync hygiene, validation, and human review are all accepted" -ForegroundColor DarkGray
-        Write-Host "     handoff:" -ForegroundColor DarkGray
-        Write-Host "       review:   adp workspace task review $($item.TaskName) -ManifestPath $ManifestPath" -ForegroundColor DarkGray
-        Write-Host "       rollback: adp workspace task rollback $($item.TaskName) -ManifestPath $ManifestPath" -ForegroundColor DarkGray
-        Write-Host "       commit:   adp workspace task commit $($item.TaskName) -ManifestPath $ManifestPath" -ForegroundColor DarkGray
-        Write-Host "       inspect:  git status --short; git diff --stat; git diff" -ForegroundColor DarkGray
+        Write-UIHost -English "     review: $($item.ReviewDecision.Verdict) - $($item.ReviewDecision.Detail)" -Chinese "     审查: $($item.ReviewDecision.Verdict) - $($item.ReviewDecision.Detail)" -ForegroundColor DarkGray
+        Write-UIHost -English "     rollback: $($item.RollbackState)" -Chinese "     回滚: $($item.RollbackState)" -ForegroundColor DarkGray
+        Write-UIHost -English "     commit: $($item.CommitDecision.Verdict) - $($item.CommitDecision.Detail)" -Chinese "     提交: $($item.CommitDecision.Verdict) - $($item.CommitDecision.Detail)" -ForegroundColor DarkGray
+        Write-UIHost -English "     next: $($item.CommitDecision.NextStep)" -Chinese "     下一步: $($item.CommitDecision.NextStep)" -ForegroundColor DarkGray
+        Write-UIHost -English "     checklist:" -Chinese "     检查清单:" -ForegroundColor DarkGray
+        Write-UIHost -English "       validation: confirm the latest recorded result matches the task output being reviewed" -Chinese "       验证: 确认最新记录的结果与正在审查的任务输出匹配" -ForegroundColor DarkGray
+        Write-UIHost -English "       sync hygiene: confirm clean, covered, not requested, or intentionally reviewed before release" -Chinese "       同步卫生: 发布前确认干净、已覆盖、未请求 或 已审查" -ForegroundColor DarkGray
+        Write-UIHost -English "       source: inspect git status, diff stat, and full diff in the target project" -Chinese "       源码: 在目标项目中检查 git status、diff stat 和完整 diff" -ForegroundColor DarkGray
+        Write-UIHost -English "       rollback: confirm the VM checkpoint and Git rollback path before accepting risky work" -Chinese "       回滚: 在接受高风险工作前确认 VM 检查点和 Git 回滚路径" -ForegroundColor DarkGray
+        Write-UIHost -English "       commit: commit only after sync hygiene, validation, and human review are all accepted" -Chinese "       提交: 仅在同步卫生、验证和人工审查全部通过后提交" -ForegroundColor DarkGray
+        Write-UIHost -English "     handoff:" -Chinese "     交接:" -ForegroundColor DarkGray
+        Write-UIHost -English "       review:   adp workspace task review $($item.TaskName) -ManifestPath $ManifestPath" -Chinese "       审查:   adp workspace task review $($item.TaskName) -ManifestPath $ManifestPath" -ForegroundColor DarkGray
+        Write-UIHost -English "       rollback: adp workspace task rollback $($item.TaskName) -ManifestPath $ManifestPath" -Chinese "       回滚:   adp workspace task rollback $($item.TaskName) -ManifestPath $ManifestPath" -ForegroundColor DarkGray
+        Write-UIHost -English "       commit:   adp workspace task commit $($item.TaskName) -ManifestPath $ManifestPath" -Chinese "       提交:   adp workspace task commit $($item.TaskName) -ManifestPath $ManifestPath" -ForegroundColor DarkGray
+        Write-UIHost -English "       inspect:  git status --short; git diff --stat; git diff" -Chinese "       检查:   git status --short; git diff --stat; git diff" -ForegroundColor DarkGray
     }
 }
 

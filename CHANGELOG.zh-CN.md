@@ -13,6 +13,7 @@
 - 在操作指南和故障排除文档中添加了 SSH 密钥生命周期文档（英文和简体中文）。新文档涵盖密钥位置（`%USERPROFILE%\\.ssh\\adp-os\\`）、密钥格式（ed25519，无密码）、首次自动创建、带备份和 VM 影响警告的密钥重新生成、密钥安全、直接 SSH/scp 用法，以及 `key-missing`、`auth-pending`、`Permission denied`、`bad permissions`、密钥删除和多用户环境的故障排除。（Phase 2 roadmap 项目。）
 - 新增 `adp validate` 命令，作为共享仓库验证套件的独立 CLI 入口。支持 `-Quick`、`-SkipCliSmoke`、`-SkipInstallerSmoke` 和 `-SkipShellSyntax` 标志，提供双语输出。（Phase 2 roadmap 项目。）
 - 新增 `adp doctor` 剩余用户界面诊断输出的本地化：网络漂移修复选项、VMware/xorriso 指导、Mutagen 修复计划和安装详情、重复 VM 警告、stale session 清理指导以及问题列表。现在所有 `adp doctor` 输出路径的英文和简体中文文本保持一致。
+- 本地化 `adp workspace report`、`adp workspace recipes` 和所有工作区报告子部分（发布交接摘要、治理循环、决策队列、里程碑检查点、里程碑审查汇总、验证执行队列、评估队列、发布决策策略、陈旧任务修复和每个任务的报告包），使用 Write-UIHost 提供双语输出。章节标题、字段标签、边界声明、检查清单项目和交接命令现在响应 `ADP_LANG=zh-CN`。
 - 新增 `adp status`（ssh、running VMX、sync、VMX、connect、alias）和 `adp up` 连接摘要（IP、SSH、Alias、Workspace、Sync、Status、Doctor、CPU/RAM/Disk、VMX、ISO）中剩余用户界面数据标签的本地化。所有 CLI 输出标签现在均遵循配置的 UI 语言偏好。
 - 新增 `adp network` 剩余用户界面输出的本地化：seed 网络漂移检测消息、guest netplan 原地修复指导、重建/host route 变通方案、plan-preview 操作步骤（验证 SSH、上传、安装、等待、更新 Mutagen 别名）以及静态 IP 激活成功消息。现在 `network apply` plan-only 输出和 `network configure-local` 路径的英文和简体中文文本保持一致。
 - 开始 `adp workspace` 入口命令的双语本地化。调度部分和五个入口命令界面现使用 `Write-UIHost` 进行一致的语言选择：`workspace show`/`plan`（Write-WorkspaceSummary）、`workspace create`（Write-WorkspaceCreate）、`workspace open`（Write-WorkspaceOpen）和 `workspace sync`（Write-WorkspaceSyncGuide）。共享的 `Write-WorkspaceCheck` helper 现已支持双语输出，可选择性传入 `-ChineseName` 和 `-ChineseDetail` 参数。
