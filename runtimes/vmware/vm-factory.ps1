@@ -951,7 +951,8 @@ function Wait-AutoinstallComplete {
         [string]$VmxPath,
         [string]$RuntimeName,
         [int]$TimeoutMinutes = 45,
-        [int]$CheckIntervalSeconds = 30
+        [int]$CheckIntervalSeconds = 30,
+        [int]$AutoinstallCircuitBreakerMinutes = 20
     )
 
     $deadline = (Get-Date).AddMinutes($TimeoutMinutes)
@@ -960,6 +961,10 @@ function Wait-AutoinstallComplete {
     $sameDetailCount = 0
     $sshKeyPath = Join-Path "$env:USERPROFILE\.ssh\adp-os" "adp-os"
     $progressId = 135
+
+    # Circuit breaker: stop retrying if the same error category repeats for too long
+    $cbIterations = [Math]::Max(1, [Math]::Floor(($AutoinstallCircuitBreakerMinutes * 60) / $CheckIntervalSeconds))
+    $autoinstallCb = New-CircuitBreaker -MaxConsecutiveErrors $cbIterations -Name "autoinstall"
 
     Write-UIHost -English "  Install monitor active: INSTALLING Ubuntu in the VM; ADP is watching readiness, not stuck (timeout: ${TimeoutMinutes}min)." -Chinese "  安装监视器已启动：正在 VM 内安装 Ubuntu；ADP 正在监控 readiness，不是卡住（超时: ${TimeoutMinutes}min）。" -ForegroundColor Yellow
     Write-UIHost -English "  What you should see: an install-monitor heartbeat every ${CheckIntervalSeconds}s until the VM is provisioned." -Chinese "  你应该会看到：每 ${CheckIntervalSeconds}s 输出一次 install-monitor 心跳，直到 VM provisioning 完成。" -ForegroundColor DarkGray
@@ -1037,6 +1042,28 @@ function Wait-AutoinstallComplete {
         $detail = (@($probeDetails) | Select-Object -Unique) -join "; "
         if ([string]::IsNullOrWhiteSpace($detail)) {
             $detail = Get-UIText -English "installer is still running" -Chinese "installer 仍在运行"
+        }
+
+        # Circuit breaker: categorize the dominant error and check if same error has repeated too many times
+        $cbErrorKey = ""
+        if ($candidateIps.Count -eq 0) { $cbErrorKey = "no-guest-ip" }
+        elseif ($probeDetails -match "auth-pending") { $cbErrorKey = "auth-pending" }
+        elseif ($probeDetails -match "SSH not ready") { $cbErrorKey = "ssh-not-ready" }
+        elseif ($probeDetails -match "SSH key missing") { $cbErrorKey = "ssh-key-missing" }
+        elseif ($probeDetails -match "provision marker not ready") { $cbErrorKey = "provision-not-ready" }
+        elseif ($probeDetails -match "probe unavailable") { $cbErrorKey = "probe-unavailable" }
+        else { $cbErrorKey = "installer-running" }
+
+        $cbContinue = Test-CircuitBreaker -CircuitBreaker $autoinstallCb -ErrorKey $cbErrorKey
+        if (-not $cbContinue) {
+            Write-Progress -Id $progressId -Activity (Get-UIText -English "Installing Ubuntu in ADP VM" -Chinese "正在 ADP VM 中安装 Ubuntu") -Completed
+            $cbMinutes = [math]::Round(($autoinstallCb.ConsecutiveCount * $CheckIntervalSeconds) / 60, 1)
+            Write-WarnLog -Message (Get-UIText -English "Circuit breaker opened: '$cbErrorKey' repeated $($autoinstallCb.ConsecutiveCount) times (~${cbMinutes}min)" -Chinese "熔断器断开: '$cbErrorKey' 连续重复 $($autoinstallCb.ConsecutiveCount) 次 (~${cbMinutes}min)") -Component "vm-factory"
+            Write-UIHost -English "  Autoinstall circuit breaker opened: same error '$cbErrorKey' repeated for ~${cbMinutes}min (threshold: ${AutoinstallCircuitBreakerMinutes}min)." -Chinese "  自动安装熔断器已断开: 同一错误 '$cbErrorKey' 连续重复约 ${cbMinutes}min (阈值: ${AutoinstallCircuitBreakerMinutes}min)。" -ForegroundColor Yellow
+            Write-UIHost -English "  Stopping retry to prevent infinite loop. The VM may have a persistent issue." -Chinese "  停止重试以防止无限循环。VM 可能存在持续性故障。" -ForegroundColor Yellow
+            Write-UIHost -English "  Next: check VMware console for installer errors, then investigate with: adp status $RuntimeName" -Chinese "  下一步: 检查 VMware console 中的 installer 错误，然后通过 adp status $RuntimeName 排查。" -ForegroundColor DarkGray
+            Write-UIHost -English "  To retry, re-run: adp up $RuntimeName" -Chinese "  如需重试，请重新运行: adp up $RuntimeName" -ForegroundColor DarkGray
+            return $false
         }
 
         Write-Progress `

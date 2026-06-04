@@ -96,13 +96,14 @@ function Show-Help {
         Write-Host "  adp iso [ubuntu|almalinux|rocky|debian] [-Url <url>] [-Force] [-NonInteractive]  下载 Linux ISO 到缓存（使用 BITS 支持断点续传）"
         Write-Host "  adp quickstart [-Distro <name>] [-IsoPath <path>] [-SkipIsoDownload] [-SkipDoctor] [-Force] [-NonInteractive] [--help-prereqs]  一键引导设置"
         Write-Host "  adp sandbox <command...> [-Distro <name>] [-IsoPath <path>]  在一次性 VM 中运行命令，执行后自动销毁"
+        Write-Host "  adp serve [-Port <port>] [-Public] [-Json]  启动健康检查 HTTP 服务（默认端口 9080）"
         Write-Host "  adp precheck                  扫描前提条件并显示状态表"
         Write-Host "  adp precheck --help-prereqs   显示完整前提条件列表和安装命令"
         Write-Host "  adp version                    显示版本信息"
         Write-Host "  adp help                       显示此帮助"
         Write-Host ""
         Write-Host "全局选项:" -ForegroundColor Yellow
-        Write-Host "  -Json                          以 JSON 格式输出 (支持: status, doctor, capabilities)"
+        Write-Host "  -Json                          以 JSON 格式输出 (支持: status, doctor, capabilities, serve)"
         Write-Host "  --help, --version              显示帮助或版本信息"
         Write-Host ""
         Write-Host "使用 'adp <command> --help' 查看特定命令的详细帮助。" -ForegroundColor DarkGray
@@ -129,13 +130,14 @@ function Show-Help {
         Write-Host "  adp iso [ubuntu|almalinux|rocky|debian] [-Url <url>] [-Force] [-NonInteractive]  Download Linux ISO to cache (BITS transfer with resume support)"
         Write-Host "  adp quickstart [-Distro <name>] [-IsoPath <path>] [-SkipIsoDownload] [-SkipDoctor] [-Force] [-NonInteractive] [--help-prereqs]  One-command guided setup"
         Write-Host "  adp sandbox <command...> [-Distro <name>] [-IsoPath <path>]  Run a command in a disposable VM (auto-destroyed)"
+        Write-Host "  adp serve [-Port <port>] [-Public] [-Json]  Start health check HTTP server (default port 9080)"
         Write-Host "  adp precheck                  Scan prerequisites and show status table"
         Write-Host "  adp precheck --help-prereqs   Show full prerequisite list with install commands"
         Write-Host "  adp version                    Show version information"
         Write-Host "  adp help                       Show this help"
         Write-Host ""
         Write-Host "Global options:" -ForegroundColor Yellow
-        Write-Host "  -Json                          Output in JSON format (supported: status, doctor, capabilities)"
+        Write-Host "  -Json                          Output in JSON format (supported: status, doctor, capabilities, serve)"
         Write-Host "  --help, --version              Show help or version information"
         Write-Host ""
         Write-Host "Use 'adp <command> --help' for detailed per-command help." -ForegroundColor DarkGray
@@ -801,6 +803,33 @@ function Show-CommandHelp {
                 Write-Host "Examples:" -ForegroundColor Yellow
                 Write-Host "  adp sandbox echo hello"
                 Write-Host "  adp sandbox python3 -c 'print(1+1)'"
+            }
+            "serve" {
+                Write-Host "Usage:" -ForegroundColor Yellow
+                Write-Host "  adp serve [-Port <port>] [-Public] [-Json]"
+                Write-Host ""
+                Write-Host "Arguments:" -ForegroundColor Yellow
+                Write-Host "  -Port <port>      HTTP listen port (default: 9080)"
+                Write-Host "  -Public           Listen on all interfaces instead of localhost only"
+                Write-Host "  -Json             Output one-shot health report as JSON (does not start server)"
+                Write-Host ""
+                Write-Host "Description:" -ForegroundColor Yellow
+                Write-Host "  Starts a lightweight HTTP health check server."
+                Write-Host "  GET /health returns JSON with runtime states and sync health."
+                Write-Host "  Use -Json for a one-shot health report without starting the server."
+                Write-Host "  Use -Public to allow external monitoring tools to reach the endpoint."
+                Write-Host ""
+                Write-Host "  Health status values:" -ForegroundColor Yellow
+                Write-Host "    healthy      All runtimes running, all sync healthy"
+                Write-Host "    degraded     Some runtimes not running or sync issues"
+                Write-Host "    unhealthy    All created runtimes stopped"
+                Write-Host "    no-runtimes  No runtimes have been created"
+                Write-Host ""
+                Write-Host "Examples:" -ForegroundColor Yellow
+                Write-Host "  adp serve"
+                Write-Host "  adp serve -Port 8080"
+                Write-Host "  adp serve -Public -Port 9080"
+                Write-Host "  adp serve -Json"
             }
             default {
                 Write-Host "Command '$CommandName' has no detailed help. Use 'adp help' for all commands." -ForegroundColor Yellow

@@ -14,6 +14,8 @@
 
 ### 新增
 
+- 新增熔断器模块 (`core/utility/circuit-breaker.ps1`)，提供 `New-CircuitBreaker`、`Test-CircuitBreaker`、`Reset-CircuitBreaker` 和 `Get-CircuitBreakerSummary` 函数。追踪连续相同的错误键，当同一错误重复 MaxConsecutiveErrors 次后断开熔断——防止长时间运行操作中的无限重试循环。
+- 新增熔断器集成到 `Wait-AutoinstallComplete`（`runtimes/vmware/vm-factory.ps1`）。在 Ubuntu 自动安装期间监控就绪信号类别（`no-guest-ip`、`auth-pending`、`ssh-not-ready`、`provision-not-ready` 等）。当同一错误类别持续超过可配置阈值（`-AutoinstallCircuitBreakerMinutes`，默认 20 分钟）时，熔断器断开：停止重试、发出双语警告，并返回以允许操作者排查。防止 agent 在 VM 安装卡住时无限循环。
 - 在操作指南和故障排除文档中添加了 SSH 密钥生命周期文档（英文和简体中文）。新文档涵盖密钥位置（`%USERPROFILE%\\.ssh\\adp-os\\`）、密钥格式（ed25519，无密码）、首次自动创建、带备份和 VM 影响警告的密钥重新生成、密钥安全、直接 SSH/scp 用法，以及 `key-missing`、`auth-pending`、`Permission denied`、`bad permissions`、密钥删除和多用户环境的故障排除。（Phase 2 roadmap 项目。）
 - 新增 `adp validate` 命令，作为共享仓库验证套件的独立 CLI 入口。支持 `-Quick`、`-SkipCliSmoke`、`-SkipInstallerSmoke` 和 `-SkipShellSyntax` 标志，提供双语输出。（Phase 2 roadmap 项目。）
 - 新增 `adp doctor` 剩余用户界面诊断输出的本地化：网络漂移修复选项、VMware/xorriso 指导、Mutagen 修复计划和安装详情、重复 VM 警告、stale session 清理指导以及问题列表。现在所有 `adp doctor` 输出路径的英文和简体中文文本保持一致。
