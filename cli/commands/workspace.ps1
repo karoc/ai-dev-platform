@@ -1173,7 +1173,9 @@ function Write-WorkspaceCheck {
     param(
         [string]$Level,
         [string]$Name,
-        [string]$Detail = ""
+        [string]$Detail = "",
+        [string]$ChineseName = "",
+        [string]$ChineseDetail = ""
     )
 
     $color = switch ($Level) {
@@ -1183,8 +1185,11 @@ function Write-WorkspaceCheck {
         default { "DarkGray" }
     }
 
-    $suffix = if ([string]::IsNullOrWhiteSpace($Detail)) { "" } else { " $Detail" }
-    Write-Host "  [$Level] $Name$suffix" -ForegroundColor $color
+    $enSuffix = if ([string]::IsNullOrWhiteSpace($Detail)) { "" } else { " $Detail" }
+    $cnName = if ([string]::IsNullOrWhiteSpace($ChineseName)) { $Name } else { $ChineseName }
+    $cnSuffix = if ([string]::IsNullOrWhiteSpace($ChineseDetail)) { $enSuffix } else { " $ChineseDetail" }
+    
+    Write-UIHost -English "  [$Level] $Name$enSuffix" -Chinese "  [$Level] $cnName$cnSuffix" -ForegroundColor $color
 }
 
 function Resolve-ProjectWorkspacePath {
@@ -1785,8 +1790,8 @@ function Write-WorkspaceStatus {
         [string]$StatePath
     )
 
-    Write-Host "Workspace readiness: $($Manifest.name)" -ForegroundColor Cyan
-    Write-Host "Status only: no projects will be cloned, no sync sessions will be changed, no snapshots will be created, and no validation or evaluation commands will be run." -ForegroundColor DarkGray
+    Write-UIHost -English "Workspace readiness: $($Manifest.name)" -Chinese "工作区就绪状态: $($Manifest.name)" -ForegroundColor Cyan
+    Write-UIHost -English "Status only: no projects will be cloned, no sync sessions will be changed, no snapshots will be created, and no validation or evaluation commands will be run." -Chinese "仅状态查看：不会 clone 任何项目、不会更改任何同步会话、不会创建任何快照、不会运行任何验证或评估命令。" -ForegroundColor DarkGray
 
     $projects = Get-WorkspaceArray $Manifest.projects
     $tasks = Get-WorkspaceArray $Manifest.tasks
@@ -1798,120 +1803,120 @@ function Write-WorkspaceStatus {
     $taskCount = $tasks.Count
     $milestoneCount = $milestones.Count
     $evaluationCount = $evaluations.Count
-    Write-Host ""
-    Write-Host "Manifest:" -ForegroundColor Yellow
-    Write-WorkspaceCheck -Level "OK" -Name "manifest loaded" -Detail "(projects: $projectCount, tasks: $taskCount, milestones: $milestoneCount, evaluations: $evaluationCount)"
-    Write-WorkspaceCheck -Level "INFO" -Name "local state" -Detail "($resolvedStatePath)"
+    Write-UIHost -English "" -Chinese ""
+    Write-UIHost -English "Manifest:" -Chinese "清单:" -ForegroundColor Yellow
+    Write-WorkspaceCheck -Level "OK" -Name "manifest loaded" -ChineseName "清单已加载" -Detail "(projects: $projectCount, tasks: $taskCount, milestones: $milestoneCount, evaluations: $evaluationCount)"
+    Write-WorkspaceCheck -Level "INFO" -Name "local state" -ChineseName "本地状态" -Detail "($resolvedStatePath)"
     if ($Manifest.version) {
-        Write-WorkspaceCheck -Level "OK" -Name "manifest version" -Detail "($($Manifest.version))"
+        Write-WorkspaceCheck -Level "OK" -Name "manifest version" -ChineseName "清单版本" -Detail "($($Manifest.version))"
     } else {
-        Write-WorkspaceCheck -Level "WARN" -Name "manifest version" -Detail "(missing)"
+        Write-WorkspaceCheck -Level "WARN" -Name "manifest version" -ChineseName "清单版本" -Detail "(missing)" -ChineseDetail "(缺失)"
     }
 
-    Write-Host ""
-    Write-Host "Projects:" -ForegroundColor Yellow
+    Write-UIHost -English "" -Chinese ""
+    Write-UIHost -English "Projects:" -Chinese "项目:" -ForegroundColor Yellow
     if ($projectCount -eq 0) {
-        Write-WorkspaceCheck -Level "WARN" -Name "projects" -Detail "(none configured)"
+        Write-WorkspaceCheck -Level "WARN" -Name "projects" -ChineseName "项目" -Detail "(none configured)" -ChineseDetail "(未配置)"
     }
 
     foreach ($project in $projects) {
         $projectName = if ($project.name) { $project.name } else { "(unnamed)" }
-        Write-Host "  - $projectName" -ForegroundColor DarkGray
+        Write-UIHost -English "  - $projectName" -Chinese "  - $projectName" -ForegroundColor DarkGray
 
         if (-not $project.path) {
-            Write-WorkspaceCheck -Level "FAIL" -Name "project path" -Detail "(missing)"
+            Write-WorkspaceCheck -Level "FAIL" -Name "project path" -ChineseName "项目路径" -Detail "(missing)" -ChineseDetail "(缺失)"
         } else {
             $projectPath = Resolve-ProjectWorkspacePath -Project $project
             $pathLevel = if (Test-Path -LiteralPath $projectPath) { "OK" } else { "WARN" }
             $pathStatus = if ($pathLevel -eq "OK") { "exists" } else { "missing" }
-            Write-WorkspaceCheck -Level $pathLevel -Name "project path" -Detail ("({0}: {1})" -f $pathStatus, $projectPath)
+            Write-WorkspaceCheck -Level $pathLevel -Name "project path" -ChineseName "项目路径" -Detail ("({0}: {1})" -f $pathStatus, $projectPath)
             $devContainerStatus = Get-WorkspaceDevContainerStatus -ProjectPath $projectPath
-            Write-WorkspaceCheck -Level $devContainerStatus.Level -Name "devcontainer" -Detail "($($devContainerStatus.Status): $($devContainerStatus.Detail))"
+            Write-WorkspaceCheck -Level $devContainerStatus.Level -Name "devcontainer" -ChineseName "devcontainer" -Detail "($($devContainerStatus.Status): $($devContainerStatus.Detail))"
             $syncHygieneStatus = Get-WorkspaceSyncHygieneStatus -Project $project -ProjectPath $projectPath
-            Write-WorkspaceCheck -Level $syncHygieneStatus.Level -Name "sync hygiene" -Detail "($($syncHygieneStatus.Status)$(if ($syncHygieneStatus.Detail) { ': ' + $syncHygieneStatus.Detail }))"
+            Write-WorkspaceCheck -Level $syncHygieneStatus.Level -Name "sync hygiene" -ChineseName "同步卫生" -Detail "($($syncHygieneStatus.Status)$(if ($syncHygieneStatus.Detail) { ': ' + $syncHygieneStatus.Detail }))"
         }
 
         if (-not $project.runtime) {
-            Write-WorkspaceCheck -Level "FAIL" -Name "runtime" -Detail "(missing)"
+            Write-WorkspaceCheck -Level "FAIL" -Name "runtime" -ChineseName "运行时" -Detail "(missing)" -ChineseDetail "(缺失)"
         } else {
             $runtimeStatus = Get-WorkspaceRuntimeStatus -RuntimeName $project.runtime
-            Write-WorkspaceCheck -Level $runtimeStatus.Level -Name "runtime $($project.runtime)" -Detail "($($runtimeStatus.Status): $($runtimeStatus.Detail))"
+            Write-WorkspaceCheck -Level $runtimeStatus.Level -Name "runtime $($project.runtime)" -ChineseName "运行时 $($project.runtime)" -Detail "($($runtimeStatus.Status): $($runtimeStatus.Detail))"
         }
 
         $syncExpected = ($null -ne $project.sync -and [bool]$project.sync)
         $syncStatus = Get-WorkspaceSyncStatus -RuntimeName $project.runtime -Expected $syncExpected
-        Write-WorkspaceCheck -Level $syncStatus.Level -Name "sync" -Detail "($($syncStatus.Status)$(if ($syncStatus.Detail) { ': ' + $syncStatus.Detail }))"
+        Write-WorkspaceCheck -Level $syncStatus.Level -Name "sync" -ChineseName "同步" -Detail "($($syncStatus.Status)$(if ($syncStatus.Detail) { ': ' + $syncStatus.Detail }))"
 
         $validationCommands = Get-WorkspaceArray $project.validation
         if ($validationCommands.Count -gt 0) {
-            Write-WorkspaceCheck -Level "OK" -Name "validation commands" -Detail "($($validationCommands.Count) configured)"
+            Write-WorkspaceCheck -Level "OK" -Name "validation commands" -ChineseName "验证命令" -Detail "($($validationCommands.Count) configured)" -ChineseDetail "($($validationCommands.Count) 已配置)"
             foreach ($command in $validationCommands) {
-                Write-Host "        $command" -ForegroundColor DarkGray
+                Write-UIHost -English "        $command" -Chinese "        $command" -ForegroundColor DarkGray
             }
         } else {
-            Write-WorkspaceCheck -Level "WARN" -Name "validation commands" -Detail "(none configured)"
+            Write-WorkspaceCheck -Level "WARN" -Name "validation commands" -ChineseName "验证命令" -Detail "(none configured)" -ChineseDetail "(未配置)"
         }
     }
 
     if ($milestoneCount -gt 0) {
-        Write-Host ""
-        Write-Host "Milestones:" -ForegroundColor Yellow
+        Write-UIHost -English "" -Chinese ""
+        Write-UIHost -English "Milestones:" -Chinese "里程碑:" -ForegroundColor Yellow
         foreach ($milestone in $milestones) {
             $name = if ($milestone.name) { [string]$milestone.name } else { "(unnamed)" }
             $status = Get-WorkspaceMilestoneStatus -Manifest $Manifest -Milestone $milestone
-            Write-Host "  - $name" -ForegroundColor DarkGray
-            Write-WorkspaceCheck -Level $status.Level -Name "checkpoint" -Detail "(runtime: $($status.RuntimeName); snapshot: $($status.SnapshotName); tasks: $($status.TaskNames.Count))"
-            Write-WorkspaceCheck -Level $status.SnapshotNaming.Level -Name "snapshot naming" -Detail "($($status.SnapshotNaming.Status): $($status.SnapshotNaming.Detail))"
-            Write-WorkspaceCheck -Level $status.SnapshotStatus.Level -Name "snapshot" -Detail "($($status.SnapshotStatus.Status)$(if ($status.SnapshotStatus.Detail) { ': ' + $status.SnapshotStatus.Detail }))"
-            Write-Host "      linked tasks: $(if ($status.TaskNames.Count -gt 0) { $status.TaskNames -join ', ' } else { 'none' })" -ForegroundColor DarkGray
+            Write-UIHost -English "  - $name" -Chinese "  - $name" -ForegroundColor DarkGray
+            Write-WorkspaceCheck -Level $status.Level -Name "checkpoint" -ChineseName "检查点" -Detail "(runtime: $($status.RuntimeName); snapshot: $($status.SnapshotName); tasks: $($status.TaskNames.Count))" -ChineseDetail "(运行时: $($status.RuntimeName); 快照: $($status.SnapshotName); 任务数: $($status.TaskNames.Count))"
+            Write-WorkspaceCheck -Level $status.SnapshotNaming.Level -Name "snapshot naming" -ChineseName "快照命名" -Detail "($($status.SnapshotNaming.Status): $($status.SnapshotNaming.Detail))"
+            Write-WorkspaceCheck -Level $status.SnapshotStatus.Level -Name "snapshot" -ChineseName "快照" -Detail "($($status.SnapshotStatus.Status)$(if ($status.SnapshotStatus.Detail) { ': ' + $status.SnapshotStatus.Detail }))"
+            Write-UIHost -English "      linked tasks: $(if ($status.TaskNames.Count -gt 0) { $status.TaskNames -join ', ' } else { 'none' })" -Chinese "      关联任务: $(if ($status.TaskNames.Count -gt 0) { $status.TaskNames -join ', ' } else { '无' })" -ForegroundColor DarkGray
         }
     }
 
     if ($evaluationCount -gt 0) {
-        Write-Host ""
-        Write-Host "Evaluations:" -ForegroundColor Yellow
-        Write-Host "  Evaluation hooks are plan-only here; no evaluation commands will be run." -ForegroundColor DarkGray
+        Write-UIHost -English "" -Chinese ""
+        Write-UIHost -English "Evaluations:" -Chinese "评估:" -ForegroundColor Yellow
+        Write-UIHost -English "  Evaluation hooks are plan-only here; no evaluation commands will be run." -Chinese "  评估钩子仅计划模式：不会运行任何评估命令。" -ForegroundColor DarkGray
         foreach ($evaluation in $evaluations) {
             $status = Get-WorkspaceEvaluationStatus -Manifest $Manifest -Evaluation $evaluation
-            Write-Host "  - $($status.Name)" -ForegroundColor DarkGray
-            Write-WorkspaceCheck -Level $status.Level -Name "evaluation plan" -Detail "(readiness: $($status.Readiness); runtime: $($status.RuntimeName); project: $($status.ProjectName); cadence: $($status.Cadence); tasks: $($status.TaskNames.Count); metrics: $($status.Metrics.Count); commands: $($status.Commands.Count))"
-            Write-Host "      linked tasks: $(if ($status.TaskNames.Count -gt 0) { $status.TaskNames -join ', ' } else { 'none' })" -ForegroundColor DarkGray
-            Write-Host "      blockers: $(if ($status.Blockers.Count -gt 0) { $status.Blockers -join ', ' } else { 'none' })" -ForegroundColor DarkGray
+            Write-UIHost -English "  - $($status.Name)" -Chinese "  - $($status.Name)" -ForegroundColor DarkGray
+            Write-WorkspaceCheck -Level $status.Level -Name "evaluation plan" -ChineseName "评估计划" -Detail "(readiness: $($status.Readiness); runtime: $($status.RuntimeName); project: $($status.ProjectName); cadence: $($status.Cadence); tasks: $($status.TaskNames.Count); metrics: $($status.Metrics.Count); commands: $($status.Commands.Count))" -ChineseDetail "(就绪状态: $($status.Readiness); 运行时: $($status.RuntimeName); 项目: $($status.ProjectName); 节奏: $($status.Cadence); 任务数: $($status.TaskNames.Count); 指标: $($status.Metrics.Count); 命令: $($status.Commands.Count))"
+            Write-UIHost -English "      linked tasks: $(if ($status.TaskNames.Count -gt 0) { $status.TaskNames -join ', ' } else { 'none' })" -Chinese "      关联任务: $(if ($status.TaskNames.Count -gt 0) { $status.TaskNames -join ', ' } else { '无' })" -ForegroundColor DarkGray
+            Write-UIHost -English "      blockers: $(if ($status.Blockers.Count -gt 0) { $status.Blockers -join ', ' } else { 'none' })" -Chinese "      阻塞项: $(if ($status.Blockers.Count -gt 0) { $status.Blockers -join ', ' } else { '无' })" -ForegroundColor DarkGray
         }
     }
 
     if ($taskCount -gt 0) {
-        Write-Host ""
-        Write-Host "Tasks:" -ForegroundColor Yellow
+        Write-UIHost -English "" -Chinese ""
+        Write-UIHost -English "Tasks:" -Chinese "任务:" -ForegroundColor Yellow
         foreach ($task in $tasks) {
             $taskName = if ($task.name) { $task.name } else { "(unnamed)" }
-            Write-Host "  - $taskName" -ForegroundColor DarkGray
+            Write-UIHost -English "  - $taskName" -Chinese "  - $taskName" -ForegroundColor DarkGray
             $taskMilestones = Get-WorkspaceTaskMilestones -Manifest $Manifest -Task $task
             if ($taskMilestones.Count -gt 0) {
                 $taskMilestoneNames = @($taskMilestones | ForEach-Object { if ($_.name) { [string]$_.name } })
-                Write-WorkspaceCheck -Level "INFO" -Name "milestone" -Detail "($($taskMilestoneNames -join ', '))"
+                Write-WorkspaceCheck -Level "INFO" -Name "milestone" -ChineseName "里程碑" -Detail "($($taskMilestoneNames -join ', '))"
             }
             $taskEvaluations = Get-WorkspaceTaskEvaluations -Manifest $Manifest -Task $task
             if ($taskEvaluations.Count -gt 0) {
                 $taskEvaluationNames = @($taskEvaluations | ForEach-Object { if ($_.name) { [string]$_.name } })
-                Write-WorkspaceCheck -Level "INFO" -Name "evaluation" -Detail "($($taskEvaluationNames -join ', '))"
+                Write-WorkspaceCheck -Level "INFO" -Name "evaluation" -ChineseName "评估" -Detail "($($taskEvaluationNames -join ', '))"
             }
             $risk = Get-WorkspaceTaskRisk -Task $task
             $requiresSnapshot = Test-WorkspaceTaskRequiresSnapshot -Task $task
-            Write-WorkspaceCheck -Level "INFO" -Name "risk" -Detail "($risk; requires snapshot: $requiresSnapshot)"
+            Write-WorkspaceCheck -Level "INFO" -Name "risk" -ChineseName "风险" -Detail "($risk; requires snapshot: $requiresSnapshot)" -ChineseDetail "($risk; 需要快照: $requiresSnapshot)"
             $snapshotNaming = Get-WorkspaceSnapshotNamingStatus -Task $task
-            Write-WorkspaceCheck -Level $snapshotNaming.Level -Name "snapshot naming" -Detail "($($snapshotNaming.Status): $($snapshotNaming.Detail))"
+            Write-WorkspaceCheck -Level $snapshotNaming.Level -Name "snapshot naming" -ChineseName "快照命名" -Detail "($($snapshotNaming.Status): $($snapshotNaming.Detail))"
             $snapshotStatus = Get-WorkspaceSnapshotStatus -RuntimeName $task.runtime -SnapshotName $task.snapshot
-            Write-WorkspaceCheck -Level $snapshotStatus.Level -Name "snapshot" -Detail "($($snapshotStatus.Status)$(if ($snapshotStatus.Detail) { ': ' + $snapshotStatus.Detail }))"
+            Write-WorkspaceCheck -Level $snapshotStatus.Level -Name "snapshot" -ChineseName "快照" -Detail "($($snapshotStatus.Status)$(if ($snapshotStatus.Detail) { ': ' + $snapshotStatus.Detail }))"
             $recordedState = Get-WorkspaceTaskState -State $state -TaskName $taskName
             $snapshotGate = Get-WorkspaceSnapshotGate -Task $task -SnapshotStatus $snapshotStatus -RecordedState $recordedState
-            Write-WorkspaceCheck -Level $snapshotGate.Level -Name "snapshot-first gate" -Detail "($($snapshotGate.Status): $($snapshotGate.Detail))"
+            Write-WorkspaceCheck -Level $snapshotGate.Level -Name "snapshot-first gate" -ChineseName "快照优先门禁" -Detail "($($snapshotGate.Status): $($snapshotGate.Detail))"
 
             $validationCommands = Get-WorkspaceArray $task.validation
             if ($validationCommands.Count -gt 0) {
-                Write-WorkspaceCheck -Level "OK" -Name "task validation" -Detail "($($validationCommands.Count) configured)"
+                Write-WorkspaceCheck -Level "OK" -Name "task validation" -ChineseName "任务验证" -Detail "($($validationCommands.Count) configured)" -ChineseDetail "($($validationCommands.Count) 已配置)"
             } else {
-                Write-WorkspaceCheck -Level "WARN" -Name "task validation" -Detail "(none configured)"
+                Write-WorkspaceCheck -Level "WARN" -Name "task validation" -ChineseName "任务验证" -Detail "(none configured)" -ChineseDetail "(未配置)"
             }
         }
     }
