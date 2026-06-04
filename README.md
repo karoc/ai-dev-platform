@@ -1,11 +1,11 @@
-# AI Dev Platform OS — Windows-First Programmable Sandbox for AI Agent Development
+# AI Dev Platform OS — Secure Windows-First Programmable Sandbox for AI Agent & Computer-Use Agent Development
 
 [简体中文](README.zh-CN.md) | English
 
 [![CI](https://github.com/karoc/ai-dev-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/karoc/ai-dev-platform/actions/workflows/ci.yml)
-[![MCP](https://img.shields.io/badge/MCP-18_tools-4B8BBE?logo=python)](cli/mcp/server.py)
+[![MCP](https://img.shields.io/badge/MCP_SDK-18_tools-4B8BBE?logo=python)](cli/mcp/server.py)
 
-AI Dev Platform OS, or ADP-OS, is a local programmable sandbox with hardware-level isolation for AI agent development on Windows, VMware Workstation, Ubuntu Server, and Mutagen.
+AI Dev Platform OS, or ADP-OS, is a secure, enterprise-grade local programmable sandbox with hardware-level isolation for AI agent and computer-use agent development on Windows, VMware Workstation, Ubuntu Server, and Mutagen.
 
 The project provisions isolated Linux runtimes for frontend, backend, and AI agent workloads, keeps workspaces synchronized from Windows into each VM, and creates rollback snapshots for repeatable local AI coding workflows.
 
@@ -25,12 +25,12 @@ ADP-OS does not replace Docker. It provisions Docker-capable local Linux runtime
 - Static IP networking with configurable NAT subnet and per-runtime addresses.
 - VMware snapshot commands for clean rollback points.
 - Diagnostics and deployment pre-check scripts.
-- Agent-native MCP server exposing 18 platform, workspace, and runtime tools.
+- Agent-native MCP server and SDK exposing 18 platform, workspace, and runtime tools.
 - Agent governance audit chain: task state tracking, milestone checkpoints, evaluation hooks, and release evidence.
 
 ## Agent-Native API (MCP)
 
-ADP-OS ships a [Model Context Protocol (MCP)](https://modelcontextprotocol.io) server (`cli/mcp/server.py`) that exposes the full ADP-OS control plane as 18 agent-accessible tools:
+ADP-OS ships a [Model Context Protocol (MCP)](https://modelcontextprotocol.io) server and SDK (`cli/mcp/server.py`) that exposes the full ADP-OS control plane as 18 agent-accessible tools:
 
 **Platform (3):** `adp_status` — runtime health and SSH reachability. `adp_doctor` — diagnostics with per-issue remediation. `adp_capabilities` — supported features and roadmap.
 

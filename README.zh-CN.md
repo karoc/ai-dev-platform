@@ -1,11 +1,11 @@
-# AI Dev Platform OS —— Windows 原生的可编程 AI Agent 开发沙箱
+# AI Dev Platform OS —— 安全的 Windows 原生可编程 AI Agent 与 Computer-Use Agent 开发沙箱
 
 简体中文 | [English](README.md)
 
 [![CI](https://github.com/karoc/ai-dev-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/karoc/ai-dev-platform/actions/workflows/ci.yml)
-[![MCP](https://img.shields.io/badge/MCP-18_tools-4B8BBE?logo=python)](cli/mcp/server.py)
+[![MCP](https://img.shields.io/badge/MCP_SDK-18_tools-4B8BBE?logo=python)](cli/mcp/server.py)
 
-AI Dev Platform OS，简称 ADP-OS，是一个面向 Windows、VMware Workstation、Ubuntu Server 和 Mutagen 的本地可编程沙箱，提供硬件级隔离的 AI Agent 开发环境。
+AI Dev Platform OS，简称 ADP-OS，是一个安全的企业级本地可编程沙箱，面向 Windows、VMware Workstation、Ubuntu Server 和 Mutagen，提供硬件级隔离的 AI Agent 和 Computer-Use Agent 开发环境。
 
 本项目会为前端、后端和 AI Agent 工作负载创建隔离的 Linux 运行时，将 Windows 工作区同步到各个 VM 中，并提供回滚快照，以支持可复现的本地 AI 编码工作流。
 
@@ -25,12 +25,12 @@ ADP-OS 不替代 Docker。它创建可运行 Docker 的本地 Linux 运行时，
 - 静态 IP 网络，支持配置 NAT 子网和各运行时地址。
 - VMware 快照命令，用于创建可回滚的干净检查点。
 - 诊断脚本和部署预检查脚本。
-- Agent-native MCP 服务器，暴露 18 个平台、工作区和运行时工具。
+- Agent-native MCP 服务器和 SDK，暴露 18 个平台、工作区和运行时工具。
 - Agent 治理审计链：任务状态追踪、里程碑检查点、评估钩子和发布证据。
 
 ## Agent-Native API（MCP）
 
-ADP-OS 内置了一个 [Model Context Protocol (MCP)](https://modelcontextprotocol.io) 服务器（`cli/mcp/server.py`），将完整的 ADP-OS 控制平面暴露为 18 个 agent 可访问的工具：
+ADP-OS 内置了一个 [Model Context Protocol (MCP)](https://modelcontextprotocol.io) 服务器和 SDK（`cli/mcp/server.py`），将完整的 ADP-OS 控制平面暴露为 18 个 agent 可访问的工具：
 
 **平台工具（3 个）：** `adp_status` — 运行时健康状态和 SSH 可达性。`adp_doctor` — 诊断和逐项修复指引。`adp_capabilities` — 已支持功能和路线图。
 
