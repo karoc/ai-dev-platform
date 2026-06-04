@@ -81,7 +81,7 @@ function Show-Help {
         Write-Host "  adp status [runtime] [-Json]   显示运行时状态和连接信息"
         Write-Host "  adp stop <runtime>             停止运行时"
         Write-Host "  adp sync <status|start|stop|list> [runtime]  管理同步会话"
-        Write-Host "  adp workspace <init|show|plan|status|dashboard|report|recipes|create|open|sync|project|task>  管理工作区 manifest"
+        Write-Host "  adp workspace <command>            管理工作区 manifest（使用 'adp workspace help' 查看分组子命令）"
         Write-Host "  adp capabilities [-Json]       显示已支持和计划中的运行时能力"
         Write-Host "  adp network configure-local [-Plan|-Apply]  预览/应用本机 VMnet8 覆盖配置 (别名: local)"
         Write-Host "  adp network apply <rt|all> [-Plan]  应用已配置的静态 IP 网络"
@@ -114,7 +114,7 @@ function Show-Help {
         Write-Host "  adp status [runtime] [-Json]   Show runtime status and connection details"
         Write-Host "  adp stop <runtime>             Stop a runtime"
         Write-Host "  adp sync <status|start|stop|list> [runtime]  Manage sync sessions"
-        Write-Host "  adp workspace <init|show|plan|status|dashboard|report|recipes|create|open|sync|project|task>  Manage workspace manifests"
+        Write-Host "  adp workspace <command>            Manage workspace manifests (use 'adp workspace help' for grouped subcommands)"
         Write-Host "  adp capabilities [-Json]       Show supported and planned runtime capabilities"
         Write-Host "  adp network configure-local [-Plan|-Apply]  Plan/apply local VMnet8 overrides (alias: local)"
         Write-Host "  adp network apply <rt|all> [-Plan]  Apply configured static IP networking"
@@ -446,6 +446,23 @@ function Show-CommandHelp {
                 Write-Host "  adp precheck"
                 Write-Host "  adp precheck --help-prereqs"
             }
+            "sandbox" {
+                Write-Host "用法:" -ForegroundColor Yellow
+                Write-Host "  adp sandbox <command...> [-Distro <name>] [-IsoPath <path>]"
+                Write-Host ""
+                Write-Host "参数:" -ForegroundColor Yellow
+                Write-Host "  <command...>       要在 VM 中执行的命令和参数"
+                Write-Host "  -Distro <name>     Linux 发行版 (ubuntu-26.04, ubuntu-22.04, 等，默认: ubuntu-26.04)"
+                Write-Host "  -IsoPath <path>    指定 ISO 路径（跳过缓存查找）"
+                Write-Host ""
+                Write-Host "说明:" -ForegroundColor Yellow
+                Write-Host "  在一次性 VM 中运行命令，执行后自动销毁 VM。"
+                Write-Host "  无论命令成功还是失败，VM 都会被清理。"
+                Write-Host ""
+                Write-Host "示例:" -ForegroundColor Yellow
+                Write-Host "  adp sandbox echo hello"
+                Write-Host "  adp sandbox python3 -c 'print(1+1)'"
+            }
             default {
                 Write-Host "命令 '$CommandName' 没有详细帮助。使用 'adp help' 查看所有命令。" -ForegroundColor Yellow
             }
@@ -744,6 +761,23 @@ function Show-CommandHelp {
                 Write-Host "Examples:" -ForegroundColor Yellow
                 Write-Host "  adp precheck"
                 Write-Host "  adp precheck --help-prereqs"
+            }
+            "sandbox" {
+                Write-Host "Usage:" -ForegroundColor Yellow
+                Write-Host "  adp sandbox <command...> [-Distro <name>] [-IsoPath <path>]"
+                Write-Host ""
+                Write-Host "Arguments:" -ForegroundColor Yellow
+                Write-Host "  <command...>       Command and arguments to run inside the VM"
+                Write-Host "  -Distro <name>     Linux distribution (ubuntu-26.04, ubuntu-22.04, etc., default: ubuntu-26.04)"
+                Write-Host "  -IsoPath <path>    Specify ISO path (skip cache lookup)"
+                Write-Host ""
+                Write-Host "Description:" -ForegroundColor Yellow
+                Write-Host "  Runs a command in a disposable VM and auto-destroys it afterward."
+                Write-Host "  VM cleanup happens regardless of command success or failure."
+                Write-Host ""
+                Write-Host "Examples:" -ForegroundColor Yellow
+                Write-Host "  adp sandbox echo hello"
+                Write-Host "  adp sandbox python3 -c 'print(1+1)'"
             }
             default {
                 Write-Host "Command '$CommandName' has no detailed help. Use 'adp help' for all commands." -ForegroundColor Yellow
