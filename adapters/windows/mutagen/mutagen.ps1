@@ -167,8 +167,7 @@ function Initialize-Mutagen {
 
     $script:MutagenPath = Find-Mutagen -ProjectRoot $ProjectRoot
     if (-not $script:MutagenPath) {
-        Write-ErrorLog -Message "Mutagen not installed. Download the Windows AMD64 release from https://github.com/mutagen-io/mutagen/releases and place mutagen.exe at .tools\mutagen\mutagen.exe, or add it to PATH." -Component "mutagen"
-        exit 1
+        throw "Mutagen not installed. Download the Windows AMD64 release from https://github.com/mutagen-io/mutagen/releases and place mutagen.exe at .tools\mutagen\mutagen.exe, or add it to PATH."
     }
     return $script:MutagenPath
 }
@@ -453,7 +452,9 @@ function Test-SyncSessionExists {
     }
 
     $output = & $script:MutagenPath sync list $SessionName 2>$null
-    return ($LASTEXITCODE -eq 0 -and (($output -join "`n") -match "Name:\s+$([regex]::Escape($SessionName))\b"))
+    $exitCode = $LASTEXITCODE
+    $global:LASTEXITCODE = 0
+    return ($exitCode -eq 0 -and (($output -join "`n") -match "Name:\s+$([regex]::Escape($SessionName))\b"))
 }
 
 function Get-SyncSessionInfo {
@@ -469,6 +470,7 @@ function Get-SyncSessionInfo {
 
     $output = & $script:MutagenPath sync list $SessionName 2>$null
     $exitCode = $LASTEXITCODE
+    $global:LASTEXITCODE = 0
     $text = ($output | Where-Object { $_ }) -join "`n"
     if ($exitCode -ne 0 -or $text -notmatch "Name:\s+$([regex]::Escape($SessionName))\b") {
         return [pscustomobject]@{
