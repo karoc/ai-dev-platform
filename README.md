@@ -1,13 +1,13 @@
-# AI Dev Platform OS — Self-Hosted, Secure, Spec-Driven Windows-First Programmable Sandbox Infrastructure for AI Agent & Computer-Use Agent Development
+# AI Dev Platform OS — Self-Hosted, Secure, Spec-Driven Windows-First Code Execution Sandbox for AI Agent & Computer-Use Agent Development
 
 [简体中文](README.zh-CN.md) | English
 
 [![CI](https://github.com/karoc/ai-dev-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/karoc/ai-dev-platform/actions/workflows/ci.yml)
 [![MCP](https://img.shields.io/badge/MCP_SDK-18_tools-4B8BBE?logo=python)](cli/mcp/server.py)
 
-AI Dev Platform OS, or ADP-OS, is a secure, enterprise-grade, spec-driven self-hosted programmable sandbox with hardware-level isolation for AI agent and computer-use agent development on Windows, VMware Workstation, Ubuntu Server, and Mutagen. ADP-OS takes a spec-driven approach: workspace recipes declare projects, tasks, validation commands, milestones, and evaluation hooks upfront, then the platform executes them in an auditable lifecycle with task state tracking and release evidence.
+AI Dev Platform OS, or ADP-OS, is a secure, enterprise-grade, spec-driven self-hosted code execution sandbox with hardware-level isolation for AI agent and computer-use agent development on Windows, VMware Workstation, Ubuntu Server, and Mutagen. ADP-OS takes a spec-driven approach: workspace recipes declare projects, tasks, validation commands, milestones, and evaluation hooks upfront, then the platform executes them in an auditable lifecycle with task state tracking and release evidence.
 
-The project provisions isolated Linux runtimes as self-hosted AI agent sandbox infrastructure for frontend, backend, and AI agent workloads, keeps workspaces synchronized from Windows into each VM, and creates rollback snapshots for repeatable self-hosted AI coding workflows.
+The project provisions isolated Linux code execution runtimes for frontend, backend, and AI agent workloads, keeps workspaces synchronized from Windows into each VM, and creates rollback snapshots for repeatable self-hosted AI coding workflows.
 
 ADP-OS does not replace Docker. It provisions Docker-capable self-hosted Linux runtimes and adds VM lifecycle management, workspace synchronization, role-specific bootstrap, diagnostics, static networking, snapshot rollback, and agent governance — a spec-driven audit chain of workspace recipes, task state tracking, and release evidence — around those runtimes.
 
