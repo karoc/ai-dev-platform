@@ -1,12 +1,13 @@
-# AI Dev Platform OS
+# AI Dev Platform OS — Windows-First Local AI Agent Development Sandbox
 
 [简体中文](README.zh-CN.md) | English
 
 [![CI](https://github.com/karoc/ai-dev-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/karoc/ai-dev-platform/actions/workflows/ci.yml)
+[![MCP](https://img.shields.io/badge/MCP-18_tools-4B8BBE?logo=python)](cli/mcp/server.py)
 
 AI Dev Platform OS, or ADP-OS, is a local AI development runtime platform for Windows, VMware Workstation, Ubuntu Server, and Mutagen.
 
-The project provisions isolated Linux runtimes for frontend, backend, and agent workloads, keeps workspaces synchronized from Windows into each VM, and creates rollback snapshots for repeatable local AI coding workflows.
+The project provisions isolated Linux runtimes for frontend, backend, and AI agent workloads, keeps workspaces synchronized from Windows into each VM, and creates rollback snapshots for repeatable local AI coding workflows.
 
 ADP-OS does not replace Docker. It provisions Docker-capable local Linux runtimes and adds VM lifecycle management, workspace synchronization, role-specific bootstrap, diagnostics, static networking, and snapshot rollback around those runtimes.
 
@@ -24,6 +25,31 @@ ADP-OS does not replace Docker. It provisions Docker-capable local Linux runtime
 - Static IP networking with configurable NAT subnet and per-runtime addresses.
 - VMware snapshot commands for clean rollback points.
 - Diagnostics and deployment pre-check scripts.
+- Agent-native MCP server exposing 18 platform, workspace, and runtime tools.
+
+## Agent-Native API (MCP)
+
+ADP-OS ships a [Model Context Protocol (MCP)](https://modelcontextprotocol.io) server (`cli/mcp/server.py`) that exposes the full ADP-OS control plane as 18 agent-accessible tools:
+
+**Platform (3):** `adp_status` — runtime health and SSH reachability. `adp_doctor` — diagnostics with per-issue remediation. `adp_capabilities` — supported features and roadmap.
+
+**Workspace (10):** `adp_workspace_list` — list all projects. `adp_workspace_status` — readiness summary. `adp_workspace_dashboard` — task lifecycle overview. `adp_workspace_project` — single project operational view. `adp_workspace_create` — create project directories. `adp_workspace_open` — workspace entry guidance. `adp_workspace_sync` — per-project sync guidance. `adp_workspace_close` — stop sync for a runtime. `adp_workspace_recipes` — available recipes. `adp_workspace_report` — Markdown release evidence.
+
+**Runtime (5):** `adp_up` — start a VM (plan-only by default). `adp_down` — destroy a VM (plan-only by default). `adp_stop` — graceful VM shutdown. `adp_sync_status` — Mutagen sync health. `adp_sync_stop` — stop a sync session.
+
+All destructive operations default to plan-only mode for safety. Connect any MCP-compatible agent (Claude Desktop, Hermes, Cursor, etc.) to `cli/mcp/server.py`:
+
+```json
+{
+  "mcpServers": {
+    "adp-os": {
+      "command": "python3",
+      "args": ["cli/mcp/server.py"],
+      "env": { "ADP_HOME": "/path/to/ai-dev-platform" }
+    }
+  }
+}
+```
 
 ## Requirements
 
@@ -368,9 +394,9 @@ agent     watching  %USERPROFILE%\adp-workspaces\agent   /home/adp/workspace
 - [Security](SECURITY.md)
 - [Changelog](CHANGELOG.md)
 
-## Security Notes
+## Security
 
-This MVP is designed for local, single-user development. It uses a default runtime user named `adp` and a default bootstrap password of `adp` to automate sudo during provisioning. Do not expose these VMs directly to untrusted networks without changing credentials and reviewing SSH access.
+ADP-OS follows a **local-development security model** designed for single-user, trusted-workstation environments. Default provisioning uses a local `adp:adp` credential for automated sudo — these runtimes are **not** intended for exposed, shared, production, or multi-tenant environments. See [SECURITY.md](SECURITY.md) for the full policy, including credential rotation, network hardening, and vulnerability reporting.
 
 Runtime secrets, VM disks, ISO images, logs, local tool binaries, and local assistant settings are excluded from version control.
 

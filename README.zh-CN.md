@@ -1,12 +1,13 @@
-# AI Dev Platform OS
+# AI Dev Platform OS —— Windows 原生的本地 AI Agent 开发沙箱
 
 简体中文 | [English](README.md)
 
 [![CI](https://github.com/karoc/ai-dev-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/karoc/ai-dev-platform/actions/workflows/ci.yml)
+[![MCP](https://img.shields.io/badge/MCP-18_tools-4B8BBE?logo=python)](cli/mcp/server.py)
 
 AI Dev Platform OS，简称 ADP-OS，是一个面向 Windows、VMware Workstation、Ubuntu Server 和 Mutagen 的本地 AI 开发运行时平台。
 
-本项目会为前端、后端和 Agent 工作负载创建隔离的 Linux 运行时，将 Windows 工作区同步到各个 VM 中，并提供回滚快照，以支持可复现的本地 AI 编码工作流。
+本项目会为前端、后端和 AI Agent 工作负载创建隔离的 Linux 运行时，将 Windows 工作区同步到各个 VM 中，并提供回滚快照，以支持可复现的本地 AI 编码工作流。
 
 ADP-OS 不替代 Docker。它创建可运行 Docker 的本地 Linux 运行时，并在其外层提供 VM 生命周期管理、工作区同步、角色化 bootstrap、诊断、静态网络和快照回滚。
 
@@ -24,6 +25,31 @@ ADP-OS 不替代 Docker。它创建可运行 Docker 的本地 Linux 运行时，
 - 静态 IP 网络，支持配置 NAT 子网和各运行时地址。
 - VMware 快照命令，用于创建可回滚的干净检查点。
 - 诊断脚本和部署预检查脚本。
+- Agent-native MCP 服务器，暴露 18 个平台、工作区和运行时工具。
+
+## Agent-Native API（MCP）
+
+ADP-OS 内置了一个 [Model Context Protocol (MCP)](https://modelcontextprotocol.io) 服务器（`cli/mcp/server.py`），将完整的 ADP-OS 控制平面暴露为 18 个 agent 可访问的工具：
+
+**平台工具（3 个）：** `adp_status` — 运行时健康状态和 SSH 可达性。`adp_doctor` — 诊断和逐项修复指引。`adp_capabilities` — 已支持功能和路线图。
+
+**工作区工具（10 个）：** `adp_workspace_list` — 列出所有项目。`adp_workspace_status` — 就绪状态汇总。`adp_workspace_dashboard` — 任务生命周期总览。`adp_workspace_project` — 单个项目操作视图。`adp_workspace_create` — 创建项目目录。`adp_workspace_open` — 工作区入口指引。`adp_workspace_sync` — 按项目同步指引。`adp_workspace_close` — 停止运行时同步。`adp_workspace_recipes` — 可用 recipes。`adp_workspace_report` — Markdown 发布证据。
+
+**运行时工具（5 个）：** `adp_up` — 启动 VM（默认仅预览）。`adp_down` — 销毁 VM（默认仅预览）。`adp_stop` — 优雅关闭 VM。`adp_sync_status` — Mutagen 同步健康状态。`adp_sync_stop` — 停止同步会话。
+
+所有破坏性操作默认以 plan-only 模式运行，确保安全。将任何 MCP 兼容的 Agent（Claude Desktop、Hermes、Cursor 等）连接到 `cli/mcp/server.py`：
+
+```json
+{
+  "mcpServers": {
+    "adp-os": {
+      "command": "python3",
+      "args": ["cli/mcp/server.py"],
+      "env": { "ADP_HOME": "/path/to/ai-dev-platform" }
+    }
+  }
+}
+```
 
 ## 环境要求
 
@@ -284,9 +310,9 @@ adp destroy <runtime> [-Plan]
 - [安全策略](SECURITY.zh-CN.md)
 - [变更日志](CHANGELOG.zh-CN.md)
 
-## 安全说明
+## 安全
 
-这个 MVP 面向本地单用户开发场景。它使用默认运行时用户 `adp` 和默认 bootstrap 密码 `adp` 来自动执行 sudo provisioning。不要在未修改凭据并审查 SSH 访问方式之前，将这些 VM 直接暴露给不可信网络。
+ADP-OS 采用**本地开发安全模型**，专为单用户、可信工作站环境设计。默认配置使用本地 `adp:adp` 凭据进行自动化 sudo —— 这些运行时**不**适用于公开、共享、生产或多租户环境。完整策略包括凭据轮换、网络加固和漏洞报告，请参见 [SECURITY.zh-CN.md](SECURITY.zh-CN.md)。
 
 运行时 secrets、VM 磁盘、ISO 镜像、日志、本地工具二进制和本地 assistant 设置均已从版本控制中排除。
 
