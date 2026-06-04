@@ -93,6 +93,15 @@ function Invoke-BoundaryCommand {
     $stdout = [System.IO.Path]::GetTempFileName()
     $stderr = [System.IO.Path]::GetTempFileName()
     try {
+        # Build full environment hashtable inheriting the current process environment.
+        # Start-Process -Environment REPLACES the entire environment, so passing only
+        # USERPROFILE/HOME would strip PATH, SystemRoot, TEMP, and other essential
+        # variables, causing pwsh to fail on CI runners (exit code -1).
+        $processEnv = @{}
+        Get-ChildItem Env: | ForEach-Object { $processEnv[$_.Name] = $_.Value }
+        $processEnv['USERPROFILE'] = $UserProfile
+        $processEnv['HOME'] = $UserProfile
+
         $processArguments = @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $ScriptPath) + $Arguments
         $process = Start-Process -FilePath $pwshPath `
             -ArgumentList $processArguments `
@@ -100,7 +109,7 @@ function Invoke-BoundaryCommand {
             -NoNewWindow -Wait -PassThru `
             -RedirectStandardOutput $stdout `
             -RedirectStandardError $stderr `
-            -Environment @{ USERPROFILE = $UserProfile; HOME = $UserProfile }
+            -Environment $processEnv
 
         $outText = Get-Content -LiteralPath $stdout -Raw -Encoding UTF8 -ErrorAction SilentlyContinue
         $errText = Get-Content -LiteralPath $stderr -Raw -Encoding UTF8 -ErrorAction SilentlyContinue
