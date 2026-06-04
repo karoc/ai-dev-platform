@@ -50,22 +50,34 @@ A complete first run consists of prerequisites (VMware, WSL, Mutagen), one-time 
 
 ### One-Time Setup
 
-Clone the repository (SSH recommended for contributors):
+**Recommended: One-command guided setup:**
 
 ```powershell
-# SSH (recommended)
-git clone git@github.com:karoc/ai-dev-platform.git
-
-# or HTTPS
 git clone https://github.com/karoc/ai-dev-platform.git
+cd ai-dev-platform
+.\cli\adp.ps1 quickstart
+```
 
+`adp quickstart` guides you through ISO download, platform bootstrap (`install.ps1`), initialization (`adp init -Quick`), and diagnostics (`adp doctor`) in a single interactive flow.
+
+**Alternatively, step-by-step:**
+
+Clone the repository:
+
+```powershell
+git clone https://github.com/karoc/ai-dev-platform.git
 cd ai-dev-platform
 ```
 
-Place the Ubuntu ISO at:
+Download the Ubuntu Server ISO:
 
-```text
-%USERPROFILE%\adp-iso\ubuntu-26.04-live-server-amd64.iso
+```powershell
+# Automatic download (recommended):
+.\cli\adp.ps1 iso
+
+# Or download manually:
+# PowerShell: Invoke-WebRequest -Uri "https://releases.ubuntu.com/26.04/ubuntu-26.04-live-server-amd64.iso" -OutFile "$env:USERPROFILE\adp-iso\ubuntu-26.04-live-server-amd64.iso"
+# WSL:        wget -P /mnt/c/Users/$env:USERNAME/adp-iso/ https://releases.ubuntu.com/26.04/ubuntu-26.04-live-server-amd64.iso
 ```
 
 Or pass it during initialization:
@@ -86,7 +98,7 @@ Initialize the platform:
 
 ```powershell
 .\install.ps1
-.\cli\adp.ps1 init
+.\cli\adp.ps1 init           # or: adp init -Quick (skip redundant dep re-checks if install.ps1 already ran)
 ```
 
 ### Runtime Operations
@@ -239,8 +251,10 @@ Validation can be executed explicitly from a task recipe:
 ## Command Reference
 
 ```powershell
+.\cli\adp.ps1 iso [ubuntu|almalinux|rocky|debian] [-Url <url>] [-Force]
+.\cli\adp.ps1 quickstart [-Distro <name>] [-IsoPath <path>] [-SkipIsoDownload] [-SkipDoctor]
 .\cli\adp.ps1 init
-.\cli\adp.ps1 init <frontend|backend|agent> [-IsoPath <path>] [-NoProvision]
+.\cli\adp.ps1 init <frontend|backend|agent> [-IsoPath <path>] [-NoProvision] [-Quick]
 .\cli\adp.ps1 up <frontend|backend|agent> [-IsoPath <path>] [-Plan] [-NoProvision] [-NoBootstrap]
 .\cli\adp.ps1 status [frontend|backend|agent]
 .\cli\adp.ps1 capabilities

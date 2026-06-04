@@ -147,7 +147,7 @@ Create the VM definition without starting OS provisioning or bootstrap:
 Initialize platform state and create a runtime VM definition without starting OS provisioning:
 
 ```powershell
-.\cli\adp.ps1 init agent -SkipProvision
+.\cli\adp.ps1 init agent -NoProvision
 ```
 
 When creating a runtime for the first time, you can pass an ISO from any location:

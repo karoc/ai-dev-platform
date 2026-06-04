@@ -2,10 +2,16 @@
 # Shows runtime status and connection details without changing VM, sync, or guest state.
 
 param(
-    [string]$RuntimeName
+    [string]$RuntimeName,
+    [switch]$Json
 )
 
 $ErrorActionPreference = "Stop"
+
+# Merge -Json flag from both local param and global (set in adp.ps1)
+if ($Json -or $global:ADPOutputJson) {
+    $Json = $true
+}
 
 if ($RuntimeName -and -not (Test-RuntimeExists $RuntimeName)) {
     Write-ErrorLog -Message (Get-UIText -English "Unknown runtime: $RuntimeName. Valid: $((Get-AllRuntimeNames) -join ', ')" -Chinese "未知运行时: $RuntimeName。可用: $((Get-AllRuntimeNames) -join ', ')") -Component "cli.status"
@@ -199,6 +205,74 @@ function Write-StatusNetworkDriftRemediation {
     Write-UIHost -English "    Seed-era network: $($SeedNetwork.Address)/$($SeedNetwork.Prefix)$(if ($SeedNetwork.Gateway) { ', gateway ' + $SeedNetwork.Gateway } else { '' }); target: $ConfiguredIp." -Chinese "    Seed-era 网络: $($SeedNetwork.Address)/$($SeedNetwork.Prefix)$(if ($SeedNetwork.Gateway) { ', gateway ' + $SeedNetwork.Gateway } else { '' }); 目标: $ConfiguredIp。" -ForegroundColor DarkGray
 }
 
+function Get-StatusRuntimeObject {
+    param(
+        [string]$TargetRuntime,
+        [bool]$VmwareAvailable,
+        [bool]$MutagenAvailable,
+        [string[]]$RunningVmxPaths,
+        [string]$AdminUser,
+        [string]$KeyPath
+    )
+
+    $rt = Get-RuntimeConfig $TargetRuntime
+    $state = Get-StatusRuntimeState -TargetRuntime $TargetRuntime -VmwareAvailable $VmwareAvailable -RunningVmxPaths $RunningVmxPaths
+    $configuredIp = Get-RuntimeStaticIP $TargetRuntime
+    $connectIp = if ($configuredIp) { $configuredIp } else { $state.DetectedIp }
+    $port = if ($rt.PSObject.Properties.Name -contains "ssh_port" -and $rt.ssh_port) { [int]$rt.ssh_port } else { 22 }
+    $seedNetwork = Get-StatusSeedNetwork -TargetRuntime $TargetRuntime
+    $alias = "adp-os-adp-$TargetRuntime"
+    $workspaceRoot = Resolve-Path "workspace_root"
+    $workspacePath = Join-Path $workspaceRoot $rt.workspace
+    $expectedRemoteUrl = "${alias}:/home/adp/workspace"
+    $runtimeCreated = ($state.Status -ne "not-created")
+    $syncState = Get-StatusSyncState -TargetRuntime $TargetRuntime -MutagenAvailable $MutagenAvailable -ExpectedLocalPath $workspacePath -ExpectedRemoteUrl $expectedRemoteUrl -RuntimeCreated $runtimeCreated
+
+    $adpRunningVms = @()
+    $duplicateRunningVms = @()
+    $hasDuplicateRunningVm = $false
+    if ($VmwareAvailable) {
+        $adpRunningVms = @(Get-ADPRunningRuntimeVMs -RunningVmxPaths $RunningVmxPaths -RuntimeName $TargetRuntime -ManagedVmxPath $state.VmxPath)
+        $duplicateRunningVms = @($adpRunningVms | Where-Object { -not $_.IsManagedByCurrentCheckout })
+        $hasDuplicateRunningVm = ($adpRunningVms.Count -gt 1 -or $duplicateRunningVms.Count -gt 0)
+    }
+
+    $sshState = if ($hasDuplicateRunningVm) {
+        "ambiguous-duplicate"
+    } elseif ($state.Status -match "running") {
+        Test-StatusSSHReachable -HostAddress $connectIp -Port $port
+    } else {
+        "skipped"
+    }
+
+    $networkDrift = $null
+    if ($seedNetwork -and $configuredIp -and $seedNetwork.Address -and $seedNetwork.Address -ne $configuredIp) {
+        $networkDrift = [pscustomobject]@{
+            SeedAddress = $seedNetwork.Address
+            SeedPrefix  = $seedNetwork.Prefix
+            SeedGateway = $seedNetwork.Gateway
+            ConfiguredIp = $configuredIp
+        }
+    }
+
+    $result = [pscustomobject]@{
+        Runtime           = $TargetRuntime
+        Status            = $state.Status
+        ConfiguredIp      = if ($configuredIp) { $configuredIp } else { $null }
+        DetectedIp        = if ($state.DetectedIp) { $state.DetectedIp } else { $null }
+        Ssh               = $sshState
+        Sync              = $syncState
+        Workspace         = $workspacePath
+        VmxPath           = $state.VmxPath
+        ConnectCommand    = if ($connectIp) { "ssh -i $KeyPath -p $port $AdminUser@$connectIp" } else { $null }
+        Alias             = $alias
+        Port              = $port
+        NetworkDrift      = $networkDrift
+        HasDuplicateVm    = $hasDuplicateRunningVm
+    }
+    return $result
+}
+
 function Write-StatusRuntime {
     param(
         [string]$TargetRuntime,
@@ -284,58 +358,129 @@ function Write-StatusRuntime {
     Write-Host ""
 }
 
-Write-Host ""
-Write-UIHost -English "ADP-OS Status" -Chinese "ADP-OS 状态" -ForegroundColor Cyan
-Write-Host "========================================" -ForegroundColor Cyan
-Write-UIHost -English "Status only: no VMs, sync sessions, snapshots, guest files, or workspace files will be changed." -Chinese "仅查看状态：不会修改 VM、sync session、快照、guest 文件或工作区文件。" -ForegroundColor Cyan
-Write-Host ""
+# --- Main execution ---
+if ($Json) {
+    # JSON output mode: collect structured data, suppress human-readable output
+    $config = Get-PlatformConfig
+    $localConfigStatus = Get-LocalConfigStatus
+    $adminUser = if ($config.defaults.admin_user) { [string]$config.defaults.admin_user } else { "adp" }
+    $keyPath = Join-Path "$env:USERPROFILE\.ssh\adp-os" "adp-os"
 
-$config = Get-PlatformConfig
-$localConfigStatus = Get-LocalConfigStatus
-$adminUser = if ($config.defaults.admin_user) { [string]$config.defaults.admin_user } else { "adp" }
-$keyPath = Join-Path "$env:USERPROFILE\.ssh\adp-os" "adp-os"
-
-if ($localConfigStatus.Exists) {
-    if ($localConfigStatus.Empty) {
-        Write-UIHost -English "Local config: empty, ignored ($($localConfigStatus.Path))" -Chinese "本机配置: 空文件，已忽略 ($($localConfigStatus.Path))" -ForegroundColor DarkGray
-    } elseif ($localConfigStatus.Applied) {
-        Write-UIHost -English "Local config: applied sections $($localConfigStatus.Sections -join ', ') ($($localConfigStatus.Path))" -Chinese "本机配置: 已应用配置段 $($localConfigStatus.Sections -join ', ') ($($localConfigStatus.Path))" -ForegroundColor DarkGray
-    } else {
-        Write-UIHost -English "Local config: present, no supported sections ($($localConfigStatus.Path))" -Chinese "本机配置: 文件存在，但没有支持的配置段 ($($localConfigStatus.Path))" -ForegroundColor Yellow
+    $vmwareAvailable = Test-VMwareAvailable
+    $runningVmxPaths = @()
+    if ($vmwareAvailable) {
+        Initialize-VMware | Out-Null
+        try {
+            $runningVmxPaths = @(Get-RunningVMs | ForEach-Object { [System.IO.Path]::GetFullPath($_) })
+        } catch {
+            $runningVmxPaths = @()
+        }
     }
-} else {
-    Write-UIHost -English "Local config: not present, using committed defaults" -Chinese "本机配置: 不存在，使用仓库默认配置" -ForegroundColor DarkGray
-}
 
-if ($config.network.vmware_nat) {
-    Write-UIHost -English "Network:      $($config.network.vmware_nat.cidr), gateway $($config.network.vmware_nat.gateway)" -Chinese "网络:        $($config.network.vmware_nat.cidr), gateway $($config.network.vmware_nat.gateway)" -ForegroundColor DarkGray
-}
-Write-UIHost -English "SSH key:      $keyPath" -Chinese "SSH 密钥:    $keyPath" -ForegroundColor DarkGray
-Write-Host ""
-
-$vmwareAvailable = Test-VMwareAvailable
-$runningVmxPaths = @()
-if ($vmwareAvailable) {
-    Initialize-VMware | Out-Null
-    try {
-        $runningVmxPaths = @(Get-RunningVMs | ForEach-Object { [System.IO.Path]::GetFullPath($_) })
-    } catch {
-        $runningVmxPaths = @()
-    }
-} else {
-    Write-UIHost -English "VMware:      unavailable; VM status is limited to local VMX presence." -Chinese "VMware:      不可用；VM 状态仅能基于本地 VMX 是否存在判断。" -ForegroundColor Yellow
-    Write-Host ""
-}
-
-$mutagenAvailable = $false
-try {
-    Initialize-Mutagen -ProjectRoot (Get-ProjectRoot) | Out-Null
-    $mutagenAvailable = $true
-} catch {
     $mutagenAvailable = $false
-}
+    try {
+        Initialize-Mutagen -ProjectRoot (Get-ProjectRoot) | Out-Null
+        $mutagenAvailable = $true
+    } catch {
+        $mutagenAvailable = $false
+    }
 
-$targets = if ($RuntimeName) { @($RuntimeName) } else { Get-AllRuntimeNames }
-foreach ($target in $targets) {
-    Write-StatusRuntime -TargetRuntime $target -VmwareAvailable $vmwareAvailable -MutagenAvailable $mutagenAvailable -RunningVmxPaths $runningVmxPaths -AdminUser $adminUser -KeyPath $keyPath
+    $localConfig = $null
+    if ($localConfigStatus.Exists) {
+        $localConfig = [pscustomobject]@{
+            Exists   = $true
+            Empty    = $localConfigStatus.Empty
+            Applied  = $localConfigStatus.Applied
+            Sections = if ($localConfigStatus.Sections) { @($localConfigStatus.Sections) } else { @() }
+            Path     = $localConfigStatus.Path
+        }
+    } else {
+        $localConfig = [pscustomobject]@{
+            Exists   = $false
+            Empty    = $true
+            Applied  = $false
+            Sections = @()
+            Path     = $localConfigStatus.Path
+        }
+    }
+
+    $network = $null
+    if ($config.network.vmware_nat) {
+        $network = [pscustomobject]@{
+            Cidr    = $config.network.vmware_nat.cidr
+            Gateway = $config.network.vmware_nat.gateway
+        }
+    }
+
+    $runtimes = @()
+    $targets = if ($RuntimeName) { @($RuntimeName) } else { Get-AllRuntimeNames }
+    foreach ($target in $targets) {
+        $runtimes += Get-StatusRuntimeObject -TargetRuntime $target -VmwareAvailable $vmwareAvailable -MutagenAvailable $mutagenAvailable -RunningVmxPaths $runningVmxPaths -AdminUser $adminUser -KeyPath $keyPath
+    }
+
+    $result = [pscustomobject]@{
+        LocalConfig = $localConfig
+        Network     = $network
+        SshKey      = $keyPath
+        Runtimes    = $runtimes
+    }
+
+    $result | ConvertTo-Json -Depth 5
+} else {
+    # Human-readable output mode
+    Write-Host ""
+    Write-UIHost -English "ADP-OS Status" -Chinese "ADP-OS 状态" -ForegroundColor Cyan
+    Write-Host "========================================" -ForegroundColor Cyan
+    Write-UIHost -English "Status only: no VMs, sync sessions, snapshots, guest files, or workspace files will be changed." -Chinese "仅查看状态：不会修改 VM、sync session、快照、guest 文件或工作区文件。" -ForegroundColor Cyan
+    Write-Host ""
+
+    $config = Get-PlatformConfig
+    $localConfigStatus = Get-LocalConfigStatus
+    $adminUser = if ($config.defaults.admin_user) { [string]$config.defaults.admin_user } else { "adp" }
+    $keyPath = Join-Path "$env:USERPROFILE\.ssh\adp-os" "adp-os"
+
+    if ($localConfigStatus.Exists) {
+        if ($localConfigStatus.Empty) {
+            Write-UIHost -English "Local config: empty, ignored ($($localConfigStatus.Path))" -Chinese "本机配置: 空文件，已忽略 ($($localConfigStatus.Path))" -ForegroundColor DarkGray
+        } elseif ($localConfigStatus.Applied) {
+            Write-UIHost -English "Local config: applied sections $($localConfigStatus.Sections -join ', ') ($($localConfigStatus.Path))" -Chinese "本机配置: 已应用配置段 $($localConfigStatus.Sections -join ', ') ($($localConfigStatus.Path))" -ForegroundColor DarkGray
+        } else {
+            Write-UIHost -English "Local config: present, no supported sections ($($localConfigStatus.Path))" -Chinese "本机配置: 文件存在，但没有支持的配置段 ($($localConfigStatus.Path))" -ForegroundColor Yellow
+        }
+    } else {
+        Write-UIHost -English "Local config: not present, using committed defaults" -Chinese "本机配置: 不存在，使用仓库默认配置" -ForegroundColor DarkGray
+    }
+
+    if ($config.network.vmware_nat) {
+        Write-UIHost -English "Network:      $($config.network.vmware_nat.cidr), gateway $($config.network.vmware_nat.gateway)" -Chinese "网络:        $($config.network.vmware_nat.cidr), gateway $($config.network.vmware_nat.gateway)" -ForegroundColor DarkGray
+    }
+    Write-UIHost -English "SSH key:      $keyPath" -Chinese "SSH 密钥:    $keyPath" -ForegroundColor DarkGray
+    Write-Host ""
+
+    $vmwareAvailable = Test-VMwareAvailable
+    $runningVmxPaths = @()
+    if ($vmwareAvailable) {
+        Initialize-VMware | Out-Null
+        try {
+            $runningVmxPaths = @(Get-RunningVMs | ForEach-Object { [System.IO.Path]::GetFullPath($_) })
+        } catch {
+            $runningVmxPaths = @()
+        }
+    } else {
+        Write-UIHost -English "VMware:      unavailable; VM status is limited to local VMX presence." -Chinese "VMware:      不可用；VM 状态仅能基于本地 VMX 是否存在判断。" -ForegroundColor Yellow
+        Write-Host ""
+    }
+
+    $mutagenAvailable = $false
+    try {
+        Initialize-Mutagen -ProjectRoot (Get-ProjectRoot) | Out-Null
+        $mutagenAvailable = $true
+    } catch {
+        $mutagenAvailable = $false
+    }
+
+    $targets = if ($RuntimeName) { @($RuntimeName) } else { Get-AllRuntimeNames }
+    foreach ($target in $targets) {
+        Write-StatusRuntime -TargetRuntime $target -VmwareAvailable $vmwareAvailable -MutagenAvailable $mutagenAvailable -RunningVmxPaths $runningVmxPaths -AdminUser $adminUser -KeyPath $keyPath
+    }
 }

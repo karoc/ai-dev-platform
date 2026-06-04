@@ -396,8 +396,10 @@ if ($SkipDependencyCheck) {
 
 Write-Host ""
 Write-InstallHost -English "Next steps:" -Chinese "下一步:" -ForegroundColor Cyan
-Write-InstallHost -English "  Place a supported Linux ISO in: $isoCache" -Chinese "  将受支持的 Linux ISO 放到: $isoCache" -ForegroundColor DarkGray
+Write-InstallHost -English "  Download OS ISO: adp iso download (or .\cli\adp.ps1 iso)" -Chinese "  下载 OS ISO: adp iso download (或 .\cli\adp.ps1 iso)" -ForegroundColor DarkGray
+Write-InstallHost -English "  Or place a supported Linux ISO in: $isoCache" -Chinese "  或将受支持的 Linux ISO 放到: $isoCache" -ForegroundColor DarkGray
 Write-InstallHost -English "  Then run Phase 2: adp init" -Chinese "  然后运行阶段 2: adp init" -ForegroundColor DarkGray
+Write-InstallHost -English "  Or use quickstart: adp quickstart (guided setup)" -Chinese "  或使用快速启动: adp quickstart (引导式设置)" -ForegroundColor DarkGray
 Write-Host ""
 
 Write-InfoLog -Message (Get-InstallText -English "ADP-OS Phase 1 install complete" -Chinese "ADP-OS 阶段 1 安装完成") -Component "install"

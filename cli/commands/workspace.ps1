@@ -4122,6 +4122,12 @@ switch ($SubCommand) {
         Write-WorkspaceProjectLifecycle -Manifest $manifest -ProjectName $TaskCommand -ManifestPath $ManifestPath -StatePath $StatePath
     }
     "task" {
+        if ([string]::IsNullOrWhiteSpace($TaskCommand)) {
+            Write-ErrorLog -Message (Get-UIText -English "Usage: adp workspace task <prepare|snapshot|run|validate|review|rollback|commit|mark> <task-name>" -Chinese "用法: adp workspace task <prepare|snapshot|run|validate|review|rollback|commit|mark> <task-name>") -Component "cli.workspace"
+            Write-UIHost -English "  adp workspace task validate <task-name> [-Execute] [-Plan] [-ManifestPath <path>]" -Chinese "  adp workspace task validate <task-name> [-Execute] [-Plan] [-ManifestPath <path>]" -ForegroundColor DarkGray
+            Write-UIHost -English "  adp workspace task mark <task-name> <state> [-StatePath <path>]" -Chinese "  adp workspace task mark <task-name> <state> [-StatePath <path>]" -ForegroundColor DarkGray
+            exit 1
+        }
         $manifest = Read-WorkspaceManifest -Path $ManifestPath
         Invoke-WorkspaceTask -Manifest $manifest -Command $TaskCommand -Name $TaskName -StateName $TaskState -Path $ManifestPath -LocalStatePath $StatePath -ExecuteValidation:$Execute -PlanOnly:$Plan
     }

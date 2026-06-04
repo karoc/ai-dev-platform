@@ -225,7 +225,7 @@ Validation 可以从 task recipe 中显式执行：
 
 ```powershell
 .\cli\adp.ps1 init
-.\cli\adp.ps1 init <frontend|backend|agent> [-IsoPath <path>] [-SkipProvision]
+.\cli\adp.ps1 init <frontend|backend|agent> [-IsoPath <path>] [-NoProvision]
 .\cli\adp.ps1 up <frontend|backend|agent> [-IsoPath <path>] [-Plan] [-NoProvision] [-NoBootstrap]
 .\cli\adp.ps1 status [frontend|backend|agent]
 .\cli\adp.ps1 capabilities

@@ -104,7 +104,7 @@ Assert-Command `
     -Name "help zh-CN" `
     -Arguments @("help") `
     -ExitCode 0 `
-    -Patterns @("ADP-OS CLI", "命令:", "初始化平台", "显示运行时状态", "adp capabilities\s+显示已支持和计划中的运行时能力") `
+    -Patterns @("ADP-OS CLI", "命令:", "初始化平台", "显示运行时状态", "adp capabilities.*显示已支持和计划中的运行时能力") `
     -Environment @{ ADP_LANG = "zh-CN" }
 
 Assert-Command `

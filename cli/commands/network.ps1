@@ -11,7 +11,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 if (-not $SubCommand -or $SubCommand -notin @("apply", "configure-local", "local")) {
-    Write-ErrorLog -Message (Get-UIText -English "Usage: adp network apply <runtime|all> [-Plan] | adp network configure-local [-Plan|-Apply]" -Chinese "用法: adp network apply <runtime|all> [-Plan] | adp network configure-local [-Plan|-Apply]") -Component "cli.network"
+    Write-ErrorLog -Message (Get-UIText -English "Usage: adp network apply <runtime|all> [-Plan] | adp network configure-local [-Plan|-Apply] (alias: local)" -Chinese "用法: adp network apply <runtime|all> [-Plan] | adp network configure-local [-Plan|-Apply] (别名: local)") -Component "cli.network"
     exit 1
 }
 

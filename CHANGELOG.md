@@ -28,6 +28,17 @@ Initial public release.
 - Extended MCP server from 11 to 18 tools with runtime management, workspace lifecycle, and close support. New tools: `adp_up` (start VM, plan-only default), `adp_down` (destroy VM, plan-only default), `adp_stop` (graceful shutdown), `adp_workspace_close` (stop sync for a project's runtime, plan-only default), `adp_workspace_project` (single-project lifecycle view), `adp_workspace_dashboard` (task lifecycle overview), and `adp_workspace_report` (Markdown release evidence). Updated `README.md` with Claude Desktop setup instructions and troubleshooting.
 - Added MCP server test suite at `tests/test-mcp-server.py` with 14 tests covering module import, tool registration (18 tools verified), output formatting (success, stderr, failure, empty, timeout), manifest loading, project-to-runtime resolution, path resolution, pwsh detection, and tool signature defaults.
 - Added JSON structured output to MCP server. All 18 tools now return structured dicts (with `_text`, `_exit_code`, `_success` metadata fields) instead of plain text strings. Platform tools (`adp_status`, `adp_doctor`, `adp_capabilities`) and workspace/runtime tools (`adp_workspace_list`, `adp_sync_status`) include command-specific parsed fields for programmatic consumption by agents. Added 9 new tests for structured output and parsing (23 total). Updated `cli/mcp/README.md` to document structured response format.
+- Added `--help` long option support to all subcommands. `adp --help`, `adp help`, and `adp <command> --help` now all work (also `-Help` and `-?` short forms).
+- Added `adp version` command and `--version` global flag. Reports version from `VERSION` file or falls back to `git describe` for dev builds.
+- Added `adp.cmd` wrapper at project root so users can type `adp <command>` instead of `.\\cli\\adp.ps1 <command>`.
+- Added `adp run <runtime>` command for one-command runtime creation. Combines `init` → `up` → `sync start` → `status` into a single command like `docker run` or `daytona create`. Supports `-IsoPath`, `-Plan`, `-NoBootstrap`, `-NoProvision`, and `-NoSync` flags with bilingual output.
+- Added `adp completion <powershell|bash>` command to generate shell tab completion scripts. PowerShell output uses `Register-ArgumentCompleter`; bash output uses `complete -F _adp_completion adp`. Bilingual usage messaging.
+- Added `-Json` flag to `adp status` for machine-readable JSON output. When active, status returns structured JSON with local config, network, SSH key path, and per-runtime objects (status, IPs, SSH, sync, workspace, VMX, connection command, alias, port, network drift, duplicate VM detection). Suppresses all human-readable formatting. The flag can be set globally via `adp -Json <cmd>` or locally via `adp status -Json`.
+- Documented `local` alias for `adp network configure-local` in CLI help text. The alias already existed in `network.ps1` (line 13) but was undocumented in `adp help` output.
+
+### Changed
+
+- Unified flag naming: `adp init -SkipProvision` renamed to `-NoProvision` to match `adp up -NoProvision`. Updated all references in CLI help, README, docs, and tests. Backward incompatible but improves consistency.
 
 ### Fixed
 

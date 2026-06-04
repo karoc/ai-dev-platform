@@ -147,7 +147,7 @@ ADP 在这个阶段也会使用 PowerShell `Write-Progress` 显示不确定进�
 初始化平台状态，并创建运行时 VM 定义，但不启动 OS provisioning：
 
 ```powershell
-.\cli\adp.ps1 init agent -SkipProvision
+.\cli\adp.ps1 init agent -NoProvision
 ```
 
 首次创建运行时时，可以从任意位置传入 ISO：

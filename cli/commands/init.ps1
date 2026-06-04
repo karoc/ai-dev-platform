@@ -5,7 +5,8 @@
 param(
     [string]$RuntimeName,
     [string]$IsoPath,
-    [switch]$SkipProvision
+    [switch]$NoProvision,
+    [switch]$Quick
 )
 
 Write-InfoLog -Message (Get-UIText -English "adp init (Phase 2)" -Chinese "adp init（阶段 2）") -Component "cli.init"
@@ -23,56 +24,91 @@ $topology = Get-TopologyConfig
 # =============================================
 # Step 1: Verify VMware
 # =============================================
-Write-UIHost -English "[1/6] VMware Workstation" -Chinese "[1/6] VMware Workstation" -ForegroundColor Yellow
-if (-not (Test-VMwareAvailable)) {
-    Write-ErrorLog -Message (Get-UIText -English "VMware Workstation not found." -Chinese "未找到 VMware Workstation。") -Component "cli.init"
-    Write-UIHost -English "  Install VMware Workstation Pro and re-run." -Chinese "  安装 VMware Workstation Pro 后重新运行。" -ForegroundColor Red
-    exit 1
+if (-not $Quick) {
+    Write-UIHost -English "[1/6] VMware Workstation" -Chinese "[1/6] VMware Workstation" -ForegroundColor Yellow
+    if (-not (Test-VMwareAvailable)) {
+        Write-ErrorLog -Message (Get-UIText -English "VMware Workstation not found." -Chinese "未找到 VMware Workstation。") -Component "cli.init"
+        Write-UIHost -English "  Install VMware Workstation Pro and re-run." -Chinese "  安装 VMware Workstation Pro 后重新运行。" -ForegroundColor Red
+        exit 1
+    }
+    Initialize-VMware
+    Write-Host "  vmrun: $(Get-VmrunPath) [OK]" -ForegroundColor Green
+} else {
+    Write-UIHost -English "[1/6] VMware Workstation (skipped — using -Quick)" -Chinese "[1/6] VMware Workstation（已跳过 — 使用了 -Quick）" -ForegroundColor DarkGray
 }
-Initialize-VMware
-Write-Host "  vmrun: $(Get-VmrunPath) [OK]" -ForegroundColor Green
 
 # =============================================
 # Step 2: ISO Setup
 # =============================================
-Write-UIHost -English "[2/6] OS ISO" -Chinese "[2/6] OS ISO" -ForegroundColor Yellow
 $isoCache = Resolve-Path "iso_cache"
 $isoName = if ($config.defaults.iso_path) { $config.defaults.iso_path } else { $config.defaults.ubuntu_iso }
 
-if ($IsoPath) {
-    if (-not (Test-Path $IsoPath)) {
-        Write-ErrorLog -Message (Get-UIText -English "ISO not found: $IsoPath" -Chinese "未找到 ISO: $IsoPath") -Component "cli.init"
-        exit 1
-    }
-    if (-not (Test-Path $isoCache)) {
-        New-Item -ItemType Directory -Path $isoCache -Force | Out-Null
-    }
-    $destPath = Join-Path $isoCache $isoName
-    if ((Get-Item $IsoPath).FullName -ne (Get-Item $destPath -ErrorAction SilentlyContinue).FullName) {
-        Copy-Item $IsoPath $destPath -Force
-    }
-    Write-UIHost -English "  ISO cached: $destPath [OK]" -Chinese "  ISO 已缓存: $destPath [OK]" -ForegroundColor Green
-} else {
-    $isoPath = Join-Path $isoCache $isoName
-    if (Test-Path $isoPath) {
-        $sizeGB = [math]::Round((Get-Item $isoPath).Length / 1GB, 1)
-        Write-UIHost -English "  ISO found: $isoPath ($sizeGB GB) [OK]" -Chinese "  找到 ISO: $isoPath ($sizeGB GB) [OK]" -ForegroundColor Green
+if (-not $Quick) {
+    Write-UIHost -English "[2/6] OS ISO" -Chinese "[2/6] OS ISO" -ForegroundColor Yellow
+
+    if ($IsoPath) {
+        if (-not (Test-Path $IsoPath)) {
+            Write-ErrorLog -Message (Get-UIText -English "ISO not found: $IsoPath" -Chinese "未找到 ISO: $IsoPath") -Component "cli.init"
+            exit 1
+        }
+        if (-not (Test-Path $isoCache)) {
+            New-Item -ItemType Directory -Path $isoCache -Force | Out-Null
+        }
+        $destPath = Join-Path $isoCache $isoName
+        if ((Get-Item $IsoPath).FullName -ne (Get-Item $destPath -ErrorAction SilentlyContinue).FullName) {
+            Copy-Item $IsoPath $destPath -Force
+        }
+        Write-UIHost -English "  ISO cached: $destPath [OK]" -Chinese "  ISO 已缓存: $destPath [OK]" -ForegroundColor Green
     } else {
-        Write-UIHost -English "  ISO not found at: $isoPath" -Chinese "  未在此处找到 ISO: $isoPath" -ForegroundColor Red
-        Write-UIHost -English "  Run: adp init -IsoPath <path-to-linux-iso>" -Chinese "  运行: adp init -IsoPath <path-to-linux-iso>" -ForegroundColor Yellow
-        Write-UIHost -English "  Or place ISO at: $isoPath" -Chinese "  或将 ISO 放到: $isoPath" -ForegroundColor Yellow
+        $isoPath = Join-Path $isoCache $isoName
+        if (Test-Path $isoPath) {
+            $sizeGB = [math]::Round((Get-Item $isoPath).Length / 1GB, 1)
+            Write-UIHost -English "  ISO found: $isoPath ($sizeGB GB) [OK]" -Chinese "  找到 ISO: $isoPath ($sizeGB GB) [OK]" -ForegroundColor Green
+        } else {
+            Write-UIHost -English "  ISO not found at: $isoPath" -Chinese "  未在此处找到 ISO: $isoPath" -ForegroundColor Red
+            Write-UIHost -English "  Run: adp init -IsoPath <path-to-linux-iso>" -Chinese "  运行: adp init -IsoPath <path-to-linux-iso>" -ForegroundColor Yellow
+            Write-UIHost -English "  Or place ISO at: $isoPath" -Chinese "  或将 ISO 放到: $isoPath" -ForegroundColor Yellow
+        }
+    }
+} else {
+    Write-UIHost -English "[2/6] OS ISO (skipped — using -Quick)" -Chinese "[2/6] OS ISO（已跳过 — 使用了 -Quick）" -ForegroundColor DarkGray
+    # In quick mode, just verify ISO exists (or has been provided by -IsoPath)
+    if ($IsoPath) {
+        if (-not (Test-Path $IsoPath)) {
+            Write-ErrorLog -Message (Get-UIText -English "ISO not found: $IsoPath" -Chinese "未找到 ISO: $IsoPath") -Component "cli.init"
+            exit 1
+        }
+        if (-not (Test-Path $isoCache)) {
+            New-Item -ItemType Directory -Path $isoCache -Force | Out-Null
+        }
+        $destPath = Join-Path $isoCache $isoName
+        if ((Get-Item $IsoPath).FullName -ne (Get-Item $destPath -ErrorAction SilentlyContinue).FullName) {
+            Copy-Item $IsoPath $destPath -Force
+        }
+    } else {
+        $isoPath = Join-Path $isoCache $isoName
+        if (Test-Path $isoPath) {
+            $sizeGB = [math]::Round((Get-Item $isoPath).Length / 1GB, 1)
+            Write-UIHost -English "  ISO found in cache: $isoPath ($sizeGB GB)" -Chinese "  在缓存中找到 ISO: $isoPath ($sizeGB GB)" -ForegroundColor DarkGray
+        } else {
+            Write-UIHost -English "  [WARN] ISO not found in cache. Use 'adp iso download' or place ISO manually." -Chinese "  [WARN] 缓存中未找到 ISO。使用 'adp iso download' 或手动放置 ISO。" -ForegroundColor Yellow
+        }
     }
 }
 
 # =============================================
 # Step 3: SSH Keys
 # =============================================
-Write-UIHost -English "[3/6] SSH Keys" -Chinese "[3/6] SSH 密钥" -ForegroundColor Yellow
-. (Join-Path (Get-ProjectRoot) "adapters\windows\ssh\ssh.ps1")
-$keyPath = Initialize-SSH
-$pubKey = Get-SSHPubKey
-Write-UIHost -English "  Key: $keyPath [OK]" -Chinese "  密钥: $keyPath [OK]" -ForegroundColor Green
-Write-UIHost -English "  Public: $($pubKey.Substring(0, [Math]::Min(60, $pubKey.Length)))..." -Chinese "  公钥: $($pubKey.Substring(0, [Math]::Min(60, $pubKey.Length)))..." -ForegroundColor DarkGray
+if (-not $Quick) {
+    Write-UIHost -English "[3/6] SSH Keys" -Chinese "[3/6] SSH 密钥" -ForegroundColor Yellow
+    . (Join-Path (Get-ProjectRoot) "adapters\windows\ssh\ssh.ps1")
+    $keyPath = Initialize-SSH
+    $pubKey = Get-SSHPubKey
+    Write-UIHost -English "  Key: $keyPath [OK]" -Chinese "  密钥: $keyPath [OK]" -ForegroundColor Green
+    Write-UIHost -English "  Public: $($pubKey.Substring(0, [Math]::Min(60, $pubKey.Length)))..." -Chinese "  公钥: $($pubKey.Substring(0, [Math]::Min(60, $pubKey.Length)))..." -ForegroundColor DarkGray
+} else {
+    Write-UIHost -English "[3/6] SSH Keys (skipped — using -Quick)" -Chinese "[3/6] SSH 密钥（已跳过 — 使用了 -Quick）" -ForegroundColor DarkGray
+}
 
 # =============================================
 # Step 4: Directories
@@ -132,7 +168,7 @@ if ($RuntimeName) {
         $upCommand = Join-Path (Get-ProjectRoot) "cli\commands\up.ps1"
         $upArgs = @{
             RuntimeName = $RuntimeName
-            NoProvision = $SkipProvision
+            NoProvision = $NoProvision
         }
         if ($IsoPath) {
             $upArgs.IsoPath = $IsoPath
