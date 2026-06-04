@@ -213,7 +213,7 @@ python3 --version
 这三条命令都应该输出版本号——这些都是在 bootstrap 过程中安装的。
 
 > [!WARNING]
-> VM 使用默认的 `adp:adp` 用户和密码进行自动 sudo 配置。这对于在可信工作站上进行本地单用户开发是安全的。请勿在未修改凭据的情况下将这些 VM 暴露给不受信任的网络。详见[安全策略](../SECURITY.zh-CN.md)。
+> VM 使用默认的 `adp:adp` 用户和密码进行自动 sudo 配置。这对于在可信工作站上进行本地单用户开发是安全的。请勿在未修改凭据的情况下将这些 VM 暴露给不受信任的网络。详见[安全策略](../../SECURITY.zh-CN.md)。
 
 ## 常见首次错误
 
@@ -301,7 +301,7 @@ powershell.exe -ExecutionPolicy Bypass -File .\install.ps1
 - **[配置说明](configuration.md)** — 自定义 VM 大小、静态 IP、引导行为和本地覆盖配置。
 - **[架构说明](architecture.md)** — 控制平面、runtime fabric 和 workspace fabric 如何协同工作。
 - **[工作区](workspaces.md)** — 项目放置位置和如何安全地 dogfood ADP-OS。
-- **[安全策略](../SECURITY.zh-CN.md)** — 了解本地开发安全模型。
+- **[安全策略](../../SECURITY.zh-CN.md)** — 了解本地开发安全模型。
 
 想启动全部三个 runtime？在 `frontend` 运行后：
 
