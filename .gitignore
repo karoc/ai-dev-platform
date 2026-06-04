@@ -39,6 +39,11 @@ Thumbs.db
 *.psm1c
 *.psd1c
 
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
 # Local tool binaries
 .tools/
 
