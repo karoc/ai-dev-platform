@@ -1954,8 +1954,8 @@ function Write-WorkspaceDashboard {
         [string]$StatePath
     )
 
-    Write-Host "Workspace dashboard: $($Manifest.name)" -ForegroundColor Cyan
-    Write-Host "Dashboard only: no projects will be cloned, no sync sessions will be changed, no snapshots will be created, no validation or evaluation commands will be run, and no Git commands will be run." -ForegroundColor DarkGray
+    Write-UIHost -English "Workspace dashboard: $($Manifest.name)" -Chinese "工作区仪表盘: $($Manifest.name)" -ForegroundColor Cyan
+    Write-UIHost -English "Dashboard only: no projects will be cloned, no sync sessions will be changed, no snapshots will be created, no validation or evaluation commands will be run, and no Git commands will be run." -Chinese "仅仪表盘查看：不会 clone 任何项目、不会更改任何同步会话、不会创建任何快照、不会运行任何验证或评估命令、也不会运行任何 Git 命令。" -ForegroundColor DarkGray
 
     $projects = Get-WorkspaceArray $Manifest.projects
     $tasks = Get-WorkspaceArray $Manifest.tasks
@@ -1964,15 +1964,15 @@ function Write-WorkspaceDashboard {
     $resolvedStatePath = Resolve-WorkspaceStatePath -Path $StatePath
     $state = Read-WorkspaceState -Path $resolvedStatePath
 
-    Write-Host ""
-    Write-Host "Overview:" -ForegroundColor Yellow
-    Write-WorkspaceCheck -Level "OK" -Name "manifest" -Detail "(projects: $($projects.Count), tasks: $($tasks.Count), milestones: $($milestones.Count), evaluations: $($evaluations.Count), path: $ManifestPath)"
-    Write-WorkspaceCheck -Level "INFO" -Name "state" -Detail "(path: $resolvedStatePath)"
+    Write-UIHost -English "" -Chinese ""
+    Write-UIHost -English "Overview:" -Chinese "概览:" -ForegroundColor Yellow
+    Write-WorkspaceCheck -Level "OK" -Name "manifest" -ChineseName "清单" -Detail "(projects: $($projects.Count), tasks: $($tasks.Count), milestones: $($milestones.Count), evaluations: $($evaluations.Count), path: $ManifestPath)"
+    Write-WorkspaceCheck -Level "INFO" -Name "state" -ChineseName "状态" -Detail "(path: $resolvedStatePath)"
 
-    Write-Host ""
-    Write-Host "Project readiness:" -ForegroundColor Yellow
+    Write-UIHost -English "" -Chinese ""
+    Write-UIHost -English "Project readiness:" -Chinese "项目就绪状态:" -ForegroundColor Yellow
     if ($projects.Count -eq 0) {
-        Write-WorkspaceCheck -Level "WARN" -Name "projects" -Detail "(none configured)"
+        Write-WorkspaceCheck -Level "WARN" -Name "projects" -ChineseName "项目" -Detail "(none configured)" -ChineseDetail "(未配置)"
     }
 
     foreach ($project in $projects) {
@@ -1992,10 +1992,10 @@ function Write-WorkspaceDashboard {
         Write-WorkspaceCheck -Level $projectLevel -Name $projectName -Detail "(path: $pathDetail; runtime: $($runtimeStatus.Status); sync: $($syncStatus.Status); sync hygiene: $($syncHygieneStatus.Status); validation: $($validationCommands.Count); devcontainer: $($devContainerStatus.Status))"
     }
 
-    Write-Host ""
-    Write-Host "Milestone checkpoints:" -ForegroundColor Yellow
+    Write-UIHost -English "" -Chinese ""
+    Write-UIHost -English "Milestone checkpoints:" -Chinese "里程碑检查点:" -ForegroundColor Yellow
     if ($milestones.Count -eq 0) {
-        Write-WorkspaceCheck -Level "INFO" -Name "milestones" -Detail "(none configured)"
+        Write-WorkspaceCheck -Level "INFO" -Name "milestones" -ChineseName "里程碑" -Detail "(none configured)" -ChineseDetail "(未配置)"
     }
 
     foreach ($milestone in $milestones) {
@@ -2004,10 +2004,10 @@ function Write-WorkspaceDashboard {
         Write-WorkspaceCheck -Level $status.Level -Name $name -Detail "(runtime: $($status.RuntimeName); snapshot: $($status.SnapshotName); snapshot naming: $($status.SnapshotNaming.Status); snapshot: $($status.SnapshotStatus.Status); tasks: $(if ($status.TaskNames.Count -gt 0) { $status.TaskNames -join ', ' } else { 'none' }))"
     }
 
-    Write-Host ""
-    Write-Host "Evaluation hooks:" -ForegroundColor Yellow
+    Write-UIHost -English "" -Chinese ""
+    Write-UIHost -English "Evaluation hooks:" -Chinese "评估钩子:" -ForegroundColor Yellow
     if ($evaluations.Count -eq 0) {
-        Write-WorkspaceCheck -Level "INFO" -Name "evaluations" -Detail "(none configured)"
+        Write-WorkspaceCheck -Level "INFO" -Name "evaluations" -ChineseName "评估" -Detail "(none configured)" -ChineseDetail "(未配置)"
     }
 
     foreach ($evaluation in $evaluations) {
@@ -2015,10 +2015,10 @@ function Write-WorkspaceDashboard {
         Write-WorkspaceCheck -Level $status.Level -Name $status.Name -Detail "(readiness: $($status.Readiness); runtime: $($status.RuntimeName); project: $($status.ProjectName); metrics: $($status.Metrics.Count); commands: $($status.Commands.Count); tasks: $(if ($status.TaskNames.Count -gt 0) { $status.TaskNames -join ', ' } else { 'none' }))"
     }
 
-    Write-Host ""
-    Write-Host "Task lifecycle:" -ForegroundColor Yellow
+    Write-UIHost -English "" -Chinese ""
+    Write-UIHost -English "Task lifecycle:" -Chinese "任务生命周期:" -ForegroundColor Yellow
     if ($tasks.Count -eq 0) {
-        Write-WorkspaceCheck -Level "WARN" -Name "tasks" -Detail "(none configured)"
+        Write-WorkspaceCheck -Level "WARN" -Name "tasks" -ChineseName "任务" -Detail "(none configured)" -ChineseDetail "(未配置)"
     }
 
     foreach ($task in $tasks) {
@@ -2071,9 +2071,9 @@ function Write-WorkspaceDashboard {
         $validationStateText = Format-WorkspaceValidationState -RecordedState $recordedState
 
         Write-WorkspaceCheck -Level $taskLevel -Name $taskName -Detail "(state: $recordedStateText; milestone: $milestoneText; evaluation: $evaluationText; risk: $risk; snapshot required: $requiresSnapshot; snapshot naming: $($snapshotNaming.Status); checkpoint: $($snapshotGate.Status); runtime: $($runtimeStatus.Status); execution: $executionState; sync hygiene: $($syncHygiene.Status); validation: $($validationCommands.Count); validation result: $validationStateText; review: gated; rollback: $rollbackState; commit: $commitState)"
-        Write-Host "      prepare: adp workspace task prepare $taskName -ManifestPath $ManifestPath" -ForegroundColor DarkGray
-        Write-Host "      run:     adp workspace task run $taskName -ManifestPath $ManifestPath" -ForegroundColor DarkGray
-        Write-Host "      review:  adp workspace task review $taskName -ManifestPath $ManifestPath" -ForegroundColor DarkGray
+        Write-UIHost -English "      prepare: adp workspace task prepare $taskName -ManifestPath $ManifestPath" -Chinese "      准备: adp workspace task prepare $taskName -ManifestPath $ManifestPath" -ForegroundColor DarkGray
+        Write-UIHost -English "      run:     adp workspace task run $taskName -ManifestPath $ManifestPath" -Chinese "      运行:   adp workspace task run $taskName -ManifestPath $ManifestPath" -ForegroundColor DarkGray
+        Write-UIHost -English "      review:  adp workspace task review $taskName -ManifestPath $ManifestPath" -Chinese "      审查:   adp workspace task review $taskName -ManifestPath $ManifestPath" -ForegroundColor DarkGray
     }
 }
 
