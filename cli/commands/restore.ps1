@@ -1,13 +1,16 @@
 # ADP-OS Restore Command
 # Restore a runtime from a named snapshot
+# Protected: requires -Force to execute, -Plan for dry-run preview
 
 param(
     [string]$RuntimeName,
-    [string]$SnapshotName
+    [string]$SnapshotName,
+    [switch]$Plan,
+    [switch]$Force
 )
 
 if (-not $RuntimeName -or -not $SnapshotName) {
-    Write-ErrorLog -Message (Get-UIText -English "Usage: adp restore <runtime> <snapshot-name>" -Chinese "用法: adp restore <runtime> <snapshot-name>") -Component "cli.restore"
+    Write-ErrorLog -Message (Get-UIText -English "Usage: adp restore <runtime> <snapshot-name> [-Plan] [-Force]" -Chinese "用法: adp restore <runtime> <snapshot-name> [-Plan] [-Force]") -Component "cli.restore"
     exit 1
 }
 
@@ -29,8 +32,28 @@ if (-not (Test-Path $vmxPath)) {
     exit 1
 }
 
+Write-Host ""
+Write-UIHost -English "RESTORE runtime: $RuntimeName" -Chinese "恢复运行时: $RuntimeName" -ForegroundColor Red
+Write-Host "========================================" -ForegroundColor Red
+Write-Host "  VMX: $vmxPath" -ForegroundColor DarkGray
+Write-Host "  Snapshot: $SnapshotName" -ForegroundColor DarkGray
+Write-Host ""
+
+if ($Plan) {
+    Write-UIHost -English "Plan only: no changes will be made." -Chinese "仅预览：不会执行任何更改。" -ForegroundColor Cyan
+    Write-UIHost -English "  Would stop VM if running: $vmxPath" -Chinese "  如果 VM 正在运行将停止: $vmxPath" -ForegroundColor DarkGray
+    Write-UIHost -English "  Would restore snapshot: '$SnapshotName'" -Chinese "  将恢复快照: '$SnapshotName'" -ForegroundColor DarkGray
+    Write-UIHost -English "  Current VM state would be discarded." -Chinese "  当前 VM 状态将被丢弃。" -ForegroundColor DarkGray
+    return
+}
+
+if (-not $Force) {
+    Write-UIHost -English "This will discard the CURRENT VM state and restore snapshot '$SnapshotName'." -Chinese "这将丢弃当前 VM 状态并恢复快照 '$SnapshotName'。" -ForegroundColor Red
+    Write-UIHost -English "Run 'adp restore $RuntimeName $SnapshotName -Force' to confirm, or 'adp restore $RuntimeName $SnapshotName -Plan' to preview." -Chinese "运行 'adp restore $RuntimeName $SnapshotName -Force' 确认，或 'adp restore $RuntimeName $SnapshotName -Plan' 预览。" -ForegroundColor Yellow
+    return
+}
+
 Write-UIHost -English "Restoring runtime '$RuntimeName' from snapshot '$SnapshotName'..." -Chinese "正在从快照 '$SnapshotName' 恢复运行时 '$RuntimeName'..." -ForegroundColor Yellow
-Write-WarnLog -Message (Get-UIText -English "This will discard current VM state." -Chinese "这将丢弃当前 VM 状态。") -Component "cli.restore"
 
 $result = Restore-VMSnapshot -VmxPath $vmxPath -SnapshotName $SnapshotName
 

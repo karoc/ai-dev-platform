@@ -185,7 +185,7 @@ Assert-Contains -Name "sync summary treats uncreated runtime stale sessions as c
 Assert-Contains -Name "destroy uses bilingual UI output" -Text $destroy -Pattern 'Write-UIHost[\s\S]*?-English[\s\S]*?-Chinese[\s\S]*?DESTROY[\s\S]*?Plan only[\s\S]*?PERMANENTLY DELETE'
 Assert-Contains -Name "stop uses bilingual UI output" -Text $stop -Pattern 'Write-UIHost[\s\S]*?-English[\s\S]*?-Chinese[\s\S]*?Stopping[\s\S]*?force-stopped'
 Assert-Contains -Name "snapshot uses bilingual UI output" -Text $snapshot -Pattern 'Write-UIHost[\s\S]*?-English[\s\S]*?-Chinese[\s\S]*?already exists[\s\S]*?created successfully'
-Assert-Contains -Name "restore uses bilingual UI output" -Text $restore -Pattern 'Write-UIHost[\s\S]*?-English[\s\S]*?-Chinese[\s\S]*?discard[\s\S]*?Restored'
+Assert-Contains -Name "restore uses bilingual UI output" -Text $restore -Pattern 'Write-UIHost[\s\S]*?-English[\s\S]*?RESTORE[\s\S]*?-Chinese[\s\S]*?Plan only[\s\S]*?Force.*confirm'
 Assert-Contains -Name "logs uses bilingual UI output" -Text $logs -Pattern 'Write-UIHost[\s\S]*?-English[\s\S]*?-Chinese[\s\S]*?Platform Log[\s\S]*?VM console'
 Assert-Contains -Name "sync uses bilingual UI output" -Text $sync -Pattern 'Write-UIHost[\s\S]*?-English[\s\S]*?-Chinese[\s\S]*?sync summary[\s\S]*?Starting sync[\s\S]*?Stopping sync'
 Assert-Contains -Name "capabilities uses bilingual UI output" -Text $capabilities -Pattern 'Write-UIHost[\s\S]*?-English[\s\S]*?-Chinese[\s\S]*?Current support[\s\S]*?carrier matrix[\s\S]*?adapter matrix'

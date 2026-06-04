@@ -24,6 +24,7 @@ if ($Json) {
 # --- Load Core ---
 . "$script:ProjectRoot\core\config\config.ps1"
 . "$script:ProjectRoot\core\logging\logger.ps1"
+. "$script:ProjectRoot\core\utility\circuit-breaker.ps1"
 . "$script:ProjectRoot\adapters\windows\filesystem\filesystem.ps1"
 . "$script:ProjectRoot\adapters\windows\vmware\vmware.ps1"
 
@@ -31,7 +32,7 @@ Initialize-Config -ProjectRoot $script:ProjectRoot
 Initialize-Logging -LogDirectory (Join-Path $script:ProjectRoot "logs")
 
 # --- Command Router ---
-$validCommands = @("init", "up", "status", "stop", "sync", "snapshot", "restore", "logs", "doctor", "destroy", "network", "workspace", "capabilities", "validate", "help", "run", "completion", "version", "iso", "quickstart", "precheck", "sandbox")
+$validCommands = @("init", "up", "status", "stop", "sync", "snapshot", "restore", "logs", "doctor", "destroy", "network", "workspace", "capabilities", "validate", "help", "run", "completion", "version", "iso", "quickstart", "precheck", "sandbox", "serve")
 
 function Quote-PowerShellArgument {
     param([string]$Value)
@@ -86,7 +87,7 @@ function Show-Help {
         Write-Host "  adp network configure-local [-Plan|-Apply]  预览/应用本机 VMnet8 覆盖配置 (别名: local)"
         Write-Host "  adp network apply <rt|all> [-Plan]  应用已配置的静态 IP 网络"
         Write-Host "  adp snapshot create <rt> <name>  创建运行时快照"
-        Write-Host "  adp restore <rt> <name>        恢复运行时快照"
+        Write-Host "  adp restore <rt> <name> [-Plan] [-Force]  恢复运行时快照"
         Write-Host "  adp logs <runtime>             显示运行时日志"
         Write-Host "  adp doctor [-FirstRun] [-FixMutagen] [-Plan] [-Json]  运行诊断和可选 Mutagen 修复"
         Write-Host "  adp validate [-Quick] [-SkipCliSmoke] [-SkipInstallerSmoke] [-SkipShellSyntax]  运行仓库验证测试"
@@ -119,7 +120,7 @@ function Show-Help {
         Write-Host "  adp network configure-local [-Plan|-Apply]  Plan/apply local VMnet8 overrides (alias: local)"
         Write-Host "  adp network apply <rt|all> [-Plan]  Apply configured static IP networking"
         Write-Host "  adp snapshot create <rt> <name>  Create runtime snapshot"
-        Write-Host "  adp restore <rt> <name>        Restore runtime snapshot"
+        Write-Host "  adp restore <rt> <name> [-Plan] [-Force]  Restore runtime snapshot"
         Write-Host "  adp logs <runtime>             Show runtime logs"
         Write-Host "  adp doctor [-FirstRun] [-FixMutagen] [-Plan] [-Json]  Run diagnostics and optional Mutagen remediation"
         Write-Host "  adp validate [-Quick] [-SkipCliSmoke] [-SkipInstallerSmoke] [-SkipShellSyntax]  Run repository validation tests"
@@ -326,14 +327,17 @@ function Show-CommandHelp {
             }
             "restore" {
                 Write-Host "用法:" -ForegroundColor Yellow
-                Write-Host "  adp restore <runtime> <snapshot-name>"
+                Write-Host "  adp restore <runtime> <snapshot-name> [-Plan] [-Force]"
                 Write-Host ""
                 Write-Host "参数:" -ForegroundColor Yellow
                 Write-Host "  <runtime>          运行时名称 (frontend, backend, agent)"
                 Write-Host "  <snapshot-name>    要恢复的快照名称"
+                Write-Host "  -Plan              预览将要执行的操作（不真正恢复）"
+                Write-Host "  -Force             跳过确认提示，直接恢复"
                 Write-Host ""
                 Write-Host "示例:" -ForegroundColor Yellow
-                Write-Host "  adp restore frontend before-update"
+                Write-Host "  adp restore frontend before-update -Plan"
+                Write-Host "  adp restore frontend before-update -Force"
             }
             "logs" {
                 Write-Host "用法:" -ForegroundColor Yellow
@@ -646,14 +650,17 @@ function Show-CommandHelp {
             }
             "restore" {
                 Write-Host "Usage:" -ForegroundColor Yellow
-                Write-Host "  adp restore <runtime> <snapshot-name>"
+                Write-Host "  adp restore <runtime> <snapshot-name> [-Plan] [-Force]"
                 Write-Host ""
                 Write-Host "Arguments:" -ForegroundColor Yellow
                 Write-Host "  <runtime>          Runtime name (frontend, backend, agent)"
                 Write-Host "  <snapshot-name>    Snapshot name to restore"
+                Write-Host "  -Plan              Show what would be restored (dry-run)"
+                Write-Host "  -Force             Skip confirmation prompt, restore immediately"
                 Write-Host ""
                 Write-Host "Examples:" -ForegroundColor Yellow
-                Write-Host "  adp restore frontend before-update"
+                Write-Host "  adp restore frontend before-update -Plan"
+                Write-Host "  adp restore frontend before-update -Force"
             }
             "logs" {
                 Write-Host "Usage:" -ForegroundColor Yellow
