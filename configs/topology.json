@@ -43,5 +43,19 @@
     "danger": true,
     "static_ip": "192.168.242.135",
     "ssh_port": 22
+  },
+  "sandbox": {
+    "runtime": "vmware",
+    "os": "ubuntu-26.04",
+    "cpu": 2,
+    "memory": 4096,
+    "disk": 40,
+    "workspace": "sandbox",
+    "sync_profile": "frontend",
+    "bootstrap_profile": "frontend",
+    "profile": "standard",
+    "snapshot_policy": "on-demand",
+    "danger": false,
+    "ssh_port": 22
   }
 }
