@@ -32,7 +32,8 @@
 - 新增 MCP 服务器 JSON 结构化输出。所有 18 个工具现在返回结构化字典（包含 `_text`、`_exit_code`、`_success` 元数据字段），取代纯文本字符串。平台工具（`adp_status`、`adp_doctor`、`adp_capabilities`）和工作空间/运行时工具（`adp_workspace_list`、`adp_sync_status`）输出包含命令特定的解析字段，便于 Agent 程序化消费。新增 9 个结构化输出和解析测试（共 23 个）。更新 `cli/mcp/README.md` 记录结构化响应格式。
 - 新增 `--help` 长选项支持到所有子命令。`adp --help`、`adp help` 和 `adp <command> --help` 均可正常使用（也支持 `-Help` 和 `-?` 短形式）。
 - 新增 `adp version` 命令和 `--version` 全局标志。从 `VERSION` 文件读取版本号（dev 版本回退到 `git describe`）。
-- 新增项目根目录 `adp.cmd` 包装脚本，用户可直接输入 `adp <command>` 而非 `.\cli\adp.ps1 <command>`。
+- 新增项目根目录 `adp.cmd` 包装脚本，用户可直接输入 `adp <command>` 而非 `.\\cli\\adp.ps1 <command>`。
+- 新增 `adp serve` 健康检查 HTTP 服务器 (`cli/commands/serve.ps1`)。使用 .NET HttpListener 启动轻量级 HTTP 服务器，暴露 `GET /health` 端点，返回 JSON 格式的运行时状态和同步健康信息。支持 `-Port`（默认 9080）、`-Public`（监听所有网络接口）和 `-Json`（一次性健康报告，不启动服务器）。健康端点报告 VM 状态（running/stopped/not-created）、同步会话健康（healthy/present/unhealthy/not-started）和平台整体健康状态（healthy/degraded/unhealthy/no-runtimes）。包含 CORS 头部支持跨域监控访问。
 
 ### 变更
 

@@ -37,6 +37,7 @@ Initial public release.
 - Added `adp completion <powershell|bash>` command to generate shell tab completion scripts. PowerShell output uses `Register-ArgumentCompleter`; bash output uses `complete -F _adp_completion adp`. Bilingual usage messaging.
 - Added `-Json` flag to `adp status` for machine-readable JSON output. When active, status returns structured JSON with local config, network, SSH key path, and per-runtime objects (status, IPs, SSH, sync, workspace, VMX, connection command, alias, port, network drift, duplicate VM detection). Suppresses all human-readable formatting. The flag can be set globally via `adp -Json <cmd>` or locally via `adp status -Json`.
 - Documented `local` alias for `adp network configure-local` in CLI help text. The alias already existed in `network.ps1` (line 13) but was undocumented in `adp help` output.
+- Added `adp serve` health check HTTP server (`cli/commands/serve.ps1`). Starts a lightweight HTTP server using .NET HttpListener, exposing `GET /health` with JSON runtime status and sync health. Supports `-Port` (default 9080), `-Public` (all interfaces), and `-Json` (one-shot health report without starting server). Health endpoint reports VM states (running/stopped/not-created), sync session health (healthy/present/unhealthy/not-started), and overall platform health (healthy/degraded/unhealthy/no-runtimes). Includes CORS headers for cross-origin monitoring access.
 
 ### Changed
 
