@@ -75,7 +75,6 @@ function Write-SentinelLocalConfig {
 function Invoke-BoundaryCommand {
     param(
         [string]$SandboxRoot,
-        [string]$UserProfile,
         [string]$ScriptPath,
         [string[]]$Arguments
     )
@@ -93,23 +92,13 @@ function Invoke-BoundaryCommand {
     $stdout = [System.IO.Path]::GetTempFileName()
     $stderr = [System.IO.Path]::GetTempFileName()
     try {
-        # Build full environment hashtable inheriting the current process environment.
-        # Start-Process -Environment REPLACES the entire environment, so passing only
-        # USERPROFILE/HOME would strip PATH, SystemRoot, TEMP, and other essential
-        # variables, causing pwsh to fail on CI runners (exit code -1).
-        $processEnv = @{}
-        Get-ChildItem Env: | ForEach-Object { $processEnv[$_.Name] = $_.Value }
-        $processEnv['USERPROFILE'] = $UserProfile
-        $processEnv['HOME'] = $UserProfile
-
         $processArguments = @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $ScriptPath) + $Arguments
         $process = Start-Process -FilePath $pwshPath `
             -ArgumentList $processArguments `
             -WorkingDirectory $SandboxRoot `
             -NoNewWindow -Wait -PassThru `
             -RedirectStandardOutput $stdout `
-            -RedirectStandardError $stderr `
-            -Environment $processEnv
+            -RedirectStandardError $stderr
 
         $outText = Get-Content -LiteralPath $stdout -Raw -Encoding UTF8 -ErrorAction SilentlyContinue
         $errText = Get-Content -LiteralPath $stderr -Raw -Encoding UTF8 -ErrorAction SilentlyContinue
@@ -151,7 +140,6 @@ function Assert-CommandDoesNotMutateLocalConfig {
     param(
         [string]$Name,
         [string]$SandboxRoot,
-        [string]$UserProfile,
         [string]$ScriptPath,
         [string[]]$Arguments,
         [int[]]$AllowedExitCodes = @(0)
@@ -159,13 +147,11 @@ function Assert-CommandDoesNotMutateLocalConfig {
 
     $localConfigPath = Join-Path $SandboxRoot "configs\local.json"
     $beforeHash = (Get-FileHash -LiteralPath $localConfigPath -Algorithm SHA256).Hash
-    $result = Invoke-BoundaryCommand -SandboxRoot $SandboxRoot -UserProfile $UserProfile -ScriptPath $ScriptPath -Arguments $Arguments
+    $result = Invoke-BoundaryCommand -SandboxRoot $SandboxRoot -ScriptPath $ScriptPath -Arguments $Arguments
     Assert-LocalConfigUnchanged -Name $Name -SandboxRoot $SandboxRoot -LocalConfigPath $localConfigPath -BeforeHash $beforeHash -Result $result -AllowedExitCodes $AllowedExitCodes
 }
 
 $sandboxRoot = New-BoundarySandbox
-$userProfile = Join-Path ([System.IO.Path]::GetTempPath()) ("adp-local-config-boundary-home-{0}" -f ([guid]::NewGuid().ToString("N")))
-New-Item -ItemType Directory -Path $userProfile -Force | Out-Null
 
 try {
     Write-SentinelLocalConfig -SandboxRoot $sandboxRoot | Out-Null
@@ -234,14 +220,13 @@ try {
         Assert-CommandDoesNotMutateLocalConfig `
             -Name $command.Name `
             -SandboxRoot $sandboxRoot `
-            -UserProfile $userProfile `
             -ScriptPath $command.Script `
             -Arguments $command.Arguments `
             -AllowedExitCodes $command.AllowedExitCodes
     }
 } finally {
     $tempRoot = [System.IO.Path]::GetTempPath()
-    foreach ($path in @($sandboxRoot, $userProfile)) {
+    foreach ($path in @($sandboxRoot)) {
         if ($path -and (Test-Path -LiteralPath $path) -and [System.IO.Path]::GetFullPath($path).StartsWith($tempRoot, [System.StringComparison]::OrdinalIgnoreCase)) {
             Remove-Item -LiteralPath $path -Recurse -Force -ErrorAction SilentlyContinue
         }
