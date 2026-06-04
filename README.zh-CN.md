@@ -1,13 +1,13 @@
-# AI Dev Platform OS —— 安全、Spec 驱动的 Windows 原生代码执行 AI Agent 与 Computer-Use Agent 开发沙箱
+# AI Dev Platform OS —— 安全、可编程、Spec 驱动的 Windows 原生代码执行 AI Agent 与 Computer-Use Agent 开发沙箱
 
 简体中文 | [English](README.md)
 
 [![CI](https://github.com/karoc/ai-dev-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/karoc/ai-dev-platform/actions/workflows/ci.yml)
 [![MCP](https://img.shields.io/badge/MCP_SDK-18_tools-4B8BBE?logo=python)](cli/mcp/server.py)
 
-AI Dev Platform OS，简称 ADP-OS，是一个安全、企业级、Spec 驱动的本地代码执行沙箱基础设施，面向 Windows、VMware Workstation、Ubuntu Server 和 Mutagen，提供硬件级隔离的 AI Agent 和 Computer-Use Agent 开发环境。ADP-OS 采用 Spec 驱动方式：workspace recipe 预先声明项目、任务、验证命令、里程碑和评估钩子，平台按照声明执行，产出可审计的任务状态追踪和发布证据。
+AI Dev Platform OS，简称 ADP-OS，是一个安全、企业级、Spec 驱动的本地可编程代码执行沙箱基础设施，面向 Windows、VMware Workstation、Ubuntu Server 和 Mutagen，提供硬件级隔离的 AI Agent 和 Computer-Use Agent 开发环境。ADP-OS 采用 Spec 驱动方式：workspace recipe 预先声明项目、任务、验证命令、里程碑和评估钩子，平台按照声明执行，产出可审计的任务状态追踪和发布证据。
 
-本项目会为前端、后端和 AI Agent 工作负载创建隔离的 Linux 代码执行运行时作为自托管 AI 开发基础设施，将 Windows 工作区同步到各个 VM 中，并提供回滚快照，以支持可复现的本地 AI 编码工作流。
+本项目会为前端、后端和 AI Agent 工作负载创建隔离的、可编程的 Linux 代码执行运行时作为自托管 AI 开发基础设施，将 Windows 工作区同步到各个 VM 中，并提供回滚快照，以支持可复现的本地 AI 编码工作流。
 
 ADP-OS 不替代 Docker。它创建可运行 Docker 的本地 Linux 运行时，并在其外层提供 VM 生命周期管理、工作区同步、角色化 bootstrap、诊断、静态网络、快照回滚，以及 Agent 治理（Spec 驱动的工作区配方、任务状态追踪和发布证据审计链）。
 
@@ -16,7 +16,7 @@ ADP-OS 不替代 Docker。它创建可运行 Docker 的本地 Linux 运行时，
 ## 提供能力
 
 - 使用 PowerShell 7 实现的 Windows 控制平面。
-- 面向 AI Agent 和 Computer-Use Agent 的硬件级隔离代码执行沙箱基础设施。
+- 面向 AI Agent 和 Computer-Use Agent 的硬件级隔离可编程代码执行沙箱基础设施。
 - 面向 Ubuntu Server 26.04 的 VMware Workstation VM 工厂。
 - 基于 cloud-init seed data 的 Ubuntu autoinstall ISO 重制。
 - `frontend`、`backend` 和 `agent` 运行时 profile。
@@ -39,7 +39,7 @@ ADP-OS 内置了一个 [Model Context Protocol (MCP)](https://modelcontextprotoc
 
 **运行时工具（5 个）：** `adp_up` — 启动 VM（默认仅预览）。`adp_down` — 销毁 VM（默认仅预览）。`adp_stop` — 优雅关闭 VM。`adp_sync_status` — Mutagen 同步健康状态。`adp_sync_stop` — 停止同步会话。
 
-所有破坏性操作默认以 plan-only 模式运行，确保安全。将任何 MCP 兼容的 Agent（Claude Desktop、Hermes、Cursor 等）连接到 `cli/mcp/server.py`：
+所有破坏性操作默认以 plan-only 模式运行，确保安全。将任何 MCP 兼容的 Agent（Claude Desktop、Claude Agent、Hermes、Cursor 等）连接到 `cli/mcp/server.py`：
 
 ```json
 {
@@ -56,6 +56,10 @@ ADP-OS 内置了一个 [Model Context Protocol (MCP)](https://modelcontextprotoc
 ### GitHub Copilot Agent SDK
 
 ADP-OS 与 [GitHub Copilot Agent SDK](https://github.com/github/copilot-sdk) 原生兼容。在 Copilot SDK session 中加载 ADP-OS 作为 MCP 服务器，即可访问全部 18 个平台、工作区和运行时工具。参见 **[Copilot SDK 集成指南](docs/zh-CN/copilot-sdk-integration.md)**，了解 Python 和 TypeScript 快速开始示例、环境变量配置和权限模式。
+
+### Claude Agent 支持
+
+ADP-OS 兼容 [Claude Managed Agents](https://docs.anthropic.com/en/docs/agents-and-tools/managed-agents)，该平台支持自托管 MCP 沙箱的 Agent 原生代码执行。将 ADP-OS 作为 MCP 服务器连接，即可让 Claude Agent 访问全部 18 个平台、工作区和运行时工具 —— 包括 VM 生命周期管理、工作区同步和 Spec 驱动的审计链。在 Claude Agent 的 MCP 设置中配置 `cli/mcp/server.py` 即可启用自托管沙箱操作，支持 Claude 的 managed agent 工作流。
 
 ## 环境要求
 

@@ -1,13 +1,13 @@
-# AI Dev Platform OS — Self-Hosted, Secure, Spec-Driven Windows-First Code Execution Sandbox for AI Agent & Computer-Use Agent Development
+# AI Dev Platform OS — Self-Hosted, Secure, Programmable Spec-Driven Windows-First Code Execution Sandbox for AI Agent & Computer-Use Agent Development
 
 [简体中文](README.zh-CN.md) | English
 
 [![CI](https://github.com/karoc/ai-dev-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/karoc/ai-dev-platform/actions/workflows/ci.yml)
 [![MCP](https://img.shields.io/badge/MCP_SDK-18_tools-4B8BBE?logo=python)](cli/mcp/server.py)
 
-AI Dev Platform OS, or ADP-OS, is a secure, enterprise-grade, spec-driven self-hosted code execution sandbox infrastructure with hardware-level isolation for AI agent and computer-use agent development on Windows, VMware Workstation, Ubuntu Server, and Mutagen. ADP-OS takes a spec-driven approach: workspace recipes declare projects, tasks, validation commands, milestones, and evaluation hooks upfront, then the platform executes them in an auditable lifecycle with task state tracking and release evidence.
+AI Dev Platform OS, or ADP-OS, is a secure, enterprise-grade, spec-driven self-hosted programmable code execution sandbox infrastructure with hardware-level isolation for AI agent and computer-use agent development on Windows, VMware Workstation, Ubuntu Server, and Mutagen. ADP-OS takes a spec-driven approach: workspace recipes declare projects, tasks, validation commands, milestones, and evaluation hooks upfront, then the platform executes them in an auditable lifecycle with task state tracking and release evidence.
 
-The project provisions isolated Linux code execution runtimes as self-hosted AI development infrastructure for frontend, backend, and AI agent workloads, keeps workspaces synchronized from Windows into each VM, and creates rollback snapshots for repeatable self-hosted AI coding workflows.
+The project provisions isolated, programmable Linux code execution runtimes as self-hosted AI development infrastructure for frontend, backend, and AI agent workloads, keeps workspaces synchronized from Windows into each VM, and creates rollback snapshots for repeatable self-hosted AI coding workflows.
 
 ADP-OS does not replace Docker. It provisions Docker-capable self-hosted Linux runtimes and adds VM lifecycle management, workspace synchronization, role-specific bootstrap, diagnostics, static networking, snapshot rollback, and agent governance — a spec-driven audit chain of workspace recipes, task state tracking, and release evidence — around those runtimes.
 
@@ -16,7 +16,7 @@ ADP-OS does not replace Docker. It provisions Docker-capable self-hosted Linux r
 ## What It Provides
 
 - Windows control plane implemented in PowerShell 7.
-- Self-hosted code execution sandbox infrastructure with hardware-level isolation for AI agents and computer-use agents.
+- Self-hosted programmable code execution sandbox infrastructure with hardware-level isolation for AI agents and computer-use agents.
 - VMware Workstation VM factory for Ubuntu Server 26.04.
 - Remastered Ubuntu autoinstall ISO generation with cloud-init seed data.
 - Runtime profiles for `frontend`, `backend`, and `agent`.
@@ -39,7 +39,7 @@ ADP-OS ships a [Model Context Protocol (MCP)](https://modelcontextprotocol.io) s
 
 **Runtime (5):** `adp_up` — start a VM (plan-only by default). `adp_down` — destroy a VM (plan-only by default). `adp_stop` — graceful VM shutdown. `adp_sync_status` — Mutagen sync health. `adp_sync_stop` — stop a sync session.
 
-All destructive operations default to plan-only mode for safety. Connect any MCP-compatible agent (Claude Desktop, Hermes, Cursor, etc.) to `cli/mcp/server.py`:
+All destructive operations default to plan-only mode for safety. Connect any MCP-compatible agent (Claude Desktop, Claude Agent, Hermes, Cursor, etc.) to `cli/mcp/server.py`:
 
 ```json
 {
@@ -56,6 +56,10 @@ All destructive operations default to plan-only mode for safety. Connect any MCP
 ### GitHub Copilot Agent SDK
 
 ADP-OS is natively compatible with the [GitHub Copilot Agent SDK](https://github.com/github/copilot-sdk). Load ADP-OS as an MCP server in your Copilot SDK session to access all 18 platform, workspace, and runtime tools. See the **[Copilot SDK Integration Guide](docs/copilot-sdk-integration.md)** for Python and TypeScript quick-start examples, environment variable configuration, and permission patterns.
+
+### Claude Agent Support
+
+ADP-OS is compatible with [Claude Managed Agents](https://docs.anthropic.com/en/docs/agents-and-tools/managed-agents), which support self-hosted MCP sandboxes for agent-native code execution. Connect ADP-OS as an MCP server to give Claude Agent access to all 18 platform, workspace, and runtime tools — including VM lifecycle management, workspace synchronization, and the spec-driven audit chain. Configure `cli/mcp/server.py` in your Claude Agent MCP settings to enable self-hosted sandbox operations for Claude's managed agent workflows.
 
 ## Requirements
 
