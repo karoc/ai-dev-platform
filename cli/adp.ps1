@@ -130,6 +130,6 @@ if (-not (Test-Path $commandFile)) {
 Write-DebugLog -Message "Executing command: $Command with args: $Arguments" -Component "cli"
 $global:LASTEXITCODE = 0
 Invoke-CommandFile -Path $commandFile -RawArguments $Arguments
-if ($LASTEXITCODE) {
+if ($LASTEXITCODE -gt 0) {
     exit $LASTEXITCODE
 }
