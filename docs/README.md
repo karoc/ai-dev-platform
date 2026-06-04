@@ -23,6 +23,11 @@ This documentation covers how to install, operate, configure, and understand ADP
 - [Networking](networking.md): static VMware NAT networking and troubleshooting.
 - [Browser Testing](browser-testing.md): headless frontend browser acceptance testing.
 
+## Community
+
+- [Discord Setup Guide](discord-setup.md) ([简体中文](zh-CN/discord-setup.md)): channel structure, roles, setup instructions, and community guidelines for the ADP-OS Discord server.
+- [Demo Video Plan](demo-script.md): assessment, script, and storyboard for an ADP-OS demo video.
+
 ## Architecture
 
 - [Architecture](architecture.md): control plane, runtime fabric, bootstrap, sync, and snapshots.

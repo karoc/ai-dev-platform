@@ -10,6 +10,12 @@ Versions follow [Semantic Versioning](https://semver.org/) (`MAJOR.MINOR.PATCH`)
 
 Initial public release.
 
+### 2026-06-05
+
+### Added
+
+- Added community infrastructure: installation help issue template (`.github/ISSUE_TEMPLATE/install_help.yml`), enhanced CONTRIBUTING.md with step-by-step development environment setup and PR process, Discord community setup guide (`docs/discord-setup.md`, `docs/zh-CN/discord-setup.md`) with channel structure and community guidelines, and demo video script with storyboard (`docs/demo-script.md`). Added Community section to README and bilingual docs index.
+
 ### 2026-06-04
 
 ### Added

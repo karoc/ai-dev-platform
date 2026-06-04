@@ -1,0 +1,89 @@
+name: Installation help
+description: Get help with installing or setting up ADP-OS.
+title: "[Install]: "
+labels: ["install-help"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this for installation, first-run setup, or dependency problems. For general usage questions, use the Usage question template. For reproducible bugs after a working install, use the Bug report template. Do not include secrets, private keys, tokens, VM disks, ISO files, large logs, or private local paths that should not be public. See [SUPPORT.md](SUPPORT.md) for diagnostics and scope boundaries.
+  - type: textarea
+    id: goal
+    attributes:
+      label: What are you trying to do?
+      description: Describe what you want to achieve.
+      placeholder: I am trying to install ADP-OS, set up a frontend runtime, or configure VMware NAT.
+    validations:
+      required: true
+  - type: dropdown
+    id: stage
+    attributes:
+      label: Installation stage
+      description: Where in the setup process did you encounter the problem?
+      options:
+        - prereq-check — dependency installation (PowerShell, WSL, VMware, Mutagen, OpenSSH, xorriso)
+        - first-run — `adp doctor -FirstRun` or initial setup
+        - iso — Ubuntu ISO download or remastering
+        - network — VMware NAT, static IP, or subnet configuration
+        - vm-create — first VM creation (`adp up`)
+        - bootstrap — SSH bootstrap or package installation
+        - sync — Mutagen sync setup
+        - other
+    validations:
+      required: true
+  - type: input
+    id: host
+    attributes:
+      label: Host environment
+      description: Your Windows version, PowerShell version, and VMware edition.
+      placeholder: Windows 11 24H2, PowerShell 7.5, VMware Workstation Pro 17.6
+    validations:
+      required: true
+  - type: textarea
+    id: prereqs
+    attributes:
+      label: Prerequisites status
+      description: Which of the required dependencies are installed? Run `adp doctor` and paste the output.
+      render: text
+      placeholder: |
+        .\cli\adp.ps1 doctor
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps you followed
+      description: List the commands you ran in order.
+      placeholder: |
+        1. Cloned the repo
+        2. Installed WSL and xorriso
+        3. Ran `.\cli\adp.ps1 doctor -FirstRun`
+        4. Ran `.\cli\adp.ps1 network configure-local -Plan`
+        5. Ran `.\cli\adp.ps1 up agent -IsoPath D:\path\to\ubuntu.iso`
+        6. Got error: ...
+    validations:
+      required: true
+  - type: textarea
+    id: error
+    attributes:
+      label: Error output
+      description: Paste the exact error message or unexpected output. Do not include secrets or private paths.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Additional diagnostics
+      description: Output from other diagnostic commands if relevant.
+      render: text
+      placeholder: |
+        .\cli\adp.ps1 status
+        .\tests\validate.ps1 -Quick
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety check
+      options:
+        - label: I removed secrets, private keys, tokens, VM disks, ISO files, large logs, and private local paths from this request.
+          required: true

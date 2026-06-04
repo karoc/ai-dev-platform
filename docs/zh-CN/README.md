@@ -21,6 +21,11 @@
 - [网络说明](networking.md)：静态 VMware NAT 网络和排障。
 - [浏览器测试](browser-testing.md)：frontend 运行时的 headless 浏览器验收测试。
 
+## 社区
+
+- [Discord 搭建指南](discord-setup.md)：ADP-OS Discord 服务器的频道结构、角色、设置说明和社区准则。
+- [演示视频计划](demo-script.md)：ADP-OS 演示视频的评估、脚本和分镜。
+
 ## 架构
 
 - [架构说明](architecture.md)：控制平面、运行时 fabric、bootstrap、同步和快照模型。
