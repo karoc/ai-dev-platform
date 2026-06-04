@@ -4,6 +4,8 @@
 
 This documentation covers how to install, operate, configure, and understand ADP-OS.
 
+[简体中文文档](zh-CN/README.md)
+
 ## Start Here
 
 - [ADP-OS and Docker](positioning.md): how ADP-OS relates to Docker and when to use each.

@@ -43,10 +43,22 @@ wsl -u root bash -lc "apt-get update && DEBIAN_FRONTEND=noninteractive apt-get i
 
 ## Quick Start
 
-Clone the repository:
+> [!WARNING]
+> ADP-OS provisions local VMs with a default `adp:adp` user and password for automated sudo provisioning. These VMs are designed for local, single-user development on a trusted workstation. Do not expose them to untrusted networks without changing credentials and reviewing SSH access. See [Security](SECURITY.md) for the full local-development security model.
+
+A complete first run consists of prerequisites (VMware, WSL, Mutagen), one-time setup (ISO, clone, install, init), runtime provisioning (up), workspace sync, and health check. See the sections below for each phase.
+
+### One-Time Setup
+
+Clone the repository (SSH recommended for contributors):
 
 ```powershell
+# SSH (recommended)
+git clone git@github.com:karoc/ai-dev-platform.git
+
+# or HTTPS
 git clone https://github.com/karoc/ai-dev-platform.git
+
 cd ai-dev-platform
 ```
 
@@ -76,6 +88,8 @@ Initialize the platform:
 .\install.ps1
 .\cli\adp.ps1 init
 ```
+
+### Runtime Operations
 
 Create and start runtimes:
 
@@ -226,7 +240,7 @@ Validation can be executed explicitly from a task recipe:
 
 ```powershell
 .\cli\adp.ps1 init
-.\cli\adp.ps1 init <frontend|backend|agent> [-IsoPath <path>] [-SkipProvision]
+.\cli\adp.ps1 init <frontend|backend|agent> [-IsoPath <path>] [-NoProvision]
 .\cli\adp.ps1 up <frontend|backend|agent> [-IsoPath <path>] [-Plan] [-NoProvision] [-NoBootstrap]
 .\cli\adp.ps1 status [frontend|backend|agent]
 .\cli\adp.ps1 capabilities
@@ -255,6 +269,42 @@ Validation can be executed explicitly from a task recipe:
 .\cli\adp.ps1 logs <runtime>
 .\cli\adp.ps1 doctor [-FirstRun] [-FixMutagen] [-Plan]
 .\cli\adp.ps1 destroy <runtime> [-Plan]
+```
+
+## What Success Looks Like
+
+A healthy ADP-OS installation produces output like the following.
+
+### `adp status` — all runtimes running
+
+```text
+RUNTIME   STATE     IP               SSH
+frontend  running   192.168.242.131  adp-os-adp-frontend
+backend   running   192.168.242.133  adp-os-adp-backend
+agent     running   192.168.242.135  adp-os-adp-agent
+```
+
+### `adp doctor` — all checks passing
+
+```text
+[PASS] VMware Workstation      (vmrun.exe found)
+[PASS] VMware Disk Manager     (vmware-vdiskmanager.exe found)
+[PASS] WSL                     (WSL detected)
+[PASS] WSL xorriso             (xorriso 1.5.6 available)
+[PASS] Mutagen                 (0.18.1)
+[PASS] OpenSSH                 (OpenSSH_for_Windows_9.5p1)
+[PASS] Ubuntu ISO              (ubuntu-26.04-live-server-amd64.iso present)
+
+Doctor complete: 7/7 checks passed.
+```
+
+### `adp sync status` — workspaces syncing
+
+```text
+RUNTIME   STATUS    SOURCE                              DEST
+frontend  watching  %USERPROFILE%\adp-workspaces\fron... /home/adp/workspace
+backend   watching  %USERPROFILE%\adp-workspaces\back... /home/adp/workspace
+agent     watching  %USERPROFILE%\adp-workspaces\agent   /home/adp/workspace
 ```
 
 ## Documentation
