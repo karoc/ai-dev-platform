@@ -52,6 +52,10 @@ ADP-OS 内置了一个 [Model Context Protocol (MCP)](https://modelcontextprotoc
 }
 ```
 
+### GitHub Copilot Agent SDK
+
+ADP-OS 与 [GitHub Copilot Agent SDK](https://github.com/github/copilot-sdk) 原生兼容。在 Copilot SDK session 中加载 ADP-OS 作为 MCP 服务器，即可访问全部 18 个平台、工作区和运行时工具。参见 **[Copilot SDK 集成指南](docs/zh-CN/copilot-sdk-integration.md)**，了解 Python 和 TypeScript 快速开始示例、环境变量配置和权限模式。
+
 ## 环境要求
 
 - Windows 11。
@@ -292,6 +296,7 @@ adp destroy <runtime> [-Plan]
 ## 文档
 
 - [文档首页](docs/zh-CN/README.md)
+- **[Copilot SDK 集成指南](docs/zh-CN/copilot-sdk-integration.md)** — 在 GitHub Copilot Agent SDK 中加载 ADP-OS 工具。
 - [ADP-OS 与 Docker](docs/zh-CN/positioning.md)
 - [架构说明](docs/zh-CN/architecture.md)
 - [配置说明](docs/zh-CN/configuration.md)

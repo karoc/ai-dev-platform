@@ -52,6 +52,10 @@ All destructive operations default to plan-only mode for safety. Connect any MCP
 }
 ```
 
+### GitHub Copilot Agent SDK
+
+ADP-OS is natively compatible with the [GitHub Copilot Agent SDK](https://github.com/github/copilot-sdk). Load ADP-OS as an MCP server in your Copilot SDK session to access all 18 platform, workspace, and runtime tools. See the **[Copilot SDK Integration Guide](docs/copilot-sdk-integration.md)** for Python and TypeScript quick-start examples, environment variable configuration, and permission patterns.
+
 ## Requirements
 
 - Windows 11.
@@ -375,6 +379,7 @@ agent     watching  %USERPROFILE%\adp-workspaces\agent   /home/adp/workspace
 ## Documentation
 
 - **[Getting Started](docs/getting-started.md)** ([简体中文](docs/zh-CN/getting-started.md)) — first-time setup tutorial.
+- **[Copilot SDK Integration](docs/copilot-sdk-integration.md)** ([简体中文](docs/zh-CN/copilot-sdk-integration.md)) — load ADP-OS tools into the GitHub Copilot Agent SDK.
 - [Documentation Home](docs/README.md)
 - [ADP-OS and Docker](docs/positioning.md)
 - [Architecture](docs/architecture.md)

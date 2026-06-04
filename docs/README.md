@@ -8,6 +8,8 @@ This documentation covers how to install, operate, configure, and understand ADP
 
 ## Start Here
 
+- **[Getting Started](getting-started.md)** ([简体中文](zh-CN/getting-started.md)): first-time setup walkthrough — from nothing to a running development VM in ~30 minutes.
+- **[Copilot SDK Integration](copilot-sdk-integration.md)** ([简体中文](zh-CN/copilot-sdk-integration.md)): load ADP-OS tools into the GitHub Copilot Agent SDK. Python and TypeScript quick-start examples, tool reference, and permission patterns.
 - [ADP-OS and Docker](positioning.md): how ADP-OS relates to Docker and when to use each.
 - [Operations](operations.md): day-to-day runtime commands and workflows.
 - [Configuration](configuration.md): platform, topology, sync, and local override configuration.

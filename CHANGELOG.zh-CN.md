@@ -14,6 +14,7 @@
 
 ### 新增
 
+- 新增 Copilot SDK 集成指南（`docs/zh-CN/copilot-sdk-integration.md` 简体中文，同时提供英文版）。文档说明如何在 GitHub Copilot Agent SDK session 中加载 ADP-OS 作为 MCP 服务器。包含 Python 和 TypeScript 快速开始示例、环境变量参考、18 工具目录、plan-only 安全默认值和权限处理器模式。（Copilot SDK 原生兼容，ADP-OS 无需任何代码修改。）
 - 新增熔断器模块 (`core/utility/circuit-breaker.ps1`)，提供 `New-CircuitBreaker`、`Test-CircuitBreaker`、`Reset-CircuitBreaker` 和 `Get-CircuitBreakerSummary` 函数。追踪连续相同的错误键，当同一错误重复 MaxConsecutiveErrors 次后断开熔断——防止长时间运行操作中的无限重试循环。
 - 新增熔断器集成到 `Wait-AutoinstallComplete`（`runtimes/vmware/vm-factory.ps1`）。在 Ubuntu 自动安装期间监控就绪信号类别（`no-guest-ip`、`auth-pending`、`ssh-not-ready`、`provision-not-ready` 等）。当同一错误类别持续超过可配置阈值（`-AutoinstallCircuitBreakerMinutes`，默认 20 分钟）时，熔断器断开：停止重试、发出双语警告，并返回以允许操作者排查。防止 agent 在 VM 安装卡住时无限循环。
 - 在操作指南和故障排除文档中添加了 SSH 密钥生命周期文档（英文和简体中文）。新文档涵盖密钥位置（`%USERPROFILE%\\.ssh\\adp-os\\`）、密钥格式（ed25519，无密码）、首次自动创建、带备份和 VM 影响警告的密钥重新生成、密钥安全、直接 SSH/scp 用法，以及 `key-missing`、`auth-pending`、`Permission denied`、`bad permissions`、密钥删除和多用户环境的故障排除。（Phase 2 roadmap 项目。）
