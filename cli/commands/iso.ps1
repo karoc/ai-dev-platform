@@ -1,6 +1,7 @@
 # ADP-OS ISO Download Command
 # Downloads Linux server ISOs to the platform ISO cache
 # Supports Ubuntu Server, AlmaLinux, Rocky Linux, Debian
+# Uses BITS transfer for download resume support
 
 param(
     [Parameter(Position = 0)]
@@ -9,7 +10,9 @@ param(
 
     [string]$Url,
 
-    [switch]$Force
+    [switch]$Force,
+
+    [switch]$NonInteractive
 )
 
 . (Join-Path (Get-ProjectRoot) "runtimes\vmware\os-profiles.ps1")
@@ -20,27 +23,42 @@ $config = Get-PlatformConfig
 $isoCache = Resolve-Path "iso_cache"
 $isoName = if ($config.defaults.iso_path) { $config.defaults.iso_path } else { $config.defaults.ubuntu_iso }
 
-# Map distribution to download URL and filename
+# Map distribution to download URL, filename, and China mirrors
 $isoMap = @{
     "ubuntu"    = @{
         Url      = "https://releases.ubuntu.com/26.04/ubuntu-26.04-live-server-amd64.iso"
         FileName = "ubuntu-26.04-live-server-amd64.iso"
         Label    = "Ubuntu Server 26.04 LTS"
+        Mirrors  = @(
+            @{ Name = "Alibaba Cloud"; Url = "https://mirrors.aliyun.com/ubuntu-releases/26.04/ubuntu-26.04-live-server-amd64.iso" },
+            @{ Name = "USTC";          Url = "https://mirrors.ustc.edu.cn/ubuntu-releases/26.04/ubuntu-26.04-live-server-amd64.iso" },
+            @{ Name = "TUNA (Tsinghua)"; Url = "https://mirrors.tuna.tsinghua.edu.cn/ubuntu-releases/26.04/ubuntu-26.04-live-server-amd64.iso" }
+        )
     }
     "almalinux" = @{
         Url      = "https://repo.almalinux.org/almalinux/9/isos/x86_64/AlmaLinux-9-latest-x86_64-dvd.iso"
         FileName = "AlmaLinux-9-latest-x86_64-dvd.iso"
         Label    = "AlmaLinux 9"
+        Mirrors  = @(
+            @{ Name = "TUNA (Tsinghua)"; Url = "https://mirrors.tuna.tsinghua.edu.cn/almalinux/9/isos/x86_64/AlmaLinux-9-latest-x86_64-dvd.iso" }
+        )
     }
     "rocky"     = @{
         Url      = "https://download.rockylinux.org/pub/rocky/9/isos/x86_64/Rocky-9-latest-x86_64-dvd.iso"
         FileName = "Rocky-9-latest-x86_64-dvd.iso"
         Label    = "Rocky Linux 9"
+        Mirrors  = @(
+            @{ Name = "TUNA (Tsinghua)"; Url = "https://mirrors.tuna.tsinghua.edu.cn/rocky/9/isos/x86_64/Rocky-9-latest-x86_64-dvd.iso" }
+        )
     }
     "debian"    = @{
         Url      = "https://cdimage.debian.org/debian-cd/current/amd64/iso-cd/debian-12.10.0-amd64-netinst.iso"
         FileName = "debian-12.10.0-amd64-netinst.iso"
         Label    = "Debian 12"
+        Mirrors  = @(
+            @{ Name = "TUNA (Tsinghua)"; Url = "https://mirrors.tuna.tsinghua.edu.cn/debian-cd/current/amd64/iso-cd/debian-12.10.0-amd64-netinst.iso" },
+            @{ Name = "USTC";           Url = "https://mirrors.ustc.edu.cn/debian-cd/current/amd64/iso-cd/debian-12.10.0-amd64-netinst.iso" }
+        )
     }
 }
 
@@ -50,15 +68,28 @@ $fileName = if (-not $Url) { $entry.FileName } else { Split-Path $downloadUrl -L
 $label = $entry.Label
 $destPath = Join-Path $isoCache $fileName
 
-Write-Host ""
-Write-Host "========================================" -ForegroundColor Cyan
-Write-UIHost -English "  ADP-OS ISO Download" -Chinese "  ADP-OS ISO 下载" -ForegroundColor Cyan
-Write-Host "========================================" -ForegroundColor Cyan
-Write-Host ""
-Write-UIHost -English "  Distribution: $label" -Chinese "  发行版: $label" -ForegroundColor Cyan
-Write-UIHost -English "  Source:       $downloadUrl" -Chinese "  来源:       $downloadUrl" -ForegroundColor DarkGray
-Write-UIHost -English "  Destination:  $destPath" -Chinese "  目标:       $destPath" -ForegroundColor DarkGray
-Write-Host ""
+# Banner
+if (-not $NonInteractive) {
+    Write-Host ""
+    Write-Host "========================================" -ForegroundColor Cyan
+    Write-UIHost -English "  ADP-OS ISO Download" -Chinese "  ADP-OS ISO 下载" -ForegroundColor Cyan
+    Write-Host "========================================" -ForegroundColor Cyan
+    Write-Host ""
+    Write-UIHost -English "  Distribution: $label" -Chinese "  发行版: $label" -ForegroundColor Cyan
+    Write-UIHost -English "  Source:       $downloadUrl" -Chinese "  来源:       $downloadUrl" -ForegroundColor DarkGray
+    Write-UIHost -English "  Destination:  $destPath" -Chinese "  目标:       $destPath" -ForegroundColor DarkGray
+    Write-Host ""
+}
+
+# Show China mirror tips (if not using custom URL and not non-interactive)
+if (-not $Url -and -not $NonInteractive -and $entry.Mirrors.Count -gt 0) {
+    Write-UIHost -English "  China mirror options (faster from mainland China):" -Chinese "  中国镜像选项（从中国大陆下载更快）：" -ForegroundColor Yellow
+    foreach ($mirror in $entry.Mirrors) {
+        Write-Host "    $($mirror.Name)" -ForegroundColor DarkGray -NoNewline
+        Write-Host " : adp iso $Distro -Url '$($mirror.Url)'" -ForegroundColor DarkGray
+    }
+    Write-Host ""
+}
 
 # Check if ISO already exists
 if (Test-Path $destPath) {
@@ -80,17 +111,31 @@ if (-not (Test-Path $isoCache)) {
     New-Item -ItemType Directory -Path $isoCache -Force | Out-Null
 }
 
-# Download with progress
-Write-UIHost -English "  Downloading... (this may take several minutes for a ~2.6 GB ISO)" -Chinese "  正在下载...（~2.6 GB 的 ISO 可能需要几分钟）" -ForegroundColor Yellow
+# Download via BITS transfer (supports resume on connection drop)
+$downloadMsg = if ($NonInteractive) {
+    Get-UIText -English "Downloading $label ISO via BITS (resumable)..." -Chinese "正在通过 BITS 下载 $label ISO（支持断点续传）..."
+} else {
+    Get-UIText -English "  Downloading via BITS transfer... (resumable, ~2.6 GB may take several minutes)" -Chinese "  正在通过 BITS 传输下载...（支持断点续传，~2.6 GB 可能需要几分钟）"
+}
+Write-UIHost -English $downloadMsg -Chinese $downloadMsg -ForegroundColor Yellow
 
 try {
-    $ProgressPreference = "Continue"
-    Invoke-WebRequest -Uri $downloadUrl -OutFile $destPath -UseBasicParsing
+    # Use BITS (Background Intelligent Transfer Service) for resume support
+    # BITS automatically resumes partial downloads if the connection drops
+    Import-Module BitsTransfer -ErrorAction Stop
+    Start-BitsTransfer -Source $downloadUrl -Destination $destPath `
+        -DisplayName "ADP-OS: $label" `
+        -Description "Downloading $label ISO to $destPath" `
+        -ErrorAction Stop
 
     $downloadedSize = [math]::Round((Get-Item $destPath).Length / 1GB, 1)
-    Write-Host ""
-    Write-UIHost -English "  Download complete: $destPath ($downloadedSize GB)" -Chinese "  下载完成: $destPath ($downloadedSize GB)" -ForegroundColor Green
-    Write-Host ""
+    if (-not $NonInteractive) {
+        Write-Host ""
+        Write-UIHost -English "  Download complete: $destPath ($downloadedSize GB)" -Chinese "  下载完成: $destPath ($downloadedSize GB)" -ForegroundColor Green
+        Write-Host ""
+    } else {
+        Write-UIHost -English "Download complete: $destPath ($downloadedSize GB)" -Chinese "下载完成: $destPath ($downloadedSize GB)" -ForegroundColor Green
+    }
 
     # Verify it looks like a valid ISO
     $item = Get-Item $destPath
@@ -100,21 +145,31 @@ try {
         Write-UIHost -English "  WARNING: Downloaded file does not have .iso extension." -Chinese "  警告：下载文件没有 .iso 扩展名。" -ForegroundColor Yellow
     }
 
-    Write-UIHost -English "Next steps:" -Chinese "下一步:" -ForegroundColor Cyan
-    Write-UIHost -English "  .\cli\adp.ps1 init" -Chinese "  .\cli\adp.ps1 init" -ForegroundColor DarkGray
-    Write-Host ""
+    if (-not $NonInteractive) {
+        Write-UIHost -English "Next steps:" -Chinese "下一步:" -ForegroundColor Cyan
+        Write-UIHost -English "  .\cli\adp.ps1 init" -Chinese "  .\cli\adp.ps1 init" -ForegroundColor DarkGray
+        Write-Host ""
+    }
 
 } catch {
     Write-ErrorLog -Message "ISO download failed: $_" -Component "cli.iso"
     Write-UIHost -English "  Download failed: $_" -Chinese "  下载失败: $_" -ForegroundColor Red
 
-    # Clean up partial download
+    # NOTE: BITS handles partial downloads better — partial files may be kept by BITS
+    # and resumed on retry. Only clean up if the file is clearly corrupt.
     if (Test-Path $destPath) {
-        Remove-Item $destPath -Force -ErrorAction SilentlyContinue
+        $partialSize = (Get-Item $destPath).Length
+        if ($partialSize -lt 1MB) {
+            # File is tiny (likely an error page), remove it
+            Remove-Item $destPath -Force -ErrorAction SilentlyContinue
+        } else {
+            Write-UIHost -English "  Partial download preserved ($([math]::Round($partialSize/1MB, 1)) MB). BITS will resume on retry." -Chinese "  部分下载已保留 ($([math]::Round($partialSize/1MB, 1)) MB)。BITS 将在重试时续传。" -ForegroundColor Yellow
+        }
     }
 
     Write-UIHost -English "  Retry with: .\cli\adp.ps1 iso download $Distro" -Chinese "  重试: .\cli\adp.ps1 iso download $Distro" -ForegroundColor Yellow
+    Write-UIHost -English "  Or use a China mirror: adp iso $Distro -Url '<mirror-url>'" -Chinese "  或使用中国镜像: adp iso $Distro -Url '<镜像地址>'" -ForegroundColor Yellow
     Write-UIHost -English "  Or download manually and place at: $isoCache" -Chinese "  或手动下载后放到: $isoCache" -ForegroundColor Yellow
-    Write-Host ""
+    if (-not $NonInteractive) { Write-Host "" }
     exit 1
 }

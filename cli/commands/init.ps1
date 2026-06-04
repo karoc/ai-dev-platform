@@ -6,17 +6,25 @@ param(
     [string]$RuntimeName,
     [string]$IsoPath,
     [switch]$NoProvision,
-    [switch]$Quick
+    [switch]$Quick,
+    [switch]$NonInteractive
 )
 
 Write-InfoLog -Message (Get-UIText -English "adp init (Phase 2)" -Chinese "adp init（阶段 2）") -Component "cli.init"
 
-Write-Host ""
-Write-Host "========================================" -ForegroundColor Cyan
-Write-UIHost -English "  ADP-OS Init — Phase 2" -Chinese "  ADP-OS 初始化 — 阶段 2" -ForegroundColor Cyan
-Write-UIHost -English "  Platform Initialization + VM Factory" -Chinese "  平台初始化 + VM Factory" -ForegroundColor Cyan
-Write-Host "========================================" -ForegroundColor Cyan
-Write-Host ""
+# In NonInteractive mode, skip all banners and confirmation prompts
+if ($NonInteractive) {
+    $Quick = $true
+}
+
+if (-not $NonInteractive) {
+    Write-Host ""
+    Write-Host "========================================" -ForegroundColor Cyan
+    Write-UIHost -English "  ADP-OS Init — Phase 2" -Chinese "  ADP-OS 初始化 — 阶段 2" -ForegroundColor Cyan
+    Write-UIHost -English "  Platform Initialization + VM Factory" -Chinese "  平台初始化 + VM Factory" -ForegroundColor Cyan
+    Write-Host "========================================" -ForegroundColor Cyan
+    Write-Host ""
+}
 
 $config = Get-PlatformConfig
 $topology = Get-TopologyConfig
@@ -181,11 +189,13 @@ if ($RuntimeName) {
 # =============================================
 # Summary
 # =============================================
-Write-Host ""
-Write-Host "========================================" -ForegroundColor Green
-Write-UIHost -English "  ADP-OS Phase 2 Init Complete" -Chinese "  ADP-OS 阶段 2 初始化完成" -ForegroundColor Green
-Write-Host "========================================" -ForegroundColor Green
-Write-Host ""
-Write-UIHost -English "Next: adp up <runtime>     Start/auto-create a runtime" -Chinese "下一步: adp up <runtime>     启动/自动创建运行时" -ForegroundColor Cyan
-Write-UIHost -English "      adp doctor            Check platform health" -Chinese "      adp doctor            检查平台健康状态" -ForegroundColor Cyan
-Write-Host ""
+if (-not $NonInteractive) {
+    Write-Host ""
+    Write-Host "========================================" -ForegroundColor Green
+    Write-UIHost -English "  ADP-OS Phase 2 Init Complete" -Chinese "  ADP-OS 阶段 2 初始化完成" -ForegroundColor Green
+    Write-Host "========================================" -ForegroundColor Green
+    Write-Host ""
+    Write-UIHost -English "Next: adp up <runtime>     Start/auto-create a runtime" -Chinese "下一步: adp up <runtime>     启动/自动创建运行时" -ForegroundColor Cyan
+    Write-UIHost -English "      adp doctor            Check platform health" -Chinese "      adp doctor            检查平台健康状态" -ForegroundColor Cyan
+    Write-Host ""
+}
