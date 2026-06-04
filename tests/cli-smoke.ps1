@@ -763,7 +763,7 @@ Assert-Command `
     -Name "workspace unknown subcommand" `
     -Arguments @("workspace", "nope", "-ManifestPath", "configs\workspace.example.json") `
     -ExitCode 1 `
-    -Patterns @("Unknown workspace command: nope", "Valid: init, show, plan, status, dashboard, report, recipes, create, open, sync, project, task")
+    -Patterns @("Unknown workspace command: nope", "Use 'adp workspace help' to see grouped subcommands.")
 
 $createWorkspaceRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("adp-create-workspace-{0}" -f ([guid]::NewGuid().ToString("N")))
 $createProjectPath = Join-Path $createWorkspaceRoot "app"
