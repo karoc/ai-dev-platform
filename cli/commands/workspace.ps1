@@ -1092,66 +1092,66 @@ function Write-WorkspaceValidationDetailLines {
 function Write-WorkspaceSummary {
     param([object]$Manifest)
 
-    Write-Host "Workspace: $($Manifest.name)" -ForegroundColor Cyan
+    Write-UIHost -English "Workspace: $($Manifest.name)" -Chinese "工作区: $($Manifest.name)" -ForegroundColor Cyan
     if ($Manifest.description) {
-        Write-Host "  $($Manifest.description)" -ForegroundColor DarkGray
+        Write-UIHost -English "  $($Manifest.description)" -Chinese "  $($Manifest.description)" -ForegroundColor DarkGray
     }
 
-    Write-Host ""
-    Write-Host "Projects:" -ForegroundColor Yellow
+    Write-UIHost -English "" -Chinese ""
+    Write-UIHost -English "Projects:" -Chinese "项目:" -ForegroundColor Yellow
     foreach ($project in (Get-WorkspaceArray $Manifest.projects)) {
         $runtime = if ($project.runtime) { $project.runtime } else { "not configured" }
         $sync = if ($null -ne $project.sync) { $project.sync } else { "not configured" }
-        Write-Host "  - $($project.name): $($project.path) -> $runtime (sync: $sync)" -ForegroundColor DarkGray
+        Write-UIHost -English "  - $($project.name): $($project.path) -> $runtime (sync: $sync)" -Chinese "  - $($project.name): $($project.path) -> $runtime (同步: $sync)" -ForegroundColor DarkGray
         $projectPath = Resolve-ProjectWorkspacePath -Project $project
         $devContainerStatus = Get-WorkspaceDevContainerStatus -ProjectPath $projectPath
-        Write-Host "      devcontainer: $($devContainerStatus.Status)$(if ($devContainerStatus.Detail) { ' - ' + $devContainerStatus.Detail })" -ForegroundColor DarkGray
+        Write-UIHost -English "      devcontainer: $($devContainerStatus.Status)$(if ($devContainerStatus.Detail) { ' - ' + $devContainerStatus.Detail })" -Chinese "      devcontainer: $($devContainerStatus.Status)$(if ($devContainerStatus.Detail) { ' - ' + $devContainerStatus.Detail })" -ForegroundColor DarkGray
         $syncHygieneStatus = Get-WorkspaceSyncHygieneStatus -Project $project -ProjectPath $projectPath
-        Write-Host "      sync hygiene: $($syncHygieneStatus.Status)$(if ($syncHygieneStatus.Detail) { ' - ' + $syncHygieneStatus.Detail })" -ForegroundColor DarkGray
+        Write-UIHost -English "      sync hygiene: $($syncHygieneStatus.Status)$(if ($syncHygieneStatus.Detail) { ' - ' + $syncHygieneStatus.Detail })" -Chinese "      同步卫生: $($syncHygieneStatus.Status)$(if ($syncHygieneStatus.Detail) { ' - ' + $syncHygieneStatus.Detail })" -ForegroundColor DarkGray
         foreach ($command in (Get-WorkspaceArray $project.validation)) {
-            Write-Host "      validate: $command" -ForegroundColor DarkGray
+            Write-UIHost -English "      validate: $command" -Chinese "      验证: $command" -ForegroundColor DarkGray
         }
     }
 
     $milestones = Get-WorkspaceMilestones -Manifest $Manifest
     if ($milestones.Count -gt 0) {
-        Write-Host ""
-        Write-Host "Milestones:" -ForegroundColor Yellow
+        Write-UIHost -English "" -Chinese ""
+        Write-UIHost -English "Milestones:" -Chinese "里程碑:" -ForegroundColor Yellow
         foreach ($milestone in $milestones) {
             $status = Get-WorkspaceMilestoneStatus -Manifest $Manifest -Milestone $milestone
             $name = if ($milestone.name) { [string]$milestone.name } else { "(unnamed)" }
-            Write-Host "  - $name`: runtime=$($status.RuntimeName) snapshot=$($status.SnapshotName) tasks=$($status.TaskNames.Count)" -ForegroundColor DarkGray
+            Write-UIHost -English "  - $name`: runtime=$($status.RuntimeName) snapshot=$($status.SnapshotName) tasks=$($status.TaskNames.Count)" -Chinese "  - $name`: 运行时=$($status.RuntimeName) 快照=$($status.SnapshotName) 任务数=$($status.TaskNames.Count)" -ForegroundColor DarkGray
             if ($milestone.description) {
-                Write-Host "      $($milestone.description)" -ForegroundColor DarkGray
+                Write-UIHost -English "      $($milestone.description)" -Chinese "      $($milestone.description)" -ForegroundColor DarkGray
             }
-            Write-Host "      snapshot naming: $($status.SnapshotNaming.Status) - $($status.SnapshotNaming.Detail)" -ForegroundColor DarkGray
-            Write-Host "      linked tasks: $(if ($status.TaskNames.Count -gt 0) { $status.TaskNames -join ', ' } else { 'none' })" -ForegroundColor DarkGray
+            Write-UIHost -English "      snapshot naming: $($status.SnapshotNaming.Status) - $($status.SnapshotNaming.Detail)" -Chinese "      快照命名: $($status.SnapshotNaming.Status) - $($status.SnapshotNaming.Detail)" -ForegroundColor DarkGray
+            Write-UIHost -English "      linked tasks: $(if ($status.TaskNames.Count -gt 0) { $status.TaskNames -join ', ' } else { 'none' })" -Chinese "      关联任务: $(if ($status.TaskNames.Count -gt 0) { $status.TaskNames -join ', ' } else { '无' })" -ForegroundColor DarkGray
         }
     }
 
     $evaluations = Get-WorkspaceEvaluations -Manifest $Manifest
     if ($evaluations.Count -gt 0) {
-        Write-Host ""
-        Write-Host "Evaluations:" -ForegroundColor Yellow
+        Write-UIHost -English "" -Chinese ""
+        Write-UIHost -English "Evaluations:" -Chinese "评估:" -ForegroundColor Yellow
         foreach ($evaluation in $evaluations) {
             $status = Get-WorkspaceEvaluationStatus -Manifest $Manifest -Evaluation $evaluation
-            Write-Host "  - $($status.Name): runtime=$($status.RuntimeName) project=$($status.ProjectName) metrics=$($status.Metrics.Count) commands=$($status.Commands.Count) tasks=$($status.TaskNames.Count)" -ForegroundColor DarkGray
-            Write-Host "      cadence: $($status.Cadence); readiness: $($status.Readiness)" -ForegroundColor DarkGray
+            Write-UIHost -English "  - $($status.Name): runtime=$($status.RuntimeName) project=$($status.ProjectName) metrics=$($status.Metrics.Count) commands=$($status.Commands.Count) tasks=$($status.TaskNames.Count)" -Chinese "  - $($status.Name): 运行时=$($status.RuntimeName) 项目=$($status.ProjectName) 指标=$($status.Metrics.Count) 命令=$($status.Commands.Count) 任务数=$($status.TaskNames.Count)" -ForegroundColor DarkGray
+            Write-UIHost -English "      cadence: $($status.Cadence); readiness: $($status.Readiness)" -Chinese "      节奏: $($status.Cadence); 就绪状态: $($status.Readiness)" -ForegroundColor DarkGray
             if ($evaluation.description) {
-                Write-Host "      $($evaluation.description)" -ForegroundColor DarkGray
+                Write-UIHost -English "      $($evaluation.description)" -Chinese "      $($evaluation.description)" -ForegroundColor DarkGray
             }
             if ($status.TaskNames.Count -gt 0) {
-                Write-Host "      linked tasks: $($status.TaskNames -join ', ')" -ForegroundColor DarkGray
+                Write-UIHost -English "      linked tasks: $($status.TaskNames -join ', ')" -Chinese "      关联任务: $($status.TaskNames -join ', ')" -ForegroundColor DarkGray
             }
             foreach ($metric in $status.Metrics) {
-                Write-Host "      metric: $metric" -ForegroundColor DarkGray
+                Write-UIHost -English "      metric: $metric" -Chinese "      指标: $metric" -ForegroundColor DarkGray
             }
         }
     }
 
     if ($Manifest.tasks) {
-        Write-Host ""
-        Write-Host "Tasks:" -ForegroundColor Yellow
+        Write-UIHost -English "" -Chinese ""
+        Write-UIHost -English "Tasks:" -Chinese "任务:" -ForegroundColor Yellow
         foreach ($task in (Get-WorkspaceArray $Manifest.tasks)) {
             $runtime = if ($task.runtime) { $task.runtime } else { "not configured" }
             $snapshot = if ($task.snapshot) { $task.snapshot } else { "not configured" }
@@ -1161,9 +1161,9 @@ function Write-WorkspaceSummary {
             $taskEvaluations = Get-WorkspaceTaskEvaluations -Manifest $Manifest -Task $task
             $evaluationNames = @($taskEvaluations | ForEach-Object { if ($_.name) { [string]$_.name } })
             $evaluationText = if ($evaluationNames.Count -gt 0) { $evaluationNames -join ', ' } else { "none" }
-            Write-Host "  - $($task.name): runtime=$runtime snapshot=$snapshot milestone=$milestoneText evaluation=$evaluationText" -ForegroundColor DarkGray
+            Write-UIHost -English "  - $($task.name): runtime=$runtime snapshot=$snapshot milestone=$milestoneText evaluation=$evaluationText" -Chinese "  - $($task.name): 运行时=$runtime 快照=$snapshot 里程碑=$milestoneText 评估=$evaluationText" -ForegroundColor DarkGray
             foreach ($command in (Get-WorkspaceArray $task.validation)) {
-                Write-Host "      validate: $command" -ForegroundColor DarkGray
+                Write-UIHost -English "      validate: $command" -Chinese "      验证: $command" -ForegroundColor DarkGray
             }
         }
     }
@@ -1283,11 +1283,11 @@ function Write-WorkspaceCreate {
         [switch]$PlanOnly
     )
 
-    Write-Host "Workspace create: $($Manifest.name)" -ForegroundColor Cyan
+    Write-UIHost -English "Workspace create: $($Manifest.name)" -Chinese "工作区创建: $($Manifest.name)" -ForegroundColor Cyan
     if ($PlanOnly) {
-        Write-Host "Plan only: no directories will be created, no projects cloned, no sync sessions changed, no runtimes started, no SSH connections opened, no snapshots created, no validation or evaluation commands run, and no Git commands run." -ForegroundColor DarkGray
+        Write-UIHost -English "Plan only: no directories will be created, no projects cloned, no sync sessions changed, no runtimes started, no SSH connections opened, no snapshots created, no validation or evaluation commands run, and no Git commands run." -Chinese "仅计划：不会创建任何目录、不会 clone 任何项目、不会更改任何同步会话、不会启动任何运行时、不会打开 SSH 连接、不会创建快照、不会运行验证或评估命令、不会运行 Git 命令。" -ForegroundColor DarkGray
     } else {
-        Write-Host "Create only: local project directories may be created. No projects will be cloned, no sync sessions changed, no runtimes started, no SSH connections opened, no snapshots created, no validation or evaluation commands run, and no Git commands run." -ForegroundColor DarkGray
+        Write-UIHost -English "Create only: local project directories may be created. No projects will be cloned, no sync sessions changed, no runtimes started, no SSH connections opened, no snapshots created, no validation or evaluation commands run, and no Git commands run." -Chinese "仅创建：可能会创建本地项目目录。不会 clone 任何项目、不会更改同步会话、不会启动运行时、不会打开 SSH 连接、不会创建快照、不会运行验证或评估命令、不会运行 Git 命令。" -ForegroundColor DarkGray
     }
 
     $entries = Get-WorkspaceProjectCreateEntries -Manifest $Manifest
@@ -1295,8 +1295,8 @@ function Write-WorkspaceCreate {
     $missingEntries = @($entries | Where-Object { $_.Valid -and -not $_.Exists })
     $existingEntries = @($entries | Where-Object { $_.Valid -and $_.Exists })
 
-    Write-Host ""
-    Write-Host "Project directories:" -ForegroundColor Yellow
+    Write-UIHost -English "" -Chinese ""
+    Write-UIHost -English "Project directories:" -Chinese "项目目录:" -ForegroundColor Yellow
     if ($entries.Count -eq 0) {
         Write-WorkspaceCheck -Level "WARN" -Name "projects" -Detail "(none configured)"
     }
@@ -1304,20 +1304,20 @@ function Write-WorkspaceCreate {
     foreach ($entry in $entries) {
         Write-WorkspaceCheck -Level $entry.Level -Name $entry.ProjectName -Detail "(runtime: $($entry.RuntimeName); status: $($entry.Status); path: $(if ($entry.FullPath) { $entry.FullPath } else { 'not available' }); detail: $($entry.Detail))"
         if ($entry.Valid) {
-            Write-Host "       open:      adp workspace open $($entry.ProjectName) -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
-            Write-Host "       lifecycle: adp workspace project $($entry.ProjectName) -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
+            Write-UIHost -English "       open:      adp workspace open $($entry.ProjectName) -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -Chinese "       打开:      adp workspace open $($entry.ProjectName) -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
+            Write-UIHost -English "       lifecycle: adp workspace project $($entry.ProjectName) -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -Chinese "       生命周期:  adp workspace project $($entry.ProjectName) -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
         }
     }
 
     if ($invalidEntries.Count -gt 0) {
-        Write-Host ""
-        Write-Host "Create blocked: fix invalid project paths before creating workspace directories. No directories were created." -ForegroundColor Red
+        Write-UIHost -English "" -Chinese ""
+        Write-UIHost -English "Create blocked: fix invalid project paths before creating workspace directories. No directories were created." -Chinese "创建被阻止：在创建工作区目录之前，请先修复无效的项目路径。未创建任何目录。" -ForegroundColor Red
         exit 1
     }
 
     if ($PlanOnly) {
-        Write-Host ""
-        Write-Host "Plan summary: $($missingEntries.Count) directories would be created; $($existingEntries.Count) already exist." -ForegroundColor Yellow
+        Write-UIHost -English "" -Chinese ""
+        Write-UIHost -English "Plan summary: $($missingEntries.Count) directories would be created; $($existingEntries.Count) already exist." -Chinese "计划摘要：将创建 $($missingEntries.Count) 个目录；$($existingEntries.Count) 个已存在。" -ForegroundColor Yellow
         return
     }
 
@@ -1327,17 +1327,17 @@ function Write-WorkspaceCreate {
         $created.Add($entry.FullPath) | Out-Null
     }
 
-    Write-Host ""
-    Write-Host "Create summary:" -ForegroundColor Yellow
-    Write-Host "  created: $(if ($created.Count -gt 0) { $created.Count } else { 0 })" -ForegroundColor DarkGray
+    Write-UIHost -English "" -Chinese ""
+    Write-UIHost -English "Create summary:" -Chinese "创建摘要:" -ForegroundColor Yellow
+    Write-UIHost -English "  created: $(if ($created.Count -gt 0) { $created.Count } else { 0 })" -Chinese "  已创建: $(if ($created.Count -gt 0) { $created.Count } else { 0 })" -ForegroundColor DarkGray
     foreach ($path in $created) {
-        Write-Host "    $path" -ForegroundColor DarkGray
+        Write-UIHost -English "    $path" -Chinese "    $path" -ForegroundColor DarkGray
     }
-    Write-Host "  already existed: $($existingEntries.Count)" -ForegroundColor DarkGray
-    Write-Host ""
-    Write-Host "Next:" -ForegroundColor Yellow
-    Write-Host "  adp workspace status -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
-    Write-Host "  adp workspace dashboard -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
+    Write-UIHost -English "  already existed: $($existingEntries.Count)" -Chinese "  已存在: $($existingEntries.Count)" -ForegroundColor DarkGray
+    Write-UIHost -English "" -Chinese ""
+    Write-UIHost -English "Next:" -Chinese "下一步:" -ForegroundColor Yellow
+    Write-UIHost -English "  adp workspace status -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -Chinese "  adp workspace status -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
+    Write-UIHost -English "  adp workspace dashboard -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -Chinese "  adp workspace dashboard -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
 }
 
 function Get-WorkspaceDevContainerStatus {
@@ -2774,61 +2774,61 @@ function Write-WorkspaceOpen {
         "projects[].path missing"
     }
 
-    Write-Host "Workspace open: $projectName" -ForegroundColor Cyan
-    Write-Host "Open guide only: no shell, editor, SSH connection, sync session, runtime, or file will be changed." -ForegroundColor DarkGray
+    Write-UIHost -English "Workspace open: $projectName" -Chinese "工作区打开: $projectName" -ForegroundColor Cyan
+    Write-UIHost -English "Open guide only: no shell, editor, SSH connection, sync session, runtime, or file will be changed." -Chinese "仅打开指南：不会更改 shell、编辑器、SSH 连接、同步会话、运行时或文件。" -ForegroundColor DarkGray
 
-    Write-Host ""
-    Write-Host "Project:" -ForegroundColor Yellow
-    Write-Host "  Name:        $projectName" -ForegroundColor DarkGray
-    Write-Host "  Runtime:     $(if ($runtimeName) { $runtimeName } else { 'not configured' })" -ForegroundColor DarkGray
-    Write-Host "  Sync:        $(if ($syncExpected) { 'requested' } else { 'not requested' })" -ForegroundColor DarkGray
-    Write-Host "  Local path:  $(if ($localPath) { $localPath } else { 'not configured' })" -ForegroundColor DarkGray
-    Write-Host "  Remote path: $remotePath" -ForegroundColor DarkGray
+    Write-UIHost -English "" -Chinese ""
+    Write-UIHost -English "Project:" -Chinese "项目:" -ForegroundColor Yellow
+    Write-UIHost -English "  Name:        $projectName" -Chinese "  名称:        $projectName" -ForegroundColor DarkGray
+    Write-UIHost -English "  Runtime:     $(if ($runtimeName) { $runtimeName } else { 'not configured' })" -Chinese "  运行时:      $(if ($runtimeName) { $runtimeName } else { '未配置' })" -ForegroundColor DarkGray
+    Write-UIHost -English "  Sync:        $(if ($syncExpected) { 'requested' } else { 'not requested' })" -Chinese "  同步:        $(if ($syncExpected) { '已请求' } else { '未请求' })" -ForegroundColor DarkGray
+    Write-UIHost -English "  Local path:  $(if ($localPath) { $localPath } else { 'not configured' })" -Chinese "  本地路径:    $(if ($localPath) { $localPath } else { '未配置' })" -ForegroundColor DarkGray
+    Write-UIHost -English "  Remote path: $remotePath" -Chinese "  远程路径:    $remotePath" -ForegroundColor DarkGray
 
-    Write-Host ""
-    Write-Host "Readiness:" -ForegroundColor Yellow
+    Write-UIHost -English "" -Chinese ""
+    Write-UIHost -English "Readiness:" -Chinese "就绪状态:" -ForegroundColor Yellow
     Write-WorkspaceCheck -Level $pathLevel -Name "local path" -Detail "($pathDetail)"
     Write-WorkspaceCheck -Level $runtimeStatus.Level -Name "runtime $runtimeName" -Detail "($($runtimeStatus.Status)$(if ($runtimeStatus.Detail) { ': ' + $runtimeStatus.Detail }))"
     Write-WorkspaceCheck -Level $syncStatus.Level -Name "sync" -Detail "($($syncStatus.Status)$(if ($syncStatus.Detail) { ': ' + $syncStatus.Detail }))"
     Write-WorkspaceCheck -Level $syncHygieneStatus.Level -Name "sync hygiene" -Detail "($($syncHygieneStatus.Status)$(if ($syncHygieneStatus.Detail) { ': ' + $syncHygieneStatus.Detail }))"
     Write-WorkspaceCheck -Level $devContainerStatus.Level -Name "devcontainer" -Detail "($($devContainerStatus.Status)$(if ($devContainerStatus.Detail) { ': ' + $devContainerStatus.Detail }))"
 
-    Write-Host ""
-    Write-Host "Local commands:" -ForegroundColor Yellow
+    Write-UIHost -English "" -Chinese ""
+    Write-UIHost -English "Local commands:" -Chinese "本地命令:" -ForegroundColor Yellow
     if ($localPath) {
-        Write-Host "  Set-Location -LiteralPath $(Quote-WorkspacePowerShellArgument $localPath)" -ForegroundColor DarkGray
-        Write-Host "  git status --short" -ForegroundColor DarkGray
-        Write-Host "  code $(Quote-WorkspacePowerShellArgument $localPath)" -ForegroundColor DarkGray
+        Write-UIHost -English "  Set-Location -LiteralPath $(Quote-WorkspacePowerShellArgument $localPath)" -Chinese "  Set-Location -LiteralPath $(Quote-WorkspacePowerShellArgument $localPath)" -ForegroundColor DarkGray
+        Write-UIHost -English "  git status --short" -Chinese "  git status --short" -ForegroundColor DarkGray
+        Write-UIHost -English "  code $(Quote-WorkspacePowerShellArgument $localPath)" -Chinese "  code $(Quote-WorkspacePowerShellArgument $localPath)" -ForegroundColor DarkGray
     } else {
-        Write-Host "  Set projects[].path before opening this project locally." -ForegroundColor Yellow
+        Write-UIHost -English "  Set projects[].path before opening this project locally." -Chinese "  在本地打开此项目之前，请先设置 projects[].path。" -ForegroundColor Yellow
     }
 
-    Write-Host ""
-    Write-Host "Runtime commands:" -ForegroundColor Yellow
+    Write-UIHost -English "" -Chinese ""
+    Write-UIHost -English "Runtime commands:" -Chinese "运行时命令:" -ForegroundColor Yellow
     if ($runtimeName -and (Test-RuntimeExists $runtimeName)) {
         $alias = "adp-os-adp-$runtimeName"
-        Write-Host "  ssh $alias" -ForegroundColor DarkGray
+        Write-UIHost -English "  ssh $alias" -Chinese "  ssh $alias" -ForegroundColor DarkGray
         try {
             $sshTarget = Get-WorkspaceRuntimeSshTarget -RuntimeName $runtimeName
-            Write-Host "  ssh -i $(Quote-WorkspacePowerShellArgument $sshTarget.KeyPath) -p $($sshTarget.Port) $($sshTarget.User)@$($sshTarget.Host)" -ForegroundColor DarkGray
+            Write-UIHost -English "  ssh -i $(Quote-WorkspacePowerShellArgument $sshTarget.KeyPath) -p $($sshTarget.Port) $($sshTarget.User)@$($sshTarget.Host)" -Chinese "  ssh -i $(Quote-WorkspacePowerShellArgument $sshTarget.KeyPath) -p $($sshTarget.Port) $($sshTarget.User)@$($sshTarget.Host)" -ForegroundColor DarkGray
         } catch {
-            Write-Host "  SSH target unavailable: $_" -ForegroundColor Yellow
+            Write-UIHost -English "  SSH target unavailable: $_" -Chinese "  SSH 目标不可用: $_" -ForegroundColor Yellow
         }
         if ($remotePath -and $remotePath -notmatch '^unavailable:') {
-            Write-Host "  cd $(Quote-PosixSingleArgument $remotePath)" -ForegroundColor DarkGray
-            Write-Host "  git status --short" -ForegroundColor DarkGray
+            Write-UIHost -English "  cd $(Quote-PosixSingleArgument $remotePath)" -Chinese "  cd $(Quote-PosixSingleArgument $remotePath)" -ForegroundColor DarkGray
+            Write-UIHost -English "  git status --short" -Chinese "  git status --short" -ForegroundColor DarkGray
         }
     } else {
-        Write-Host "  Set a known projects[].runtime before opening this project in a runtime." -ForegroundColor Yellow
+        Write-UIHost -English "  Set a known projects[].runtime before opening this project in a runtime." -Chinese "  在运行时中打开此项目之前，请先设置已知的 projects[].runtime。" -ForegroundColor Yellow
     }
 
-    Write-Host ""
-    Write-Host "Next:" -ForegroundColor Yellow
-    Write-Host "  adp workspace status -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
+    Write-UIHost -English "" -Chinese ""
+    Write-UIHost -English "Next:" -Chinese "下一步:" -ForegroundColor Yellow
+    Write-UIHost -English "  adp workspace status -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -Chinese "  adp workspace status -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
     if ($runtimeName) {
-        Write-Host "  adp up $runtimeName -Plan" -ForegroundColor DarkGray
+        Write-UIHost -English "  adp up $runtimeName -Plan" -Chinese "  adp up $runtimeName -Plan" -ForegroundColor DarkGray
         if ($syncExpected) {
-            Write-Host "  adp sync start $runtimeName" -ForegroundColor DarkGray
+            Write-UIHost -English "  adp sync start $runtimeName" -Chinese "  adp sync start $runtimeName" -ForegroundColor DarkGray
         }
     }
 }
@@ -2862,44 +2862,44 @@ function Write-WorkspaceSyncGuide {
         "projects[].path missing"
     }
 
-    Write-Host "Workspace sync: $projectName" -ForegroundColor Cyan
-    Write-Host "Sync guide only: no Mutagen session, runtime, SSH connection, directory, or file will be changed." -ForegroundColor DarkGray
+    Write-UIHost -English "Workspace sync: $projectName" -Chinese "工作区同步: $projectName" -ForegroundColor Cyan
+    Write-UIHost -English "Sync guide only: no Mutagen session, runtime, SSH connection, directory, or file will be changed." -Chinese "仅同步指南：不会更改 Mutagen 会话、运行时、SSH 连接、目录或文件。" -ForegroundColor DarkGray
 
-    Write-Host ""
-    Write-Host "Project:" -ForegroundColor Yellow
-    Write-Host "  Name:        $projectName" -ForegroundColor DarkGray
-    Write-Host "  Runtime:     $(if ($runtimeName) { $runtimeName } else { 'not configured' })" -ForegroundColor DarkGray
-    Write-Host "  Sync intent: $(if ($syncExpected) { 'requested' } else { 'not requested' })" -ForegroundColor DarkGray
-    Write-Host "  Local path:  $(if ($localPath) { $localPath } else { 'not configured' })" -ForegroundColor DarkGray
-    Write-Host "  Remote path: $remotePath" -ForegroundColor DarkGray
+    Write-UIHost -English "" -Chinese ""
+    Write-UIHost -English "Project:" -Chinese "项目:" -ForegroundColor Yellow
+    Write-UIHost -English "  Name:        $projectName" -Chinese "  名称:        $projectName" -ForegroundColor DarkGray
+    Write-UIHost -English "  Runtime:     $(if ($runtimeName) { $runtimeName } else { 'not configured' })" -Chinese "  运行时:      $(if ($runtimeName) { $runtimeName } else { '未配置' })" -ForegroundColor DarkGray
+    Write-UIHost -English "  Sync intent: $(if ($syncExpected) { 'requested' } else { 'not requested' })" -Chinese "  同步意图:    $(if ($syncExpected) { '已请求' } else { '未请求' })" -ForegroundColor DarkGray
+    Write-UIHost -English "  Local path:  $(if ($localPath) { $localPath } else { 'not configured' })" -Chinese "  本地路径:    $(if ($localPath) { $localPath } else { '未配置' })" -ForegroundColor DarkGray
+    Write-UIHost -English "  Remote path: $remotePath" -Chinese "  远程路径:    $remotePath" -ForegroundColor DarkGray
 
-    Write-Host ""
-    Write-Host "Readiness:" -ForegroundColor Yellow
+    Write-UIHost -English "" -Chinese ""
+    Write-UIHost -English "Readiness:" -Chinese "就绪状态:" -ForegroundColor Yellow
     Write-WorkspaceCheck -Level $pathLevel -Name "local path" -Detail "($pathDetail)"
     Write-WorkspaceCheck -Level $runtimeStatus.Level -Name "runtime $runtimeName" -Detail "($($runtimeStatus.Status)$(if ($runtimeStatus.Detail) { ': ' + $runtimeStatus.Detail }))"
     Write-WorkspaceCheck -Level $syncStatus.Level -Name "sync session" -Detail "($($syncStatus.Status)$(if ($syncStatus.Detail) { ': ' + $syncStatus.Detail }))"
     Write-WorkspaceCheck -Level $syncHygieneStatus.Level -Name "sync hygiene" -Detail "($($syncHygieneStatus.Status)$(if ($syncHygieneStatus.Detail) { ': ' + $syncHygieneStatus.Detail }))"
 
-    Write-Host ""
-    Write-Host "Runtime sync commands:" -ForegroundColor Yellow
+    Write-UIHost -English "" -Chinese ""
+    Write-UIHost -English "Runtime sync commands:" -Chinese "运行时同步命令:" -ForegroundColor Yellow
     if ($runtimeName -and (Test-RuntimeExists $runtimeName)) {
-        Write-Host "  adp sync status" -ForegroundColor DarkGray
+        Write-UIHost -English "  adp sync status" -Chinese "  adp sync status" -ForegroundColor DarkGray
         if ($syncExpected) {
-            Write-Host "  adp sync start $runtimeName" -ForegroundColor DarkGray
-            Write-Host "  adp sync stop $runtimeName" -ForegroundColor DarkGray
+            Write-UIHost -English "  adp sync start $runtimeName" -Chinese "  adp sync start $runtimeName" -ForegroundColor DarkGray
+            Write-UIHost -English "  adp sync stop $runtimeName" -Chinese "  adp sync stop $runtimeName" -ForegroundColor DarkGray
         } else {
-            Write-Host "  projects[].sync is false; set it to true before treating sync as expected for this project." -ForegroundColor Yellow
-            Write-Host "  adp sync start $runtimeName" -ForegroundColor DarkGray
+            Write-UIHost -English "  projects[].sync is false; set it to true before treating sync as expected for this project." -Chinese "  projects[].sync 为 false；在将同步视为该项目预期行为之前，请将其设为 true。" -ForegroundColor Yellow
+            Write-UIHost -English "  adp sync start $runtimeName" -Chinese "  adp sync start $runtimeName" -ForegroundColor DarkGray
         }
     } else {
-        Write-Host "  Set a known projects[].runtime before using runtime sync for this project." -ForegroundColor Yellow
+        Write-UIHost -English "  Set a known projects[].runtime before using runtime sync for this project." -Chinese "  在为此项目使用运行时同步之前，请先设置已知的 projects[].runtime。" -ForegroundColor Yellow
     }
 
-    Write-Host ""
-    Write-Host "Project commands:" -ForegroundColor Yellow
-    Write-Host "  adp workspace open $projectName -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
-    Write-Host "  adp workspace status -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
-    Write-Host "  adp workspace dashboard -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
+    Write-UIHost -English "" -Chinese ""
+    Write-UIHost -English "Project commands:" -Chinese "项目命令:" -ForegroundColor Yellow
+    Write-UIHost -English "  adp workspace open $projectName -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -Chinese "  adp workspace open $projectName -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
+    Write-UIHost -English "  adp workspace status -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -Chinese "  adp workspace status -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
+    Write-UIHost -English "  adp workspace dashboard -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -Chinese "  adp workspace dashboard -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
 }
 
 function Write-WorkspaceProjectLifecycle {
@@ -4023,8 +4023,8 @@ if (-not $SubCommand) {
 switch ($SubCommand) {
     "init" {
         if (Test-Path -LiteralPath $ManifestPath) {
-            Write-Host "Workspace manifest already exists: $ManifestPath" -ForegroundColor Yellow
-            Write-Host "  No changes made." -ForegroundColor DarkGray
+            Write-UIHost -English "Workspace manifest already exists: $ManifestPath" -Chinese "工作区清单已存在: $ManifestPath" -ForegroundColor Yellow
+            Write-UIHost -English "  No changes made." -Chinese "  未做任何更改。" -ForegroundColor DarkGray
             return
         }
 
@@ -4034,8 +4034,8 @@ switch ($SubCommand) {
         }
 
         Copy-Item -LiteralPath $examplePath -Destination $ManifestPath
-        Write-Host "Workspace manifest created: $ManifestPath" -ForegroundColor Green
-        Write-Host "  Edit project paths, runtimes, validation commands, and task snapshots before use." -ForegroundColor DarkGray
+        Write-UIHost -English "Workspace manifest created: $ManifestPath" -Chinese "工作区清单已创建: $ManifestPath" -ForegroundColor Green
+        Write-UIHost -English "  Edit project paths, runtimes, validation commands, and task snapshots before use." -Chinese "  使用前请编辑项目路径、运行时、验证命令和任务快照。" -ForegroundColor DarkGray
     }
     "show" {
         $manifest = Read-WorkspaceManifest -Path $ManifestPath
@@ -4043,29 +4043,29 @@ switch ($SubCommand) {
     }
     "plan" {
         $manifest = Read-WorkspaceManifest -Path $ManifestPath
-        Write-Host "Plan only: no projects will be cloned, no sync sessions will be changed, and no snapshots will be created." -ForegroundColor Cyan
-        Write-Host ""
+        Write-UIHost -English "Plan only: no projects will be cloned, no sync sessions will be changed, and no snapshots will be created." -Chinese "仅计划：不会 clone 任何项目、不会更改任何同步会话、不会创建任何快照。" -ForegroundColor Cyan
+        Write-UIHost -English "" -Chinese ""
         Write-WorkspaceSummary -Manifest $manifest
-        Write-Host ""
-        Write-Host "Suggested next steps:" -ForegroundColor Yellow
+        Write-UIHost -English "" -Chinese ""
+        Write-UIHost -English "Suggested next steps:" -Chinese "建议的后续步骤:" -ForegroundColor Yellow
         foreach ($project in (Get-WorkspaceArray $manifest.projects)) {
             if ($project.runtime) {
-                Write-Host "  - Preview runtime: adp up $($project.runtime) -Plan" -ForegroundColor DarkGray
+                Write-UIHost -English "  - Preview runtime: adp up $($project.runtime) -Plan" -Chinese "  - 预览运行时: adp up $($project.runtime) -Plan" -ForegroundColor DarkGray
                 if ($project.sync) {
-                    Write-Host "  - Start sync when ready: adp sync start $($project.runtime)" -ForegroundColor DarkGray
+                    Write-UIHost -English "  - Start sync when ready: adp sync start $($project.runtime)" -Chinese "  - 准备好后启动同步: adp sync start $($project.runtime)" -ForegroundColor DarkGray
                 }
             }
         }
         foreach ($task in (Get-WorkspaceArray $manifest.tasks)) {
             if ($task.runtime -and $task.snapshot) {
                 $snapshotNaming = Get-WorkspaceSnapshotNamingStatus -Task $task
-                Write-Host "  - Snapshot before task '$($task.name)' (naming: $($snapshotNaming.Status)): adp snapshot create $($task.runtime) $($task.snapshot)" -ForegroundColor DarkGray
+                Write-UIHost -English "  - Snapshot before task '$($task.name)' (naming: $($snapshotNaming.Status)): adp snapshot create $($task.runtime) $($task.snapshot)" -Chinese "  - 任务 '$($task.name)' 之前的快照 (命名: $($snapshotNaming.Status)): adp snapshot create $($task.runtime) $($task.snapshot)" -ForegroundColor DarkGray
             }
         }
         foreach ($milestone in (Get-WorkspaceMilestones -Manifest $manifest)) {
             $milestoneStatus = Get-WorkspaceMilestoneStatus -Manifest $manifest -Milestone $milestone
             if ($milestoneStatus.RuntimeName -ne "not configured") {
-                Write-Host "  - Milestone checkpoint '$($milestoneStatus.Name)' (naming: $($milestoneStatus.SnapshotNaming.Status)): adp snapshot create $($milestoneStatus.RuntimeName) $($milestoneStatus.SnapshotName)" -ForegroundColor DarkGray
+                Write-UIHost -English "  - Milestone checkpoint '$($milestoneStatus.Name)' (naming: $($milestoneStatus.SnapshotNaming.Status)): adp snapshot create $($milestoneStatus.RuntimeName) $($milestoneStatus.SnapshotName)" -Chinese "  - 里程碑检查点 '$($milestoneStatus.Name)' (命名: $($milestoneStatus.SnapshotNaming.Status)): adp snapshot create $($milestoneStatus.RuntimeName) $($milestoneStatus.SnapshotName)" -ForegroundColor DarkGray
             }
         }
     }
@@ -4106,7 +4106,7 @@ switch ($SubCommand) {
         Invoke-WorkspaceTask -Manifest $manifest -Command $TaskCommand -Name $TaskName -StateName $TaskState -Path $ManifestPath -LocalStatePath $StatePath -ExecuteValidation:$Execute -PlanOnly:$Plan
     }
     default {
-        Write-ErrorLog -Message "Unknown workspace command: $SubCommand. Valid: init, show, plan, status, dashboard, report, recipes, create, open, sync, project, task" -Component "cli.workspace"
+        Write-ErrorLog -Message (Get-UIText -English "Unknown workspace command: $SubCommand. Valid: init, show, plan, status, dashboard, report, recipes, create, open, sync, project, task" -Chinese "未知工作区命令: $SubCommand。可用: init, show, plan, status, dashboard, report, recipes, create, open, sync, project, task") -Component "cli.workspace"
         exit 1
     }
 }
