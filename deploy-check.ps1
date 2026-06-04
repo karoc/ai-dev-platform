@@ -31,7 +31,8 @@ if ($vmwareOk) {
     $vmrunPath = Get-VmrunPath
     Write-Host "  vmrun: $vmrunPath [OK]" -ForegroundColor Green
 } else {
-    Write-Host "  VMware not found. Install VMware Workstation Pro." -ForegroundColor Red
+    Write-UIHost -English "  VMware not found. Install VMware Workstation Pro." -Chinese "  未找到 VMware。请安装 VMware Workstation Pro。" -ForegroundColor Red
+    Write-ErrorLog -Message "VMware not found. Install VMware Workstation Pro." -Component "deploy-check"
     exit 1
 }
 
@@ -47,8 +48,8 @@ if (Test-Path $isoPath) {
     $sizeGB = [math]::Round((Get-Item $isoPath).Length / 1GB, 1)
     Write-Host "  ISO found: $isoPath ($sizeGB GB) [OK]" -ForegroundColor Green
 } else {
-    Write-Host "  ISO not found: $isoPath" -ForegroundColor Red
-    Write-Host "  Download Ubuntu Server 26.04 LTS or AlmaLinux 9:" -ForegroundColor Yellow
+    Write-UIHost -English "  ISO not found: $isoPath" -Chinese "  未找到 ISO: $isoPath" -ForegroundColor Red
+    Write-UIHost -English "  Download Ubuntu Server 26.04 LTS or AlmaLinux 9:" -Chinese "  请下载 Ubuntu Server 26.04 LTS 或 AlmaLinux 9:" -ForegroundColor Yellow
     Write-Host "    https://releases.ubuntu.com/26.04/" -ForegroundColor DarkGray
     Write-Host "    https://almalinux.org/get-almalinux/" -ForegroundColor DarkGray
     exit 1
@@ -79,6 +80,7 @@ foreach ($name in @('frontend', 'backend', 'agent')) {
         foreach ($check in $failedChecks) {
             Write-Host "    [FAIL] $($check.Name): $($check.Detail)" -ForegroundColor Red
         }
+        Write-ErrorLog -Message "Runtime provisioning plan checks failed: $($failedChecks.Count) failures" -Component "deploy-check"
         exit 1
     }
 }
@@ -92,7 +94,8 @@ try {
     $pubKey = Get-SSHPubKey
     Write-Host "  SSH key: $keyPath [OK]" -ForegroundColor Green
 } catch {
-    Write-Host "  SSH initialization failed: $_" -ForegroundColor Red
+    Write-UIHost -English "  SSH initialization failed: $_" -Chinese "  SSH 初始化失败: $_" -ForegroundColor Red
+    Write-ErrorLog -Message "SSH initialization failed: $_" -Component "deploy-check"
     exit 1
 }
 

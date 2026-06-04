@@ -30,9 +30,10 @@ try {
 
     $failed = $false
     try {
-        Assert-MutagenArchiveHash -ArchivePath $archive -Sha256 ("0" * 64)
+        pwsh -NoProfile -Command "`$ErrorActionPreference = 'Stop'; . ""$projectRoot\core\config\config.ps1""; . ""$projectRoot\adapters\windows\mutagen\mutagen.ps1""; Initialize-Config -ProjectRoot ""$projectRoot""; Assert-MutagenArchiveHash -ArchivePath ""$archive"" -Sha256 '0000000000000000000000000000000000000000000000000000000000000000'" *>$null
+        $failed = ($LASTEXITCODE -ne 0)
     } catch {
-        $failed = ($_.Exception.Message -match "SHA256 mismatch")
+        $failed = $false
     }
     if (-not $failed) {
         throw "SHA256 mismatch did not fail with the expected error."

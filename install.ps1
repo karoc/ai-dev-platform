@@ -144,7 +144,7 @@ $osInfo = Get-CimInstance Win32_OperatingSystem
 $winVersion = [Version]$osInfo.Version
 if ($winVersion.Major -lt 10) {
     Write-ErrorLog -Message "Windows 10+ required. Detected: $($osInfo.Caption)" -Component "install"
-    throw "Unsupported Windows version"
+    exit 1
 }
 Write-InfoLog -Message (Get-InstallText -English "Windows version: $($osInfo.Caption) ($winVersion)" -Chinese "Windows 版本: $($osInfo.Caption) ($winVersion)") -Component "install"
 Write-InstallHost -English "  Platform: Windows (supported)" -Chinese "  平台: Windows（已支持）" -ForegroundColor Green
@@ -282,7 +282,8 @@ $storedIso = Join-Path $isoCache $isoName
 if ($IsoPath) {
     Write-InfoLog -Message (Get-InstallText -English "User provided ISO: $IsoPath" -Chinese "用户提供的 ISO: $IsoPath") -Component "install"
     if (-not (Test-Path $IsoPath)) {
-        throw "Specified ISO not found: $IsoPath"
+        Write-ErrorLog -Message "Specified ISO not found: $IsoPath" -Component "install"
+        exit 1
     }
     if (-not (Test-ISOReasonable -Path $IsoPath)) {
         Write-InstallHost -English "  ISO warning: file should be a .iso and usually larger than 1 GB: $IsoPath" -Chinese "  ISO 警告: 文件应为 .iso，且通常大于 1 GB: $IsoPath" -ForegroundColor Yellow
@@ -327,7 +328,7 @@ if ($SkipVMValidation) {
         }
     } catch {
         Write-ErrorLog -Message "VMware initialization failed: $_" -Component "install"
-        throw
+        exit 1
     }
 }
 

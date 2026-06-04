@@ -134,13 +134,15 @@ function Assert-MutagenArchiveHash {
     }
 
     if (-not (Test-MutagenSha256Value -Sha256 $Sha256)) {
-        throw "Configured Mutagen SHA256 must be a 64-character hexadecimal value."
+        Write-ErrorLog -Message "Configured Mutagen SHA256 must be a 64-character hexadecimal value." -Component "mutagen"
+        exit 1
     }
 
     $actual = (Get-FileHash -LiteralPath $ArchivePath -Algorithm SHA256).Hash.ToLowerInvariant()
     $expected = $Sha256.ToLowerInvariant()
     if ($actual -ne $expected) {
-        throw "Mutagen archive SHA256 mismatch for $ArchivePath. Expected $expected, got $actual."
+        Write-ErrorLog -Message "Mutagen archive SHA256 mismatch for $ArchivePath. Expected $expected, got $actual." -Component "mutagen"
+        exit 1
     }
 
     Write-Host "        sha256: verified $actual" -ForegroundColor DarkGray
@@ -165,7 +167,8 @@ function Initialize-Mutagen {
 
     $script:MutagenPath = Find-Mutagen -ProjectRoot $ProjectRoot
     if (-not $script:MutagenPath) {
-        throw "Mutagen not installed. Download the Windows AMD64 release from https://github.com/mutagen-io/mutagen/releases and place mutagen.exe at .tools\mutagen\mutagen.exe, or add it to PATH."
+        Write-ErrorLog -Message "Mutagen not installed. Download the Windows AMD64 release from https://github.com/mutagen-io/mutagen/releases and place mutagen.exe at .tools\mutagen\mutagen.exe, or add it to PATH." -Component "mutagen"
+        exit 1
     }
     return $script:MutagenPath
 }
@@ -214,7 +217,8 @@ function Invoke-MutagenArchiveDownload {
             $pwsh = (Get-Process -Id $PID).Path
         }
         if (-not $pwsh) {
-            throw "PowerShell executable was not found for controlled download."
+            Write-ErrorLog -Message "PowerShell executable was not found for controlled download." -Component "mutagen"
+            exit 1
         }
 
         $escapedUrl = $DownloadUrl.Replace("'", "''")
@@ -239,7 +243,8 @@ Invoke-WebRequest -Uri '$escapedUrl' -OutFile '$escapedTempPath' -ConnectionTime
                 try { $process.Kill() } catch {}
             }
             Remove-Item -LiteralPath $TempPath -Force -ErrorAction SilentlyContinue
-            throw "Mutagen download timed out after ${DownloadTimeoutSeconds}s. You can retry, or manually download $DownloadUrl and place it at $ZipPath."
+            Write-ErrorLog -Message "Mutagen download timed out after ${DownloadTimeoutSeconds}s. You can retry, or manually download $DownloadUrl and place it at $ZipPath." -Component "mutagen"
+            exit 1
         }
 
         $stdout = Get-Content -LiteralPath $outFile -Raw -ErrorAction SilentlyContinue
@@ -250,17 +255,20 @@ Invoke-WebRequest -Uri '$escapedUrl' -OutFile '$escapedTempPath' -ConnectionTime
             if ([string]::IsNullOrWhiteSpace($detail)) {
                 $detail = "download process exited with code $($process.ExitCode)"
             }
-            throw "Mutagen download failed. You can retry, or manually download $DownloadUrl and place it at $ZipPath. Details: $detail"
+            Write-ErrorLog -Message "Mutagen download failed. You can retry, or manually download $DownloadUrl and place it at $ZipPath. Details: $detail" -Component "mutagen"
+            exit 1
         }
     } catch {
         Remove-Item -LiteralPath $TempPath -Force -ErrorAction SilentlyContinue
-        throw $_
+        Write-ErrorLog -Message "Mutagen download error: $_" -Component "mutagen"
+        exit 1
     } finally {
         Remove-Item -LiteralPath $outFile, $errFile -Force -ErrorAction SilentlyContinue
     }
 
     if (-not (Test-Path -LiteralPath $TempPath)) {
-        throw "Mutagen download did not create an archive: $TempPath"
+        Write-ErrorLog -Message "Mutagen download did not create an archive: $TempPath" -Component "mutagen"
+        exit 1
     }
 
     Move-Item -LiteralPath $TempPath -Destination $ZipPath -Force
@@ -278,7 +286,8 @@ function Copy-MutagenArchive {
     Write-Host "        target: $ZipPath" -ForegroundColor DarkGray
 
     if (-not (Test-Path -LiteralPath $SourcePath -PathType Leaf)) {
-        throw "Configured Mutagen archive was not found: $SourcePath"
+        Write-ErrorLog -Message "Configured Mutagen archive was not found: $SourcePath" -Component "mutagen"
+        exit 1
     }
 
     if (Test-Path -LiteralPath $TempPath) {
@@ -376,7 +385,8 @@ function Install-LocalMutagen {
         Expand-Archive -LiteralPath $zipPath -DestinationPath $extractPath -Force
     } catch {
         if (-not $archiveWasReused) {
-            throw "Mutagen archive could not be expanded: $zipPath. Details: $_"
+            Write-ErrorLog -Message "Mutagen archive could not be expanded: $zipPath. Details: $_" -Component "mutagen"
+            exit 1
         }
 
         Write-Host "        existing archive was invalid; downloading a fresh copy." -ForegroundColor Yellow
@@ -394,7 +404,8 @@ function Install-LocalMutagen {
 
     $extracted = Get-ChildItem -LiteralPath $extractPath -Recurse -Filter "mutagen.exe" -File | Select-Object -First 1
     if (-not $extracted) {
-        throw "Downloaded Mutagen archive did not contain mutagen.exe: $zipPath"
+        Write-ErrorLog -Message "Downloaded Mutagen archive did not contain mutagen.exe: $zipPath" -Component "mutagen"
+        exit 1
     }
 
     Write-Host "  [4/5] Installing mutagen.exe..." -ForegroundColor Yellow
@@ -404,7 +415,8 @@ function Install-LocalMutagen {
     Write-Host "  [5/5] Verifying Mutagen version..." -ForegroundColor Yellow
     $versionText = Get-MutagenVersion -Path $targetPath
     if (-not (Test-MutagenVersionSupported -VersionText $versionText)) {
-        throw "Installed Mutagen version is unsupported: $versionText. Expected 0.18.x."
+        Write-ErrorLog -Message "Installed Mutagen version is unsupported: $versionText. Expected 0.18.x." -Component "mutagen"
+        exit 1
     }
     Write-Host "        detected: $versionText" -ForegroundColor DarkGray
     Remove-Item -LiteralPath $extractPath -Recurse -Force
@@ -594,7 +606,8 @@ function New-SyncSession {
     )
 
     if (-not $SSHHost) {
-        throw "SSHHost is required for Mutagen sync"
+        Write-ErrorLog -Message "SSHHost is required for Mutagen sync" -Component "mutagen"
+        exit 1
     }
 
     if (-not (Test-Path $LocalPath)) {
@@ -624,7 +637,8 @@ function New-SyncSession {
         Write-Host "  Current remote:  $($existingSession.BetaUrl)" -ForegroundColor DarkGray
         Write-Host "  Expected remote: $sshUrl" -ForegroundColor DarkGray
         Write-Host "  Remediation: adp sync stop $($SessionName -replace '^adp-', ''), then adp sync start $($SessionName -replace '^adp-', '')" -ForegroundColor Yellow
-        throw "Mutagen sync session '$SessionName' must be stopped and recreated before sync can start."
+        Write-ErrorLog -Message "Mutagen sync session '$SessionName' must be stopped and recreated before sync can start." -Component "mutagen"
+        exit 1
     }
 
     if ($SSHKeyPath) {

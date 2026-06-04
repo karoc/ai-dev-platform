@@ -24,11 +24,16 @@ param(
 $ErrorActionPreference = 'Stop'
 
 $repoRoot = Split-Path -Parent (Split-Path -Parent $PSCommandPath)
+
+# Source logging module
+. "$repoRoot\core\logging\logger.ps1"
 $versionFile = Join-Path $repoRoot 'VERSION'
 $changelogFile = Join-Path $repoRoot 'CHANGELOG.md'
 
 if (-not (Test-Path $versionFile)) {
-    Write-Error "VERSION file not found at $versionFile"
+    Write-Host "Error: VERSION file not found at $versionFile" -ForegroundColor Red
+    Write-Host "错误: 未找到 VERSION 文件: $versionFile" -ForegroundColor Red
+    Write-ErrorLog -Message "VERSION file not found at $versionFile" -Component "release"
     exit 1
 }
 
@@ -58,7 +63,9 @@ if ($status) {
     Write-Host "  Uncommitted changes:" -ForegroundColor Red
     git status --short
     Write-Host ""
-    Write-Error "Repository has uncommitted changes. Commit or stash before releasing."
+    Write-Host "Error: Repository has uncommitted changes. Commit or stash before releasing." -ForegroundColor Red
+    Write-Host "错误: 仓库有未提交的更改。请先提交或暂存后再发布。" -ForegroundColor Red
+    Write-ErrorLog -Message "Repository has uncommitted changes. Commit or stash before releasing." -Component "release"
     exit 1
 }
 
@@ -71,7 +78,9 @@ $validateScript = Join-Path $repoRoot 'tests\validate.ps1'
 if (Test-Path $validateScript) {
     & $validateScript
     if ($LASTEXITCODE -ne 0) {
-        Write-Error "Validation failed. Fix issues before releasing."
+        Write-Host "Error: Validation failed. Fix issues before releasing." -ForegroundColor Red
+        Write-Host "错误: 验证失败。请修复问题后再发布。" -ForegroundColor Red
+        Write-ErrorLog -Message "Validation failed. Fix issues before releasing." -Component "release"
         exit 1
     }
 } else {
