@@ -5,6 +5,7 @@
 param(
     [switch]$SkipDependencyCheck,
     [switch]$SkipVMValidation,
+    [switch]$Quick,
     [string]$IsoPath
 )
 
@@ -58,6 +59,33 @@ function Write-InstallBanner {
 Write-InstallBanner
 Write-InfoLog -Message (Get-InstallText -English "ADP-OS Install starting..." -Chinese "ADP-OS 安装开始...") -Component "install"
 Write-InfoLog -Message (Get-InstallText -English "Project root: $script:ProjectRoot" -Chinese "项目根目录: $script:ProjectRoot") -Component "install"
+
+# --- Quick mode: skip already-satisfied steps ---
+if ($Quick) {
+    Write-InstallHost -English "Quick mode: skipping already-satisfied steps..." -Chinese "快速模式: 跳过已满足的步骤..." -ForegroundColor Cyan
+    Write-Host ""
+}
+
+# --- Precheck tip ---
+if (-not $Quick) {
+    Write-InstallHost -English "Tip: Run 'adp precheck' first for a full prerequisite scan with remediation steps." -Chinese "提示: 先运行 'adp precheck' 获取完整前提条件扫描和修复步骤。" -ForegroundColor DarkGray
+    Write-Host ""
+}
+
+$alreadyInitialized = Test-ADPInitialized
+if ($Quick -and $alreadyInitialized) {
+    Write-InstallHost -English "ADP-OS is already initialized. Nothing to do." -Chinese "ADP-OS 已初始化。无需操作。" -ForegroundColor Green
+    $workspaceRoot = Resolve-Path "workspace_root"
+    $isoCache = Resolve-Path "iso_cache"
+    Write-Host ""
+    Write-InstallHost -English "Next steps:" -Chinese "下一步:" -ForegroundColor Cyan
+    Write-InstallHost -English "  adp quickstart    Guided setup (ISO + init + doctor)" -Chinese "  adp quickstart    引导式设置 (ISO + init + doctor)" -ForegroundColor DarkGray
+    Write-InstallHost -English "  adp iso download  Download a Linux ISO" -Chinese "  adp iso download  下载 Linux ISO" -ForegroundColor DarkGray
+    Write-InstallHost -English "  adp doctor        Check platform health" -Chinese "  adp doctor        检查平台健康状态" -ForegroundColor DarkGray
+    Write-InstallHost -English "  adp up frontend   Start your first runtime" -Chinese "  adp up frontend   启动第一个运行时" -ForegroundColor DarkGray
+    Write-Host ""
+    exit 0
+}
 
 function Add-DependencyResult {
     param(
@@ -128,7 +156,7 @@ function Test-ISOReasonable {
 # =============================================
 # Step 1: Platform Detection
 # =============================================
-Write-InstallHost -English "`n[1/6] Detecting platform..." -Chinese "`n[1/6] 检测平台..." -ForegroundColor Yellow
+Write-InstallHost -English "`n[1/6] Detecting platform... (~2s)" -Chinese "`n[1/6] 检测平台... (~2s)" -ForegroundColor Yellow
 Write-InfoLog -Message (Get-InstallText -English "Platform detection starting" -Chinese "平台检测开始") -Component "install"
 
 $platform = Get-Platform
@@ -152,7 +180,7 @@ Write-InstallHost -English "  Platform: Windows (supported)" -Chinese "  平台:
 # =============================================
 # Step 2: Dependency Checks
 # =============================================
-Write-InstallHost -English "`n[2/6] Checking dependencies..." -Chinese "`n[2/6] 检查依赖..." -ForegroundColor Yellow
+Write-InstallHost -English "`n[2/6] Checking dependencies... (~10s)" -Chinese "`n[2/6] 检查依赖... (~10s)" -ForegroundColor Yellow
 Write-InfoLog -Message (Get-InstallText -English "Dependency check starting" -Chinese "依赖检查开始") -Component "install"
 
 $script:deps = @()
@@ -255,7 +283,7 @@ if ($SkipDependencyCheck) {
 # =============================================
 # Step 3: Directory Structure
 # =============================================
-Write-InstallHost -English "`n[3/6] Creating directory structure..." -Chinese "`n[3/6] 创建目录结构..." -ForegroundColor Yellow
+Write-InstallHost -English "`n[3/6] Creating directory structure... (~1s)" -Chinese "`n[3/6] 创建目录结构... (~1s)" -ForegroundColor Yellow
 Write-InfoLog -Message (Get-InstallText -English "Directory creation starting" -Chinese "目录创建开始") -Component "install"
 
 $workspaceRoot = Resolve-Path "workspace_root"
@@ -272,7 +300,7 @@ Write-InstallHost -English "  VM Store:   $vmStore" -Chinese "  VM 存储:   $vm
 # =============================================
 # Step 4: ISO Check
 # =============================================
-Write-InstallHost -English "`n[4/6] Checking OS ISO..." -Chinese "`n[4/6] 检查 OS ISO..." -ForegroundColor Yellow
+Write-InstallHost -English "`n[4/6] Checking OS ISO... (~2s)" -Chinese "`n[4/6] 检查 OS ISO... (~2s)" -ForegroundColor Yellow
 Write-InfoLog -Message (Get-InstallText -English "ISO check starting" -Chinese "ISO 检查开始") -Component "install"
 
 $config = Get-PlatformConfig
@@ -311,7 +339,7 @@ if ($IsoPath) {
 # =============================================
 # Step 5: VMware Adapter Init
 # =============================================
-Write-InstallHost -English "`n[5/6] Initializing VMware adapter..." -Chinese "`n[5/6] 初始化 VMware adapter..." -ForegroundColor Yellow
+Write-InstallHost -English "`n[5/6] Initializing VMware adapter... (~5s)" -Chinese "`n[5/6] 初始化 VMware adapter... (~5s)" -ForegroundColor Yellow
 Write-InfoLog -Message (Get-InstallText -English "VMware adapter initialization" -Chinese "VMware adapter 初始化") -Component "install"
 
 if ($SkipVMValidation) {
@@ -335,7 +363,7 @@ if ($SkipVMValidation) {
 # =============================================
 # Step 6: Config Finalization
 # =============================================
-Write-InstallHost -English "`n[6/6] Finalizing configuration..." -Chinese "`n[6/6] 完成配置..." -ForegroundColor Yellow
+Write-InstallHost -English "`n[6/6] Finalizing configuration... (~2s)" -Chinese "`n[6/6] 完成配置... (~2s)" -ForegroundColor Yellow
 Write-InfoLog -Message (Get-InstallText -English "Config finalization" -Chinese "配置收尾") -Component "install"
 
 Set-ADPInitialized
@@ -397,10 +425,12 @@ if ($SkipDependencyCheck) {
 
 Write-Host ""
 Write-InstallHost -English "Next steps:" -Chinese "下一步:" -ForegroundColor Cyan
-Write-InstallHost -English "  Download OS ISO: adp iso download (or .\cli\adp.ps1 iso)" -Chinese "  下载 OS ISO: adp iso download (或 .\cli\adp.ps1 iso)" -ForegroundColor DarkGray
-Write-InstallHost -English "  Or place a supported Linux ISO in: $isoCache" -Chinese "  或将受支持的 Linux ISO 放到: $isoCache" -ForegroundColor DarkGray
-Write-InstallHost -English "  Then run Phase 2: adp init" -Chinese "  然后运行阶段 2: adp init" -ForegroundColor DarkGray
-Write-InstallHost -English "  Or use quickstart: adp quickstart (guided setup)" -Chinese "  或使用快速启动: adp quickstart (引导式设置)" -ForegroundColor DarkGray
+Write-InstallHost -English "  Recommended: adp quickstart    One command guided setup (ISO + init + doctor)" -Chinese "  推荐: adp quickstart    一键引导式设置 (ISO + init + doctor)" -ForegroundColor Green
+Write-InstallHost -English "  Or step by step:" -Chinese "  或逐步操作:" -ForegroundColor DarkGray
+Write-InstallHost -English "    1. adp iso download          Download a supported Linux ISO (~2.6 GB, 10-30 min)" -Chinese "    1. adp iso download          下载受支持的 Linux ISO (~2.6 GB, 10-30 分钟)" -ForegroundColor DarkGray
+Write-InstallHost -English "    2. adp init [-IsoPath <path>] Initialize platform with ISO (~30s)" -Chinese "    2. adp init [-IsoPath <path>] 使用 ISO 初始化平台 (~30s)" -ForegroundColor DarkGray
+Write-InstallHost -English "    3. adp doctor -FirstRun       Verify platform health and see setup checklist" -Chinese "    3. adp doctor -FirstRun       验证平台健康状态并查看设置清单" -ForegroundColor DarkGray
+Write-InstallHost -English "    4. adp up frontend [-Plan]    Start your first runtime (~20-30 min first time)" -Chinese "    4. adp up frontend [-Plan]    启动第一个运行时（首次约 20-30 分钟）" -ForegroundColor DarkGray
 Write-Host ""
 
 Write-InfoLog -Message (Get-InstallText -English "ADP-OS Phase 1 install complete" -Chinese "ADP-OS 阶段 1 安装完成") -Component "install"

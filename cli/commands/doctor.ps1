@@ -523,30 +523,62 @@ if ($issues.Count -gt 0) {
 
 if ($FirstRun) {
     Write-Host ""
-    Write-UIHost -English "First-run checklist" -Chinese "首次使用检查清单" -ForegroundColor Cyan
+    Write-UIHost -English "First-run checklist — Complete these steps to get your first runtime ready" -Chinese "首次使用检查清单 — 完成以下步骤即可启动第一个运行环境" -ForegroundColor Cyan
     Write-Host "========================================" -ForegroundColor Cyan
-    Write-UIHost -English "  1. Review local VMware NAT alignment:" -Chinese "  1. 检查本机 VMware NAT 是否对齐:" -ForegroundColor Yellow
-    Write-Host "     .\cli\adp.ps1 network configure-local -Plan" -ForegroundColor DarkGray
-    Write-UIHost -English "     Apply only if you choose to align ADP local overrides to host VMnet8:" -Chinese "     只有当你选择把 ADP 本机覆盖对齐到 host VMnet8 时才执行:" -ForegroundColor DarkGray
-    Write-Host "     .\cli\adp.ps1 network configure-local -Apply" -ForegroundColor DarkGray
-    Write-UIHost -English "     Or keep ADP's configured subnet and change VMware VMnet8 in Virtual Network Editor." -Chinese "     或者保留 ADP 配置的网段，并在 VMware Virtual Network Editor 中修改 VMnet8。" -ForegroundColor DarkGray
-    Write-UIHost -English "     Manual local override path: Copy-Item configs\local.example.json configs\local.json" -Chinese "     手动本机覆盖路径: Copy-Item configs\local.example.json configs\local.json" -ForegroundColor DarkGray
-    Write-UIHost -English "  2. Confirm ISO availability:" -Chinese "  2. 确认 ISO 可用:" -ForegroundColor Yellow
-    Write-Host "     .\install.ps1 -IsoPath C:\path\to\ubuntu-26.04-live-server-amd64.iso" -ForegroundColor DarkGray
-    Write-UIHost -English "  3. Initialize platform:" -Chinese "  3. 初始化平台:" -ForegroundColor Yellow
-    Write-Host "     .\install.ps1" -ForegroundColor DarkGray
-    Write-Host "     .\cli\adp.ps1 init" -ForegroundColor DarkGray
-    Write-UIHost -English "  4. Preview runtime creation/startup:" -Chinese "  4. 预览运行时创建/启动:" -ForegroundColor Yellow
-    Write-Host "     .\cli\adp.ps1 up agent -Plan" -ForegroundColor DarkGray
-    Write-UIHost -English "  5. Start a runtime:" -Chinese "  5. 启动运行时:" -ForegroundColor Yellow
-    Write-Host "     .\cli\adp.ps1 up agent" -ForegroundColor DarkGray
-    Write-UIHost -English "  6. Preview networking changes when needed:" -Chinese "  6. 需要时预览网络修复:" -ForegroundColor Yellow
-    Write-Host "     .\cli\adp.ps1 network apply agent -Plan" -ForegroundColor DarkGray
-    Write-UIHost -English "  7. Place target projects under the matching workspace root:" -Chinese "  7. 将目标项目放到对应的工作区根目录:" -ForegroundColor Yellow
-    Write-Host "     $workspaceRoot\agent" -ForegroundColor DarkGray
-    Write-UIHost -English "  8. Start sync after the runtime is reachable:" -Chinese "  8. 运行时可连接后启动同步:" -ForegroundColor Yellow
-    Write-Host "     .\cli\adp.ps1 sync start agent" -ForegroundColor DarkGray
-    Write-UIHost -English "  9. Create a snapshot before risky agent work:" -Chinese "  9. 高风险 agent 工作前创建快照:" -ForegroundColor Yellow
-    Write-Host "     .\cli\adp.ps1 snapshot create agent before-large-agent-task" -ForegroundColor DarkGray
+    Write-UIHost -English "  Estimated total time: 3-5 minutes (setup) + 20-30 minutes (first VM build)" -Chinese "  预计总耗时: 3-5 分钟（设置）+ 20-30 分钟（首次 VM 构建）" -ForegroundColor DarkGray
+
+    Write-Host ""
+    Write-UIHost -English "Tip: Run 'adp quickstart' for a one-command guided setup that chains these steps." -Chinese "提示: 运行 'adp quickstart' 可一键引导完成以下步骤。" -ForegroundColor Green
+
+    Write-Host ""
+    Write-UIHost -English "Platform Setup (~3-5 min)" -Chinese "平台设置 (~3-5 分钟)" -ForegroundColor Yellow
+    Write-Host "----------------------------------------" -ForegroundColor DarkGray
+
+    Write-UIHost -English "  1. Align VMware NAT with ADP config (~30s):" -Chinese "  1. 对齐 VMware NAT 与 ADP 配置 (~30s):" -ForegroundColor White
+    Write-UIHost -English "     Preview changes:" -Chinese "     预览变更:" -ForegroundColor DarkGray
+    Write-Host "     .\\cli\\adp.ps1 network configure-local -Plan" -ForegroundColor DarkGray
+    Write-UIHost -English "     Apply if alignment is needed:" -Chinese "     如需对齐则应用:" -ForegroundColor DarkGray
+    Write-Host "     .\\cli\\adp.ps1 network configure-local -Apply" -ForegroundColor DarkGray
+    Write-UIHost -English "     Or keep ADP's subnet and change VMware VMnet8 in Virtual Network Editor." -Chinese "     或者保留 ADP 配置的网段，并在 VMware Virtual Network Editor 中修改 VMnet8。" -ForegroundColor DarkGray
+
+    Write-Host ""
+    Write-UIHost -English "  2. Confirm ISO is available (~10s):" -Chinese "  2. 确认 ISO 可用 (~10s):" -ForegroundColor White
+    Write-Host "     .\\cli\\adp.ps1 iso download                                         # Download Ubuntu ISO (~2.6 GB, 10-30 min)" -ForegroundColor DarkGray
+    Write-Host "     .\\install.ps1 -IsoPath C:\\path\\to\\ubuntu-26.04-live-server-amd64.iso  # Or provide your own" -ForegroundColor DarkGray
+
+    Write-Host ""
+    Write-UIHost -English "  3. Initialize platform (~30s):" -Chinese "  3. 初始化平台 (~30s):" -ForegroundColor White
+    Write-Host "     .\\install.ps1     # Or .\\install.ps1 -Quick if already initialized" -ForegroundColor DarkGray
+    Write-Host "     .\\cli\\adp.ps1 init [-Quick] [-IsoPath <path>]" -ForegroundColor DarkGray
+
+    Write-Host ""
+    Write-UIHost -English "First Runtime (~20-30 min for initial VM build)" -Chinese "首次运行时（初始 VM 构建 ~20-30 分钟）" -ForegroundColor Yellow
+    Write-Host "----------------------------------------" -ForegroundColor DarkGray
+
+    Write-UIHost -English "  4. Preview before running (~5s):" -Chinese "  4. 运行前预览 (~5s):" -ForegroundColor White
+    Write-Host "     .\\cli\\adp.ps1 up agent -Plan            # See what will be created" -ForegroundColor DarkGray
+
+    Write-UIHost -English "  5. Start first runtime (~20-30 min):" -Chinese "  5. 启动第一个运行时 (~20-30 分钟):" -ForegroundColor White
+    Write-Host "     .\\cli\\adp.ps1 up agent                  # Creates VM from ISO, installs Ubuntu, bootstraps" -ForegroundColor DarkGray
+    Write-UIHost -English "     The first VM build takes 20-30 minutes. ADP-OS shows install-monitor heartbeats." -Chinese "     首次 VM 构建需要 20-30 分钟。ADP-OS 会显示 install-monitor 心跳。" -ForegroundColor DarkGray
+
+    Write-Host ""
+    Write-UIHost -English "After VM is Ready (~2 min)" -Chinese "VM 就绪后 (~2 分钟)" -ForegroundColor Yellow
+    Write-Host "----------------------------------------" -ForegroundColor DarkGray
+
+    Write-UIHost -English "  6. Check runtime status (~5s):" -Chinese "  6. 检查运行时状态 (~5s):" -ForegroundColor White
+    Write-Host "     .\\cli\\adp.ps1 status agent" -ForegroundColor DarkGray
+
+    Write-UIHost -English "  7. Start file sync (~10s):" -Chinese "  7. 启动文件同步 (~10s):" -ForegroundColor White
+    Write-Host "     .\\cli\\adp.ps1 sync start agent" -ForegroundColor DarkGray
+
+    Write-UIHost -English "  8. Place target project under workspace:" -Chinese "  8. 放置目标项目到工作区:" -ForegroundColor White
+    Write-Host "     $workspaceRoot\\agent\\your-project" -ForegroundColor DarkGray
+
+    Write-UIHost -English "  9. Create a VM snapshot before risky work (~30s):" -Chinese "  9. 高风险操作前创建 VM 快照 (~30s):" -ForegroundColor White
+    Write-Host "     .\\cli\\adp.ps1 snapshot create agent before-risky-task" -ForegroundColor DarkGray
+
+    Write-Host ""
+    Write-UIHost -English "  For more: https://github.com/karoc/ai-dev-platform" -Chinese "  更多信息: https://github.com/karoc/ai-dev-platform" -ForegroundColor DarkGray
     Write-Host ""
 }

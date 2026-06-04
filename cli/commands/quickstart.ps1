@@ -78,8 +78,8 @@ if (-not $Force) {
 
 if (-not $NonInteractive) {
     Write-UIHost -English "This wizard will guide you through:" -Chinese "本向导将引导您完成：" -ForegroundColor Yellow
-    Write-UIHost -English "  1. Download Linux ISO (if needed)" -Chinese "  1. 下载 Linux ISO（如需要）" -ForegroundColor DarkGray
-    Write-UIHost -English "  2. Platform initialization" -Chinese "  2. 平台初始化" -ForegroundColor DarkGray
+    Write-UIHost -English "  1. Download Linux ISO (if needed, ~2.6 GB, 10-30 min)" -Chinese "  1. 下载 Linux ISO（如需要，~2.6 GB, 10-30 分钟）" -ForegroundColor DarkGray
+    Write-UIHost -English "  2. Platform initialization (~1 min)" -Chinese "  2. 平台初始化 (~1 分钟)" -ForegroundColor DarkGray
     Write-Host ""
 }
 
@@ -103,7 +103,7 @@ if (-not $SkipIsoDownload) {
 
     if (-not (Test-Path $isoPath) -and -not $IsoPath) {
         if (-not $NonInteractive) {
-            Write-UIHost -English "Step 1: Downloading Linux ISO..." -Chinese "步骤 1：下载 Linux ISO..." -ForegroundColor Cyan
+            Write-UIHost -English "Step 1: Downloading Linux ISO... (~2.6 GB, 10-30 min)" -Chinese "步骤 1：下载 Linux ISO... (~2.6 GB, 10-30 分钟)" -ForegroundColor Cyan
             Write-Host ""
         }
 
@@ -142,7 +142,7 @@ if (-not $SkipIsoDownload) {
 # =============================================
 if (-not $alreadyInstalled) {
     if (-not $NonInteractive) {
-        Write-UIHost -English "Step 2: Running platform bootstrap..." -Chinese "步骤 2：运行平台引导..." -ForegroundColor Cyan
+        Write-UIHost -English "Step 2: Running platform bootstrap... (~30s)" -Chinese "步骤 2：运行平台引导... (~30s)" -ForegroundColor Cyan
         Write-Host ""
     }
 
@@ -170,7 +170,7 @@ if (-not $alreadyInstalled) {
 # Step 3: adp init -Quick
 # =============================================
 if (-not $NonInteractive) {
-    Write-UIHost -English "Step 3: Initializing platform..." -Chinese "步骤 3：初始化平台..." -ForegroundColor Cyan
+    Write-UIHost -English "Step 3: Initializing platform... (~30s)" -Chinese "步骤 3：初始化平台... (~30s)" -ForegroundColor Cyan
     Write-Host ""
 }
 
@@ -193,7 +193,7 @@ if ($LASTEXITCODE -ne 0) {
 # =============================================
 if (-not $SkipDoctor) {
     if (-not $NonInteractive) {
-        Write-UIHost -English "Step 4: Running system diagnostics..." -Chinese "步骤 4：运行系统诊断..." -ForegroundColor Cyan
+        Write-UIHost -English "Step 4: Running system diagnostics... (~10s)" -Chinese "步骤 4：运行系统诊断... (~10s)" -ForegroundColor Cyan
         Write-Host ""
     }
 
@@ -217,13 +217,13 @@ if (-not $SkipDoctor) {
 if (-not $NonInteractive) {
     Write-Host ""
     Write-Host "========================================" -ForegroundColor Cyan
-    Write-UIHost -English "  Quickstart Complete!" -Chinese "  快速启动完成！" -ForegroundColor Green
+    Write-UIHost -English "  Quickstart Complete! (~1-2 min)" -Chinese "  快速启动完成！(~1-2 分钟)" -ForegroundColor Green
     Write-Host "========================================" -ForegroundColor Cyan
     Write-Host ""
     Write-UIHost -English "  Platform initialized successfully." -Chinese "  平台已成功初始化。" -ForegroundColor Green
     Write-Host ""
     Write-UIHost -English "Next steps:" -Chinese "下一步:" -ForegroundColor Cyan
-    Write-UIHost -English "  adp up frontend    Start your first runtime (creates VM from ISO, ~20-30 min)" -Chinese "  adp up frontend    启动第一个运行时（从 ISO 创建 VM，约 20-30 分钟）" -ForegroundColor DarkGray
+    Write-UIHost -English "  adp up frontend    Start your first runtime (creates VM from ISO, ~20-30 min first time)" -Chinese "  adp up frontend    启动第一个运行时（从 ISO 创建 VM，首次约 20-30 分钟）" -ForegroundColor DarkGray
     Write-UIHost -English "  adp doctor         Check platform health" -Chinese "  adp doctor         检查平台健康状态" -ForegroundColor DarkGray
     Write-UIHost -English "  adp help           See all commands" -Chinese "  adp help           查看所有命令" -ForegroundColor DarkGray
     Write-Host ""

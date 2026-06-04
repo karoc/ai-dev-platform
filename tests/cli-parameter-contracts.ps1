@@ -131,7 +131,7 @@ Assert-Contains -Name "installer smoke expects Simplified Chinese completion" -T
 Assert-Contains -Name "CLI help supports Simplified Chinese" -Text $cli -Pattern 'Get-UILanguage[\s\S]*"zh-CN"[\s\S]*命令:[\s\S]*初始化平台[\s\S]*显示运行时状态[\s\S]*显示已支持和计划中的运行时能力'
 Assert-Contains -Name "CLI unknown command supports Simplified Chinese" -Text $cli -Pattern '未知命令: \$Command[\s\S]*可用命令:'
 Assert-Contains -Name "fresh deployment init supports Simplified Chinese" -Text $init -Pattern 'Write-UIHost[\s\S]*ADP-OS 初始化[\s\S]*SSH 密钥[\s\S]*运行时拓扑[\s\S]*ADP-OS 阶段 2 初始化完成'
-Assert-Contains -Name "fresh deployment doctor supports Simplified Chinese" -Text $doctor -Pattern 'Write-UIHost[\s\S]*ADP-OS Doctor — 系统诊断[\s\S]*所有检查通过。平台状态健康。[\s\S]*首次使用检查清单[\s\S]*检查本机 VMware NAT 是否对齐'
+Assert-Contains -Name "fresh deployment doctor supports Simplified Chinese" -Text $doctor -Pattern 'Write-UIHost[\s\S]*ADP-OS Doctor — 系统诊断[\s\S]*所有检查通过。平台状态健康。[\s\S]*首次使用检查清单[\s\S]*预计总耗时[\s\S]*平台设置'
 Assert-Contains -Name "fresh deployment up plan supports Simplified Chinese" -Text $up -Pattern 'Write-UIHost[\s\S]*ADP-OS: 正在启动 \$RuntimeName[\s\S]*仅预览：不会创建、启动、provision 或 bootstrap 任何 VM[\s\S]*运行时:[\s\S]*工作区:'
 Assert-Contains -Name "fresh deployment up NAT mismatch supports Simplified Chinese" -Text $up -Pattern '创建 VM 前检测到 VMware NAT 不匹配[\s\S]*方案 A：将 ADP 本机覆盖对齐到当前 host VMnet8[\s\S]*方案 B：保留 ADP 配置的网段[\s\S]*未创建任何 VM'
 Assert-Contains -Name "fresh deployment status header supports Simplified Chinese" -Text $status -Pattern 'Write-UIHost[\s\S]*ADP-OS 状态[\s\S]*仅查看状态：不会修改 VM[\s\S]*本机配置:[\s\S]*网络:[\s\S]*SSH 密钥:'
