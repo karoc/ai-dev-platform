@@ -139,6 +139,14 @@ function Show-Help {
         Write-Host ""
         Write-Host "Use 'adp <command> --help' for detailed per-command help." -ForegroundColor DarkGray
     }
+    if (-not (Test-Path (Join-Path $script:ProjectRoot "adp.cmd"))) {
+        Write-Host ""
+        if ((Get-UILanguage) -eq "zh-CN") {
+            Write-Host "提示：运行 '.\\install.ps1' 以启用 'adp' 命令快捷方式，之后可直接使用 'adp <command>' 代替 '.\\cli\\adp.ps1'。" -ForegroundColor Green
+        } else {
+            Write-Host "Tip: Run '.\\install.ps1' to enable the 'adp' command shortcut — you can then use 'adp <command>' instead of '.\\cli\\adp.ps1'." -ForegroundColor Green
+        }
+    }
     Write-Host ""
 }
 
@@ -244,26 +252,30 @@ function Show-CommandHelp {
             }
             "workspace" {
                 Write-Host "用法:" -ForegroundColor Yellow
-                Write-Host "  adp workspace <init|show|plan|status|dashboard|report|recipes|create|open|sync|project|task>"
+                Write-Host "  adp workspace <command> [-ManifestPath <path>] [-Plan] [-Markdown]"
                 Write-Host ""
-                Write-Host "子命令:" -ForegroundColor Yellow
-                Write-Host "  init              初始化工作区"
-                Write-Host "  show              显示工作区信息"
-                Write-Host "  plan              显示执行计划"
-                Write-Host "  status            显示任务状态"
-                Write-Host "  dashboard         显示工作区仪表盘"
-                Write-Host "  report            生成报告"
-                Write-Host "  recipes           列出可用模板"
-                Write-Host "  create            创建工作区"
-                Write-Host "  open              打开工作区"
-                Write-Host "  sync              同步工作区文件"
-                Write-Host "  project           项目管理"
-                Write-Host "  task              任务管理"
+                Write-Host "查看:" -ForegroundColor Yellow
+                Write-Host "  show              显示工作区 manifest 详情"
+                Write-Host "  plan              预览工作区计划"
+                Write-Host "  status [name]     显示工作区任务状态"
+                Write-Host "  dashboard         显示工作区健康仪表板"
+                Write-Host "  report            生成工作区报告"
+                Write-Host "  recipes           列出工作区配方"
+                Write-Host ""
+                Write-Host "管理:" -ForegroundColor Yellow
+                Write-Host "  init              初始化工作区 manifest"
+                Write-Host "  create            创建工作区项目"
+                Write-Host "  open [name]       显示项目打开指南"
+                Write-Host "  sync [name]       显示项目同步指南"
+                Write-Host "  project [name]    显示项目生命周期"
+                Write-Host "  task <action> <name>  管理工作区任务 (prepare|snapshot|run|validate|review|rollback|commit)"
                 Write-Host ""
                 Write-Host "通用选项:" -ForegroundColor Yellow
                 Write-Host "  -ManifestPath     指定 manifest 文件路径（默认: adp-workspace.json）"
                 Write-Host "  -Plan             仅显示计划（dry-run）"
                 Write-Host "  -Markdown         以 Markdown 格式输出"
+                Write-Host ""
+                Write-Host "使用 'adp workspace help' 查看分组子命令帮助。" -ForegroundColor DarkGray
                 Write-Host ""
                 Write-Host "示例:" -ForegroundColor Yellow
                 Write-Host "  adp workspace init"
@@ -560,26 +572,30 @@ function Show-CommandHelp {
             }
             "workspace" {
                 Write-Host "Usage:" -ForegroundColor Yellow
-                Write-Host "  adp workspace <init|show|plan|status|dashboard|report|recipes|create|open|sync|project|task>"
+                Write-Host "  adp workspace <command> [-ManifestPath <path>] [-Plan] [-Markdown]"
                 Write-Host ""
-                Write-Host "Subcommands:" -ForegroundColor Yellow
-                Write-Host "  init             Initialize workspace"
-                Write-Host "  show             Show workspace info"
-                Write-Host "  plan             Show execution plan"
-                Write-Host "  status           Show task status"
-                Write-Host "  dashboard        Show workspace dashboard"
-                Write-Host "  report           Generate report"
-                Write-Host "  recipes          List available templates"
-                Write-Host "  create           Create workspace"
-                Write-Host "  open             Open workspace"
-                Write-Host "  sync             Sync workspace files"
-                Write-Host "  project          Project management"
-                Write-Host "  task             Task management"
+                Write-Host "Inspect:" -ForegroundColor Yellow
+                Write-Host "  show             Show workspace manifest details"
+                Write-Host "  plan             Preview workspace plan"
+                Write-Host "  status [name]    Show workspace task status"
+                Write-Host "  dashboard        Show workspace health dashboard"
+                Write-Host "  report           Generate workspace report"
+                Write-Host "  recipes          List workspace recipes"
+                Write-Host ""
+                Write-Host "Manage:" -ForegroundColor Yellow
+                Write-Host "  init             Initialize workspace manifest"
+                Write-Host "  create           Create workspace projects"
+                Write-Host "  open [name]      Show project open guide"
+                Write-Host "  sync [name]      Show project sync guide"
+                Write-Host "  project [name]   Show project lifecycle"
+                Write-Host "  task <action> <name>  Manage workspace tasks (prepare|snapshot|run|validate|review|rollback|commit)"
                 Write-Host ""
                 Write-Host "Common options:" -ForegroundColor Yellow
                 Write-Host "  -ManifestPath    Specify manifest file path (default: adp-workspace.json)"
                 Write-Host "  -Plan            Show plan only (dry-run)"
                 Write-Host "  -Markdown        Output in Markdown format"
+                Write-Host ""
+                Write-Host "Use 'adp workspace help' for grouped subcommand help." -ForegroundColor DarkGray
                 Write-Host ""
                 Write-Host "Examples:" -ForegroundColor Yellow
                 Write-Host "  adp workspace init"

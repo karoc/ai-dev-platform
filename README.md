@@ -43,6 +43,9 @@ wsl -u root bash -lc "apt-get update && DEBIAN_FRONTEND=noninteractive apt-get i
 
 ## Quick Start
 
+> [!TIP]
+> New to ADP-OS? Start with the **[Getting Started](docs/getting-started.md)** guide ([简体中文](docs/zh-CN/getting-started.md)) — a step-by-step tutorial with architecture diagram, prerequisites checklist, expected timeline, and common mistakes.
+
 > [!WARNING]
 > ADP-OS provisions local VMs with a default `adp:adp` user and password for automated sudo provisioning. These VMs are designed for local, single-user development on a trusted workstation. Do not expose them to untrusted networks without changing credentials and reviewing SSH access. See [Security](SECURITY.md) for the full local-development security model.
 
@@ -58,72 +61,93 @@ cd ai-dev-platform
 .\cli\adp.ps1 quickstart
 ```
 
-`adp quickstart` guides you through ISO download, platform bootstrap (`install.ps1`), initialization (`adp init -Quick`), and diagnostics (`adp doctor`) in a single interactive flow.
+`adp quickstart` automatically scans prerequisites first, guides you through ISO download, platform bootstrap (`install.ps1`), initialization (`adp init -Quick`), and diagnostics (`adp doctor`) in a single guided flow. If prerequisites are missing, it shows exactly what to install and exits — fix them, then re-run.
+
+**Before you start, check prerequisites:**
+
+```powershell
+.\cli\adp.ps1 precheck
+```
+
+`adp precheck` scans all 6 prerequisites (Windows 11, PowerShell 7+, VMware Workstation Pro, WSL+xorriso, Mutagen 0.18.x, OpenSSH) and prints a status table with specific remediation commands for each missing item. Run it before `quickstart` or `install.ps1` to see what you need. Use `adp precheck --help-prereqs` for the full requirements list with OS-specific install commands.
 
 **Alternatively, step-by-step:**
 
-Clone the repository:
+Clone the repository and install the platform:
 
 ```powershell
 git clone https://github.com/karoc/ai-dev-platform.git
 cd ai-dev-platform
+.\\install.ps1
+```
+
+Check what you need before continuing:
+
+```powershell
+adp precheck
 ```
 
 Download the Ubuntu Server ISO:
 
 ```powershell
-# Automatic download (recommended):
-.\cli\adp.ps1 iso
+# Automatic download (recommended, uses BITS transfer with resume support):
+adp iso
+
+# Download a different distro:
+adp iso almalinux
+adp iso rocky
+adp iso debian
+
+# If you're in China, use a mirror for faster download:
+adp iso -Url "https://mirrors.aliyun.com/ubuntu-releases/26.04/ubuntu-26.04-live-server-amd64.iso"
+adp iso -Url "https://mirrors.ustc.edu.cn/ubuntu-releases/26.04/ubuntu-26.04-live-server-amd64.iso"
+adp iso -Url "https://mirrors.tuna.tsinghua.edu.cn/ubuntu-releases/26.04/ubuntu-26.04-live-server-amd64.iso"
 
 # Or download manually:
 # PowerShell: Invoke-WebRequest -Uri "https://releases.ubuntu.com/26.04/ubuntu-26.04-live-server-amd64.iso" -OutFile "$env:USERPROFILE\adp-iso\ubuntu-26.04-live-server-amd64.iso"
 # WSL:        wget -P /mnt/c/Users/$env:USERNAME/adp-iso/ https://releases.ubuntu.com/26.04/ubuntu-26.04-live-server-amd64.iso
 ```
 
-Or pass it during initialization:
-
-```powershell
-.\install.ps1 -IsoPath C:\path\to\ubuntu-26.04-live-server-amd64.iso
-```
-
 For machine-specific paths, VM sizing, static IPs, or local bootstrap credentials, copy the ignored local override example:
 
 ```powershell
-Copy-Item configs\local.example.json configs\local.json
+Copy-Item configs\\local.example.json configs\\local.json
 ```
 
 See [Configuration](docs/configuration.md#local-overrides) for supported local override sections.
 
-Initialize the platform:
+Initialize your first runtime:
 
 ```powershell
-.\install.ps1
-.\cli\adp.ps1 init           # or: adp init -Quick (skip redundant dep re-checks if install.ps1 already ran)
+adp init           # or: adp init -Quick (skip redundant dep re-checks since install.ps1 already ran)
 ```
+
+> [!NOTE]
+> After running `install.ps1`, the `adp.cmd` wrapper is available — use bare `adp` instead of `.\\cli\\adp.ps1` for all subsequent commands.
 
 ### Runtime Operations
 
 Create and start runtimes:
 
 ```powershell
-.\cli\adp.ps1 up frontend
-.\cli\adp.ps1 up backend
-.\cli\adp.ps1 up agent
+adp up frontend
+adp up backend
+adp up agent
 ```
 
 Check runtime status and connection details:
 
 ```powershell
-.\cli\adp.ps1 status
-.\cli\adp.ps1 status agent
+adp status
+adp status agent
 ```
 
 Start workspace synchronization:
 
 ```powershell
-.\cli\adp.ps1 sync start frontend
-.\cli\adp.ps1 sync start backend
-.\cli\adp.ps1 sync start agent
+adp sync start frontend
+adp sync start backend
+adp sync start agent
 ```
 
 Prepare frontend browser acceptance testing when needed:
@@ -137,10 +161,10 @@ adp-frontend-browser-install chromium
 Check health:
 
 ```powershell
-.\cli\adp.ps1 doctor
-.\cli\adp.ps1 doctor -FirstRun
-.\cli\adp.ps1 doctor -FixMutagen -Plan
-.\cli\adp.ps1 sync status
+adp doctor
+adp doctor -FirstRun
+adp doctor -FixMutagen -Plan
+adp sync status
 ```
 
 `install.ps1` and `doctor` check VMware tooling, `vmware-vdiskmanager.exe`, WSL, WSL `xorriso`, Mutagen 0.18.x, OpenSSH, ISO presence, and basic ISO shape. They print remediation commands or placement guidance, but do not download large binaries by default. To install the tested local Mutagen binary, preview first with `doctor -FixMutagen -Plan`, then run `doctor -FixMutagen`; the archive and extracted binary stay under ignored `.tools\mutagen`. If GitHub release downloads are slow or blocked, place `mutagen_windows_amd64_v0.18.1.zip` under `.tools\mutagen` or set `platform.tools.mutagen.archive_path` in `configs\local.json`; set `platform.tools.mutagen.sha256` to enforce archive hash verification.
@@ -169,9 +193,9 @@ For targeted validation:
 Create clean snapshots:
 
 ```powershell
-.\cli\adp.ps1 snapshot create frontend clean
-.\cli\adp.ps1 snapshot create backend clean
-.\cli\adp.ps1 snapshot create agent clean
+adp snapshot create frontend clean
+adp snapshot create backend clean
+adp snapshot create agent clean
 ```
 
 ## Default Runtimes
@@ -187,7 +211,7 @@ Static addresses are configured in `configs\topology.json`. The VMware NAT subne
 Apply configured networking to existing VMs:
 
 ```powershell
-.\cli\adp.ps1 network apply all
+adp network apply all
 ```
 
 ## Workspace Paths
@@ -225,16 +249,16 @@ See [Capabilities](docs/capabilities.md) for the current supported runtime and a
 ADP-OS also includes a multi-scenario workspace recipes manifest for common agent-native workflows:
 
 ```powershell
-.\cli\adp.ps1 workspace show -ManifestPath configs\workspace.recipes.example.json
-.\cli\adp.ps1 workspace plan -ManifestPath configs\workspace.recipes.example.json
-.\cli\adp.ps1 workspace recipes -ManifestPath configs\workspace.recipes.example.json
-.\cli\adp.ps1 workspace create -Plan -ManifestPath configs\workspace.recipes.example.json
-.\cli\adp.ps1 workspace open frontend-app -ManifestPath configs\workspace.recipes.example.json
-.\cli\adp.ps1 workspace sync frontend-app -ManifestPath configs\workspace.recipes.example.json
-.\cli\adp.ps1 workspace project frontend-app -ManifestPath configs\workspace.recipes.example.json
-.\cli\adp.ps1 workspace dashboard -ManifestPath configs\workspace.recipes.example.json
-.\cli\adp.ps1 workspace report -ManifestPath configs\workspace.recipes.example.json
-.\cli\adp.ps1 workspace report -Markdown -ManifestPath configs\workspace.recipes.example.json
+adp workspace show -ManifestPath configs\workspace.recipes.example.json
+adp workspace plan -ManifestPath configs\workspace.recipes.example.json
+adp workspace recipes -ManifestPath configs\workspace.recipes.example.json
+adp workspace create -Plan -ManifestPath configs\workspace.recipes.example.json
+adp workspace open frontend-app -ManifestPath configs\workspace.recipes.example.json
+adp workspace sync frontend-app -ManifestPath configs\workspace.recipes.example.json
+adp workspace project frontend-app -ManifestPath configs\workspace.recipes.example.json
+adp workspace dashboard -ManifestPath configs\workspace.recipes.example.json
+adp workspace report -ManifestPath configs\workspace.recipes.example.json
+adp workspace report -Markdown -ManifestPath configs\workspace.recipes.example.json
 ```
 
 The recipes cover low-risk maintenance, frontend browser acceptance, backend validation, and high-risk agent work with a snapshot-first gate. They also demonstrate optional `milestones[]` planning so related tasks can share a visible milestone checkpoint such as `milestone-agent-refactor-safety`, plus plan-only `evaluations[]` hooks so agent-native review criteria, metrics, and declared evaluation commands can appear in release evidence without being executed. `workspace recipes` is the discovery view for these examples: it summarizes project recipes, task recipes, milestone checkpoints, evaluation hooks, and evidence commands without cloning projects, opening SSH, creating snapshots, running validation, running evaluation commands, starting sync, or running Git. `workspace create -Plan` previews local project directories declared by the manifest; `workspace create` creates only those local directories and still does not clone projects, start sync, start runtimes, open SSH, create snapshots, run validation, run evaluation commands, or run Git. `workspace open` prints a non-destructive open guide for one project: local path, remote path, readiness, and copyable local, editor, SSH, sync, and status commands. `workspace sync` prints a non-destructive project-aware sync guide: it maps the manifest project back to the runtime sync session, shows sync readiness and sync hygiene, and prints the runtime `adp sync` commands to run explicitly. `workspace project` prints the project operational lifecycle in one place: open, runtime, sync, validation, linked tasks, and evidence handoff. `workspace report` also prints a release handoff summary that counts validation results, lists blockers, shows tasks ready for review or commit, names the current release gate, exposes milestone checkpoint status, exposes evaluation queue status, and exposes task governance fields such as owner, review cadence, and due date. It also groups tasks into owner queues, review cadence queues, milestone queues, milestone review rollups, a validation execution queue, an evaluation queue, an attention queue for recurring review, decision queues for actions such as validate, review, revise, snapshot, or commit, a release decision policy, and stale-task remediation guidance. Add `-Markdown` to generate copyable PR or release evidence with the same decision state, including Validation Execution Queue, Evaluation Queue, Milestone Checkpoints, and Milestone Review Rollup tables. The recipes are planning examples only; the workspace commands do not install packages, download browsers, create snapshots, run validation, run evaluation commands, open editors, SSH into runtimes, start sync, stop sync, or commit files.
@@ -242,8 +266,8 @@ The recipes cover low-risk maintenance, frontend browser acceptance, backend val
 Validation can be executed explicitly from a task recipe:
 
 ```powershell
-.\cli\adp.ps1 workspace task validate frontend-browser-acceptance -Execute -Plan -ManifestPath configs\workspace.recipes.example.json
-.\cli\adp.ps1 workspace task validate frontend-browser-acceptance -Execute -ManifestPath configs\workspace.recipes.example.json
+adp workspace task validate frontend-browser-acceptance -Execute -Plan -ManifestPath configs\workspace.recipes.example.json
+adp workspace task validate frontend-browser-acceptance -Execute -ManifestPath configs\workspace.recipes.example.json
 ```
 
 `-Execute -Plan` previews the readiness gate and remote SSH commands. `-Execute` runs only the declared `tasks[].validation` commands in the target project directory and records the result in ignored local workspace state. Review, rollback, and commit commands read that recorded result to show decision gates, but staging, restore, and commit execution remain separate explicit steps.
@@ -251,38 +275,38 @@ Validation can be executed explicitly from a task recipe:
 ## Command Reference
 
 ```powershell
-.\cli\adp.ps1 iso [ubuntu|almalinux|rocky|debian] [-Url <url>] [-Force]
-.\cli\adp.ps1 quickstart [-Distro <name>] [-IsoPath <path>] [-SkipIsoDownload] [-SkipDoctor]
-.\cli\adp.ps1 init
-.\cli\adp.ps1 init <frontend|backend|agent> [-IsoPath <path>] [-NoProvision] [-Quick]
-.\cli\adp.ps1 up <frontend|backend|agent> [-IsoPath <path>] [-Plan] [-NoProvision] [-NoBootstrap]
-.\cli\adp.ps1 status [frontend|backend|agent]
-.\cli\adp.ps1 capabilities
-.\cli\adp.ps1 stop <frontend|backend|agent>
-.\cli\adp.ps1 sync status
-.\cli\adp.ps1 workspace init
-.\cli\adp.ps1 workspace show
-.\cli\adp.ps1 workspace plan
-.\cli\adp.ps1 workspace status
-.\cli\adp.ps1 workspace dashboard
-.\cli\adp.ps1 workspace recipes
-.\cli\adp.ps1 workspace create [-Plan]
-.\cli\adp.ps1 workspace open [project-name]
-.\cli\adp.ps1 workspace sync [project-name]
-.\cli\adp.ps1 workspace project [project-name]
-.\cli\adp.ps1 workspace report
-.\cli\adp.ps1 workspace report [-Markdown]
-.\cli\adp.ps1 workspace task <prepare|snapshot|run|validate|review|rollback|commit> <task-name>
-.\cli\adp.ps1 workspace task validate <task-name> [-Execute] [-Plan]
-.\cli\adp.ps1 workspace task mark <task-name> <prepared|checkpointed|checkpoint-waived|running|validated|reviewed|rollback|committed>
-.\cli\adp.ps1 sync start <frontend|backend|agent>
-.\cli\adp.ps1 sync stop <frontend|backend|agent>
-.\cli\adp.ps1 network apply <frontend|backend|agent|all> [-Plan]
-.\cli\adp.ps1 snapshot create <runtime> <name>
-.\cli\adp.ps1 restore <runtime> <name>
-.\cli\adp.ps1 logs <runtime>
-.\cli\adp.ps1 doctor [-FirstRun] [-FixMutagen] [-Plan]
-.\cli\adp.ps1 destroy <runtime> [-Plan]
+adp iso [ubuntu|almalinux|rocky|debian] [-Url <url>] [-Force] [-NonInteractive]
+adp quickstart [-Distro <name>] [-IsoPath <path>] [-SkipIsoDownload] [-SkipDoctor] [-Force] [-NonInteractive]
+adp init
+adp init <frontend|backend|agent> [-IsoPath <path>] [-NoProvision] [-Quick] [-NonInteractive]
+adp up <frontend|backend|agent> [-IsoPath <path>] [-Plan] [-NoProvision] [-NoBootstrap]
+adp status [frontend|backend|agent]
+adp capabilities
+adp stop <frontend|backend|agent>
+adp sync status
+adp workspace init
+adp workspace show
+adp workspace plan
+adp workspace status
+adp workspace dashboard
+adp workspace recipes
+adp workspace create [-Plan]
+adp workspace open [project-name]
+adp workspace sync [project-name]
+adp workspace project [project-name]
+adp workspace report
+adp workspace report [-Markdown]
+adp workspace task <prepare|snapshot|run|validate|review|rollback|commit> <task-name>
+adp workspace task validate <task-name> [-Execute] [-Plan]
+adp workspace task mark <task-name> <prepared|checkpointed|checkpoint-waived|running|validated|reviewed|rollback|committed>
+adp sync start <frontend|backend|agent>
+adp sync stop <frontend|backend|agent>
+adp network apply <frontend|backend|agent|all> [-Plan]
+adp snapshot create <runtime> <name>
+adp restore <runtime> <name>
+adp logs <runtime>
+adp doctor [-FirstRun] [-FixMutagen] [-Plan]
+adp destroy <runtime> [-Plan]
 ```
 
 ## What Success Looks Like
@@ -323,6 +347,7 @@ agent     watching  %USERPROFILE%\adp-workspaces\agent   /home/adp/workspace
 
 ## Documentation
 
+- **[Getting Started](docs/getting-started.md)** ([简体中文](docs/zh-CN/getting-started.md)) — first-time setup tutorial.
 - [Documentation Home](docs/README.md)
 - [ADP-OS and Docker](docs/positioning.md)
 - [Architecture](docs/architecture.md)

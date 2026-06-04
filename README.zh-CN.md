@@ -43,61 +43,65 @@ wsl -u root bash -lc "apt-get update && DEBIAN_FRONTEND=noninteractive apt-get i
 
 ## 快速开始
 
-克隆仓库：
+克隆仓库并安装平台：
 
 ```powershell
 git clone https://github.com/karoc/ai-dev-platform.git
 cd ai-dev-platform
+.\\install.ps1
 ```
 
-将 Ubuntu ISO 放到：
-
-```text
-%USERPROFILE%\adp-iso\ubuntu-26.04-live-server-amd64.iso
-```
-
-或者在初始化时传入 ISO 路径：
+下载 Ubuntu Server ISO（使用 BITS 传输，支持断点续传）：
 
 ```powershell
-.\install.ps1 -IsoPath C:\path\to\ubuntu-26.04-live-server-amd64.iso
+adp iso
+```
+
+> [!TIP]
+> 运行 `install.ps1` 后，`adp.cmd` 包装器即已可用 — 后续所有命令均可使用裸 `adp` 代替 `.\\cli\\adp.ps1`。
+
+如果您在中国，使用镜像下载更快：
+
+```powershell
+adp iso -Url "https://mirrors.aliyun.com/ubuntu-releases/26.04/ubuntu-26.04-live-server-amd64.iso"
+adp iso -Url "https://mirrors.ustc.edu.cn/ubuntu-releases/26.04/ubuntu-26.04-live-server-amd64.iso"
 ```
 
 如需设置本机路径、VM 规格、静态 IP 或本地 bootstrap 凭据，可以复制已被忽略的本地覆盖示例：
 
 ```powershell
-Copy-Item configs\local.example.json configs\local.json
+Copy-Item configs\\local.example.json configs\\local.json
 ```
 
 支持的本地覆盖字段见[配置说明](docs/zh-CN/configuration.md#本地覆盖)。
 
-初始化平台：
+初始化运行时：
 
 ```powershell
-.\install.ps1
-.\cli\adp.ps1 init
+adp init
 ```
 
 创建并启动运行时：
 
 ```powershell
-.\cli\adp.ps1 up frontend
-.\cli\adp.ps1 up backend
-.\cli\adp.ps1 up agent
+adp up frontend
+adp up backend
+adp up agent
 ```
 
 查看运行时状态和连接信息：
 
 ```powershell
-.\cli\adp.ps1 status
-.\cli\adp.ps1 status agent
+adp status
+adp status agent
 ```
 
 启动工作区同步：
 
 ```powershell
-.\cli\adp.ps1 sync start frontend
-.\cli\adp.ps1 sync start backend
-.\cli\adp.ps1 sync start agent
+adp sync start frontend
+adp sync start backend
+adp sync start agent
 ```
 
 需要时准备 frontend 浏览器验收测试：
@@ -111,10 +115,10 @@ adp-frontend-browser-install chromium
 检查健康状态：
 
 ```powershell
-.\cli\adp.ps1 doctor
-.\cli\adp.ps1 doctor -FirstRun
-.\cli\adp.ps1 doctor -FixMutagen -Plan
-.\cli\adp.ps1 sync status
+adp doctor
+adp doctor -FirstRun
+adp doctor -FixMutagen -Plan
+adp sync status
 ```
 
 `install.ps1` 和 `doctor` 会检查 VMware 工具、`vmware-vdiskmanager.exe`、WSL、WSL `xorriso`、Mutagen 0.18.x、OpenSSH、ISO 是否存在以及 ISO 基本形态。它们会输出修复命令或放置路径提示，但默认不会下载大型二进制文件。如需安装经过测试的本地 Mutagen binary，先运行 `doctor -FixMutagen -Plan` 预览，再运行 `doctor -FixMutagen`；archive 和解压后的 binary 会保留在已忽略的 `.tools\mutagen` 下。如果 GitHub release 下载很慢或不可达，可以把 `mutagen_windows_amd64_v0.18.1.zip` 放到 `.tools\mutagen`，或在 `configs\local.json` 中设置 `platform.tools.mutagen.archive_path`；设置 `platform.tools.mutagen.sha256` 后会强制校验 archive hash。
@@ -143,9 +147,9 @@ adp-frontend-browser-install chromium
 创建干净快照：
 
 ```powershell
-.\cli\adp.ps1 snapshot create frontend clean
-.\cli\adp.ps1 snapshot create backend clean
-.\cli\adp.ps1 snapshot create agent clean
+adp snapshot create frontend clean
+adp snapshot create backend clean
+adp snapshot create agent clean
 ```
 
 ## 默认运行时
@@ -161,7 +165,7 @@ adp-frontend-browser-install chromium
 对已有 VM 应用配置的网络：
 
 ```powershell
-.\cli\adp.ps1 network apply all
+adp network apply all
 ```
 
 ## 工作区路径
@@ -198,16 +202,16 @@ git clone <project-url> my-project
 ADP-OS 还提供一个多场景 workspace recipes manifest，用于常见 agent-native workflow：
 
 ```powershell
-.\cli\adp.ps1 workspace show -ManifestPath configs\workspace.recipes.example.json
-.\cli\adp.ps1 workspace plan -ManifestPath configs\workspace.recipes.example.json
-.\cli\adp.ps1 workspace recipes -ManifestPath configs\workspace.recipes.example.json
-.\cli\adp.ps1 workspace create -Plan -ManifestPath configs\workspace.recipes.example.json
-.\cli\adp.ps1 workspace open frontend-app -ManifestPath configs\workspace.recipes.example.json
-.\cli\adp.ps1 workspace sync frontend-app -ManifestPath configs\workspace.recipes.example.json
-.\cli\adp.ps1 workspace project frontend-app -ManifestPath configs\workspace.recipes.example.json
-.\cli\adp.ps1 workspace dashboard -ManifestPath configs\workspace.recipes.example.json
-.\cli\adp.ps1 workspace report -ManifestPath configs\workspace.recipes.example.json
-.\cli\adp.ps1 workspace report -Markdown -ManifestPath configs\workspace.recipes.example.json
+adp workspace show -ManifestPath configs\workspace.recipes.example.json
+adp workspace plan -ManifestPath configs\workspace.recipes.example.json
+adp workspace recipes -ManifestPath configs\workspace.recipes.example.json
+adp workspace create -Plan -ManifestPath configs\workspace.recipes.example.json
+adp workspace open frontend-app -ManifestPath configs\workspace.recipes.example.json
+adp workspace sync frontend-app -ManifestPath configs\workspace.recipes.example.json
+adp workspace project frontend-app -ManifestPath configs\workspace.recipes.example.json
+adp workspace dashboard -ManifestPath configs\workspace.recipes.example.json
+adp workspace report -ManifestPath configs\workspace.recipes.example.json
+adp workspace report -Markdown -ManifestPath configs\workspace.recipes.example.json
 ```
 
 这些 recipes 覆盖低风险维护、frontend 浏览器验收、backend 验证，以及带 snapshot-first gate 的高风险 agent 工作。它们也演示了可选的 `milestones[]` planning，让相关 task 可以共享一个可见的 milestone checkpoint，例如 `milestone-agent-refactor-safety`；还演示了 plan-only `evaluations[]` hooks，让 agent-native review criteria、metrics 和声明式 evaluation commands 可以进入 release evidence，但不会被执行。`workspace recipes` 是这些示例的 discovery view：它会汇总 project recipes、task recipes、milestone checkpoints、evaluation hooks 和 evidence commands，但不会 clone project、打开 SSH、创建快照、运行 validation、运行 evaluation commands、启动 sync 或运行 Git。`workspace create -Plan` 会预览 manifest 声明的本地项目目录；`workspace create` 只会创建这些本地目录，仍然不会 clone project、启动 sync、启动 runtime、打开 SSH、创建快照、运行 validation、运行 evaluation commands 或运行 Git。`workspace open` 会为单个项目打印非破坏性的 open guide：local path、remote path、readiness，以及可复制的本地、编辑器、SSH、sync 和 status 命令。`workspace sync` 会打印非破坏性的 project-aware sync guide：它会把 manifest project 映射回 runtime sync session，显示 sync readiness 和 sync hygiene，并打印需要显式执行的 runtime `adp sync` 命令。`workspace project` 会在一个位置打印 project operational lifecycle：open、runtime、sync、validation、linked tasks 和 evidence handoff。`workspace report` 还会打印 release handoff summary，用于统计 validation result、列出 blockers、显示 ready for review 或 ready to commit 的 task、标明当前 release gate，暴露 milestone checkpoint status、evaluation queue status，并暴露 owner、review cadence、due date 等 task governance 字段。它还会按 owner queue、review cadence queue、milestone queue、milestone review rollup、validation execution queue、evaluation queue、attention queue 和 decision queues 聚合 task，用于周期性 review，并给出 validate、review、revise、snapshot 或 commit 等下一步动作分类，同时输出 release decision policy 和 stale-task remediation guidance。添加 `-Markdown` 可以生成可复制到 PR 或 release 的 evidence，并保持同一套 decision state，其中包含 Validation Execution Queue、Evaluation Queue、Milestone Checkpoints 和 Milestone Review Rollup tables。这些 recipes 只是 planning examples；workspace 命令不会安装 packages、下载浏览器、创建快照、运行验证、运行 evaluation commands、打开编辑器、SSH 进入 runtime、启动 sync、停止 sync 或 commit 文件。
@@ -215,8 +219,8 @@ ADP-OS 还提供一个多场景 workspace recipes manifest，用于常见 agent-
 Validation 可以从 task recipe 中显式执行：
 
 ```powershell
-.\cli\adp.ps1 workspace task validate frontend-browser-acceptance -Execute -Plan -ManifestPath configs\workspace.recipes.example.json
-.\cli\adp.ps1 workspace task validate frontend-browser-acceptance -Execute -ManifestPath configs\workspace.recipes.example.json
+adp workspace task validate frontend-browser-acceptance -Execute -Plan -ManifestPath configs\workspace.recipes.example.json
+adp workspace task validate frontend-browser-acceptance -Execute -ManifestPath configs\workspace.recipes.example.json
 ```
 
 `-Execute -Plan` 会预览 readiness gate 和远端 SSH 命令。`-Execute` 只会在目标项目目录中运行已声明的 `tasks[].validation` 命令，并把结果记录到已忽略的本地 workspace state。Review、rollback 和 commit 命令会读取这个记录并显示 decision gate，但 stage、restore 和真正执行 commit 仍然是独立的显式步骤。
@@ -224,36 +228,38 @@ Validation 可以从 task recipe 中显式执行：
 ## 命令参考
 
 ```powershell
-.\cli\adp.ps1 init
-.\cli\adp.ps1 init <frontend|backend|agent> [-IsoPath <path>] [-NoProvision]
-.\cli\adp.ps1 up <frontend|backend|agent> [-IsoPath <path>] [-Plan] [-NoProvision] [-NoBootstrap]
-.\cli\adp.ps1 status [frontend|backend|agent]
-.\cli\adp.ps1 capabilities
-.\cli\adp.ps1 stop <frontend|backend|agent>
-.\cli\adp.ps1 sync status
-.\cli\adp.ps1 workspace init
-.\cli\adp.ps1 workspace show
-.\cli\adp.ps1 workspace plan
-.\cli\adp.ps1 workspace status
-.\cli\adp.ps1 workspace dashboard
-.\cli\adp.ps1 workspace recipes
-.\cli\adp.ps1 workspace create [-Plan]
-.\cli\adp.ps1 workspace open [project-name]
-.\cli\adp.ps1 workspace sync [project-name]
-.\cli\adp.ps1 workspace project [project-name]
-.\cli\adp.ps1 workspace report
-.\cli\adp.ps1 workspace report [-Markdown]
-.\cli\adp.ps1 workspace task <prepare|snapshot|run|validate|review|rollback|commit> <task-name>
-.\cli\adp.ps1 workspace task validate <task-name> [-Execute] [-Plan]
-.\cli\adp.ps1 workspace task mark <task-name> <prepared|checkpointed|checkpoint-waived|running|validated|reviewed|rollback|committed>
-.\cli\adp.ps1 sync start <frontend|backend|agent>
-.\cli\adp.ps1 sync stop <frontend|backend|agent>
-.\cli\adp.ps1 network apply <frontend|backend|agent|all> [-Plan]
-.\cli\adp.ps1 snapshot create <runtime> <name>
-.\cli\adp.ps1 restore <runtime> <name>
-.\cli\adp.ps1 logs <runtime>
-.\cli\adp.ps1 doctor [-FirstRun] [-FixMutagen] [-Plan]
-.\cli\adp.ps1 destroy <runtime> [-Plan]
+adp iso [ubuntu|almalinux|rocky|debian] [-Url <url>] [-Force] [-NonInteractive]
+adp quickstart [-Distro <name>] [-IsoPath <path>] [-SkipIsoDownload] [-SkipDoctor] [-Force] [-NonInteractive]
+adp init
+adp init <frontend|backend|agent> [-IsoPath <path>] [-NoProvision] [-Quick] [-NonInteractive]
+adp up <frontend|backend|agent> [-IsoPath <path>] [-Plan] [-NoProvision] [-NoBootstrap]
+adp status [frontend|backend|agent]
+adp capabilities
+adp stop <frontend|backend|agent>
+adp sync status
+adp workspace init
+adp workspace show
+adp workspace plan
+adp workspace status
+adp workspace dashboard
+adp workspace recipes
+adp workspace create [-Plan]
+adp workspace open [project-name]
+adp workspace sync [project-name]
+adp workspace project [project-name]
+adp workspace report
+adp workspace report [-Markdown]
+adp workspace task <prepare|snapshot|run|validate|review|rollback|commit> <task-name>
+adp workspace task validate <task-name> [-Execute] [-Plan]
+adp workspace task mark <task-name> <prepared|checkpointed|checkpoint-waived|running|validated|reviewed|rollback|committed>
+adp sync start <frontend|backend|agent>
+adp sync stop <frontend|backend|agent>
+adp network apply <frontend|backend|agent|all> [-Plan]
+adp snapshot create <runtime> <name>
+adp restore <runtime> <name>
+adp logs <runtime>
+adp doctor [-FirstRun] [-FixMutagen] [-Plan]
+adp destroy <runtime> [-Plan]
 ```
 
 ## 文档
