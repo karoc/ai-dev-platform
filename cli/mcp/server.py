@@ -125,6 +125,116 @@ def _resolve_adp_home_win() -> str:
 
 
 # ---------------------------------------------------------------------------
+# Path normalization and conversion
+# ---------------------------------------------------------------------------
+
+def _normalize_windows_path(path: Optional[str], must_exist: bool = False) -> Optional[str]:
+    """Normalize a path for use with Windows pwsh.exe, converting from WSL if needed.
+
+    Handles:
+      - Windows native paths: C:\\..., D:/... (both slash styles) → returned as-is
+      - WSL paths: /mnt/c/... → C:\\... (via wslpath)
+      - Linux paths: /home/... → kept as-is on native Linux, converted on WSL
+
+    When running on WSL (not IS_WINDOWS), WSL-style paths are converted to their
+    Windows equivalent so pwsh.exe can access them. On native Windows, paths
+    pass through unchanged.
+
+    Args:
+        path: Any path string (Windows, WSL, or Linux style)
+        must_exist: If True, raises FileNotFoundError when path doesn't exist
+
+    Returns:
+        Normalized path string suitable for pwsh.exe invocation
+    """
+    if not path:
+        return path
+
+    normalized = path.replace("\\", "/")
+
+    # On native Windows, paths are already in Windows format — just validate
+    if IS_WINDOWS:
+        if must_exist and not Path(normalized).exists():
+            raise FileNotFoundError(f"Path does not exist: {path}")
+        return normalized
+
+    # On WSL/Linux: convert WSL paths to Windows paths for pwsh.exe
+    # WSL mount paths (/mnt/c/...) need conversion; regular Linux paths may too
+    if normalized.startswith("/mnt/"):
+        # WSL mount path → Windows path via wslpath
+        try:
+            result = subprocess.run(
+                ["wslpath", "-w", normalized],
+                capture_output=True, text=True, timeout=5,
+            )
+            if result.returncode == 0:
+                win_path = result.stdout.strip()
+                if must_exist:
+                    # Validate the Windows path exists via wslpath -u round-trip check
+                    check = subprocess.run(
+                        ["wslpath", "-u", win_path],
+                        capture_output=True, text=True, timeout=5,
+                    )
+                    if check.returncode != 0:
+                        raise FileNotFoundError(
+                            f"Path does not exist (wslpath round-trip failed): {path}"
+                        )
+                return win_path
+        except FileNotFoundError:
+            raise
+        except Exception:
+            pass
+        # Fall through: return as-is if conversion fails
+        return normalized
+
+    # Non-mount path on WSL (e.g., /home/...)
+    if must_exist and not Path(normalized).exists():
+        raise FileNotFoundError(f"Path does not exist: {path}")
+
+    return normalized
+
+
+def _wsl_to_win(path: str) -> str:
+    """Convert a WSL path to Windows path via wslpath.
+
+    Shortcut for _normalize_windows_path when you know it's a WSL path.
+    On native Windows, returns the path unchanged.
+    """
+    if IS_WINDOWS:
+        return path.replace("\\", "/")
+
+    try:
+        result = subprocess.run(
+            ["wslpath", "-w", path],
+            capture_output=True, text=True, timeout=5,
+        )
+        if result.returncode == 0:
+            return result.stdout.strip()
+    except Exception:
+        pass
+    return path
+
+
+def _win_to_wsl(path: str) -> str:
+    """Convert a Windows path to WSL path via wslpath.
+
+    On native Windows, returns the path unchanged.
+    """
+    if IS_WINDOWS:
+        return path.replace("\\", "/")
+
+    try:
+        result = subprocess.run(
+            ["wslpath", "-u", path],
+            capture_output=True, text=True, timeout=5,
+        )
+        if result.returncode == 0:
+            return result.stdout.strip()
+    except Exception:
+        pass
+    return path
+
+# ---------------------------------------------------------------------------
 # ADP CLI invocation
 # ---------------------------------------------------------------------------
 
@@ -674,14 +784,18 @@ def adp_up(
     Args:
         runtime: Runtime name to start (frontend, backend, agent)
         plan_only: If true (default), preview only without starting
-        iso_path: Optional path to Ubuntu Server ISO for first-time VM creation
+        iso_path: Optional path to Ubuntu Server ISO for first-time VM creation.
+                  Accepts both Windows (C:\\..., D:/...) and WSL (/mnt/d/...) paths.
     """
     args = ["up", runtime]
     if plan_only:
         args.append("-Plan")
     if iso_path:
-        args.append("-IsoPath")
-        args.append(iso_path)
+        # Normalize path: convert WSL→Windows if needed for pwsh.exe
+        normalized_iso = _normalize_windows_path(iso_path)
+        if normalized_iso:
+            args.append("-IsoPath")
+            args.append(normalized_iso)
     timeout = 300 if not plan_only else 120
     result = _run_adp(args, timeout=timeout)
     return _structured_result(result, {

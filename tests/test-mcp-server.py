@@ -418,6 +418,113 @@ Exploratory:
             assert home.exists()
             assert (home / "cli" / "adp.ps1").exists()
 
+    # --- Path normalization tests ---
+
+    def test_normalize_windows_empty(self):
+        """_normalize_windows_path returns empty string for falsy input."""
+        import cli.mcp.server as server
+
+        assert server._normalize_windows_path("") == ""
+        assert server._normalize_windows_path(None) is None
+
+    def test_normalize_windows_slash_style(self):
+        """_normalize_windows_path handles both forward and backward slashes."""
+        import cli.mcp.server as server
+
+        with patch.object(server, 'IS_WINDOWS', True):
+            # Backslashes normalized to forward slashes
+            result = server._normalize_windows_path("D:\\Dev\\ai-dev-platform")
+            assert "\\" not in result
+            assert "D:/Dev/ai-dev-platform" == result
+
+            # Forward slashes pass through
+            result = server._normalize_windows_path("D:/Dev/ai-dev-platform")
+            assert "D:/Dev/ai-dev-platform" == result
+
+    def test_normalize_windows_on_windows(self):
+        """_normalize_windows_path returns path as-is on native Windows."""
+        import cli.mcp.server as server
+
+        with patch.object(server, 'IS_WINDOWS', True):
+            result = server._normalize_windows_path("C:\\Users\\test\\file.iso")
+            assert result == "C:/Users/test/file.iso"
+
+            result = server._normalize_windows_path("D:/ISOs/ubuntu.iso")
+            assert result == "D:/ISOs/ubuntu.iso"
+
+    def test_normalize_windows_wsl_mount_path(self):
+        """_normalize_windows_path converts /mnt/X/... to X:\\... on WSL."""
+        import cli.mcp.server as server
+
+        # On WSL (IS_WINDOWS=False), /mnt/d/... should be converted
+        with patch.object(server, 'IS_WINDOWS', False):
+            # Mock subprocess.run to return a Windows path
+            with patch.object(server.subprocess, 'run') as mock_run:
+                mock_run.return_value = MagicMock(returncode=0, stdout="D:\\ISOs\\ubuntu.iso\n")
+
+                result = server._normalize_windows_path("/mnt/d/ISOs/ubuntu.iso")
+                assert result == "D:\\ISOs\\ubuntu.iso"
+
+    def test_normalize_windows_non_mount_path(self):
+        """_normalize_windows_path keeps non-mount paths unchanged on WSL."""
+        import cli.mcp.server as server
+
+        with patch.object(server, 'IS_WINDOWS', False):
+            # A regular path like /home/user/file.iso stays as-is
+            result = server._normalize_windows_path("/home/user/file.iso")
+            assert result == "/home/user/file.iso"
+
+    def test_normalize_windows_must_exist(self):
+        """_normalize_windows_path validates existence when must_exist=True."""
+        import cli.mcp.server as server
+
+        with patch.object(server, 'IS_WINDOWS', True):
+            # A nonexistent path should raise FileNotFoundError
+            with patch.object(server.Path, 'exists', return_value=False):
+                try:
+                    server._normalize_windows_path("Z:\\nonexistent\\file.iso", must_exist=True)
+                    assert False, "Should have raised FileNotFoundError"
+                except FileNotFoundError:
+                    pass
+
+    def test_wsl_to_win_conversion(self):
+        """_wsl_to_win converts WSL path to Windows path via wslpath."""
+        import cli.mcp.server as server
+
+        with patch.object(server, 'IS_WINDOWS', False):
+            with patch.object(server.subprocess, 'run') as mock_run:
+                mock_run.return_value = MagicMock(returncode=0, stdout="D:\\Dev\\project\n")
+
+                result = server._wsl_to_win("/mnt/d/Dev/project")
+                assert result == "D:\\Dev\\project"
+
+    def test_wsl_to_win_native_windows(self):
+        """_wsl_to_win returns path as-is on native Windows."""
+        import cli.mcp.server as server
+
+        with patch.object(server, 'IS_WINDOWS', True):
+            result = server._wsl_to_win("D:\\Dev\\project")
+            assert result == "D:/Dev/project"
+
+    def test_win_to_wsl_conversion(self):
+        """_win_to_wsl converts Windows path to WSL path via wslpath."""
+        import cli.mcp.server as server
+
+        with patch.object(server, 'IS_WINDOWS', False):
+            with patch.object(server.subprocess, 'run') as mock_run:
+                mock_run.return_value = MagicMock(returncode=0, stdout="/mnt/d/Dev/project\n")
+
+                result = server._win_to_wsl("D:\\Dev\\project")
+                assert result == "/mnt/d/Dev/project"
+
+    def test_win_to_wsl_native_windows(self):
+        """_win_to_wsl returns path as-is on native Windows."""
+        import cli.mcp.server as server
+
+        with patch.object(server, 'IS_WINDOWS', True):
+            result = server._win_to_wsl("D:\\Dev\\project")
+            assert result == "D:/Dev/project"
+
 
 def run_tests():
     """Run all tests and report results."""
