@@ -1,11 +1,11 @@
-# AI Dev Platform OS — Self-Hosted, Secure, Programmable Spec-Driven Windows-First Code Execution Sandbox for AI Agent & Computer-Use Agent Development
+# AI Dev Platform OS — Local-First, Self-Hosted, Secure, Programmable Spec-Driven Windows-First Code Execution Sandbox for AI Agent & Computer-Use Agent Development
 
 [简体中文](README.zh-CN.md) | English
 
 [![CI](https://github.com/karoc/ai-dev-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/karoc/ai-dev-platform/actions/workflows/ci.yml)
 [![MCP](https://img.shields.io/badge/MCP_SDK-18_tools-4B8BBE?logo=python)](cli/mcp/server.py)
 
-AI Dev Platform OS, or ADP-OS, is a secure, enterprise-grade, spec-driven self-hosted programmable code execution sandbox infrastructure with hardware-level isolation for AI agent and computer-use agent development on Windows, VMware Workstation, Ubuntu Server, and Mutagen. ADP-OS takes a spec-driven approach: workspace recipes declare projects, tasks, validation commands, milestones, and evaluation hooks upfront, then the platform executes them in an auditable lifecycle with task state tracking and release evidence.
+AI Dev Platform OS, or ADP-OS, is a secure, enterprise-grade, spec-driven, local-first, self-hosted programmable code execution sandbox infrastructure with hardware-level isolation for AI agent and computer-use agent development on Windows, VMware Workstation, Ubuntu Server, and Mutagen. ADP-OS takes a spec-driven approach: workspace recipes declare projects, tasks, validation commands, milestones, and evaluation hooks upfront, then the platform executes them in an auditable lifecycle with task state tracking and release evidence.
 
 The project provisions isolated, programmable Linux code execution runtimes as self-hosted AI development infrastructure for frontend, backend, and AI agent workloads, keeps workspaces synchronized from Windows into each VM, and creates rollback snapshots for repeatable self-hosted AI coding workflows.
 
@@ -16,7 +16,7 @@ ADP-OS does not replace Docker. It provisions Docker-capable self-hosted Linux r
 ## What It Provides
 
 - Windows control plane implemented in PowerShell 7.
-- Self-hosted programmable code execution sandbox infrastructure with hardware-level isolation for AI agents and computer-use agents.
+- Local-first, self-hosted programmable code execution sandbox infrastructure with hardware-level isolation for AI agents and computer-use agents.
 - VMware Workstation VM factory for Ubuntu Server 26.04.
 - Remastered Ubuntu autoinstall ISO generation with cloud-init seed data.
 - Runtime profiles for `frontend`, `backend`, and `agent`.
@@ -404,6 +404,12 @@ agent     watching  %USERPROFILE%\adp-workspaces\agent   /home/adp/workspace
 - [Support](SUPPORT.md)
 - [Security](SECURITY.md)
 - [Changelog](CHANGELOG.md)
+
+## Community
+
+- **[Discord](docs/discord-setup.md)** — Join the ADP-OS community for real-time help, development discussion, and release announcements.
+- **[Contributing](CONTRIBUTING.md)** — Development environment setup, coding guidelines, and PR process.
+- **[Demo Video](docs/demo-script.md)** — Demo video script and storyboard (coming soon).
 
 ## Security
 
