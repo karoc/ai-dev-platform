@@ -355,8 +355,8 @@ if ($SkipVMValidation) {
             Write-Host "    - $(Split-Path $vm -Leaf)" -ForegroundColor DarkGray
         }
     } catch {
-        Write-ErrorLog -Message "VMware initialization failed: $_" -Component "install"
-        exit 1
+        Write-WarnLog -Message "VMware initialization skipped (VMware not available): $_" -Component "install"
+        Write-InstallHost -English "  VMware not available — VM creation disabled. Install VMware Workstation Pro and re-run to enable." -Chinese "  VMware 不可用 — VM 创建已禁用。安装 VMware Workstation Pro 后重新运行以启用。" -ForegroundColor Yellow
     }
 }
 
