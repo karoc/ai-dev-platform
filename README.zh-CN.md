@@ -83,7 +83,7 @@ wsl -u root bash -lc "apt-get update && DEBIAN_FRONTEND=noninteractive apt-get i
 > 新手？请从 **[入门指南](docs/zh-CN/getting-started.md)** 开始 — 包含架构图、前提条件清单、预计时间和常见错误的分步教程。
 
 > [!WARNING]
-> ADP-OS 使用默认 `adp:adp` 用户和密码来配置本地 VM，以进行自动化 sudo 配置。这些 VM 专为可信工作站上的本地单用户开发而设计。请勿在未更改凭据和审查 SSH 访问权限的情况下将其暴露给不受信任的网络。有关完整的本地开发安全模型，请参阅 [安全](SECURITY.md)。
+> ADP-OS 使用默认 `adp:adp` 用户和密码来配置本地 VM，以进行自动化 sudo 配置。这些 VM 专为可信工作站上的本地单用户开发而设计。请勿在未更改凭据和审查 SSH 访问权限的情况下将其暴露给不受信任的网络。有关完整的本地开发安全模型，请参阅 [安全](SECURITY.zh-CN.md)。
 
 **推荐：一键设置 — 克隆后只需运行一条命令：**
 

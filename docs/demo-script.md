@@ -1,6 +1,6 @@
 # Demo Video Plan
 
-> **Status**: Planning only. Assessment complete — video IS recommended but should be recorded after the Discord server and issue templates are live. This document provides the script and storyboard for when recording begins.
+> **Status**: Ready to record. All community infrastructure is in place — issue templates, CONTRIBUTING.md, and Discord setup guide are live.
 
 ## Assessment: Is a Demo Video Needed?
 
