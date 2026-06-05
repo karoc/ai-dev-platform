@@ -8,7 +8,7 @@ WIN_TARGET="/mnt/d/Dev/ai-dev-platform"
 WIN_PATH="D:\\Dev\\ai-dev-platform"
 
 echo "=== Updating Windows git state ===" && git -C "$WIN_TARGET" fetch origin && git -C "$WIN_TARGET" reset --hard origin/main || echo "(non-zero git exit; continuing)"
-echo "=== Syncing to Windows ===" && rsync -av --delete --exclude='.git' /home/karoc/ai-dev-platform/ "$WIN_TARGET/" || echo "(non-zero rsync exit; continuing)"
+echo "=== Syncing to Windows ===" && rsync -av --delete --exclude='.git' --exclude='.tools' --exclude='logs' /home/karoc/ai-dev-platform/ "$WIN_TARGET/" || echo "(non-zero rsync exit; continuing)"
 echo ""
 
 MODE="${1:-quick}"
