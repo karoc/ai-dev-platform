@@ -324,6 +324,7 @@ adp destroy <runtime> [-Plan]
 ## 社区
 
 - **[Discord](docs/zh-CN/discord-setup.md)** — 加入 ADP-OS 社区，获取实时帮助、开发讨论和发布公告。
+- **[GitHub Discussions](https://github.com/karoc/ai-dev-platform/discussions)** — 异步提问、分享想法和项目讨论。
 - **[贡献指南](CONTRIBUTING.zh-CN.md)** — 开发环境搭建、编码规范和 PR 流程。
 - **[演示视频](docs/zh-CN/demo-script.md)** — 演示视频脚本和分镜（即将推出）。
 

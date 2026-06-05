@@ -1,6 +1,6 @@
 # Discord Community Setup Guide
 
-> This is a **planning document** for the ADP-OS Discord community. The server has not been created yet — this guide provides the blueprint for when we launch.
+> **Status**: Ready-to-launch. All prerequisites are in place — issue templates, CONTRIBUTING.md, and README references are complete.
 
 ## Why Discord?
 
@@ -165,12 +165,12 @@ ADP-OS is a developer tool for Windows-first AI agent development. Discord is wh
 
 The Discord server should be created when:
 
-- [ ] All issue templates are in place (Bug Report, Feature Request, Installation Help, Usage Question)
-- [ ] CONTRIBUTING.md is complete with dev environment setup
-- [ ] README and docs reference the Discord server
-- [ ] GitHub Discussions is enabled (optional, but recommended)
+- [x] All issue templates are in place (Bug Report, Feature Request, Installation Help, Usage Question)
+- [x] CONTRIBUTING.md is complete with dev environment setup
+- [x] README and docs reference the Discord server
+- [ ] GitHub Discussions is enabled (recommended — enable in repo Settings → General → Features)
 
-**Recommended launch timing**: Together with the first public release announcement.
+**Recommended launch timing**: Together with the first public release announcement. GitHub Discussions should be enabled before launch to provide a lightweight async discussion space alongside Discord.
 
 ## Alternatives Considered
 

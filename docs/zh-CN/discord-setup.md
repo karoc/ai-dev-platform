@@ -1,6 +1,6 @@
 # Discord 社区搭建指南
 
-> 这是 ADP-OS Discord 社区的**规划文档**。服务器尚未创建——本指南为启动时提供蓝图。
+> **状态**: 准备启动。所有前置条件已就位 — issue 模板、CONTRIBUTING.md、README 引用均已完善。
 
 ## 为什么选择 Discord？
 
@@ -165,12 +165,12 @@ ADP-OS 是面向 Windows-first AI agent 开发的开发者工具。Discord 是 A
 
 Discord 服务器应在以下条件满足后创建：
 
-- [ ] 所有 issue 模板就位（Bug Report、Feature Request、安装帮助、使用问题）
-- [ ] CONTRIBUTING.md 包含完整的开发环境搭建说明
-- [ ] README 和文档中引用了 Discord 服务器
-- [ ] GitHub Discussions 已启用（可选但推荐）
+- [x] 所有 issue 模板就位（Bug Report、Feature Request、安装帮助、使用问题）
+- [x] CONTRIBUTING.md 包含完整的开发环境搭建说明
+- [x] README 和文档中引用了 Discord 服务器
+- [ ] GitHub Discussions 已启用（推荐——在仓库 Settings → General → Features 中启用）
 
-**推荐启动时机**：与首次公开发布公告同步。
+**推荐启动时机**：与首次公开发布公告同步。GitHub Discussions 应在启动前启用，作为 Discord 旁的轻量级异步讨论空间。
 
 ## 已考虑的替代方案
 

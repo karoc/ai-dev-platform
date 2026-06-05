@@ -408,6 +408,7 @@ agent     watching  %USERPROFILE%\adp-workspaces\agent   /home/adp/workspace
 ## Community
 
 - **[Discord](docs/discord-setup.md)** — Join the ADP-OS community for real-time help, development discussion, and release announcements.
+- **[GitHub Discussions](https://github.com/karoc/ai-dev-platform/discussions)** — Ask questions, share ideas, and discuss the project asynchronously.
 - **[Contributing](CONTRIBUTING.md)** — Development environment setup, coding guidelines, and PR process.
 - **[Demo Video](docs/demo-script.md)** — Demo video script and storyboard (coming soon).
 

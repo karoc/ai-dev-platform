@@ -33,16 +33,47 @@ body:
     validations:
       required: true
   - type: input
-    id: commit
+    id: version
     attributes:
-      label: ADP-OS commit
-      description: Output of `git rev-parse --short HEAD`.
-      placeholder: b068842
+      label: ADP-OS version
+      description: Output of `adp version` or the git tag/commit.
+      placeholder: v0.2.0 or b068842
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - Windows 11
+        - Windows 10
+        - Windows Server 2025
+        - Windows Server 2022
+        - other
+    validations:
+      required: true
   - type: input
-    id: host
+    id: wsl_version
     attributes:
-      label: Host environment
-      placeholder: Windows 11, PowerShell 7.6, VMware Workstation Pro
+      label: WSL version
+      description: Output of `wsl --version` (first line).
+      placeholder: "WSL version: 2.4.11.0"
+    validations:
+      required: true
+  - type: input
+    id: vmware_version
+    attributes:
+      label: VMware version
+      description: VMware Workstation edition and version number.
+      placeholder: VMware Workstation Pro 17.6.2
+    validations:
+      required: true
+  - type: input
+    id: powershell_version
+    attributes:
+      label: PowerShell version
+      description: Output of `$PSVersionTable.PSVersion`.
+      placeholder: 7.5.0
   - type: input
     id: local_config
     attributes:

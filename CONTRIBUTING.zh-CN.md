@@ -151,7 +151,7 @@ docs: add configuration guide
 
 - **Issues**：使用 [issue 模板](https://github.com/karoc/ai-dev-platform/issues/new/choose)——Bug Report、Feature Request、安装帮助或使用问题。
 - **Discord**：加入 [ADP-OS Discord 服务器](docs/zh-CN/discord-setup.md)进行实时讨论、求助和开发协作。
-- **Discussions**：对于不适合 issue 模板的开放想法和问题，使用 [GitHub Discussions](https://github.com/karoc/ai-dev-platform/discussions)（启用后）。
+- **Discussions**：对于不适合 issue 模板的开放想法和问题，使用 [GitHub Discussions](https://github.com/karoc/ai-dev-platform/discussions)。要启用 Discussions，前往仓库 Settings → General → Features，勾选 "Discussions"。
 
 ## 安全
 

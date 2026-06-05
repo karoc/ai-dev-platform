@@ -45,6 +45,12 @@ body:
         - other
     validations:
       required: true
+  - type: input
+    id: env
+    attributes:
+      label: Environment
+      description: ADP-OS version, Windows version, VMware edition (optional but helps diagnose).
+      placeholder: ADP-OS b068842 / Windows 11 / VMware Workstation Pro 17.6
   - type: textarea
     id: commands
     attributes:

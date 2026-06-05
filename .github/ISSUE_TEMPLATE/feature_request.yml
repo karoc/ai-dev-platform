@@ -47,6 +47,17 @@ body:
     id: alternatives
     attributes:
       label: Alternatives considered
+  - type: dropdown
+    id: os
+    attributes:
+      label: Your operating system
+      options:
+        - Windows 11
+        - Windows 10
+        - Windows Server 2025
+        - Windows Server 2022
+        - other
+        - not applicable
   - type: textarea
     id: notes
     attributes:

@@ -151,7 +151,7 @@ docs: add configuration guide
 
 - **Issues**: Use the [issue templates](https://github.com/karoc/ai-dev-platform/issues/new/choose) — Bug Report, Feature Request, Installation Help, or Usage Question.
 - **Discord**: Join the [ADP-OS Discord server](docs/discord-setup.md) for real-time discussion, help, and development coordination.
-- **Discussions**: For open-ended ideas and questions that don't fit an issue template, use [GitHub Discussions](https://github.com/karoc/ai-dev-platform/discussions) (when enabled).
+- **Discussions**: For open-ended ideas and questions that don't fit an issue template, use [GitHub Discussions](https://github.com/karoc/ai-dev-platform/discussions). To enable Discussions, go to repo Settings → General → Features and check "Discussions".
 
 ## Security
 
