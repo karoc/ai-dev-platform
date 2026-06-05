@@ -11,7 +11,7 @@
 >
 > **After creating the server:**
 > 1. Replace this section with the invite link: `https://discord.gg/YOUR_INVITE_CODE`
-> 2. Update the badge link in [README.md](../README.md) (line 7) and [README.zh-CN.md](../README.zh-CN.md) (line 7):
+> 2. Update the badge link in [README.md](../README.md) (line 7) and [简体中文 README.zh-CN.md](../README.zh-CN.md) (line 7):
 >    - Change `(docs/discord-setup.md)` → `(https://discord.gg/YOUR_INVITE_CODE)`
 >    - Remove the HTML comment about replacing the link
 > 3. Update the Community section Discord link in both READMEs
