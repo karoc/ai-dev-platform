@@ -36,6 +36,21 @@
   "ui": {
     "language": "en"
   },
+  "provider": {
+    "mode": "vmware-provider",
+    "type": "vmware-workstation",
+    "config": {
+      "vm_store": "${env:USERPROFILE}\\adp-vms",
+      "vmrun_path": null,
+      "nat": {
+        "cidr": "192.168.242.0/24",
+        "prefix": 24,
+        "gateway": "192.168.242.2",
+        "dns": ["192.168.242.2", "1.1.1.1"],
+        "interface_match": "en*"
+      }
+    }
+  },
   "features": {
     "vmware": true,
     "hyperv": false,

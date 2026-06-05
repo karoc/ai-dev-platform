@@ -354,3 +354,119 @@ function Get-Platform {
     if ($IsLinux)   { return "linux" }
     return "unknown"
 }
+
+# ============================================================
+# Provider Configuration — Phase 4
+# Reads the provider block from platform.json with fallback
+# to legacy features.vmware + network.vmware_nat fields.
+# ============================================================
+
+function Get-ProviderMode {
+    <#
+    .SYNOPSIS
+    Returns the active VM provider mode from platform configuration.
+
+    .DESCRIPTION
+    Reads provider.mode from platform.json. The feature flag controls
+    whether CLI commands use the new Provider interface (vmware-provider)
+    or the old VMware adapter path (vmware-classic).
+
+    Modes:
+      - vmware-provider  (default) — use IVMProvider contract + vmware-provider.ps1
+      - vmware-classic              — use legacy vmware.ps1 adapter directly
+
+    When no provider block exists (legacy config), defaults to vmware-provider
+    since Phase 3 migrated all CLI commands to the Provider interface.
+
+    .EXAMPLE
+    $mode = Get-ProviderMode
+    if ($mode -eq "vmware-classic") { . "...\adapters\windows\vmware\vmware.ps1" }
+    #>
+    $config = Get-PlatformConfig
+
+    if ($config -and $config.PSObject.Properties.Name -contains "provider") {
+        $provider = $config.provider
+        if ($provider.PSObject.Properties.Name -contains "mode" -and $provider.mode) {
+            return $provider.mode
+        }
+        return "vmware-provider"
+    }
+
+    # No provider block — legacy config. Phase 3 already migrated all
+    # CLI commands to the Provider interface, so default to provider path.
+    return "vmware-provider"
+}
+
+function Get-ProviderConfig {
+    <#
+    .SYNOPSIS
+    Returns a normalized provider configuration object.
+
+    .DESCRIPTION
+    Reads from the new provider block when present, falling back to legacy
+    fields (features.vmware, paths.vm_store, network.vmware_nat) when not.
+    Returns a PSCustomObject with Mode, Type, VmStore, VmrunPath, and Nat.
+
+    .EXAMPLE
+    $cfg = Get-ProviderConfig
+    # $cfg.Mode       — "vmware-provider" or "vmware-classic"
+    # $cfg.Type       — "vmware-workstation"
+    # $cfg.VmStore    — resolved VM store path
+    # $cfg.VmrunPath  — explicit vmrun.exe path or $null
+    # $cfg.Nat        — PSCustomObject with Cidr, Prefix, Gateway, Dns, InterfaceMatch
+    #>
+    $config = Get-PlatformConfig
+
+    $result = [PSCustomObject]@{
+        Mode      = "vmware-provider"
+        Type      = "vmware-workstation"
+        VmStore   = $null
+        VmrunPath = $null
+        Nat       = $null
+    }
+
+    # New format: provider block
+    if ($config -and $config.PSObject.Properties.Name -contains "provider") {
+        $p = $config.provider
+
+        # Mode
+        if ($p.PSObject.Properties.Name -contains "mode" -and $p.mode) {
+            $result.Mode = $p.mode
+        }
+
+        # Type
+        if ($p.PSObject.Properties.Name -contains "type" -and $p.type) {
+            $result.Type = $p.type
+        }
+
+        # Config sub-block
+        if ($p.PSObject.Properties.Name -contains "config" -and $p.config) {
+            $pc = $p.config
+            if ($pc.PSObject.Properties.Name -contains "vm_store" -and $pc.vm_store) {
+                $result.VmStore = $pc.vm_store
+            }
+            if ($pc.PSObject.Properties.Name -contains "vmrun_path" -and $pc.vmrun_path) {
+                $result.VmrunPath = $pc.vmrun_path
+            }
+            if ($pc.PSObject.Properties.Name -contains "nat" -and $pc.nat) {
+                $result.Nat = $pc.nat
+            }
+        }
+    }
+
+    # Legacy fallback: vm_store from paths
+    if (-not $result.VmStore) {
+        if ($config -and $config.PSObject.Properties.Name -contains "paths" -and $config.paths.vm_store) {
+            $result.VmStore = $config.paths.vm_store
+        }
+    }
+
+    # Legacy fallback: NAT from network.vmware_nat
+    if (-not $result.Nat) {
+        if ($config -and $config.PSObject.Properties.Name -contains "network" -and $config.network.vmware_nat) {
+            $result.Nat = $config.network.vmware_nat
+        }
+    }
+
+    return $result
+}

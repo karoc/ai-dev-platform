@@ -26,10 +26,37 @@ if ($Json) {
 . "$script:ProjectRoot\core\logging\logger.ps1"
 . "$script:ProjectRoot\core\utility\circuit-breaker.ps1"
 . "$script:ProjectRoot\adapters\windows\filesystem\filesystem.ps1"
-. "$script:ProjectRoot\adapters\windows\vmware\vmware.ps1"
+. "$script:ProjectRoot\core\provider\provider-result.ps1"
+. "$script:ProjectRoot\core\provider\provider-discovery.ps1"
 
 Initialize-Config -ProjectRoot $script:ProjectRoot
 Initialize-Logging -LogDirectory (Join-Path $script:ProjectRoot "logs")
+
+# Phase 4: Provider initialization — feature-flagged via provider.mode
+# vmware-provider (default): use IVMProvider contract via vmware-provider.ps1
+# vmware-classic:             use legacy vmware.ps1 adapter directly
+#
+# Initialization is best-effort at entry-point level: on real systems with
+# VMware it succeeds; on CI / test runners it logs a warning so basic
+# commands (help, version, validate) remain usable without a hypervisor.
+$script:ProviderMode = Get-ProviderMode
+if ($script:ProviderMode -eq "vmware-provider") {
+    . "$script:ProjectRoot\adapters\windows\vmware\vmware-provider.ps1"
+    try {
+        $vmStore = Resolve-Path "vm_store"
+        Initialize-Provider -ProviderType "vmware-workstation" -ProjectRoot $script:ProjectRoot -InitArgs @{VmStorePath = $vmStore} | Out-Null
+    } catch {
+        Write-WarnLog -Message "Provider init skipped (VMware not available): $_" -Component "cli"
+    }
+} else {
+    # Legacy path — kept as emergency fallback
+    . "$script:ProjectRoot\adapters\windows\vmware\vmware.ps1"
+    try {
+        Initialize-VMware | Out-Null
+    } catch {
+        Write-WarnLog -Message "VMware adapter init skipped (vmware not available): $_" -Component "cli"
+    }
+}
 
 # --- Command Router ---
 $validCommands = @("init", "up", "status", "stop", "sync", "snapshot", "restore", "logs", "doctor", "destroy", "network", "workspace", "capabilities", "validate", "help", "run", "completion", "version", "iso", "quickstart", "precheck", "sandbox", "serve")
