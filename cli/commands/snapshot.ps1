@@ -24,37 +24,39 @@ if (-not (Test-RuntimeExists $RuntimeName)) {
 
 Write-InfoLog -Message (Get-UIText -English "Creating snapshot: $RuntimeName/$SnapshotName" -Chinese "正在创建快照: $RuntimeName/$SnapshotName") -Component "cli.snapshot"
 
-Initialize-VMware | Out-Null
+# Initialize VM provider
+. (Join-Path $script:ProjectRoot "core\provider\provider-discovery.ps1")
+$providerType = Get-ConfiguredProviderType
+Initialize-Provider -ProviderType $providerType -ProjectRoot $script:ProjectRoot | Out-Null
 
-$vmStore = Resolve-Path "vm_store"
-$vmName = "adp-$RuntimeName"
-$vmxPath = Join-Path $vmStore "$vmName\$vmName.vmx"
-
-if (-not (Test-Path $vmxPath)) {
-    Write-ErrorLog -Message (Get-UIText -English "VM not found: $vmxPath" -Chinese "未找到 VM: $vmxPath") -Component "cli.snapshot"
+$statusResult = Get-VMStatus -Name $RuntimeName
+if (-not $statusResult.Success -or $statusResult.Data -eq "not-created") {
+    Write-ErrorLog -Message (Get-UIText -English "VM not found for runtime: $RuntimeName" -Chinese "未找到 VM: $RuntimeName") -Component "cli.snapshot"
     exit 1
 }
 
 Write-UIHost -English "Creating snapshot '$SnapshotName' for runtime '$RuntimeName'..." -Chinese "正在为运行时 '$RuntimeName' 创建快照 '$SnapshotName'..." -ForegroundColor Yellow
 
-$existingSnapshots = @(List-VMSnapshots -VmxPath $vmxPath)
+$snapshotListResult = Get-SnapshotList -Name $RuntimeName
+$existingSnapshots = if ($snapshotListResult.Success) { @($snapshotListResult.Data) } else { @() }
 if ($existingSnapshots -contains $SnapshotName) {
     Write-UIHost -English "  Snapshot '$SnapshotName' already exists." -Chinese "  快照 '$SnapshotName' 已存在。" -ForegroundColor Green
     return
 }
 
-$result = Create-VMSnapshot -VmxPath $vmxPath -SnapshotName $SnapshotName
+$result = New-Snapshot -Name $RuntimeName -SnapshotName $SnapshotName
 
 if ($result.Success) {
     Write-UIHost -English "  Snapshot '$SnapshotName' created successfully." -Chinese "  快照 '$SnapshotName' 创建成功。" -ForegroundColor Green
 } else {
-    $snapshotsAfterFailure = @(List-VMSnapshots -VmxPath $vmxPath)
+    $snapshotsAfterResult = Get-SnapshotList -Name $RuntimeName
+    $snapshotsAfterFailure = if ($snapshotsAfterResult.Success) { @($snapshotsAfterResult.Data) } else { @() }
     if ($snapshotsAfterFailure -contains $SnapshotName) {
-        Write-WarnLog -Message "Snapshot command reported failure, but snapshot '$SnapshotName' exists: $($result.StdErr)" -Component "cli.snapshot"
+        Write-WarnLog -Message "Snapshot command reported failure, but snapshot '$SnapshotName' exists: $($result.Error)" -Component "cli.snapshot"
         Write-UIHost -English "  Snapshot '$SnapshotName' exists." -Chinese "  快照 '$SnapshotName' 存在。" -ForegroundColor Green
         return
     }
 
-    Write-ErrorLog -Message (Get-UIText -English "Snapshot creation failed: $($result.StdErr)" -Chinese "快照创建失败: $($result.StdErr)") -Component "cli.snapshot"
+    Write-ErrorLog -Message (Get-UIText -English "Snapshot creation failed: $($result.Error)" -Chinese "快照创建失败: $($result.Error)") -Component "cli.snapshot"
     exit 1
 }

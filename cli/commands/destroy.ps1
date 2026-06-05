@@ -19,14 +19,13 @@ if (-not (Test-RuntimeExists $RuntimeName)) {
 
 Write-InfoLog -Message (Get-UIText -English "Destroying runtime: $RuntimeName" -Chinese "正在销毁运行时: $RuntimeName") -Component "cli.destroy"
 
-Initialize-VMware | Out-Null
+# Initialize VM provider
+. (Join-Path $script:ProjectRoot "core\provider\provider-discovery.ps1")
+$providerType = Get-ConfiguredProviderType
+Initialize-Provider -ProviderType $providerType -ProjectRoot $script:ProjectRoot | Out-Null
 
-$vmStore = Resolve-Path "vm_store"
-$vmName = "adp-$RuntimeName"
-$vmPath = Join-Path $vmStore $vmName
-$vmxPath = Join-Path $vmPath "$vmName.vmx"
-
-if (-not (Test-Path $vmxPath)) {
+$statusResult = Get-VMStatus -Name $RuntimeName
+if (-not $statusResult.Success -or $statusResult.Data -eq "not-created") {
     Write-UIHost -English "Runtime '$RuntimeName' does not exist." -Chinese "运行时 '$RuntimeName' 不存在。" -ForegroundColor Yellow
     return
 }
@@ -34,14 +33,12 @@ if (-not (Test-Path $vmxPath)) {
 Write-Host ""
 Write-UIHost -English "DESTROY runtime: $RuntimeName" -Chinese "销毁运行时: $RuntimeName" -ForegroundColor Red
 Write-Host "========================================" -ForegroundColor Red
-Write-Host "  VMX: $vmxPath" -ForegroundColor DarkGray
-Write-Host "  Directory: $vmPath" -ForegroundColor DarkGray
 Write-Host ""
 
 if ($Plan) {
     Write-UIHost -English "Plan only: no files will be deleted." -Chinese "仅预览：不会删除任何文件。" -ForegroundColor Cyan
-    Write-UIHost -English "  Would stop VM if running: $vmxPath" -Chinese "  如果 VM 正在运行将停止: $vmxPath" -ForegroundColor DarkGray
-    Write-UIHost -English "  Would remove directory:   $vmPath" -Chinese "  将删除目录:               $vmPath" -ForegroundColor DarkGray
+    Write-UIHost -English "  Would stop VM if running" -Chinese "  如果 VM 正在运行将停止" -ForegroundColor DarkGray
+    Write-UIHost -English "  Would remove VM and all its files" -Chinese "  将删除 VM 及其所有文件" -ForegroundColor DarkGray
     Write-UIHost -English "  Workspace data under workspace_root is not removed by destroy." -Chinese "  workspace_root 下的工作区数据不会被销毁。" -ForegroundColor DarkGray
     return
 }
@@ -52,13 +49,13 @@ if (-not $Force) {
     return
 }
 
-# Stop VM first if running
-$result = Stop-VM -VmxPath $vmxPath -Mode "soft"
-if (-not $result.Success) {
-    Stop-VM -VmxPath $vmxPath -Mode "hard" | Out-Null
-}
+# Stop and remove VM via Provider
+$result = Remove-VM -Name $RuntimeName -DeleteFiles $true
 
-# Remove VM directory
-Remove-Item -LiteralPath $vmPath -Recurse -Force -ErrorAction SilentlyContinue
-Write-UIHost -English "Runtime '$RuntimeName' destroyed." -Chinese "运行时 '$RuntimeName' 已销毁。" -ForegroundColor Green
-Write-InfoLog -Message (Get-UIText -English "Runtime destroyed: $RuntimeName" -Chinese "运行时已销毁: $RuntimeName") -Component "cli.destroy"
+if ($result.Success) {
+    Write-UIHost -English "Runtime '$RuntimeName' destroyed." -Chinese "运行时 '$RuntimeName' 已销毁。" -ForegroundColor Green
+    Write-InfoLog -Message (Get-UIText -English "Runtime destroyed: $RuntimeName" -Chinese "运行时已销毁: $RuntimeName") -Component "cli.destroy"
+} else {
+    Write-ErrorLog -Message (Get-UIText -English "Failed to destroy runtime: $($result.Error)" -Chinese "销毁运行时失败: $($result.Error)") -Component "cli.destroy"
+    exit 1
+}
