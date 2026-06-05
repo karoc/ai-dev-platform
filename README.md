@@ -1,4 +1,4 @@
-# AI Dev Platform OS — Local-First, Self-Hosted, Secure, Programmable Spec-Driven Windows-First Code Execution Sandbox for AI Agent & Computer-Use Agent Development
+# ADP-OS — The Notary for AI Development: Auditable, Reproducible, Provable
 
 [简体中文](README.zh-CN.md) | English
 
@@ -7,18 +7,39 @@
 [![Discord](https://img.shields.io/badge/Discord-Community-5865F2?logo=discord&logoColor=white)](docs/discord-setup.md)
 <!-- Replace Discord badge link with https://discord.gg/YOUR_INVITE_CODE after creating the server -->
 
-AI Dev Platform OS, or ADP-OS, is a secure, enterprise-grade, spec-driven, local-first, self-hosted programmable code execution sandbox infrastructure with hardware-level isolation for AI agent and computer-use agent development on Windows, VMware Workstation, Ubuntu Server, and Mutagen. ADP-OS takes a spec-driven approach: workspace recipes declare projects, tasks, validation commands, milestones, and evaluation hooks upfront, then the platform executes them in an auditable lifecycle with task state tracking and release evidence.
+ADP-OS is a platform that makes AI-assisted development auditable. It produces a verifiable **evidence chain** — snapshot signatures, operation logs, and exportable evidence packages — so you can prove what was built, how it was built, and who (or what AI) wrote each piece. Every development action is recorded, every workspace state is snapshot-addressable, and every release ships with an audit trail.
 
-The project provisions isolated, programmable Linux code execution runtimes as self-hosted AI development infrastructure for frontend, backend, and AI agent workloads, keeps workspaces synchronized from Windows into each VM, and creates rollback snapshots for repeatable self-hosted AI coding workflows.
+ADP-OS provisions isolated, programmable Linux code execution runtimes as self-hosted AI development infrastructure for frontend, backend, and AI agent workloads, keeps workspaces synchronized from Windows into each VM, and creates rollback snapshots for repeatable AI coding workflows. It is Windows-first, running on VMware Workstation, Ubuntu Server, and Mutagen.
 
 ADP-OS does not replace Docker. It provisions Docker-capable self-hosted Linux runtimes and adds VM lifecycle management, workspace synchronization, role-specific bootstrap, diagnostics, static networking, snapshot rollback, and agent governance — a spec-driven audit chain of workspace recipes, task state tracking, and release evidence — around those runtimes.
 
 > Status: Windows MVP. macOS, Linux hosts, Hyper-V, KVM, container runtimes, and richer workspace orchestration are planned but not implemented yet.
 
+## Why ADP-OS?
+
+AI is writing more code every day. But when an AI generates a commit, how do you know what happened? Who reviewed it? What was the environment? What commands actually ran?
+
+ADP-OS answers these questions with a verifiable **evidence chain**:
+
+- **Snapshot signatures** — Every VM state checkpoint is hashed and timestamped, so you can prove the exact environment a piece of code was built in.
+- **Operation logs** — Every `adp up`, `adp sync`, `adp snapshot`, and validation run is logged with operation type, timestamp, and outcome.
+- **Evidence export** — `adp workspace evidence -Export` packages all logs, signatures, task states, and AI declarations into a single ZIP archive for compliance, review, or publication.
+- **AI declarations** — `adp workspace declare -AiAssisted` records who reviewed AI-generated code, creating a provenance trail from prompt to production.
+
+```
+以前：ADP-OS 是一个管理 AI 开发 VM 的工具。
+现在：ADP-OS 是一个让 AI 开发可审计的平台。
+未来：ADP-OS 是一个让 AI 开发可信的基础设施。
+```
+
+> *Before: ADP-OS was a tool for managing AI dev VMs.*
+> *Now: ADP-OS is a platform that makes AI development auditable.*
+> *Future: ADP-OS will be infrastructure that makes AI development trustworthy.*
+
 ## What It Provides
 
-- Windows control plane implemented in PowerShell 7.
-- Local-first, self-hosted programmable code execution sandbox infrastructure with hardware-level isolation for AI agents and computer-use agents.
+- **Evidence chain** — Snapshot signing (`adp workspace evidence -Snapshot`), operation logs (`adp workspace evidence -Log`), evidence package export (`adp workspace evidence -Export`), and AI-assisted development declarations (`adp workspace declare -AiAssisted`). Every build is auditable, every AI contribution is recorded.
+- **Windows-first VM sandbox** — Local-first, self-hosted programmable code execution sandbox infrastructure with hardware-level isolation for AI agents and computer-use agents. Windows control plane implemented in PowerShell 7.
 - VMware Workstation VM factory for Ubuntu Server 26.04.
 - Remastered Ubuntu autoinstall ISO generation with cloud-init seed data.
 - Runtime profiles for `frontend`, `backend`, and `agent`.
@@ -251,6 +272,14 @@ adp snapshot create backend clean
 adp snapshot create agent clean
 ```
 
+Sign your snapshot and export the evidence chain:
+
+```powershell
+adp workspace evidence -Snapshot
+adp workspace evidence -Export
+adp workspace declare -AiAssisted -Reviewer "your-name"
+```
+
 ## Default Runtimes
 
 | Runtime | Purpose | CPU | Memory | Disk | Static IP |
@@ -360,6 +389,10 @@ adp restore <runtime> <name>
 adp logs <runtime>
 adp doctor [-FirstRun] [-FixMutagen] [-Plan]
 adp destroy <runtime> [-Plan]
+adp workspace evidence -Snapshot [-ManifestPath <path>]
+adp workspace evidence -Log -Operation <op> [-Details <text>] [-ManifestPath <path>]
+adp workspace evidence -Export [-Path <path>] [-ManifestPath <path>]
+adp workspace declare -AiAssisted [-Reviewer <name>] [-Notes "..."] [-ManifestPath <path>]
 ```
 
 ## What Success Looks Like

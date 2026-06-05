@@ -1,4 +1,4 @@
-# AI Dev Platform OS —— 本地优先、安全、可编程、Spec 驱动的 Windows 原生代码执行 AI Agent 与 Computer-Use Agent 开发沙箱
+# ADP-OS —— AI 开发的公证人：可审计、可复现、可证明
 
 简体中文 | [English](README.md)
 
@@ -7,18 +7,35 @@
 [![Discord](https://img.shields.io/badge/Discord-社区-5865F2?logo=discord&logoColor=white)](docs/zh-CN/discord-setup.md)
 <!-- 创建 Discord 服务器后，请将上述 badge 链接替换为 https://discord.gg/YOUR_INVITE_CODE -->
 
-AI Dev Platform OS，简称 ADP-OS，是一个安全、企业级、Spec 驱动的本地优先可编程代码执行沙箱基础设施，面向 Windows、VMware Workstation、Ubuntu Server 和 Mutagen，提供硬件级隔离的 AI Agent 和 Computer-Use Agent 开发环境。ADP-OS 采用 Spec 驱动方式：workspace recipe 预先声明项目、任务、验证命令、里程碑和评估钩子，平台按照声明执行，产出可审计的任务状态追踪和发布证据。
+ADP-OS 是一个让 AI 辅助开发变得可审计的平台。它生成可验证的**证据链** —— 快照签名、操作日志和可导出的证据包 —— 让你能够证明：构建了什么、如何构建、由谁（或哪个 AI）编写了每一段代码。每一次开发操作都有记录，每个工作区状态都可以通过快照寻址，每个发布都附带完整的审计轨迹。
 
-本项目会为前端、后端和 AI Agent 工作负载创建隔离的、可编程的 Linux 代码执行运行时作为自托管 AI 开发基础设施，将 Windows 工作区同步到各个 VM 中，并提供回滚快照，以支持可复现的本地 AI 编码工作流。
+ADP-OS 会为前端、后端和 AI Agent 工作负载创建隔离的、可编程的 Linux 代码执行运行时作为自托管 AI 开发基础设施，将 Windows 工作区同步到各个 VM 中，并提供回滚快照，以支持可复现的 AI 编码工作流。它是 Windows 优先的，基于 VMware Workstation、Ubuntu Server 和 Mutagen。
 
 ADP-OS 不替代 Docker。它创建可运行 Docker 的本地 Linux 运行时，并在其外层提供 VM 生命周期管理、工作区同步、角色化 bootstrap、诊断、静态网络、快照回滚，以及 Agent 治理（Spec 驱动的工作区配方、任务状态追踪和发布证据审计链）。
 
 > 状态：Windows MVP。macOS、Linux 主机、Hyper-V、KVM、容器运行时以及更完整的工作区编排仍在计划中，尚未实现。
 
+## 为什么选择 ADP-OS？
+
+AI 每天在写越来越多的代码。但当 AI 生成一个 commit 时，你怎么知道发生了什么？谁审查了它？运行环境是什么？实际执行了哪些命令？
+
+ADP-OS 用一条可验证的**证据链**来回答这些问题：
+
+- **快照签名** — 每个 VM 状态检查点都会被哈希并加盖时间戳，你可以证明代码是在哪个确切环境中构建的。
+- **操作日志** — 每次 `adp up`、`adp sync`、`adp snapshot` 和验证运行都会记录操作类型、时间戳和结果。
+- **证据导出** — `adp workspace evidence -Export` 将所有日志、签名、任务状态和 AI 声明打包为一个 ZIP 归档，用于合规、审查或发布。
+- **AI 开发声明** — `adp workspace declare -AiAssisted` 记录谁审查了 AI 生成的代码，创建从 prompt 到生产的溯源轨迹。
+
+```
+以前：ADP-OS 是一个管理 AI 开发 VM 的工具。
+现在：ADP-OS 是一个让 AI 开发可审计的平台。
+未来：ADP-OS 是一个让 AI 开发可信的基础设施。
+```
+
 ## 提供能力
 
-- 使用 PowerShell 7 实现的 Windows 控制平面。
-- 本地优先的面向 AI Agent 和 Computer-Use Agent 的硬件级隔离可编程代码执行沙箱基础设施。
+- **证据链 / Evidence chain** — 快照签名 (`adp workspace evidence -Snapshot`)、操作日志 (`adp workspace evidence -Log`)、证据包导出 (`adp workspace evidence -Export`)、AI 辅助开发声明 (`adp workspace declare -AiAssisted`)。每次构建都可审计，每次 AI 贡献都有记录。
+- **Windows 优先的 VM 沙箱** — 本地优先的面向 AI Agent 和 Computer-Use Agent 的硬件级隔离可编程代码执行沙箱基础设施。使用 PowerShell 7 实现的 Windows 控制平面。
 - 面向 Ubuntu Server 26.04 的 VMware Workstation VM 工厂。
 - 基于 cloud-init seed data 的 Ubuntu autoinstall ISO 重制。
 - `frontend`、`backend` 和 `agent` 运行时 profile。
@@ -225,6 +242,14 @@ adp snapshot create backend clean
 adp snapshot create agent clean
 ```
 
+签署快照并导出证据链：
+
+```powershell
+adp workspace evidence -Snapshot
+adp workspace evidence -Export
+adp workspace declare -AiAssisted -Reviewer "your-name"
+```
+
 ## 默认运行时
 
 | 运行时 | 用途 | CPU | 内存 | 磁盘 | 静态 IP |
@@ -333,6 +358,10 @@ adp restore <runtime> <name>
 adp logs <runtime>
 adp doctor [-FirstRun] [-FixMutagen] [-Plan]
 adp destroy <runtime> [-Plan]
+adp workspace evidence -Snapshot [-ManifestPath <path>]
+adp workspace evidence -Log -Operation <op> [-Details <text>] [-ManifestPath <path>]
+adp workspace evidence -Export [-Path <path>] [-ManifestPath <path>]
+adp workspace declare -AiAssisted [-Reviewer <name>] [-Notes "..."] [-ManifestPath <path>]
 ```
 
 ## 文档
