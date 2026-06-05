@@ -33,7 +33,7 @@ class TestMCPServer:
         assert server is not None
 
     def test_all_tools_registered(self):
-        """All 18 tools are registered with FastMCP."""
+        """All 26 tools are registered with FastMCP."""
         import cli.mcp.server as server
 
         # Inspect the mcp instance to find registered tools
@@ -60,13 +60,22 @@ class TestMCPServer:
             "adp_stop",
             "adp_sync_status",
             "adp_sync_stop",
+            # In-VM tools (SSH-backed sandbox operations)
+            "adp_exec",
+            "adp_file_read",
+            "adp_file_write",
+            "adp_dir_list",
+            "adp_glob",
+            "adp_grep",
+            "adp_file_download",
+            "adp_file_upload",
         ]
 
         for tool in expected_tools:
             assert tool in tools, f"Missing tool: {tool}"
 
         # Verify exact count
-        assert len(tools) == 18, f"Expected 18 tools, got {len(tools)}: {tools}"
+        assert len(tools) == 26, f"Expected 26 tools, got {len(tools)}: {tools}"
 
     def test_format_output_success(self):
         """_format_output handles successful results."""
@@ -282,6 +291,10 @@ Exploratory:
             "adp_workspace_report",
             "adp_up", "adp_down", "adp_stop",
             "adp_sync_status", "adp_sync_stop",
+            # In-VM tools
+            "adp_exec", "adp_file_read", "adp_file_write",
+            "adp_dir_list", "adp_glob", "adp_grep",
+            "adp_file_download", "adp_file_upload",
         ]
 
         for name in tool_names:
@@ -524,6 +537,174 @@ Exploratory:
         with patch.object(server, 'IS_WINDOWS', True):
             result = server._win_to_wsl("D:\\Dev\\project")
             assert result == "D:/Dev/project"
+
+    # --- Sanitize path tests ---
+
+    def test_sanitize_path_normal(self):
+        """_sanitize_path accepts normal absolute paths."""
+        import cli.mcp.server as server
+
+        assert server._sanitize_path("/home/adp/workspace") == "/home/adp/workspace"
+        assert server._sanitize_path("/tmp/test.py") == "/tmp/test.py"
+
+    def test_sanitize_path_empty(self):
+        """_sanitize_path rejects empty paths."""
+        import cli.mcp.server as server
+
+        try:
+            server._sanitize_path("")
+            assert False, "Should have raised ValueError"
+        except ValueError as e:
+            assert "must not be empty" in str(e)
+
+    def test_sanitize_path_null_byte(self):
+        """_sanitize_path rejects paths with null bytes."""
+        import cli.mcp.server as server
+
+        try:
+            server._sanitize_path("/tmp/test\x00hidden")
+            assert False, "Should have raised ValueError"
+        except ValueError as e:
+            assert "null byte" in str(e)
+
+    def test_sanitize_path_traversal(self):
+        """_sanitize_path rejects path traversal attempts."""
+        import cli.mcp.server as server
+
+        for bad_path in ["../etc/passwd", "/home/../etc/shadow", "./..", "foo/../../bar"]:
+            try:
+                server._sanitize_path(bad_path)
+                assert False, f"Should have raised ValueError for {bad_path}"
+            except ValueError as e:
+                assert ".." in str(e)
+
+    # --- SSH result tests ---
+
+    def test_ssh_result_success(self):
+        """_ssh_result wraps SSH results with runtime."""
+        import cli.mcp.server as server
+
+        result = {
+            "stdout": "hello",
+            "stderr": "",
+            "exit_code": 0,
+            "success": True,
+        }
+        out = server._ssh_result("agent", result)
+        assert out["_success"] == True
+        assert out["runtime"] == "agent"
+        assert "hello" in out["_text"]
+
+    def test_ssh_result_with_parsed(self):
+        """_ssh_result merges parsed fields."""
+        import cli.mcp.server as server
+
+        result = {
+            "stdout": "line1\nline2",
+            "stderr": "",
+            "exit_code": 0,
+            "success": True,
+        }
+        out = server._ssh_result("agent", result, {"entries": ["line1", "line2"]})
+        assert out["entries"] == ["line1", "line2"]
+        assert out["runtime"] == "agent"
+
+    # --- In-VM tool signature tests ---
+
+    def test_vm_tool_signatures(self):
+        """All in-VM tools have proper signatures with correct defaults."""
+        import cli.mcp.server as server
+        import inspect
+
+        # adp_exec
+        sig = inspect.signature(server.adp_exec)
+        assert sig.parameters["runtime"].default is inspect.Parameter.empty
+        assert sig.parameters["command"].default is inspect.Parameter.empty
+        assert sig.parameters["timeout"].default == 120
+
+        # adp_file_read
+        sig = inspect.signature(server.adp_file_read)
+        assert sig.parameters["runtime"].default is inspect.Parameter.empty
+        assert sig.parameters["path"].default is inspect.Parameter.empty
+
+        # adp_file_write
+        sig = inspect.signature(server.adp_file_write)
+        assert sig.parameters["plan_only"].default == True
+        assert sig.parameters["append"].default == False
+
+        # adp_dir_list
+        sig = inspect.signature(server.adp_dir_list)
+        assert sig.parameters["max_depth"].default == 2
+
+        # adp_glob
+        sig = inspect.signature(server.adp_glob)
+        assert sig.parameters["max_results"].default == 200
+        assert sig.parameters["include_dirs"].default == False
+
+        # adp_grep
+        sig = inspect.signature(server.adp_grep)
+        assert sig.parameters["max_results"].default == 100
+        assert sig.parameters["literal"].default == False
+        assert sig.parameters["case_sensitive"].default == False
+
+        # adp_file_download
+        sig = inspect.signature(server.adp_file_download)
+        assert "runtime" in sig.parameters
+        assert "path" in sig.parameters
+
+        # adp_file_upload
+        sig = inspect.signature(server.adp_file_upload)
+        assert sig.parameters["plan_only"].default == True
+
+    # --- adp_file_write plan_only tests ---
+
+    def test_file_write_plan_only(self):
+        """adp_file_write plan_only returns preview without executing."""
+        import cli.mcp.server as server
+
+        with patch.object(server, '_sanitize_path', return_value="/tmp/test.py"):
+            result = server.adp_file_write(
+                runtime="agent",
+                path="/tmp/test.py",
+                content="hello world",
+                plan_only=True,
+            )
+            assert result["plan_only"] == True
+            assert result["bytes_planned"] == 11
+            assert "[plan]" in result["_text"]
+            assert result["_success"] == True
+
+    # --- adp_file_upload tests ---
+
+    def test_file_upload_invalid_base64(self):
+        """adp_file_upload rejects invalid base64 content."""
+        import cli.mcp.server as server
+
+        result = server.adp_file_upload(
+            runtime="agent",
+            path="/tmp/test.bin",
+            content_base64="not-valid-base64!!!",
+            plan_only=False,
+        )
+        assert result["_success"] == False
+        assert "Invalid base64" in result["_text"]
+
+    def test_file_upload_plan_only(self):
+        """adp_file_upload plan_only returns preview."""
+        import cli.mcp.server as server
+        import base64
+
+        content_b64 = base64.b64encode(b"binary data").decode("ascii")
+        with patch.object(server, '_sanitize_path', return_value="/tmp/test.bin"):
+            result = server.adp_file_upload(
+                runtime="agent",
+                path="/tmp/test.bin",
+                content_base64=content_b64,
+                plan_only=True,
+            )
+            assert result["plan_only"] == True
+            assert result["bytes_planned"] == 11
+            assert "[plan]" in result["_text"]
 
 
 def run_tests():

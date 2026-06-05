@@ -40,6 +40,9 @@ import subprocess
 import json
 import re
 import shutil
+import base64
+import shlex
+import time
 from pathlib import Path
 from typing import Optional, Any
 
@@ -233,6 +236,138 @@ def _win_to_wsl(path: str) -> str:
     except Exception:
         pass
     return path
+
+# ---------------------------------------------------------------------------
+# SSH execution infrastructure
+# ---------------------------------------------------------------------------
+
+# Well-known SSH options shared across all in-VM operations
+_SSH_BASE_OPTS = [
+    "ssh",
+    "-o", "StrictHostKeyChecking=no",
+    "-o", "ConnectTimeout=10",
+    "-o", "BatchMode=yes",
+    "-o", "LogLevel=ERROR",
+    "-o", "ServerAliveInterval=30",
+]
+
+
+def _get_runtime_ip(runtime: str) -> str:
+    """Resolve a runtime name to its VM IP address via adp status.
+
+    Returns the IP address string, or raises RuntimeError if the runtime
+    is not found or not running.
+    """
+    result = _run_adp(["status", runtime])
+    if not result["success"]:
+        raise RuntimeError(
+            f"Cannot resolve runtime '{runtime}': "
+            f"adp status failed (exit {result['exit_code']}): {result['stderr']}"
+        )
+
+    parsed = _parse_status(result["stdout"])
+    runtimes = parsed.get("runtimes", [])
+
+    for rt in runtimes:
+        if rt.get("name") == runtime and rt.get("status", "").lower() == "running":
+            ip = rt.get("ip")
+            if ip and ip != "--":
+                return ip
+            raise RuntimeError(
+                f"Runtime '{runtime}' is running but has no IP address. "
+                f"Check VM network configuration."
+            )
+
+    # Runtime not found or not running
+    if runtimes:
+        names = [r.get("name", "?") for r in runtimes]
+        raise RuntimeError(
+            f"Runtime '{runtime}' is not running. "
+            f"Found runtimes: {', '.join(names)}. "
+            f"Start it with adp_up(runtime='{runtime}', plan_only=False)."
+        )
+    raise RuntimeError(
+        f"Runtime '{runtime}' not found. Available runtimes: frontend, backend, agent."
+    )
+
+
+def _sanitize_path(path: str) -> str:
+    """Validate a path for safe use in SSH commands.
+
+    Rejects paths containing '..' segments (path traversal) and null bytes.
+    Returns the path unchanged if safe.
+    """
+    if not path:
+        raise ValueError("Path must not be empty")
+    if "\x00" in path:
+        raise ValueError("Path contains null byte")
+    # Split on both / and \ to catch Windows-style traversal too
+    segments = path.replace("\\", "/").split("/")
+    for seg in segments:
+        if seg == "..":
+            raise ValueError(
+                f"Path traversal detected in '{path}': '..' segments are not allowed. "
+                f"Use absolute paths inside the VM."
+            )
+    return path
+
+
+def _ssh_exec(runtime: str, command: str, timeout: int = 120) -> dict:
+    """Execute a command inside a VM via SSH.
+
+    Args:
+        runtime: Runtime name (frontend, backend, agent)
+        command: Shell command to execute
+        timeout: Command timeout in seconds
+
+    Returns:
+        dict with keys: stdout, stderr, exit_code, success
+    """
+    ip = _get_runtime_ip(runtime)
+    ssh_cmd = _SSH_BASE_OPTS + [f"adp@{ip}", command]
+
+    try:
+        proc = subprocess.run(
+            ssh_cmd,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            encoding="utf-8",
+            errors="replace",
+        )
+        return {
+            "stdout": proc.stdout.strip(),
+            "stderr": proc.stderr.strip(),
+            "exit_code": proc.returncode,
+            "success": proc.returncode == 0,
+        }
+    except subprocess.TimeoutExpired:
+        return {
+            "stdout": "",
+            "stderr": f"SSH command timed out after {timeout}s",
+            "exit_code": -1,
+            "success": False,
+        }
+    except Exception as e:
+        return {
+            "stdout": "",
+            "stderr": f"SSH error: {e}",
+            "exit_code": -1,
+            "success": False,
+        }
+
+
+def _ssh_result(runtime: str, result: dict, parsed: Optional[dict] = None) -> dict:
+    """Build a structured result for in-VM operations."""
+    base: dict[str, Any] = {
+        "_text": _format_output(result),
+        "_exit_code": result["exit_code"],
+        "_success": result["success"],
+        "runtime": runtime,
+    }
+    if parsed:
+        base.update(parsed)
+    return base
 
 # ---------------------------------------------------------------------------
 # ADP CLI invocation
@@ -871,6 +1006,355 @@ def adp_sync_stop(runtime: str) -> dict:
     """
     result = _run_adp(["sync", "stop", runtime])
     return _structured_result(result, {"runtime": runtime})
+
+
+# ===========================================================================
+# In-VM tools (SSH-backed sandbox operations)
+# ===========================================================================
+
+@mcp.tool()
+def adp_exec(runtime: str, command: str, timeout: int = 120) -> dict:
+    """Execute a command inside a running VM via SSH.
+
+    The VM must be running (use adp_up to start it). Commands run as the
+    'adp' user inside the VM with full shell access.
+
+    Args:
+        runtime: Runtime name (frontend, backend, agent)
+        command: Shell command to execute inside the VM
+        timeout: Maximum execution time in seconds (default: 120)
+    """
+    ssh_result = _ssh_exec(runtime, command, timeout=timeout)
+    return _ssh_result(runtime, ssh_result)
+
+
+@mcp.tool()
+def adp_file_read(runtime: str, path: str) -> dict:
+    """Read the contents of a file inside a running VM.
+
+    Uses base64 encoding for safe binary transfer. Returns the decoded
+    text content of the file.
+
+    Args:
+        runtime: Runtime name (frontend, backend, agent)
+        path: Absolute path to the file inside the VM
+    """
+    safe_path = _sanitize_path(path)
+    ssh_result = _ssh_exec(
+        runtime,
+        f"test -f {shlex.quote(safe_path)} && base64 {shlex.quote(safe_path)} || "
+        f"(echo 'ERROR: File not found: {safe_path}' >&2 && exit 1)",
+        timeout=30,
+    )
+
+    if ssh_result["success"] and ssh_result["stdout"]:
+        try:
+            content = base64.b64decode(ssh_result["stdout"]).decode("utf-8", errors="replace")
+        except Exception:
+            content = ssh_result["stdout"]  # Return raw if not valid base64
+    else:
+        content = ""
+
+    return _ssh_result(runtime, ssh_result, {
+        "path": path,
+        "content": content,
+    })
+
+
+@mcp.tool()
+def adp_file_write(
+    runtime: str,
+    path: str,
+    content: str,
+    append: bool = False,
+    plan_only: bool = True,
+) -> dict:
+    """Write content to a file inside a running VM.
+
+    Defaults to plan-only mode for safety. Set plan_only=False to actually
+    write the file. Content is base64-encoded for safe binary transfer.
+
+    Args:
+        runtime: Runtime name (frontend, backend, agent)
+        path: Absolute path to the file inside the VM
+        content: Text content to write to the file
+        append: If True, append content instead of overwriting (default: False)
+        plan_only: If True (default), preview only without writing
+    """
+    safe_path = _sanitize_path(path)
+    content_b64 = base64.b64encode(content.encode("utf-8")).decode("ascii")
+
+    if plan_only:
+        redirect = ">>" if append else ">"
+        return {
+            "_text": (
+                f"[plan] Would write {len(content)} bytes to {path} on runtime '{runtime}'\n"
+                f"  Command: echo '<base64>' | base64 -d {redirect} {safe_path}\n"
+                f"  Execute: adp_file_write(runtime='{runtime}', path='{path}', "
+                f"content=..., append={append}, plan_only=False)"
+            ),
+            "_exit_code": 0,
+            "_success": True,
+            "runtime": runtime,
+            "path": path,
+            "plan_only": True,
+            "bytes_planned": len(content),
+        }
+
+    redirect = ">>" if append else ">"
+    ssh_result = _ssh_exec(
+        runtime,
+        f"echo {shlex.quote(content_b64)} | base64 -d {redirect} {shlex.quote(safe_path)}",
+        timeout=30,
+    )
+
+    return _ssh_result(runtime, ssh_result, {
+        "path": path,
+        "bytes_written": len(content) if ssh_result["success"] else 0,
+        "append": append,
+        "plan_only": False,
+    })
+
+
+@mcp.tool()
+def adp_dir_list(runtime: str, path: str, max_depth: int = 2) -> dict:
+    """List the contents of a directory inside a running VM.
+
+    Uses find to recursively list directory contents up to max_depth.
+
+    Args:
+        runtime: Runtime name (frontend, backend, agent)
+        path: Absolute path to the directory inside the VM
+        max_depth: Maximum directory depth to traverse (default: 2)
+    """
+    safe_path = _sanitize_path(path)
+    # Use find with -maxdepth, excluding hidden files/dirs by default
+    ssh_result = _ssh_exec(
+        runtime,
+        f"find {shlex.quote(safe_path)} -maxdepth {max_depth} "
+        f"-not -path '*/\\.*' 2>/dev/null | sort",
+        timeout=30,
+    )
+
+    entries = []
+    if ssh_result["success"] and ssh_result["stdout"]:
+        entries = [
+            e for e in ssh_result["stdout"].split("\n") if e.strip()
+        ]
+
+    return _ssh_result(runtime, ssh_result, {
+        "path": path,
+        "max_depth": max_depth,
+        "entries": entries,
+        "entry_count": len(entries),
+    })
+
+
+@mcp.tool()
+def adp_glob(
+    runtime: str,
+    path: str,
+    pattern: str,
+    include_dirs: bool = False,
+    max_results: int = 200,
+) -> dict:
+    """Find files matching a glob pattern under a directory in a running VM.
+
+    Uses find with -name for pattern matching.
+
+    Args:
+        runtime: Runtime name (frontend, backend, agent)
+        path: Absolute root path to search under
+        pattern: Glob pattern (e.g., '*.py', 'test_*.js')
+        include_dirs: If True, include directories in results (default: False)
+        max_results: Maximum number of results to return (default: 200)
+    """
+    safe_path = _sanitize_path(path)
+    safe_pattern = shlex.quote(pattern)
+
+    type_filter = "" if include_dirs else "-type f"
+    ssh_result = _ssh_exec(
+        runtime,
+        f"find {shlex.quote(safe_path)} {type_filter} "
+        f"-name {safe_pattern} -not -path '*/\\.*' 2>/dev/null "
+        f"| head -n {max_results + 1} | sort",
+        timeout=30,
+    )
+
+    matches = []
+    truncated = False
+    if ssh_result["success"] and ssh_result["stdout"]:
+        lines = [l for l in ssh_result["stdout"].split("\n") if l.strip()]
+        if len(lines) > max_results:
+            truncated = True
+            matches = lines[:max_results]
+        else:
+            matches = lines
+
+    return _ssh_result(runtime, ssh_result, {
+        "path": path,
+        "pattern": pattern,
+        "matches": matches,
+        "match_count": len(matches),
+        "truncated": truncated,
+    })
+
+
+@mcp.tool()
+def adp_grep(
+    runtime: str,
+    path: str,
+    pattern: str,
+    glob_filter: Optional[str] = None,
+    literal: bool = False,
+    case_sensitive: bool = False,
+    max_results: int = 100,
+) -> dict:
+    """Search for text patterns in files under a directory in a running VM.
+
+    Uses grep -r (recursive) with -n (line numbers).
+
+    Args:
+        runtime: Runtime name (frontend, backend, agent)
+        path: Absolute root path to search under
+        pattern: Text or regex pattern to search for
+        glob_filter: Optional file glob to limit search (e.g., '*.py')
+        literal: If True, treat pattern as literal text, not regex (default: False)
+        case_sensitive: If True, case-sensitive search (default: False)
+        max_results: Maximum number of matches to return (default: 100)
+    """
+    safe_path = _sanitize_path(path)
+    safe_pattern = shlex.quote(pattern)
+
+    grep_opts = ["-r", "-n", "-I"]  # -I: skip binary files
+    if literal:
+        grep_opts.append("-F")  # Fixed strings
+    if not case_sensitive:
+        grep_opts.append("-i")
+
+    include = ""
+    if glob_filter:
+        safe_glob = shlex.quote(glob_filter)
+        include = f"--include={safe_glob}"
+
+    ssh_result = _ssh_exec(
+        runtime,
+        f"grep {' '.join(grep_opts)} {include} "
+        f"{safe_pattern} {shlex.quote(safe_path)} 2>/dev/null "
+        f"| head -n {max_results + 1}",
+        timeout=30,
+    )
+
+    matches = []
+    truncated = False
+    if ssh_result["success"] or ssh_result["exit_code"] == 1:
+        # grep exit code 1 = no matches (not an error)
+        if ssh_result["stdout"]:
+            lines = [l for l in ssh_result["stdout"].split("\n") if l.strip()]
+            if len(lines) > max_results:
+                truncated = True
+                matches = lines[:max_results]
+            else:
+                matches = lines
+        if ssh_result["exit_code"] == 1 and not ssh_result["stdout"]:
+            # No matches found — success case
+            ssh_result["success"] = True
+            ssh_result["exit_code"] = 0
+
+    return _ssh_result(runtime, ssh_result, {
+        "path": path,
+        "pattern": pattern,
+        "matches": matches,
+        "match_count": len(matches),
+        "truncated": truncated,
+    })
+
+
+@mcp.tool()
+def adp_file_download(runtime: str, path: str) -> dict:
+    """Download a binary file from a running VM as base64-encoded content.
+
+    Args:
+        runtime: Runtime name (frontend, backend, agent)
+        path: Absolute path to the file inside the VM
+    """
+    safe_path = _sanitize_path(path)
+    ssh_result = _ssh_exec(
+        runtime,
+        f"test -f {shlex.quote(safe_path)} && base64 {shlex.quote(safe_path)} || "
+        f"(echo 'ERROR: File not found: {safe_path}' >&2 && exit 1)",
+        timeout=30,
+    )
+
+    return _ssh_result(runtime, ssh_result, {
+        "path": path,
+        "content_base64": ssh_result["stdout"] if ssh_result["success"] else "",
+    })
+
+
+@mcp.tool()
+def adp_file_upload(
+    runtime: str,
+    path: str,
+    content_base64: str,
+    plan_only: bool = True,
+) -> dict:
+    """Upload binary content (base64-encoded) to a file inside a running VM.
+
+    Defaults to plan-only mode for safety. Set plan_only=False to actually
+    write the file. Missing parent directories are created automatically.
+
+    Args:
+        runtime: Runtime name (frontend, backend, agent)
+        path: Absolute path to the file inside the VM
+        content_base64: Base64-encoded file content
+        plan_only: If True (default), preview only without writing
+    """
+    safe_path = _sanitize_path(path)
+
+    # Validate that content_base64 looks like valid base64
+    try:
+        decoded = base64.b64decode(content_base64, validate=True)
+        byte_count = len(decoded)
+    except Exception as e:
+        return {
+            "_text": f"Invalid base64 content: {e}",
+            "_exit_code": -1,
+            "_success": False,
+            "runtime": runtime,
+            "path": path,
+            "error": str(e),
+        }
+
+    if plan_only:
+        return {
+            "_text": (
+                f"[plan] Would upload {byte_count} bytes to {path} on runtime '{runtime}'\n"
+                f"  Command: mkdir -p $(dirname {safe_path}) && "
+                f"echo '<base64>' | base64 -d > {safe_path}\n"
+                f"  Execute: adp_file_upload(runtime='{runtime}', path='{path}', "
+                f"content_base64=..., plan_only=False)"
+            ),
+            "_exit_code": 0,
+            "_success": True,
+            "runtime": runtime,
+            "path": path,
+            "plan_only": True,
+            "bytes_planned": byte_count,
+        }
+
+    ssh_result = _ssh_exec(
+        runtime,
+        f"mkdir -p $(dirname {shlex.quote(safe_path)}) && "
+        f"echo {shlex.quote(content_base64)} | base64 -d > {shlex.quote(safe_path)}",
+        timeout=30,
+    )
+
+    return _ssh_result(runtime, ssh_result, {
+        "path": path,
+        "bytes_written": byte_count if ssh_result["success"] else 0,
+        "plan_only": False,
+    })
 
 
 # ---------------------------------------------------------------------------
