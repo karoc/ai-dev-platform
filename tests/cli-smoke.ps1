@@ -471,6 +471,7 @@ Assert-Command `
 
 $workspaceState = Join-Path ([System.IO.Path]::GetTempPath()) ("adp-workspace-state-{0}.json" -f ([guid]::NewGuid().ToString("N")))
 $workspaceBoundaryState = Join-Path ([System.IO.Path]::GetTempPath()) ("adp-workspace-boundary-state-{0}.json" -f ([guid]::NewGuid().ToString("N")))
+$workspaceExtValidationState = Join-Path ([System.IO.Path]::GetTempPath()) ("adp-workspace-ext-validation-state-{0}.json" -f ([guid]::NewGuid().ToString("N")))
 try {
     Assert-Command `
         -Name "workspace task mark" `
@@ -504,13 +505,13 @@ try {
 
     Assert-Command `
         -Name "workspace task mark validated records external validation" `
-        -Arguments @("workspace", "task", "mark", "before-large-agent-task", "validated", "-ManifestPath", "configs\workspace.example.json", "-StatePath", $workspaceBoundaryState) `
+        -Arguments @("workspace", "task", "mark", "before-large-agent-task", "validated", "-ManifestPath", "configs\workspace.example.json", "-StatePath", $workspaceExtValidationState) `
         -ExitCode 0 `
         -Patterns @("Workspace task mark: before-large-agent-task", "State:\s+validated", "Recorded external validation result", "validated records an external validation result")
 
     Assert-Command `
         -Name "workspace task mark validation_failed records external failure" `
-        -Arguments @("workspace", "task", "mark", "before-large-agent-task", "validation_failed", "-ManifestPath", "configs\workspace.example.json", "-StatePath", $workspaceBoundaryState) `
+        -Arguments @("workspace", "task", "mark", "before-large-agent-task", "validation_failed", "-ManifestPath", "configs\workspace.example.json", "-StatePath", $workspaceExtValidationState) `
         -ExitCode 0 `
         -Patterns @("Workspace task mark: before-large-agent-task", "State:\s+validation_failed", "Recorded external validation result", "validation_failed records an external validation result")
 
@@ -568,6 +569,7 @@ try {
 } finally {
     Remove-Item -LiteralPath $workspaceState -Force -ErrorAction SilentlyContinue
     Remove-Item -LiteralPath $workspaceBoundaryState -Force -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath $workspaceExtValidationState -Force -ErrorAction SilentlyContinue
 }
 
 $workspaceValidationState = Join-Path ([System.IO.Path]::GetTempPath()) ("adp-workspace-validation-state-{0}.json" -f ([guid]::NewGuid().ToString("N")))
