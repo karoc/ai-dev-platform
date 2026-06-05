@@ -276,8 +276,8 @@ class DeerFlowADPSandboxProvider(SandboxProvider):
 - [Deer-flow Sandbox Provisioner](https://github.com/ByteDance/deer-flow/tree/main/docker/provisioner) — 基于 K8s 的沙箱 Pod 管理器
 - [Deer-flow Sandbox ABC](https://github.com/ByteDance/deer-flow/blob/main/backend/packages/harness/deerflow/sandbox/sandbox.py) — 抽象沙箱接口
 - [Deer-flow Sandbox Tools](https://github.com/ByteDance/deer-flow/blob/main/backend/packages/harness/deerflow/sandbox/tools.py) — Agent 端沙箱操作
-- [ADP-OS MCP Server](../cli/mcp/server.py) — 参考实现（18 个工具）
-- [ADP-OS MCP Tests](../tests/test-mcp-server.py) — 测试套件
+- [ADP-OS MCP Server](../../../cli/mcp/server.py) — 参考实现（18 个工具）
+- [ADP-OS MCP Tests](../../../tests/test-mcp-server.py) — 测试套件
 
 ---
 

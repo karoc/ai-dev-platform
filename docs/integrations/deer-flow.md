@@ -276,8 +276,8 @@ class DeerFlowADPSandboxProvider(SandboxProvider):
 - [Deer-flow Sandbox Provisioner](https://github.com/ByteDance/deer-flow/tree/main/docker/provisioner) — K8s-based sandbox Pod manager
 - [Deer-flow Sandbox ABC](https://github.com/ByteDance/deer-flow/blob/main/backend/packages/harness/deerflow/sandbox/sandbox.py) — Abstract sandbox interface
 - [Deer-flow Sandbox Tools](https://github.com/ByteDance/deer-flow/blob/main/backend/packages/harness/deerflow/sandbox/tools.py) — Agent-facing sandbox operations
-- [ADP-OS MCP Server](cli/mcp/server.py) — Reference implementation (18 tools)
-- [ADP-OS MCP Tests](tests/test-mcp-server.py) — Test suite
+- [ADP-OS MCP Server](../../cli/mcp/server.py) — Reference implementation (18 tools)
+- [ADP-OS MCP Tests](../../tests/test-mcp-server.py) — Test suite
 
 ---
 
