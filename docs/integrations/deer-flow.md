@@ -1,7 +1,8 @@
 # Deploying ADP-OS as Deer-Flow VM Sandbox Backend
 
-> **Date**: 2026-06-05 | **Source Tags**: [GH]=GitHub API, [FILE]=Source code analysis, [LLM]=LLM reasoning
+> **Date**: 2026-06-05 | **Verified**: 2026-06-05 (kanban task t_42de8437) | **Source Tags**: [GH]=GitHub API, [FILE]=Source code analysis, [LLM]=LLM reasoning
 > **Bilingual**: English & 中文 | **Target audience**: ADP-OS maintainers, deer-flow integrators
+> **Integration guide**: See [Deer-Flow Integration Guide](../deer-flow-integration.md) ([简体中文](../zh-CN/deer-flow-integration.md)) for practical setup instructions.
 
 ---
 
@@ -262,6 +263,10 @@ class DeerFlowADPSandboxProvider(SandboxProvider):
 
 ## Verification Checklist
 
+- [x] MCP server tests pass (35/35, all tests green as of 2026-06-05)
+- [x] Deer-flow MCP configuration format verified (extensions_config.json, stdio type)
+- [x] Integration guide written (docs/deer-flow-integration.md en + zh-CN)
+- [x] Gap analysis updated (this document)
 - [ ] 8 new SSH-backed MCP tools implemented in `cli/mcp/server.py` (26 total)
 - [ ] Test suite updated (`tests/test-mcp-server.py`) covering new tools
 - [ ] Deer-flow `SandboxProvider` adapter class implemented

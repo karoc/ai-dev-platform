@@ -8,6 +8,7 @@
 
 - **[快速入门](getting-started.md)**：首次设置指南——从零到运行中的开发 VM，约 30 分钟。
 - **[Copilot SDK 集成指南](copilot-sdk-integration.md)**：在 GitHub Copilot Agent SDK 中加载 ADP-OS 工具。含 Python/TypeScript 快速开始示例、工具参考和权限模式。
+- **[Deer-Flow 集成指南](deer-flow-integration.md)**：在 ByteDance/deer-flow（70K⭐）中将 ADP-OS 配置为 MCP 服务器。快速开始指南、18 工具参考、工作流示例及当前限制。
 - [ADP-OS 与 Docker](positioning.md)：ADP-OS 与 Docker 的关系，以及各自适用场景。
 - [操作指南](operations.md)：日常运行时命令和工作流。
 - [配置说明](configuration.md)：平台、拓扑、同步和本地覆盖配置。
