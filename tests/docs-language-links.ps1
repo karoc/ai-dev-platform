@@ -21,11 +21,11 @@ function Test-LanguageSwitchLink {
         [string]$SourceLanguage
     )
 
-    if ($SourceLanguage -eq "zh-CN" -and $Label -match "English") {
+    if ($SourceLanguage -eq "zh-CN" -and $Label -match "English|英文|英語|英语") {
         return $true
     }
 
-    if ($SourceLanguage -eq "en" -and $Label -match "简体中文|Chinese|中文") {
+    if ($SourceLanguage -eq "en" -and $Label -match "简体中文|Chinese|中文|汉语|漢語") {
         return $true
     }
 

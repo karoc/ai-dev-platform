@@ -26,7 +26,11 @@ function Invoke-ValidationStep {
     )
 
     Write-Host "==> $Name" -ForegroundColor Cyan
+    $global:LASTEXITCODE = 0
     & $ScriptBlock
+    if ($LASTEXITCODE -ne 0) {
+        throw "FAIL: $Name (exit code $LASTEXITCODE)"
+    }
     Write-Host "OK: $Name" -ForegroundColor Green
 }
 

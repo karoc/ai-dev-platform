@@ -56,3 +56,4 @@ try {
 }
 
 Write-Output "Mutagen remediation checks OK"
+exit 0
