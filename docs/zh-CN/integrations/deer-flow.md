@@ -1,6 +1,6 @@
 # 将 ADP-OS 部署为 Deer-Flow 的 VM 沙箱后端
 
-> **日期**: 2026-06-05 | **最后验证**: 2026-06-05（看板任务 t_165fc742）| **来源标签**: [GH]=GitHub API, [FILE]=源码分析, [LLM]=LLM 推理
+> **日期**: 2026-06-05 | **最后验证**: 2026-06-05（看板任务 t_d1591f90 — 重新验证，新增参数级映射）| **来源标签**: [GH]=GitHub API, [FILE]=源码分析, [LLM]=LLM 推理
 > **双语**: 中文 & English | **目标读者**: ADP-OS 维护者、deer-flow 集成者
 > **集成指南**: [Deer-Flow 集成指南](../deer-flow-integration.md)（综合参考）| [MCP 配置指南](deer-flow-mcp-setup.md)（快速上手）| [English](../../integrations/deer-flow-mcp-setup.md)
 
@@ -156,6 +156,23 @@ class Sandbox(ABC):
 | `grep(path, pattern)` | `adp_grep(runtime, path, pattern)` | ✅ 已映射 | `grep` + 结构化匹配输出 |
 | `download_file(path)` | `adp_file_download(runtime, path)` | ✅ 已映射 | SSH base64 编码传输 |
 | `update_file(path, content)` | `adp_file_upload(runtime, path, content_base64)` | ✅ 已映射 | SSH base64 上传，默认 plan-only 安全 |
+
+### 参数级映射（返回值类型与默认值差异）[FILE]
+
+方法级别映射 8/8 完成。在参数级别，适配器代码需处理返回值类型转换：
+
+| Deer-Flow Sandbox 方法 | ADP-OS MCP 工具 | 返回值差异 | 适配器需处理 |
+|---|---|---|---|
+| `execute_command() -> str` | `adp_exec() -> {stdout, stderr, exit_code, runtime}` | `str` vs 结构化字典 | 提取 `stdout`，非零 `exit_code` 时抛异常 |
+| `read_file() -> str` | `adp_file_read() -> {content, path, runtime}` | `str` vs 结构化字典 | 提取 `content` 字段 |
+| `write_file() -> None` | `adp_file_write() -> {path, bytes_written, append}` | `None` vs 结构化字典 | 忽略返回值（void 语义） |
+| `list_dir() -> list[str]` | `adp_dir_list() -> {entries, entry_count, path}` | `list[str]` vs 结构化字典 | 提取 `entries` 字段。注意：ADP-OS 默认排除隐藏文件（`-not -path '*/\.*'`） |
+| `glob() -> tuple[list[str], bool]` | `adp_glob() -> {matches, match_count, truncated}` | tuple vs 字典 | 提取 `matches`，使用 `truncated` |
+| `grep() -> tuple[list[GrepMatch], bool]` | `adp_grep() -> {matches, match_count, truncated}` | `GrepMatch` 对象 vs 原始 `文件:行号:内容` 字符串 | 将原始行解析为 `GrepMatch` 对象；`glob` 参数 → `glob_filter` |
+| `download_file() -> bytes` | `adp_file_download() -> {content_base64}` | `bytes` vs base64 字符串 | `base64.b64decode(content_base64)` |
+| `update_file(content: bytes) -> None` | `adp_file_upload(content_base64: str) -> dict` | `bytes` 参数 vs base64 字符串参数 | `base64.b64encode(content).decode()` |
+
+**安全默认值**: ADP-OS 写工具默认为 `plan_only=True`。适配器必须对所有操作传入 `plan_only=False`。`DeerFlowADPSandboxProvider` 已处理。
 
 ### ADP-OS 独有能力（deer-flow 无对应项）
 

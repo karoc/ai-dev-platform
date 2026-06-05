@@ -1,6 +1,6 @@
 # Deploying ADP-OS as Deer-Flow VM Sandbox Backend
 
-> **Date**: 2026-06-05 | **Last verified**: 2026-06-05 (kanban task t_165fc742) | **Source Tags**: [GH]=GitHub API, [FILE]=Source code analysis, [LLM]=LLM reasoning
+> **Date**: 2026-06-05 | **Last verified**: 2026-06-05 (kanban task t_d1591f90 — fresh re-verification, parameter-level mapping added) | **Source Tags**: [GH]=GitHub API, [FILE]=Source code analysis, [LLM]=LLM reasoning
 > **Bilingual**: English & 中文 | **Target audience**: ADP-OS maintainers, deer-flow integrators
 > **Integration guides**: [Deer-Flow Integration Guide](../deer-flow-integration.md) (comprehensive) | [MCP Server Setup Guide](deer-flow-mcp-setup.md) (quick-start) | [简体中文](../zh-CN/deer-flow-integration.md) ([MCP 配置指南](../zh-CN/integrations/deer-flow-mcp-setup.md))
 
@@ -156,6 +156,23 @@ class Sandbox(ABC):
 | `grep(path, pattern)` | `adp_grep(runtime, path, pattern)` | ✅ Mapped | `grep` with structured match output |
 | `download_file(path)` | `adp_file_download(runtime, path)` | ✅ Mapped | SSH base64-encoded transfer |
 | `update_file(path, content)` | `adp_file_upload(runtime, path, content_base64)` | ✅ Mapped | SSH base64 upload with plan-only safety default |
+
+### Parameter-Level Mapping (Return Type & Default Differences) [FILE]
+
+The method-level mapping is 8/8 complete. At the parameter level, adapter code must handle return-type conversions:
+
+| Deer-Flow Sandbox Method | ADP-OS MCP Tool | Return Type Diff | Adapter Concern |
+|---|---|---|---|
+| `execute_command() -> str` | `adp_exec() -> {stdout, stderr, exit_code, runtime}` | `str` vs structured dict | Extract `stdout`, raise on non-zero `exit_code` |
+| `read_file() -> str` | `adp_file_read() -> {content, path, runtime}` | `str` vs structured dict | Extract `content` field |
+| `write_file() -> None` | `adp_file_write() -> {path, bytes_written, append}` | `None` vs structured dict | Ignore return (void semantics) |
+| `list_dir() -> list[str]` | `adp_dir_list() -> {entries, entry_count, path}` | `list[str]` vs structured dict | Extract `entries` field. Note: ADP-OS excludes hidden files (`-not -path '*/\\.*'`) |
+| `glob() -> tuple[list[str], bool]` | `adp_glob() -> {matches, match_count, truncated}` | tuple vs dict | Extract `matches`, use `truncated` |
+| `grep() -> tuple[list[GrepMatch], bool]` | `adp_grep() -> {matches, match_count, truncated}` | `GrepMatch` objects vs raw `file:line:content` strings | Parse raw lines into `GrepMatch` objs; `glob` param → `glob_filter` |
+| `download_file() -> bytes` | `adp_file_download() -> {content_base64}` | `bytes` vs base64 string | `base64.b64decode(content_base64)` |
+| `update_file(content: bytes) -> None` | `adp_file_upload(content_base64: str) -> dict` | `bytes` param vs base64 string param | `base64.b64encode(content).decode()` |
+
+**Safety defaults**: ADP-OS write tools default to `plan_only=True`. The adapter must pass `plan_only=False` for all operations. Already handled by `DeerFlowADPSandboxProvider`.
 
 ### ADP-OS-Only Capabilities (No Deer-Flow Equivalent)
 
