@@ -273,6 +273,12 @@ function Show-CommandHelp {
                 Write-Host "  project [name]    显示项目生命周期"
                 Write-Host "  task <action> <name>  管理工作区任务 (prepare|snapshot|run|validate|review|rollback|commit)"
                 Write-Host ""
+                Write-Host "证据:" -ForegroundColor Yellow
+                Write-Host "  evidence -Snapshot                   签署当前快照元数据"
+                Write-Host "  evidence -Log -Operation <op>        记录操作日志条目"
+                Write-Host "  evidence -Export [-Path <path>]      导出证据为 ZIP"
+                Write-Host "  declare -AiAssisted [-Reviewer <name>]  声明 AI 辅助开发"
+                Write-Host ""
                 Write-Host "通用选项:" -ForegroundColor Yellow
                 Write-Host "  -ManifestPath     指定 manifest 文件路径（默认: adp-workspace.json）"
                 Write-Host "  -Plan             仅显示计划（dry-run）"
@@ -595,6 +601,12 @@ function Show-CommandHelp {
                 Write-Host "  sync [name]      Show project sync guide"
                 Write-Host "  project [name]   Show project lifecycle"
                 Write-Host "  task <action> <name>  Manage workspace tasks (prepare|snapshot|run|validate|review|rollback|commit)"
+                Write-Host ""
+                Write-Host "Evidence:" -ForegroundColor Yellow
+                Write-Host "  evidence -Snapshot                   Sign current snapshot metadata"
+                Write-Host "  evidence -Log -Operation <op>        Record operation log entry"
+                Write-Host "  evidence -Export [-Path <path>]      Export evidence as ZIP"
+                Write-Host "  declare -AiAssisted [-Reviewer <name>]  Declare AI-assisted development"
                 Write-Host ""
                 Write-Host "Common options:" -ForegroundColor Yellow
                 Write-Host "  -ManifestPath    Specify manifest file path (default: adp-workspace.json)"
