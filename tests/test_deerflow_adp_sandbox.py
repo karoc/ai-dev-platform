@@ -337,6 +337,7 @@ class TestDeerFlowADPSandboxProvider:
     def test_acquire_new_vm(self, mock_cli_cls):
         from extensions.deer_flow.deerflow_adp_sandbox import DeerFlowADPSandboxProvider
         cli = _mock_cli_success()
+        cli.status.return_value = {"success": False, "running": False}  # VM not yet running
         mock_cli_cls.return_value = cli
         with tempfile.TemporaryDirectory() as td:
             p = DeerFlowADPSandboxProvider(adp_home="/fake/adp", pool_size=0, registry_path=Path(td) / "reg.json")
