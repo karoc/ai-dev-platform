@@ -2,6 +2,20 @@
 
 > **Status**: Ready-to-launch. All prerequisites are in place — issue templates, CONTRIBUTING.md, and README references are complete.
 
+## Server Invite Link (update after server is created)
+
+<!-- When the Discord server is created, replace this section with the actual invite link. -->
+
+> [!IMPORTANT]
+> The Discord server has **not been created yet**. The README badge currently links to this setup guide.
+>
+> **After creating the server:**
+> 1. Replace this section with the invite link: `https://discord.gg/YOUR_INVITE_CODE`
+> 2. Update the badge link in [README.md](../README.md) (line 7) and [README.zh-CN.md](../README.zh-CN.md) (line 7):
+>    - Change `(docs/discord-setup.md)` → `(https://discord.gg/YOUR_INVITE_CODE)`
+>    - Remove the HTML comment about replacing the link
+> 3. Update the Community section Discord link in both READMEs
+
 ## Why Discord?
 
 ADP-OS is a developer tool for Windows-first AI agent development. Discord is where AI/developer communities live — it enables:

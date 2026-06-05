@@ -2,6 +2,20 @@
 
 > **状态**: 准备启动。所有前置条件已就位 — issue 模板、CONTRIBUTING.md、README 引用均已完善。
 
+## 服务器邀请链接（创建服务器后更新）
+
+<!-- 创建 Discord 服务器后，请将本节替换为实际的邀请链接。 -->
+
+> [!IMPORTANT]
+> Discord 服务器**尚未创建**。README badge 目前链接到此搭建指南。
+>
+> **创建服务器后：**
+> 1. 将本节替换为邀请链接：`https://discord.gg/YOUR_INVITE_CODE`
+> 2. 更新 [README.md](../README.md)（第 7 行）和 [README.zh-CN.md](../README.zh-CN.md)（第 7 行）中的 badge 链接：
+>    - 将 `(docs/discord-setup.md)` 改为 `(https://discord.gg/YOUR_INVITE_CODE)`
+>    - 删除关于替换链接的 HTML 注释
+> 3. 更新两个 README 的社区部分中的 Discord 链接
+
 ## 为什么选择 Discord？
 
 ADP-OS 是面向 Windows-first AI agent 开发的开发者工具。Discord 是 AI/开发者社区的聚集地——它提供：

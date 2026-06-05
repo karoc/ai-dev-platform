@@ -4,6 +4,8 @@
 
 [![CI](https://github.com/karoc/ai-dev-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/karoc/ai-dev-platform/actions/workflows/ci.yml)
 [![MCP](https://img.shields.io/badge/MCP_SDK-18_tools-4B8BBE?logo=python)](cli/mcp/server.py)
+[![Discord](https://img.shields.io/badge/Discord-社区-5865F2?logo=discord&logoColor=white)](docs/zh-CN/discord-setup.md)
+<!-- 创建 Discord 服务器后，请将上述 badge 链接替换为 https://discord.gg/YOUR_INVITE_CODE -->
 
 AI Dev Platform OS，简称 ADP-OS，是一个安全、企业级、Spec 驱动的本地优先可编程代码执行沙箱基础设施，面向 Windows、VMware Workstation、Ubuntu Server 和 Mutagen，提供硬件级隔离的 AI Agent 和 Computer-Use Agent 开发环境。ADP-OS 采用 Spec 驱动方式：workspace recipe 预先声明项目、任务、验证命令、里程碑和评估钩子，平台按照声明执行，产出可审计的任务状态追踪和发布证据。
 
