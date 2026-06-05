@@ -591,7 +591,11 @@ if ($SubCommand -in @("configure-local", "local")) {
 
 $targets = if ($RuntimeName -eq "all") { Get-AllRuntimeNames } else { @($RuntimeName) }
 
-Initialize-VMware | Out-Null
+# Initialize VM provider
+. (Join-Path $script:ProjectRoot "core\provider\provider-discovery.ps1")
+$providerType = Get-ConfiguredProviderType
+$vmStore = Resolve-Path "vm_store"
+Initialize-Provider -ProviderType $providerType -ProjectRoot $script:ProjectRoot -InitArgs @{VmStorePath = $vmStore} | Out-Null
 Initialize-SSH | Out-Null
 
 foreach ($target in $targets) {

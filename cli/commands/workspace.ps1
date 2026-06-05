@@ -1745,17 +1745,16 @@ function Get-WorkspaceRuntimeStatus {
         }
     }
 
-    if (-not (Test-VMwareAvailable)) {
-        return [pscustomobject]@{
-            Level  = "WARN"
-            Status = "created, status unknown"
-            Detail = "vmrun.exe unavailable"
-        }
-    }
-
     try {
-        Initialize-VMware | Out-Null
-        $status = Get-VMStatus $vmxPath
+        $statusResult = Get-VMStatus -Name $RuntimeName
+        if (-not $statusResult.Success) {
+            return [pscustomobject]@{
+                Level  = "WARN"
+                Status = "created, status unknown"
+                Detail = "Provider query failed: $($statusResult.Error)"
+            }
+        }
+        $status = $statusResult.Data
         $level = if ($status -match "running") { "OK" } else { "WARN" }
         return [pscustomobject]@{
             Level  = $level
@@ -1867,17 +1866,9 @@ function Get-WorkspaceSnapshotStatus {
         }
     }
 
-    if (-not (Test-VMwareAvailable)) {
-        return [pscustomobject]@{
-            Level  = "WARN"
-            Status = "unknown"
-            Detail = "vmrun.exe unavailable"
-        }
-    }
-
     try {
-        Initialize-VMware | Out-Null
-        $snapshots = @(List-VMSnapshots -VmxPath $vmxPath)
+        $snapshotResult = Get-SnapshotList -Name $RuntimeName
+        $snapshots = if ($snapshotResult.Success) { @($snapshotResult.Data) } else { @() }
         if ($snapshots -contains $SnapshotName) {
             return [pscustomobject]@{
                 Level  = "OK"
@@ -4356,13 +4347,11 @@ function Get-VMSnapshotMetadata {
 
     # Try to read actual VMware snapshot details for runtimes listed in manifest
     try {
-        Initialize-VMware | Out-Null
         $vmStore = Resolve-Path "vm_store"
         foreach ($runtime in $seenRuntimes) {
-            $vmName = "adp-$runtime"
-            $vmxPath = Join-Path $vmStore "$vmName\$vmName.vmx"
-            if (Test-Path -LiteralPath $vmxPath) {
-                $vmSnapshots = @(List-VMSnapshots -VmxPath $vmxPath)
+            $snapshotResult = Get-SnapshotList -Name $runtime
+            if ($snapshotResult.Success) {
+                $vmSnapshots = @($snapshotResult.Data)
                 if ($vmSnapshots.Count -gt 0) {
                     [void]$metadata.AppendLine("vm-$runtime-snapshots=$($vmSnapshots -join ',')")
                 }

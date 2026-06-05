@@ -256,17 +256,27 @@ if ($config.network.vmware_nat) {
 # --- VMware ---
 Write-Host ""
 Write-UIHost -English "VMware:" -Chinese "VMware:" -ForegroundColor Yellow
-$vmwareOk = Test-VMwareAvailable
+# Initialize VM provider
+. (Join-Path $script:ProjectRoot "core\provider\provider-discovery.ps1")
+$providerType = Get-ConfiguredProviderType
+$vmStore = Resolve-Path "vm_store"
+try {
+    Initialize-Provider -ProviderType $providerType -ProjectRoot $script:ProjectRoot -InitArgs @{VmStorePath = $vmStore} | Out-Null
+    $vmwareOk = $true
+} catch {
+    $vmwareOk = $false
+}
 $runningVmxPaths = @()
 Test-Check -Name "vmrun.exe" -Condition $vmwareOk
 
 if ($vmwareOk) {
-    Initialize-VMware | Out-Null
-    $vmrunPath = Get-VmrunPath
-    Test-Check -Name "vmrun path" -Condition (Test-Path $vmrunPath) -Detail "($vmrunPath)"
-
-    $diskManager = Find-VmwareDiskManager
-    Test-Check -Name "vmware-vdiskmanager.exe" -Condition ($null -ne $diskManager) -Detail "($diskManager)"
+    $info = Get-ProviderInfo
+    if ($info.Success) {
+        Test-Check -Name "vmrun path" -Condition $true -Detail "(Provider: $($info.Data.Name))"
+    }
+    $providerCaps = Get-ProviderCapabilities
+    $diskManagerOk = ($providerCaps.Success)
+    Test-Check -Name "vmware-vdiskmanager.exe" -Condition $diskManagerOk -Detail "(via Provider)"
 
     $isoCreator = Find-ISOCreator
     $isoCreatorDetail = if ($isoCreator) { "$($isoCreator.Type): $($isoCreator.Path)" } else { "missing" }
