@@ -166,16 +166,21 @@ if ($psVersion.Major -ge 7) {
 }
 
 # 3. VMware Workstation Pro
-$vmwareAvailable = Test-VMwareAvailable
-$diskManager = Find-VmwareDiskManager
+# Initialize Provider to check VMware availability
+$vmwareAvailable = $false
+try {
+    . (Join-Path $script:ProjectRoot "core\provider\provider-discovery.ps1")
+    $providerType = Get-ConfiguredProviderType
+    $vmStore = Resolve-Path "vm_store"
+    Initialize-Provider -ProviderType $providerType -ProjectRoot $script:ProjectRoot -InitArgs @{VmStorePath = $vmStore} | Out-Null
+    $vmwareAvailable = $true
+} catch {
+    $vmwareAvailable = $false
+}
 
-if ($vmwareAvailable -and $diskManager) {
-    $vmrunPath = Find-Vmrun
-    Add-PrecheckResult -Name "VMware Workstation Pro" -Status "OK" -Detail "vmrun + vdiskmanager"
-} elseif ($vmwareAvailable) {
-    Add-PrecheckResult -Name "VMware Workstation Pro" -Status "WARN" `
-        -Detail "vmrun found, vdiskmanager missing" `
-        -Remediation (Get-UIText -English "Install VMware Workstation Pro with vmware-vdiskmanager.exe." -Chinese "安装包含 vmware-vdiskmanager.exe 的 VMware Workstation Pro。")
+if ($vmwareAvailable) {
+    $info = Get-ProviderInfo
+    Add-PrecheckResult -Name "VMware Workstation Pro" -Status "OK" -Detail "Provider: $($info.Data.Name)"
 } else {
     Add-PrecheckResult -Name "VMware Workstation Pro" -Status "MISSING" `
         -Detail (Get-UIText -English "vmrun.exe not found" -Chinese "未找到 vmrun.exe") `

@@ -34,13 +34,23 @@ $topology = Get-TopologyConfig
 # =============================================
 if (-not $Quick) {
     Write-UIHost -English "[1/6] VMware Workstation" -Chinese "[1/6] VMware Workstation" -ForegroundColor Yellow
-    if (-not (Test-VMwareAvailable)) {
+    # Initialize VM provider
+    . (Join-Path $script:ProjectRoot "core\provider\provider-discovery.ps1")
+    $providerType = Get-ConfiguredProviderType
+    $vmStore = Resolve-Path "vm_store"
+    try {
+        Initialize-Provider -ProviderType $providerType -ProjectRoot $script:ProjectRoot -InitArgs @{VmStorePath = $vmStore} | Out-Null
+        $info = Get-ProviderInfo
+        if ($info.Success) {
+            Write-UIHost -English "  Provider: $($info.Data.Name) [OK]" -Chinese "  Provider: $($info.Data.Name) [OK]" -ForegroundColor Green
+        } else {
+            Write-UIHost -English "  Provider initialized [OK]" -Chinese "  Provider 已初始化 [OK]" -ForegroundColor Green
+        }
+    } catch {
         Write-ErrorLog -Message (Get-UIText -English "VMware Workstation not found." -Chinese "未找到 VMware Workstation。") -Component "cli.init"
         Write-UIHost -English "  Install VMware Workstation Pro and re-run." -Chinese "  安装 VMware Workstation Pro 后重新运行。" -ForegroundColor Red
         exit 1
     }
-    Initialize-VMware
-    Write-UIHost -English "  vmrun: $(Get-VmrunPath) [OK]" -Chinese "  vmrun: $(Get-VmrunPath) [OK]" -ForegroundColor Green
 } else {
     Write-UIHost -English "[1/6] VMware Workstation (skipped — using -Quick)" -Chinese "[1/6] VMware Workstation（已跳过 — 使用了 -Quick）" -ForegroundColor DarkGray
 }

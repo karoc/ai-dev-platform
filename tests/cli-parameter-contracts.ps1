@@ -179,7 +179,7 @@ Assert-Contains -Name "sync stop validates runtime" -Text $sync -Pattern '"stop"
 Assert-Contains -Name "sync validates subcommand before mutagen" -Text $sync -Pattern '\$validSubCommands[\s\S]*Unknown sync command[\s\S]*Initialize-Mutagen'
 Assert-Contains -Name "sync status reports ADP runtime summary before raw Mutagen list" -Text $sync -Pattern 'ADP runtime sync summary:[\s\S]*Write-SyncRuntimeSummary[\s\S]*Sync status:[\s\S]*sync", "list"'
 Assert-Contains -Name "sync summary gives stale session remediation" -Text $sync -Pattern 'fix:\s+adp sync stop \$TargetRuntime; adp sync start \$TargetRuntime'
-Assert-Contains -Name "sync summary treats uncreated runtime stale sessions as cleanup guidance" -Text $sync -Pattern 'Test-Path -LiteralPath \$vmxPath[\s\S]*stale-session[\s\S]*cleanup:\s+adp sync stop \$TargetRuntime[\s\S]*next:\s+adp up \$TargetRuntime; adp sync start \$TargetRuntime'
+Assert-Contains -Name "sync summary treats uncreated runtime stale sessions as cleanup guidance" -Text $sync -Pattern 'Get-VMStatus[\s\S]*stale-session[\s\S]*cleanup:\s+adp sync stop \$TargetRuntime[\s\S]*next:\s+adp up \$TargetRuntime; adp sync start \$TargetRuntime'
 
 # Localization coverage: extended runtime commands use bilingual Write-UIHost
 Assert-Contains -Name "destroy uses bilingual UI output" -Text $destroy -Pattern 'Write-UIHost[\s\S]*?-English[\s\S]*?-Chinese[\s\S]*?DESTROY[\s\S]*?Plan only[\s\S]*?PERMANENTLY DELETE'

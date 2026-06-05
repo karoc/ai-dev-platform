@@ -56,10 +56,8 @@ function Write-SyncRuntimeSummary {
     param([string]$TargetRuntime)
 
     $expected = Get-SyncExpectedEndpoints -TargetRuntime $TargetRuntime
-    $vmStore = Resolve-Path "vm_store"
-    $vmName = "adp-$TargetRuntime"
-    $vmxPath = Join-Path $vmStore "$vmName\$vmName.vmx"
-    $runtimeCreated = Test-Path -LiteralPath $vmxPath
+    $statusResult = Get-VMStatus -Name $TargetRuntime
+    $runtimeCreated = ($statusResult.Success -and $statusResult.Data -ne "not-created")
     try {
         $session = Get-SyncSessionInfo -SessionName $expected.SessionName -ExpectedLocalPath $expected.LocalPath -ExpectedRemoteUrl $expected.RemoteUrl
     } catch {
@@ -121,11 +119,10 @@ switch ($SubCommand) {
         $profile = Get-SyncProfile $rt.sync_profile
         $workspaceRoot = Resolve-Path "workspace_root"
         $localPath = Join-Path $workspaceRoot $rt.workspace
-        $vmStore = Resolve-Path "vm_store"
-        $vmName = "adp-$RuntimeName"
-        $vmxPath = Join-Path $vmStore "$vmName\$vmName.vmx"
+        $statusResult = Get-VMStatus -Name $RuntimeName
+        $vmCreated = ($statusResult.Success -and $statusResult.Data -ne "not-created")
 
-        if (-not (Test-Path $vmxPath)) {
+        if (-not $vmCreated) {
             Write-ErrorLog -Message (Get-UIText -English "VM not found for runtime '$RuntimeName'. Run: adp up $RuntimeName" -Chinese "运行时 '$RuntimeName' 的 VM 未找到。请运行: adp up $RuntimeName") -Component "cli.sync"
             exit 1
         }
