@@ -28,7 +28,6 @@ if ([string]::IsNullOrWhiteSpace($command)) {
 }
 
 # --- Source dependencies ---
-Initialize-VMware | Out-Null
 . (Join-Path (Get-ProjectRoot) "runtimes\vmware\vm-factory.ps1")
 . (Join-Path (Get-ProjectRoot) "runtimes\vmware\os-profiles.ps1")
 
@@ -38,6 +37,11 @@ $isoCache = Resolve-Path "iso_cache"
 $sshKeyPath = Join-Path "$env:USERPROFILE\.ssh\adp-os" "adp-os"
 $sandboxName = "sandbox"
 $vmName = "adp-$sandboxName"
+
+# Initialize VM provider (after vmStore is resolved)
+. (Join-Path $script:ProjectRoot "core\provider\provider-discovery.ps1")
+$providerType = Get-ConfiguredProviderType
+Initialize-Provider -ProviderType $providerType -ProjectRoot $script:ProjectRoot -InitArgs @{VmStorePath = $vmStore} | Out-Null
 
 Initialize-VmFactory -ProjectRoot (Get-ProjectRoot) -IsoCachePath $isoCache -VmStorePath $vmStore
 
@@ -56,18 +60,10 @@ $commandExitCode = 1
 
 try {
     # --- Step 1: Destroy any existing sandbox VM (clean up from previous interrupted run) ---
-    $existingVmx = Join-Path $vmStore "$vmName\$vmName.vmx"
-    if (Test-Path $existingVmx) {
+    $statusResult = Get-VMStatus -Name $sandboxName
+    if ($statusResult.Success -and $statusResult.Data -ne "not-created") {
         Write-UIHost -English "[prep] Cleaning up previous sandbox VM..." -Chinese "[准备] 清理之前的 sandbox VM..." -ForegroundColor Yellow
-        try {
-            $stopResult = Stop-VM -VmxPath $existingVmx -Mode "soft"
-            if (-not $stopResult.Success) {
-                Stop-VM -VmxPath $existingVmx -Mode "hard" | Out-Null
-            }
-        } catch {}
-        try {
-            Remove-Item -LiteralPath (Split-Path $existingVmx -Parent) -Recurse -Force -ErrorAction SilentlyContinue
-        } catch {}
+        Remove-VM -Name $sandboxName -DeleteFiles $true | Out-Null
         Write-UIHost -English "  Previous sandbox destroyed." -Chinese "  之前的 sandbox 已销毁。" -ForegroundColor Green
         Write-Host ""
     }
@@ -89,19 +85,12 @@ try {
     $maxRetries = 10
     for ($i = 0; $i -lt $maxRetries; $i++) {
         try {
-            # Try configured static IP first, then VMware-detected IP
+            # Use Provider for IP detection
             $detectedIp = $null
             try {
-                $quickResult = Invoke-Vmrun -Arguments @("getGuestIPAddress", $vmxPath) -TimeoutSeconds 5
-                if ($quickResult.Success) {
-                    $detectedIp = Select-VMIPv4FromText -Text $quickResult.StdOut
-                }
+                $ipResult = Get-VMIP -Name $sandboxName
+                if ($ipResult.Success) { $detectedIp = $ipResult.Data }
             } catch {}
-            if (-not $detectedIp) {
-                try {
-                    $detectedIp = Get-VMIPFromDhcpLeases -VmxPath $vmxPath
-                } catch {}
-            }
 
             if ($detectedIp -and $detectedIp -ne "0.0.0.0" -and $detectedIp -notmatch "unknown") {
                 # Test SSH connectivity
@@ -124,15 +113,15 @@ try {
         Write-UIHost -English "  SSH not ready yet, waiting 15s..." -Chinese "  SSH 尚未就绪，等待 15 秒..." -ForegroundColor Yellow
         Start-Sleep -Seconds 15
         try {
-            $detectedIp = $null
-            try { $detectedIp = Get-VMIP $vmxPath } catch {}
-            if ($detectedIp) {
-                $sshTest = ssh -i $sshKeyPath -o StrictHostKeyChecking=no -o IdentitiesOnly=yes -o UserKnownHostsFile=NUL -o ConnectTimeout=5 -o BatchMode=yes "adp@$detectedIp" "echo ok" 2>&1
-                if ($LASTEXITCODE -eq 0) {
-                    $ip = $detectedIp
-                }
-            }
+            $ipResult = Get-VMIP -Name $sandboxName
+            if ($ipResult.Success) { $detectedIp = $ipResult.Data }
         } catch {}
+        if ($detectedIp) {
+            $sshTest = ssh -i $sshKeyPath -o StrictHostKeyChecking=no -o IdentitiesOnly=yes -o UserKnownHostsFile=NUL -o ConnectTimeout=5 -o BatchMode=yes "adp@$detectedIp" "echo ok" 2>&1
+            if ($LASTEXITCODE -eq 0) {
+                $ip = $detectedIp
+            }
+        }
     }
 
     if (-not $ip) {

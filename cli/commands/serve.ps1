@@ -30,37 +30,29 @@ $script:startTime = Get-Date
 function Get-ServeVMStatus {
     param([string]$RuntimeName)
 
-    $vmxPath = Join-Path (Resolve-Path "vm_store") "adp-$RuntimeName\adp-$RuntimeName.vmx"
-    if (-not (Test-Path -LiteralPath $vmxPath)) {
+    $statusResult = Get-VMStatus -Name $RuntimeName
+    $vmStatus = if ($statusResult.Success) { $statusResult.Data } else { "unknown" }
+
+    if ($vmStatus -eq "not-created" -or $vmStatus -eq "unknown") {
         return [pscustomobject]@{
             Runtime = $RuntimeName
-            Status  = "not-created"
+            Status  = if ($vmStatus -eq "not-created") { "not-created" } else { "unknown" }
             Ip      = ""
         }
     }
 
-    $fullVmxPath = [System.IO.Path]::GetFullPath($vmxPath)
-    try {
-        $runningList = Invoke-Vmrun -Arguments @("list") -TimeoutSeconds 5
-        if ($runningList.Success) {
-            $runningPaths = $runningList.StdOut -split "`n" | ForEach-Object { $_.Trim() } | Where-Object { $_ }
-            $fullRunningPaths = $runningPaths | ForEach-Object { [System.IO.Path]::GetFullPath($_) }
-            if ($fullRunningPaths -contains $fullVmxPath) {
-                $ip = ""
-                try {
-                    $guestIp = Invoke-Vmrun -Arguments @("getGuestIPAddress", $vmxPath) -TimeoutSeconds 5
-                    if ($guestIp.Success) {
-                        $ip = Select-VMIPv4FromText -Text $guestIp.StdOut
-                    }
-                } catch { $ip = "" }
-                return [pscustomobject]@{
-                    Runtime = $RuntimeName
-                    Status  = "running"
-                    Ip      = if ($ip) { $ip } else { "" }
-                }
-            }
+    if ($vmStatus -eq "running") {
+        $ip = ""
+        try {
+            $ipResult = Get-VMIP -Name $RuntimeName
+            if ($ipResult.Success) { $ip = $ipResult.Data }
+        } catch { $ip = "" }
+        return [pscustomobject]@{
+            Runtime = $RuntimeName
+            Status  = "running"
+            Ip      = if ($ip) { $ip } else { "" }
         }
-    } catch { }
+    }
 
     return [pscustomobject]@{
         Runtime = $RuntimeName
