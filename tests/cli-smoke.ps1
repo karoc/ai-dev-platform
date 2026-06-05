@@ -132,18 +132,22 @@ Assert-Command `
     -ExitCode 1 `
     -Patterns @("Unknown runtime: not-a-runtime", "frontend, backend, agent")
 
-Assert-Command `
-    -Name "up plan" `
-    -Arguments @("up", "agent", "-Plan", "-IsoPath", "D:\Share\ubuntu-26.04-live-server-amd64.iso") `
-    -ExitCode 0 `
-    -Patterns @("Plan only: no VM will be created", "Runtime:\s+agent", "ISO:\s+D:\\Share\\ubuntu-26\.04-live-server-amd64\.iso")
+if (Get-Command vmrun.exe -ErrorAction SilentlyContinue) {
+    Assert-Command `
+        -Name "up plan" `
+        -Arguments @("up", "agent", "-Plan", "-IsoPath", "D:\Share\ubuntu-26.04-live-server-amd64.iso") `
+        -ExitCode 0 `
+        -Patterns @("Plan only: no VM will be created", "Runtime:\s+agent", "ISO:\s+D:\\Share\\ubuntu-26\.04-live-server-amd64\.iso")
 
-Assert-Command `
-    -Name "up plan zh-CN" `
-    -Arguments @("up", "agent", "-Plan", "-IsoPath", "D:\Share\ubuntu-26.04-live-server-amd64.iso") `
-    -ExitCode 0 `
-    -Patterns @("ADP-OS: 正在启动 agent", "仅预览：不会创建、启动、provision 或 bootstrap 任何 VM", "运行时:\s+agent", "工作区:") `
-    -Environment @{ ADP_LANG = "zh-CN" }
+    Assert-Command `
+        -Name "up plan zh-CN" `
+        -Arguments @("up", "agent", "-Plan", "-IsoPath", "D:\Share\ubuntu-26.04-live-server-amd64.iso") `
+        -ExitCode 0 `
+        -Patterns @("ADP-OS: 正在启动 agent", "仅预览：不会创建、启动、provision 或 bootstrap 任何 VM", "运行时:\s+agent", "工作区:") `
+        -Environment @{ ADP_LANG = "zh-CN" }
+} else {
+    Write-Host "SKIP: up plan tests (vmrun.exe not found — CI without VMware)"
+}
 
 Assert-Command `
     -Name "status all runtimes" `
