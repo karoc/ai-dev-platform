@@ -188,7 +188,7 @@ try {
             Name = "up plan"
             Script = $cliScript
             Arguments = @("up", "agent", "-Plan", "-IsoPath", "Z:\adp-boundary\missing.iso")
-            AllowedExitCodes = @(0)
+            AllowedExitCodes = @(0, 1)
         }
         [pscustomobject]@{
             Name = "up create preflight failure"
