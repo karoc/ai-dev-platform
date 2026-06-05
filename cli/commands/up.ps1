@@ -30,9 +30,15 @@ $isoCache = Resolve-Path "iso_cache"
 $vmName = "adp-$RuntimeName"
 $vmxPath = Join-Path $vmStore "$vmName\$vmName.vmx"
 
+# Load vm-factory (still uses .vmx paths internally — NOT part of Provider migration)
 . (Join-Path (Get-ProjectRoot) "runtimes\vmware\os-profiles.ps1")
 . (Join-Path (Get-ProjectRoot) "runtimes\vmware\vm-factory.ps1")
 Initialize-VmFactory -ProjectRoot (Get-ProjectRoot) -IsoCachePath $isoCache -VmStorePath $vmStore
+
+# Initialize VM provider
+. (Join-Path $script:ProjectRoot "core\provider\provider-discovery.ps1")
+$providerType = Get-ConfiguredProviderType
+Initialize-Provider -ProviderType $providerType -ProjectRoot $script:ProjectRoot -InitArgs @{VmStorePath = $vmStore} | Out-Null
 
 function Get-RuntimeConnectionIP {
     param(
@@ -45,7 +51,9 @@ function Get-RuntimeConnectionIP {
         return $staticIp
     }
 
-    return Get-VMIP $TargetVmxPath
+    $ipResult = Get-VMIP -Name $TargetRuntime
+    if ($ipResult.Success) { return $ipResult.Data }
+    return $null
 }
 
 function Write-RuntimeConnectionSummary {
@@ -59,7 +67,8 @@ function Write-RuntimeConnectionSummary {
     $staticIp = Get-RuntimeStaticIP $TargetRuntime
     $detectedIp = $null
     try {
-        $detectedIp = Get-VMIP $TargetVmxPath
+        $ipResult = Get-VMIP -Name $TargetRuntime
+        if ($ipResult.Success) { $detectedIp = $ipResult.Data }
     } catch {}
 
     $ip = if ($staticIp) { $staticIp } else { $detectedIp }
@@ -145,10 +154,9 @@ function Check-PreRuntimeStaleSessions {
         return
     }
 
-    $vmStore = Resolve-Path "vm_store"
-    $vmName = "adp-$TargetRuntime"
-    $vmxPath = Join-Path $vmStore "$vmName\$vmName.vmx"
-    $runtimeCreated = Test-Path -LiteralPath $vmxPath
+    # Check if VM exists via Provider
+    $statusResult = Get-VMStatus -Name $TargetRuntime
+    $runtimeCreated = ($statusResult.Success -and $statusResult.Data -ne "not-created")
 
     $recovery = Get-SyncSessionRecoveryInfo `
         -SessionName $sessionName `
@@ -239,16 +247,8 @@ Check-PreRuntimeStaleSessions -TargetRuntime $RuntimeName
 if ($Plan) {
     $isoName = if ($config.defaults.iso_path) { $config.defaults.iso_path } else { $config.defaults.ubuntu_iso }
     $plannedIsoPath = if ($IsoPath) { $IsoPath } else { Join-Path $isoCache $isoName }
-    $exists = Test-Path $vmxPath
-    $status = "not-created"
-    if ($exists) {
-        if (Test-VMwareAvailable) {
-            Initialize-VMware | Out-Null
-            $status = Get-VMStatus $vmxPath
-        } else {
-            $status = "exists-vmware-unavailable"
-        }
-    }
+    $statusResult = Get-VMStatus -Name $RuntimeName
+    $status = if ($statusResult.Success) { $statusResult.Data } else { "unknown" }
     Write-UIHost -English "Plan only: no VM will be created, started, provisioned, or bootstrapped." -Chinese "仅预览：不会创建、启动、provision 或 bootstrap 任何 VM。" -ForegroundColor Cyan
     Write-UIHost -English "  Runtime:      $RuntimeName" -Chinese "  运行时:      $RuntimeName" -ForegroundColor DarkGray
     Write-UIHost -English "  VMX:          $vmxPath" -Chinese "  VMX:          $vmxPath" -ForegroundColor DarkGray
@@ -256,7 +256,7 @@ if ($Plan) {
     Write-UIHost -English "  ISO:          $plannedIsoPath" -Chinese "  ISO:          $plannedIsoPath" -ForegroundColor DarkGray
     Write-UIHost -English "  Static IP:    $(if ($rt.static_ip) { $rt.static_ip } else { 'not configured' })" -Chinese "  Static IP:    $(if ($rt.static_ip) { $rt.static_ip } else { '未配置' })" -ForegroundColor DarkGray
     Write-UIHost -English "  Workspace:    $(Join-Path (Resolve-Path 'workspace_root') $rt.workspace)" -Chinese "  工作区:      $(Join-Path (Resolve-Path 'workspace_root') $rt.workspace)" -ForegroundColor DarkGray
-    if (-not $exists) {
+    if ($status -eq "not-created") {
         Write-UIHost -English "  Would create VM from ISO and start provisioning unless -NoProvision is used." -Chinese "  将从 ISO 创建 VM 并开始 provisioning，除非使用 -NoProvision。" -ForegroundColor DarkGray
     } elseif ($status -match "running") {
         Write-UIHost -English "  Would detect running VM and continue bootstrap readiness checks unless -NoBootstrap is used." -Chinese "  将检测到运行中的 VM 并继续 bootstrap readiness 检查，除非使用 -NoBootstrap。" -ForegroundColor DarkGray
@@ -266,11 +266,12 @@ if ($Plan) {
     return
 }
 
-Initialize-VMware | Out-Null
-
 # --- Case 1: VM exists ---
-if (Test-Path $vmxPath) {
-    $status = Get-VMStatus $vmxPath
+$statusResult = Get-VMStatus -Name $RuntimeName
+$vmExists = ($statusResult.Success -and $statusResult.Data -ne "not-created")
+$status = if ($statusResult.Success) { $statusResult.Data } else { "unknown" }
+
+if ($vmExists) {
 
     if ($NoProvision) {
         Write-UIHost -English "Runtime '$RuntimeName' definition exists (status: $status). Provisioning/start skipped." -Chinese "运行时 '$RuntimeName' 定义已存在（状态: $status）。已跳过 provisioning/start。" -ForegroundColor Yellow
@@ -285,9 +286,9 @@ if (Test-Path $vmxPath) {
     }
 
     Write-UIHost -English "VM exists (status: $status). Starting..." -Chinese "VM 已存在（状态: $status）。正在启动..." -ForegroundColor Yellow
-    $startResult = Start-VM -VmxPath $vmxPath -Mode "nogui"
+    $startResult = Start-VM -Name $RuntimeName -Mode "nogui"
     if (-not $startResult.Success) {
-        Write-ErrorLog -Message "Failed to start VM: $($startResult.StdErr)" -Component "cli.up"
+        Write-ErrorLog -Message "Failed to start VM: $($startResult.Error)" -Component "cli.up"
         exit 1
     }
 

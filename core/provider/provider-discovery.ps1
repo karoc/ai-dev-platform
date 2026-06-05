@@ -27,7 +27,7 @@ function Get-ConfiguredProviderType {
     .EXAMPLE
     $providerType = Get-ConfiguredProviderType
     #>
-    param([hashtable]$Config = $null)
+    param($Config = $null)
 
     if (-not $Config) {
         if (Get-Command Get-PlatformConfig -ErrorAction SilentlyContinue) {

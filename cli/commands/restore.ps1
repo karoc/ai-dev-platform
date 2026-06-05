@@ -24,7 +24,8 @@ Write-InfoLog -Message (Get-UIText -English "Restoring snapshot: $RuntimeName/$S
 # Initialize VM provider
 . (Join-Path $script:ProjectRoot "core\provider\provider-discovery.ps1")
 $providerType = Get-ConfiguredProviderType
-Initialize-Provider -ProviderType $providerType -ProjectRoot $script:ProjectRoot | Out-Null
+$vmStore = Resolve-Path "vm_store"
+Initialize-Provider -ProviderType $providerType -ProjectRoot $script:ProjectRoot -InitArgs @{VmStorePath = $vmStore} | Out-Null
 
 $statusResult = Get-VMStatus -Name $RuntimeName
 if (-not $statusResult.Success -or $statusResult.Data -eq "not-created") {
