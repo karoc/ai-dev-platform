@@ -1,8 +1,8 @@
 # 将 ADP-OS 部署为 Deer-Flow 的 VM 沙箱后端
 
-> **日期**: 2026-06-05 | **最后验证**: 2026-06-05（看板任务 t_af04436d）| **来源标签**: [GH]=GitHub API, [FILE]=源码分析, [LLM]=LLM 推理
+> **日期**: 2026-06-05 | **最后验证**: 2026-06-05（看板任务 t_165fc742）| **来源标签**: [GH]=GitHub API, [FILE]=源码分析, [LLM]=LLM 推理
 > **双语**: 中文 & English | **目标读者**: ADP-OS 维护者、deer-flow 集成者
-> **集成指南**: 参见 [Deer-Flow 集成指南](../deer-flow-integration.md) ([English](../../deer-flow-integration.md)) 获取实践配置说明。
+> **集成指南**: [Deer-Flow 集成指南](../deer-flow-integration.md)（综合参考）| [MCP 配置指南](deer-flow-mcp-setup.md)（快速上手）| [English](../../integrations/deer-flow-mcp-setup.md)
 
 ---
 
