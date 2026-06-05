@@ -2,7 +2,7 @@
 
 简体中文 | [English](../copilot-sdk-integration.md)
 
-ADP-OS 提供标准的 [Model Context Protocol (MCP)](https://modelcontextprotocol.io) 服务器，与 [GitHub Copilot Agent SDK](https://github.com/github/copilot-sdk) 原生兼容。无需额外适配器，无需修改代码——配置一次即可在 Copilot SDK agent 中使用全部 18 个 ADP-OS 工具。
+ADP-OS 提供标准的 [Model Context Protocol (MCP)](https://modelcontextprotocol.io) 服务器，与 [GitHub Copilot Agent SDK](https://github.com/github/copilot-sdk) 原生兼容。无需额外适配器，无需修改代码——配置一次即可在 Copilot SDK agent 中使用全部 26 个 ADP-OS 工具。
 
 ## 快速开始
 
@@ -131,7 +131,7 @@ MCP 服务器通过三级回退机制解析 `ADP_HOME`：
 
 ## ADP-OS MCP 工具列表
 
-MCP 服务器共提供 18 个工具，分为三类：
+MCP 服务器共提供 26 个工具，分为四类：
 
 ### 平台工具（3 个）
 
@@ -166,9 +166,24 @@ MCP 服务器共提供 18 个工具，分为三类：
 | `adp_sync_status` | 获取所有运行时的 Mutagen 同步会话状态。 |
 | `adp_sync_stop` | 停止指定运行时的 Mutagen 同步会话。 |
 
+### VM 内沙箱工具（8 个）
+
+这些工具通过 SSH 直接在运行中的 VM 内部执行操作：
+
+| 工具 | 说明 |
+|------|------|
+| `adp_exec` | 通过 SSH 在运行中的 VM 中执行 shell 命令。 |
+| `adp_file_read` | 读取运行中 VM 内的文件内容。 |
+| `adp_file_write` | 写入/追加内容到 VM 内的文件（默认仅预览模式）。 |
+| `adp_dir_list` | 列出 VM 内目录内容，支持配置深度。 |
+| `adp_glob` | 在 VM 内按 glob 模式查找匹配文件。 |
+| `adp_grep` | 在 VM 内文本文件中搜索模式（支持正则/字面量）。 |
+| `adp_file_download` | 从 VM 下载二进制文件，返回 base64 编码。 |
+| `adp_file_upload` | 上传二进制内容到 VM 内的文件（默认仅预览模式）。 |
+
 ## 安全：默认预览模式
 
-**所有破坏性操作默认以 plan-only（预览）模式运行。** `adp_up`、`adp_down`、`adp_workspace_create` 和 `adp_workspace_close` 都需要显式设置 `plan_only=False` 才会实际执行。在预览模式下，工具显示*将会*发生什么，但不做实际更改。
+**所有破坏性操作默认以 plan-only（预览）模式运行。** `adp_up`、`adp_down`、`adp_workspace_create`、`adp_workspace_close`、`adp_file_write` 和 `adp_file_upload` 都需要显式设置 `plan_only=False` 才会实际执行。在预览模式下，工具显示*将会*发生什么，但不做实际更改。
 
 这意味着可以安全地让 agent 探索平台，无需担心意外销毁 VM。准备执行时，传入 `plan_only=False`：
 
@@ -192,7 +207,7 @@ response = await session.send_and_wait(
 
 Copilot SDK MCP 配置中的 `tools` 字段控制哪些工具可用。可选：
 
-- `["*"]` — 启用全部 18 个工具（推荐用于完整 ADP-OS 访问）
+- `["*"]` — 启用全部 26 个工具（推荐用于完整 ADP-OS 访问）
 - `["adp_status", "adp_doctor", "adp_workspace_list"]` — 仅只读工具
 - `[]` — 无工具（实质上禁用服务器）
 
@@ -214,7 +229,9 @@ class ReadOnlyHandler(PermissionHandler):
                   "adp_workspace_dashboard", "adp_workspace_project",
                   "adp_workspace_open", "adp_workspace_sync",
                   "adp_workspace_recipes", "adp_workspace_report",
-                  "adp_sync_status"}
+                  "adp_sync_status",
+                  "adp_exec", "adp_file_read", "adp_dir_list",
+                  "adp_glob", "adp_grep", "adp_file_download"}
 
     def on_permission_request(self, request):
         if request.tool_name in self.READ_TOOLS:

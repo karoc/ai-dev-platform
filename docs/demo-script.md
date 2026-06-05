@@ -137,7 +137,7 @@ Shot 3: Show CONTRIBUTING.md
 | 8 | 15s | `adp status agent` — running, connected, sync watching | "Agent runtime is up. SSH reachable, sync active." |
 | 9 | 15s | `adp doctor` — all green | "Full diagnostics confirm everything is healthy" |
 | 10 | 15s | Create file → `sync status` → SSH → file visible on VM | "Workspace sync is bidirectional. Changes propagate instantly." |
-| 11 | 15s | Start MCP server + Claude Desktop config | "ADP-OS exposes an MCP server with 18 tools for AI agents" |
+| 11 | 15s | Start MCP server + Claude Desktop config | "ADP-OS exposes an MCP server with 26 tools for AI agents" |
 | 12 | 30s | Claude Desktop calling ADP-OS tools | "Ask Claude to check sandbox status. Claude calls adp_status, adp_doctor, reports health." |
 | 13 | 15s | GitHub repo with issue templates + Discord | "Open source. Join us on Discord. Star the repo." |
 

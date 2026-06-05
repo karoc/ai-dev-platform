@@ -420,8 +420,8 @@ class ADPCLI:
         return self._run(["stop", runtime], timeout=120)
 
     def down(self, runtime: str, plan_only: bool = False, force: bool = False) -> dict:
-        """Run ``adp down <runtime>``."""
-        args = ["down", runtime]
+        """Run ``adp destroy <runtime>``."""
+        args = ["destroy", runtime]
         if plan_only:
             args.append("-Plan")
         if force:

@@ -2,7 +2,7 @@
 
 [简体中文](zh-CN/copilot-sdk-integration.md) | English
 
-ADP-OS ships a standard [Model Context Protocol (MCP)](https://modelcontextprotocol.io) server that is natively compatible with the [GitHub Copilot Agent SDK](https://github.com/github/copilot-sdk). No extra adapters, no code changes — configure it once and all 18 ADP-OS tools are available to your Copilot SDK agents.
+ADP-OS ships a standard [Model Context Protocol (MCP)](https://modelcontextprotocol.io) server that is natively compatible with the [GitHub Copilot Agent SDK](https://github.com/github/copilot-sdk). No extra adapters, no code changes — configure it once and all 26 ADP-OS tools are available to your Copilot SDK agents.
 
 ## Quick Start
 
@@ -131,7 +131,7 @@ If you get `FileNotFoundError: Cannot locate ADP-OS installation`, set `ADP_HOME
 
 ## ADP-OS MCP Tools
 
-All 18 tools are exposed through the MCP server. Three categories:
+All 26 tools are exposed through the MCP server. Four categories:
 
 ### Platform Tools (3)
 
@@ -166,9 +166,24 @@ All 18 tools are exposed through the MCP server. Three categories:
 | `adp_sync_status` | Get Mutagen sync session status for all runtimes. |
 | `adp_sync_stop` | Stop a Mutagen sync session for a specific runtime. |
 
+### In-VM Sandbox Tools (8)
+
+These tools execute operations directly inside a running VM via SSH:
+
+| Tool | Description |
+|------|-------------|
+| `adp_exec` | Execute a shell command inside a running VM via SSH. |
+| `adp_file_read` | Read the contents of a file inside a running VM. |
+| `adp_file_write` | Write/append content to a file inside a VM (plan-only by default). |
+| `adp_dir_list` | List directory contents inside a VM with configurable depth. |
+| `adp_glob` | Find files matching a glob pattern inside a VM. |
+| `adp_grep` | Search for text patterns in files inside a VM with regex/literal support. |
+| `adp_file_download` | Download a binary file from a VM as base64-encoded content. |
+| `adp_file_upload` | Upload binary content to a file inside a VM (plan-only by default). |
+
 ## Safety: Plan-Only Defaults
 
-**All destructive operations default to plan-only mode.** `adp_up`, `adp_down`, `adp_workspace_create`, and `adp_workspace_close` all require explicitly setting `plan_only=False` to take effect. In plan-only mode, the tool shows what *would* happen without making changes.
+**All destructive operations default to plan-only mode.** `adp_up`, `adp_down`, `adp_workspace_create`, `adp_workspace_close`, `adp_file_write`, and `adp_file_upload` all require explicitly setting `plan_only=False` to take effect. In plan-only mode, the tool shows what *would* happen without making changes.
 
 This means you can safely let an agent explore the platform without fear of accidental VM destruction. When you're ready to execute, pass `plan_only=False`:
 
@@ -192,7 +207,7 @@ response = await session.send_and_wait(
 
 The `tools` field in Copilot SDK MCP configuration controls which tools are available. Options:
 
-- `["*"]` — all 18 tools enabled (recommended for full ADP-OS access)
+- `["*"]` — all 26 tools enabled (recommended for full ADP-OS access)
 - `["adp_status", "adp_doctor", "adp_workspace_list"]` — read-only tools only
 - `[]` — no tools (effectively disables the server)
 
@@ -214,7 +229,9 @@ class ReadOnlyHandler(PermissionHandler):
                   "adp_workspace_dashboard", "adp_workspace_project",
                   "adp_workspace_open", "adp_workspace_sync",
                   "adp_workspace_recipes", "adp_workspace_report",
-                  "adp_sync_status"}
+                  "adp_sync_status",
+                  "adp_exec", "adp_file_read", "adp_dir_list",
+                  "adp_glob", "adp_grep", "adp_file_download"}
 
     def on_permission_request(self, request):
         if request.tool_name in self.READ_TOOLS:

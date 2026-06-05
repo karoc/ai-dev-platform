@@ -44,8 +44,13 @@ Deer-flow 通过 stdio 传输将 ADP-OS MCP 服务器连接为 MCP 工具提供�
 ```bash
 cd /path/to/ai-dev-platform
 
-# 验证 MCP 服务器启动并列出 26 个工具
-python cli/mcp/server.py --list-tools
+# 验证 MCP 服务器模块加载，26 个工具正确注册
+python3 -c "
+from cli.mcp.server import mcp
+tools = list(mcp._tool_manager._tools.keys())
+print(f'MCP tools registered: {len(tools)}')
+print(f'Tool names: {sorted(tools)}')
+"
 ```
 
 预期输出：26 个工具，分为 4 类（平台、工作区、运行时、VM 内沙箱）。
@@ -233,7 +238,7 @@ provider.release(sandbox_id)
 
 - [ ] ADP-OS CLI 健康：`pwsh -File cli/adp.ps1 doctor`
 - [ ] 至少一个 VM 运行时已配置：`pwsh -File cli/adp.ps1 status`
-- [ ] MCP 服务器列出 26 个工具：`python cli/mcp/server.py --list-tools`
+- [ ] MCP 服务器列出 26 个工具：`python3 -c "from cli.mcp.server import mcp; print(len(mcp._tool_manager._tools))"` → `26`
 - [ ] MCP 服务器测试通过：`python -m pytest tests/test-mcp-server.py -v`
 - [ ] Deer-flow 适配器测试通过：`python -m pytest tests/test_deerflow_adp_sandbox.py -v`
 - [ ] （可选）集成测试：deer-flow agent 在 ADP-OS VM 中执行代码

@@ -44,8 +44,13 @@ Deer-flow connects to ADP-OS MCP server as an MCP tool provider via stdio transp
 ```bash
 cd /path/to/ai-dev-platform
 
-# Verify MCP server starts and lists 26 tools
-python cli/mcp/server.py --list-tools
+# Verify MCP server module loads and all 26 tools are registered
+python3 -c "
+from cli.mcp.server import mcp
+tools = list(mcp._tool_manager._tools.keys())
+print(f'MCP tools registered: {len(tools)}')
+print(f'Tool names: {sorted(tools)}')
+"
 ```
 
 Expected output: 26 tools in 4 categories (Platform, Workspace, Runtime, In-VM Sandbox).
