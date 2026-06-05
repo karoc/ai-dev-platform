@@ -2,7 +2,7 @@
 
 > **日期**: 2026-06-05 | **最后验证**: 2026-06-05（看板任务 t_d1591f90 — 重新验证，新增参数级映射）| **来源标签**: [GH]=GitHub API, [FILE]=源码分析, [LLM]=LLM 推理
 > **双语**: 中文 & English | **目标读者**: ADP-OS 维护者、deer-flow 集成者
-> **集成指南**: [Deer-Flow 集成指南](../deer-flow-integration.md)（综合参考）| [MCP 配置指南](deer-flow-mcp-setup.md)（快速上手）| [English](../../integrations/deer-flow-mcp-setup.md)
+> **集成指南**: [VM 后端指南](deer-flow-backend.md)（部署）| [Deer-Flow 集成指南](../deer-flow-integration.md)（综合参考）| [MCP 配置指南](deer-flow-mcp-setup.md)（快速上手）| [English](../../integrations/deer-flow-mcp-setup.md)
 
 ---
 

@@ -2,7 +2,7 @@
 
 > **Date**: 2026-06-05 | **Last verified**: 2026-06-05 (kanban task t_d1591f90 — fresh re-verification, parameter-level mapping added) | **Source Tags**: [GH]=GitHub API, [FILE]=Source code analysis, [LLM]=LLM reasoning
 > **Bilingual**: English & 中文 | **Target audience**: ADP-OS maintainers, deer-flow integrators
-> **Integration guides**: [Deer-Flow Integration Guide](../deer-flow-integration.md) (comprehensive) | [MCP Server Setup Guide](deer-flow-mcp-setup.md) (quick-start) | [简体中文](../zh-CN/deer-flow-integration.md) ([MCP 配置指南](../zh-CN/integrations/deer-flow-mcp-setup.md))
+> **Integration guides**: [VM Backend Guide](deer-flow-backend.md) (deployment) | [Deer-Flow Integration Guide](../deer-flow-integration.md) (comprehensive) | [MCP Server Setup Guide](deer-flow-mcp-setup.md) (quick-start) | [简体中文](../zh-CN/deer-flow-integration.md) ([MCP 配置指南](../zh-CN/integrations/deer-flow-mcp-setup.md))
 
 ---
 

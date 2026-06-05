@@ -301,5 +301,6 @@ pip install paramiko
 - [Deer-Flow Sandbox Architecture](https://github.com/ByteDance/deer-flow/tree/main/docker/provisioner)
 - [ADP-OS MCP Server Source](../cli/mcp/server.py)
 - [Deer-Flow Gap Analysis](integrations/deer-flow.md)
+- [Deer-Flow VM Backend Guide](integrations/deer-flow-backend.md)
 - [Adapter Module Source](../extensions/deer_flow/deerflow_adp_sandbox.py)
 - [Adapter README](../extensions/deer_flow/README.md)

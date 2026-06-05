@@ -11,6 +11,7 @@ This documentation covers how to install, operate, configure, and understand ADP
 - **[Getting Started](getting-started.md)** ([简体中文](zh-CN/getting-started.md)): first-time setup walkthrough — from nothing to a running development VM in ~30 minutes.
 - **[Copilot SDK Integration](copilot-sdk-integration.md)** ([简体中文](zh-CN/copilot-sdk-integration.md)): load ADP-OS tools into the GitHub Copilot Agent SDK. Python and TypeScript quick-start examples, tool reference, and permission patterns.
 - **[Deer-Flow Integration](deer-flow-integration.md)** ([简体中文](zh-CN/deer-flow-integration.md)): configure ADP-OS as an MCP server in ByteDance/deer-flow (70K⭐). Quick-start guide, 18-tool reference, workflow examples, and current limitations.
+- **[Deer-Flow VM Backend](integrations/deer-flow-backend.md)** ([简体中文](zh-CN/integrations/deer-flow-backend.md)): use ADP-OS as deer-flow's hardware-VM sandbox backend. MCP server and Direct Adapter configuration, VM pool pre-warming, end-to-end flow.
 - [ADP-OS and Docker](positioning.md): how ADP-OS relates to Docker and when to use each.
 - [Operations](operations.md): day-to-day runtime commands and workflows.
 - [Configuration](configuration.md): platform, topology, sync, and local override configuration.

@@ -301,5 +301,6 @@ pip install paramiko
 - [Deer-Flow 沙箱架构](https://github.com/ByteDance/deer-flow/tree/main/docker/provisioner)
 - [ADP-OS MCP 服务器源码](../../cli/mcp/server.py)
 - [Deer-Flow 缺口分析](integrations/deer-flow.md)
+- [Deer-Flow VM 后端指南](integrations/deer-flow-backend.md)
 - [适配器模块源码](../../extensions/deer_flow/deerflow_adp_sandbox.py)
 - [适配器 README](../../extensions/deer_flow/README.md)
