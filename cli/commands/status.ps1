@@ -36,44 +36,49 @@ function Get-StatusRuntimeState {
     )
 
     $vmxPath = Get-StatusVmxPath -TargetRuntime $TargetRuntime
-    if (-not (Test-Path -LiteralPath $vmxPath)) {
+    if ($VmwareAvailable) {
+        # Use Provider for status and IP detection
+        $statusResult = Get-VMStatus -Name $TargetRuntime
+        $vmStatus = if ($statusResult.Success) { $statusResult.Data } else { "unknown" }
+
+        if ($vmStatus -eq "not-created") {
+            return [pscustomobject]@{
+                Status     = "not-created"
+                DetectedIp = ""
+                VmxPath    = $vmxPath
+            }
+        }
+
+        $detectedIp = ""
+        try {
+            $ipResult = Get-VMIP -Name $TargetRuntime
+            if ($ipResult.Success) {
+                $detectedIp = $ipResult.Data
+            }
+        } catch {
+            $detectedIp = ""
+        }
+
         return [pscustomobject]@{
-            Status     = "not-created"
-            DetectedIp = ""
+            Status     = $vmStatus
+            DetectedIp = $detectedIp
             VmxPath    = $vmxPath
         }
-    }
+    } else {
+        # VMware not available — fall back to file-existence check
+        if (-not (Test-Path -LiteralPath $vmxPath)) {
+            return [pscustomobject]@{
+                Status     = "not-created"
+                DetectedIp = ""
+                VmxPath    = $vmxPath
+            }
+        }
 
-    if (-not $VmwareAvailable) {
         return [pscustomobject]@{
             Status     = "exists-vmware-unavailable"
             DetectedIp = ""
             VmxPath    = $vmxPath
         }
-    }
-
-    $fullVmxPath = [System.IO.Path]::GetFullPath($vmxPath)
-    $status = if ($RunningVmxPaths -contains $fullVmxPath) { "running" } else { "stopped" }
-    $detectedIp = ""
-    try {
-        $quick = Invoke-Vmrun -Arguments @("getGuestIPAddress", $vmxPath) -TimeoutSeconds 5
-        if ($quick.Success) {
-            $detectedIp = Select-VMIPv4FromText -Text $quick.StdOut
-        }
-        if (-not $detectedIp) {
-            $detectedIp = Get-VMIPFromDhcpLeases -VmxPath $vmxPath
-        }
-        if ($detectedIp) {
-            $status = "running"
-        }
-    } catch {
-        $detectedIp = ""
-    }
-
-    return [pscustomobject]@{
-        Status     = $status
-        DetectedIp = $detectedIp
-        VmxPath    = $vmxPath
     }
 }
 
@@ -380,23 +385,31 @@ function Write-StatusRuntime {
 }
 
 # --- Main execution ---
+# Initialize VM provider
+. (Join-Path $script:ProjectRoot "core\provider\provider-discovery.ps1")
+$providerType = Get-ConfiguredProviderType
+try {
+    Initialize-Provider -ProviderType $providerType -ProjectRoot $script:ProjectRoot | Out-Null
+    $vmwareAvailable = $true
+} catch {
+    $vmwareAvailable = $false
+}
+
+$runningVmxPaths = @()
+if ($vmwareAvailable) {
+    try {
+        $runningVmxPaths = @(Get-RunningVMs | ForEach-Object { [System.IO.Path]::GetFullPath($_) })
+    } catch {
+        $runningVmxPaths = @()
+    }
+}
+
 if ($Json) {
     # JSON output mode: collect structured data, suppress human-readable output
     $config = Get-PlatformConfig
     $localConfigStatus = Get-LocalConfigStatus
     $adminUser = if ($config.defaults.admin_user) { [string]$config.defaults.admin_user } else { "adp" }
     $keyPath = Join-Path "$env:USERPROFILE\.ssh\adp-os" "adp-os"
-
-    $vmwareAvailable = Test-VMwareAvailable
-    $runningVmxPaths = @()
-    if ($vmwareAvailable) {
-        Initialize-VMware | Out-Null
-        try {
-            $runningVmxPaths = @(Get-RunningVMs | ForEach-Object { [System.IO.Path]::GetFullPath($_) })
-        } catch {
-            $runningVmxPaths = @()
-        }
-    }
 
     $mutagenAvailable = $false
     try {
@@ -478,16 +491,7 @@ if ($Json) {
     Write-UIHost -English "SSH key:      $keyPath" -Chinese "SSH 密钥:    $keyPath" -ForegroundColor DarkGray
     Write-Host ""
 
-    $vmwareAvailable = Test-VMwareAvailable
-    $runningVmxPaths = @()
-    if ($vmwareAvailable) {
-        Initialize-VMware | Out-Null
-        try {
-            $runningVmxPaths = @(Get-RunningVMs | ForEach-Object { [System.IO.Path]::GetFullPath($_) })
-        } catch {
-            $runningVmxPaths = @()
-        }
-    } else {
+    if (-not $vmwareAvailable) {
         Write-UIHost -English "VMware:      unavailable; VM status is limited to local VMX presence." -Chinese "VMware:      不可用；VM 状态仅能基于本地 VMX 是否存在判断。" -ForegroundColor Yellow
         Write-Host ""
     }
