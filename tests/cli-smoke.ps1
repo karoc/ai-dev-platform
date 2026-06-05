@@ -217,7 +217,7 @@ Assert-Command `
     -Name "workspace show example manifest" `
     -Arguments @("workspace", "show", "-ManifestPath", "configs\workspace.example.json") `
     -ExitCode 0 `
-    -Patterns @("Workspace: example-project", "Projects:", "app:\s+app -> agent", "Milestones:", "agent-safety-baseline", "milestone-agent-safety-baseline", "Tasks:", "milestone=agent-safety-baseline")
+    -Patterns @("Workspace: example-project", "Projects:", "app:.*\\app\s+->\s+agent", "Milestones:", "agent-safety-baseline", "milestone-agent-safety-baseline", "Tasks:", "milestone=agent-safety-baseline")
 
 Assert-Command `
     -Name "workspace plan example manifest" `
@@ -229,7 +229,7 @@ Assert-Command `
     -Name "workspace show recipes manifest" `
     -Arguments @("workspace", "show", "-ManifestPath", "configs\workspace.recipes.example.json") `
     -ExitCode 0 `
-    -Patterns @("Workspace: recipe-workspace", "frontend-app:\s+frontend-app -> frontend", "backend-api:\s+backend-api -> backend", "agent-workspace:\s+agent-workspace -> agent", "Milestones:", "frontend-acceptance", "agent-refactor-safety")
+    -Patterns @("Workspace: recipe-workspace", "frontend-app:.*\\frontend-app\s+->\s+frontend", "backend-api:.*\\backend-api\s+->\s+backend", "agent-workspace:.*\\agent-workspace\s+->\s+agent", "Milestones:", "frontend-acceptance", "agent-refactor-safety")
 
 Assert-Command `
     -Name "workspace plan recipes manifest" `
@@ -503,6 +503,18 @@ try {
         -Patterns @("Workspace task mark: before-large-agent-task", "State:\s+checkpoint-waived", "checkpoint-waived records explicit human acceptance of missing VM snapshot protection", "does not create a snapshot, prove rollback safety, or restore rollback capability")
 
     Assert-Command `
+        -Name "workspace task mark validated records external validation" `
+        -Arguments @("workspace", "task", "mark", "before-large-agent-task", "validated", "-ManifestPath", "configs\workspace.example.json", "-StatePath", $workspaceBoundaryState) `
+        -ExitCode 0 `
+        -Patterns @("Workspace task mark: before-large-agent-task", "State:\s+validated", "Recorded external validation result", "validated records an external validation result")
+
+    Assert-Command `
+        -Name "workspace task mark validation_failed records external failure" `
+        -Arguments @("workspace", "task", "mark", "before-large-agent-task", "validation_failed", "-ManifestPath", "configs\workspace.example.json", "-StatePath", $workspaceBoundaryState) `
+        -ExitCode 0 `
+        -Patterns @("Workspace task mark: before-large-agent-task", "State:\s+validation_failed", "Recorded external validation result", "validation_failed records an external validation result")
+
+    Assert-Command `
         -Name "workspace status with checkpoint waiver" `
         -Arguments @("workspace", "status", "-ManifestPath", "configs\workspace.example.json", "-StatePath", $workspaceBoundaryState) `
         -ExitCode 0 `
@@ -751,13 +763,13 @@ Assert-Command `
     -Name "workspace task execute only supports validate" `
     -Arguments @("workspace", "task", "run", "before-large-agent-task", "-Execute", "-ManifestPath", "configs\workspace.example.json") `
     -ExitCode 1 `
-    -Patterns @("-Execute and -Plan are only supported with: adp workspace task validate <task-name>")
+    -Patterns @("-Execute, -Local, and -Plan are only supported with: adp workspace task validate <task-name>")
 
 Assert-Command `
     -Name "workspace task validate plan requires execute" `
     -Arguments @("workspace", "task", "validate", "before-large-agent-task", "-Plan", "-ManifestPath", "configs\workspace.example.json") `
     -ExitCode 1 `
-    -Patterns @("-Plan is only supported with -Execute for workspace task validation")
+    -Patterns @("-Plan is only supported with -Execute or -Local for workspace task validation")
 
 Assert-Command `
     -Name "workspace unknown subcommand" `

@@ -262,7 +262,7 @@ function Show-CommandHelp {
                 Write-Host "  plan              预览工作区计划"
                 Write-Host "  status [name]     显示工作区任务状态"
                 Write-Host "  dashboard         显示工作区健康仪表板"
-                Write-Host "  report            生成工作区报告"
+                Write-Host "  report [-Markdown] [-Terse]  生成工作区报告"
                 Write-Host "  recipes           列出工作区配方"
                 Write-Host ""
                 Write-Host "管理:" -ForegroundColor Yellow
@@ -282,6 +282,8 @@ function Show-CommandHelp {
                 Write-Host "通用选项:" -ForegroundColor Yellow
                 Write-Host "  -ManifestPath     指定 manifest 文件路径（默认: adp-workspace.json）"
                 Write-Host "  -Plan             仅显示计划（dry-run）"
+                Write-Host "  -Execute          通过 SSH 在 VM 中执行验证命令（仅 task validate）"
+                Write-Host "  -Local            本地执行验证命令，无需 VM（仅 task validate）"
                 Write-Host "  -Markdown         以 Markdown 格式输出"
                 Write-Host ""
                 Write-Host "使用 'adp workspace help' 查看分组子命令帮助。" -ForegroundColor DarkGray
@@ -591,7 +593,7 @@ function Show-CommandHelp {
                 Write-Host "  plan             Preview workspace plan"
                 Write-Host "  status [name]    Show workspace task status"
                 Write-Host "  dashboard        Show workspace health dashboard"
-                Write-Host "  report           Generate workspace report"
+                Write-Host "  report [-Markdown] [-Terse]  Generate workspace report"
                 Write-Host "  recipes          List workspace recipes"
                 Write-Host ""
                 Write-Host "Manage:" -ForegroundColor Yellow
@@ -611,6 +613,8 @@ function Show-CommandHelp {
                 Write-Host "Common options:" -ForegroundColor Yellow
                 Write-Host "  -ManifestPath    Specify manifest file path (default: adp-workspace.json)"
                 Write-Host "  -Plan            Show plan only (dry-run)"
+                Write-Host "  -Execute         Execute validation commands via SSH in VM (task validate only)"
+                Write-Host "  -Local           Execute validation commands locally, no VM required (task validate only)"
                 Write-Host "  -Markdown        Output in Markdown format"
                 Write-Host ""
                 Write-Host "Use 'adp workspace help' for grouped subcommand help." -ForegroundColor DarkGray
