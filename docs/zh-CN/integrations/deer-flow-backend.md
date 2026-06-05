@@ -306,8 +306,8 @@ sandbox_id = provider.acquire()
 - [MCP 配置指南](deer-flow-mcp-setup.md) — 逐步 MCP 配置
 - [Deer-Flow 集成指南](../deer-flow-integration.md) — 完整双路径参考
 - [将 ADP-OS 部署为 Deer-Flow 的 VM 沙箱后端](deer-flow.md) — 架构和缺口分析
-- [ADP-OS MCP 服务器源码](../../cli/mcp/server.py) — 参考实现（26 个工具）
-- [直接适配器源码](../../extensions/deer_flow/deerflow_adp_sandbox.py) — `DeerFlowADPSandboxProvider`
+- [ADP-OS MCP 服务器源码](../../../cli/mcp/server.py) — 参考实现（26 个工具）
+- [直接适配器源码](../../../extensions/deer_flow/deerflow_adp_sandbox.py) — `DeerFlowADPSandboxProvider`
 - [操作指南](../operations.md) — ADP-OS 日常运行时管理
 
 ---
