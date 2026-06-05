@@ -89,20 +89,25 @@ cd ai-dev-platform
 
 ### Step 2: Run the Guided Setup
 
-This one command handles ISO download, platform installation, initialization, and diagnostics:
+**One-click:** Run `.\setup.ps1` from the repo root:
 
 ```powershell
-.\cli\adp.ps1 quickstart
+.\setup.ps1
 ```
 
-`quickstart` guides you through these phases automatically:
+This single command handles ISO download, platform installation, initialization, and diagnostics:
 
-1. **ISO Download** — Downloads Ubuntu Server 26.04 (~2.6 GB). Progress is shown with percentage and speed.
-2. **Install** — Runs `install.ps1` which sets up directories, generates seed ISO, and creates VM templates.
-3. **Init** — Runs `adp init -Quick` to finalize platform configuration.
-4. **Doctor** — Runs `adp doctor` to verify all prerequisites are in place.
+1. **Prerequisite Scan** — Checks all 6 prerequisites and shows remediation for any missing items.  
+2. **ISO Download** — Downloads Ubuntu Server 26.04 (~2.6 GB). Progress shown with percentage and speed.
+3. **Install** — Runs `install.ps1` which sets up directories, generates seed ISO, and creates VM templates.
+4. **Init** — Runs `adp init -Quick` to finalize platform configuration.
+5. **Doctor** — Runs `adp doctor` to verify all prerequisites are in place.
 
 You'll see progress indicators like `[1/6]`, `[2/6]` as each phase completes.
+
+> [!TIP]
+> If you already have the Ubuntu ISO: `.\setup.ps1 -IsoPath C:\path\to\ubuntu.iso`
+> For non-interactive/scripted use: `.\setup.ps1 -NonInteractive`
 
 > [!NOTE]
 > If you already have the Ubuntu ISO downloaded, you can skip the download:

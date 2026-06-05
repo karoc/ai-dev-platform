@@ -18,6 +18,8 @@ Initial public release.
 
 - Added community infrastructure: installation help issue template (`.github/ISSUE_TEMPLATE/install_help.yml`), enhanced CONTRIBUTING.md with step-by-step development environment setup and PR process, Discord community setup guide (`docs/discord-setup.md`, `docs/zh-CN/discord-setup.md`) with channel structure and community guidelines, and demo video script with storyboard (`docs/demo-script.md`). Added Community section to README and bilingual docs index.
 
+- Added `setup.ps1` — a root-level one-click bootstrap script that chains prerequisite scanning, ISO download, platform install, init, and doctor into a single command. After cloning, users run `.\setup.ps1` (instead of `.\cli\adp.ps1 quickstart`) for a simpler first-run experience. Supports `-IsoPath`, `-SkipIsoDownload`, `-NonInteractive`, and `-Force` flags. Updated README (English and 简体中文), getting-started guides, and CLI smoke tests.
+
 ### 2026-06-04
 
 ### Added

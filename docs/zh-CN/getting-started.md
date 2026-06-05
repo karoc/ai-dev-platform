@@ -89,20 +89,25 @@ cd ai-dev-platform
 
 ### 第 2 步：运行引导式设置
 
-以下一条命令即可完成 ISO 下载、平台安装、初始化和诊断：
+**一键设置：** 在仓库根目录运行 `.\setup.ps1`：
 
 ```powershell
-.\cli\adp.ps1 quickstart
+.\setup.ps1
 ```
 
-`quickstart` 会自动引导你完成以下步骤：
+这一条命令即可完成前提条件扫描、ISO 下载、平台安装、初始化和诊断：
 
-1. **ISO 下载** — 下载 Ubuntu Server 26.04（约 2.6 GB）。显示百分比和速度。
-2. **安装** — 运行 `install.ps1`，设置目录、生成 seed ISO 并创建 VM 模板。
-3. **初始化** — 运行 `adp init -Quick` 完成平台配置。
-4. **诊断** — 运行 `adp doctor` 验证所有前置条件是否就绪。
+1. **前提条件扫描** — 检查全部 6 项前提条件，显示每项的修复步骤。
+2. **ISO 下载** — 下载 Ubuntu Server 26.04（约 2.6 GB）。显示百分比和速度。
+3. **安装** — 运行 `install.ps1`，设置目录、生成 seed ISO 并创建 VM 模板。
+4. **初始化** — 运行 `adp init -Quick` 完成平台配置。
+5. **诊断** — 运行 `adp doctor` 验证所有前置条件是否就绪。
 
 每个阶段完成时，你会看到 `[1/6]`、`[2/6]` 等进度指示。
+
+> [!TIP]
+> 如果已有 Ubuntu ISO：`.\setup.ps1 -IsoPath C:\path\to\ubuntu.iso`
+> 非交互/脚本化使用：`.\setup.ps1 -NonInteractive`
 
 > [!NOTE]
 > 如果你已经有 Ubuntu ISO 文件，可以跳过下载：

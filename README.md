@@ -89,15 +89,24 @@ A complete first run consists of prerequisites (VMware, WSL, Mutagen), one-time 
 
 ### One-Time Setup
 
-**Recommended: One-command guided setup:**
+**Recommended: One-click setup — clone and run one command:**
 
 ```powershell
 git clone https://github.com/karoc/ai-dev-platform.git
 cd ai-dev-platform
-.\cli\adp.ps1 quickstart
+.\setup.ps1
 ```
 
-`adp quickstart` automatically scans prerequisites first, guides you through ISO download, platform bootstrap (`install.ps1`), initialization (`adp init -Quick`), and diagnostics (`adp doctor`) in a single guided flow. If prerequisites are missing, it shows exactly what to install and exits — fix them, then re-run.
+`.\setup.ps1` is the single entry point after cloning. It guides you through the entire setup in one pass: prerequisite scanning, ISO download (~2.6 GB), platform bootstrap, initialization, and system diagnostics. If prerequisites are missing, it shows exactly what to install and exits — fix them, then re-run `.\setup.ps1`.
+
+**Options:**
+
+```powershell
+.\setup.ps1 -IsoPath C:\...\ubuntu.iso   # Use a pre-downloaded ISO
+.\setup.ps1 -SkipIsoDownload              # Skip ISO download (already cached)
+.\setup.ps1 -NonInteractive               # Run without prompts (for scripts/CI)
+.\setup.ps1 -Force                        # Skip precheck, proceed anyway
+```
 
 **Before you start, check prerequisites:**
 
@@ -105,7 +114,7 @@ cd ai-dev-platform
 .\cli\adp.ps1 precheck
 ```
 
-`adp precheck` scans all 6 prerequisites (Windows 11, PowerShell 7+, VMware Workstation Pro, WSL+xorriso, Mutagen 0.18.x, OpenSSH) and prints a status table with specific remediation commands for each missing item. Run it before `quickstart` or `install.ps1` to see what you need. Use `adp precheck --help-prereqs` for the full requirements list with OS-specific install commands.
+`adp precheck` scans all 6 prerequisites (Windows 11, PowerShell 7+, VMware Workstation Pro, WSL+xorriso, Mutagen 0.18.x, OpenSSH) and prints a status table with specific remediation commands for each missing item. Run it before `setup.ps1` or `install.ps1` to see what you need. Use `adp precheck --help-prereqs` for the full requirements list with OS-specific install commands.
 
 **Alternatively, step-by-step:**
 

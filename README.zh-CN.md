@@ -79,6 +79,41 @@ wsl -u root bash -lc "apt-get update && DEBIAN_FRONTEND=noninteractive apt-get i
 
 ## 快速开始
 
+> [!TIP]
+> 新手？请从 **[入门指南](docs/zh-CN/getting-started.md)** 开始 — 包含架构图、前提条件清单、预计时间和常见错误的分步教程。
+
+> [!WARNING]
+> ADP-OS 使用默认 `adp:adp` 用户和密码来配置本地 VM，以进行自动化 sudo 配置。这些 VM 专为可信工作站上的本地单用户开发而设计。请勿在未更改凭据和审查 SSH 访问权限的情况下将其暴露给不受信任的网络。有关完整的本地开发安全模型，请参阅 [安全](SECURITY.md)。
+
+**推荐：一键设置 — 克隆后只需运行一条命令：**
+
+```powershell
+git clone https://github.com/karoc/ai-dev-platform.git
+cd ai-dev-platform
+.\setup.ps1
+```
+
+`.\setup.ps1` 是克隆后的唯一入口。它将引导您一次性完成全部设置：前提条件扫描、ISO 下载（~2.6 GB）、平台引导、初始化和系统诊断。如果缺少前提条件，它会准确显示需要安装的内容并退出 — 修复后重新运行 `.\setup.ps1`。
+
+**选项：**
+
+```powershell
+.\setup.ps1 -IsoPath C:\...\ubuntu.iso   # 使用已下载的 ISO
+.\setup.ps1 -SkipIsoDownload              # 跳过 ISO 下载（已缓存）
+.\setup.ps1 -NonInteractive               # 无交互运行（脚本/CI 使用）
+.\setup.ps1 -Force                        # 跳过前提条件检查
+```
+
+**开始前，检查前提条件：**
+
+```powershell
+.\cli\adp.ps1 precheck
+```
+
+`adp precheck` 扫描全部 6 项前提条件（Windows 11、PowerShell 7+、VMware Workstation Pro、WSL+xorriso、Mutagen 0.18.x、OpenSSH），以状态表格显示每项的修复命令。在运行 `setup.ps1` 或 `install.ps1` 之前使用它以查看需要什么。使用 `adp precheck --help-prereqs` 查看带安装命令的完整需求列表。
+
+**或者，手动分步：**
+
 克隆仓库并安装平台：
 
 ```powershell
