@@ -1,72 +1,55 @@
 name: Feature request
-description: Suggest an improvement to ADP-OS.
+description: Suggest an idea or enhancement / 建议新功能或改进
 title: "[Feature]: "
 labels: ["enhancement"]
 body:
-  - type: markdown
-    attributes:
-      value: |
-        Use this for product or workflow improvements. For usage questions, use the Usage question template. For vulnerabilities, follow SECURITY.md. Do not include secrets, private keys, tokens, VM disks, ISO files, large logs, or private local paths that should not be public. See SUPPORT.md for scope boundaries.
   - type: textarea
     id: problem
     attributes:
       label: Problem
-      description: What user problem should this solve?
+      description: A clear description of the problem or gap. What made you want this feature?
+      placeholder: "I want to use ADP-OS with a Docker-based CI pipeline but..."
     validations:
       required: true
+
   - type: textarea
     id: proposal
     attributes:
-      label: Proposed solution
-      description: Describe the behavior you want.
+      label: Proposed Solution
+      description: What would you like ADP-OS to do?
     validations:
       required: true
-  - type: dropdown
-    id: area
-    attributes:
-      label: Area
-      options:
-        - install
-        - cli
-        - vmware
-        - networking
-        - bootstrap
-        - sync
-        - browser-testing
-        - workspace
-        - validation
-        - release-readiness
-        - agent-native-workflow
-        - docker-or-devcontainer
-        - documentation
-        - cross-platform
-        - other
-    validations:
-      required: true
+
   - type: textarea
     id: alternatives
     attributes:
-      label: Alternatives considered
+      label: Alternatives Considered
+      description: Have you tried workarounds or alternative approaches?
+
   - type: dropdown
-    id: os
+    id: workflow
     attributes:
-      label: Your operating system
+      label: Workflow Type
+      description: Which ADP-OS workflow does this feature impact?
       options:
-        - Windows 11
-        - Windows 10
-        - Windows Server 2025
-        - Windows Server 2022
+        - agent-native-workflow
+        - docker-or-devcontainer
+        - workspace-orchestration
+        - documentation-and-docs
+        - ci-and-validation
         - other
-        - not applicable
-  - type: textarea
-    id: notes
-    attributes:
-      label: Additional context
-      description: Do not include secrets, private keys, tokens, VM disks, ISO files, or private local paths that should not be public.
+    validations:
+      required: true
+
   - type: checkboxes
     id: safety
     attributes:
-      label: Safety check
+      label: Safety Checklist
+      description: Confirm the following are NOT included in this request.
       options:
-        - label: I removed secrets, private keys, tokens, VM disks, ISO files, large logs, and private local paths from this request.
+        - label: No secrets, private keys, tokens, or credentials are included
           required: true
+        - label: No VM disks, ISO files, or private local paths are shared
+          required: true
+    validations:
+      required: true
