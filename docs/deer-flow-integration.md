@@ -1,247 +1,300 @@
-# Deer-Flow Integration Guide
+# Deer-Flow ADP-OS Integration Guide
 
-[简体中文](zh-CN/deer-flow-integration.md) | English
+> **Date**: 2026-06-05 | **Target audience**: Deer-flow integrators, ADP-OS operators
+> **Bilingual**: English & 中文 | [简体中文版](zh-CN/deer-flow-integration.md)
 
-ADP-OS ships a standard [Model Context Protocol (MCP)](https://modelcontextprotocol.io) server that can be loaded as an MCP server in [ByteDance/deer-flow](https://github.com/bytedance/deer-flow) (70K⭐). Configure it once and all 26 ADP-OS platform, workspace, runtime, and in-VM sandbox tools are available to deer-flow agents.
+Practical, copy-paste runnable guide to wire up [ByteDance/deer-flow](https://github.com/ByteDance/deer-flow) (70K⭐) with ADP-OS VMs as a hardware-VM sandbox backend.
 
-> **Scope**: This guide covers configuring the ADP-OS MCP server in deer-flow. With 26 tools (18 lifecycle + 8 SSH-backed in-VM operations), ADP-OS now serves as a **complete deer-flow sandbox backend** — including code execution, file I/O, and directory navigation inside VMs. See [Gap Analysis](integrations/deer-flow.md) for the resolved P0 gaps and shipped adapter.
+For architectural analysis and gap tracking, see [Deploying ADP-OS as Deer-Flow VM Sandbox Backend](integrations/deer-flow.md).
 
-## Quick Start
+---
 
-### 1. Install MCP server dependencies
+## Overview
+
+ADP-OS provides **two integration paths** for deer-flow:
+
+| Path | How | When to use |
+|------|-----|-------------|
+| **MCP Server** (recommended) | Deer-flow connects to ADP-OS MCP server as an MCP tool provider. All 26 tools exposed via stdio MCP transport. | Deer-flow agents use MCP protocol. Cross-language, cross-machine. |
+| **Direct Adapter** | `DeerFlowADPSandboxProvider` Python class imported directly. Implements deer-flow `SandboxProvider` ABC. | Python-native deer-flow integration, minimal protocol overhead. |
+
+Both paths provide the same sandbox capabilities: VM lifecycle (acquire/release) + 8 in-VM operations (exec, file read/write, dir list, glob, grep, download, upload).
+
+---
+
+## Prerequisites
+
+- **ADP-OS installed** on a Windows host with VMware Workstation
+  - Verified: `pwsh -File cli/adp.ps1 doctor` returns healthy
+- **At least one VM runtime** configured in `configs/topology.json`
+  - Test with: `pwsh -File cli/adp.ps1 up agent`
+- **SSH access to VMs** (port 22 on VMware NAT subnet)
+  - Default credentials: `adp` / `adp` (set during Ubuntu autoinstall)
+- **Python 3.10+** and **PowerShell 7+** on the integration host
+- (Optional) `paramiko` for better SSH connection management: `pip install paramiko`
+
+---
+
+## Path 1: MCP Server Integration (Recommended)
+
+Deer-flow connects to ADP-OS MCP server as an MCP tool provider via stdio transport. All 26 tools are available to deer-flow agents.
+
+### Step 1: Verify ADP-OS MCP Server
 
 ```bash
-cd /path/to/ai-dev-platform/cli/mcp
-pip install -r requirements.txt
+cd /path/to/ai-dev-platform
+
+# Verify MCP server starts and lists 26 tools
+python cli/mcp/server.py --list-tools
 ```
 
-### 2. Configure deer-flow
+Expected output: 26 tools in 4 categories (Platform, Workspace, Runtime, In-VM Sandbox).
 
-Copy the example extensions config if you haven't already:
+### Step 2: Configure Deer-Flow MCP Extension
 
-```bash
-cd /path/to/deer-flow
-cp extensions_config.example.json extensions_config.json
-```
-
-Add the ADP-OS MCP server entry to `extensions_config.json`:
-
-#### Windows (Native)
+Create or update `extensions_config.json` in your deer-flow project root:
 
 ```json
 {
-  "mcpServers": {
-    "adp-os": {
-      "enabled": true,
-      "type": "stdio",
-      "command": "python",
-      "args": ["D:\\Dev\\ai-dev-platform\\cli\\mcp\\server.py"],
-      "env": {
-        "ADP_HOME": "D:\\Dev\\ai-dev-platform"
-      },
-      "description": "ADP-OS VM sandbox backend — 26 tools for platform, workspace, runtime, and in-VM sandbox management"
+  "adp_os_sandbox": {
+    "type": "stdio",
+    "command": "python",
+    "args": [
+      "/absolute/path/to/ai-dev-platform/cli/mcp/server.py"
+    ],
+    "env": {
+      "ADP_HOME": "/absolute/path/to/ai-dev-platform",
+      "ADP_HOME_WIN": "D:\\Dev\\ai-dev-platform"
     }
   }
 }
 ```
 
-On Windows, only `ADP_HOME` is needed. The server auto-detects the platform and treats paths as native Windows paths.
-
-#### WSL (Python in WSL, pwsh.exe on Windows host)
-
-```json
-{
-  "mcpServers": {
-    "adp-os": {
-      "enabled": true,
-      "type": "stdio",
-      "command": "python3",
-      "args": ["/home/user/ai-dev-platform/cli/mcp/server.py"],
-      "env": {
-        "ADP_HOME": "/home/user/ai-dev-platform",
-        "ADP_HOME_WIN": "D:\\Dev\\ai-dev-platform"
-      },
-      "description": "ADP-OS VM sandbox backend — 26 tools for platform, workspace, runtime, and in-VM sandbox management"
-    }
-  }
-}
-```
-
-On WSL, set both `ADP_HOME` (WSL path) and `ADP_HOME_WIN` (Windows host path). The server converts between WSL and Windows paths automatically via `wslpath`.
-
-### 3. Restart deer-flow
-
-Restart the deer-flow services. The ADP-OS tools will be discovered and registered at startup.
-
-### 4. Verify
-
-Ask a deer-flow agent: "Show me ADP-OS platform status"
-
-The agent should call `adp_status` and report runtime health.
-
-## Available Tools
-
-All 26 tools are available once configured:
-
-### Platform Tools
-
-| Tool | What it does |
-|------|-------------|
-| `adp_status` | Health status of all runtimes (VM status, SSH, sync) |
-| `adp_doctor` | Platform diagnostics (47+ checks, issue remediation) |
-| `adp_capabilities` | Platform capabilities and roadmap |
-
-### Workspace Tools
-
-| Tool | What it does |
-|------|-------------|
-| `adp_workspace_list` | List manifest projects and runtime mappings |
-| `adp_workspace_status` | Workspace readiness (paths, runtimes, sync, snapshots) |
-| `adp_workspace_dashboard` | Task lifecycle overview with governance queues |
-| `adp_workspace_project` | Single project operational lifecycle view |
-| `adp_workspace_create` | Create workspace directories (plan-only default) |
-| `adp_workspace_open` | Entry guidance (paths, SSH, sync commands) |
-| `adp_workspace_sync` | Per-project sync guidance |
-| `adp_workspace_close` | Close workspace (stop sync, plan-only default) |
-| `adp_workspace_recipes` | List available workspace recipes |
-| `adp_workspace_report` | Markdown release evidence |
-
-### Runtime Tools
-
-| Tool | What it does |
-|------|-------------|
-| `adp_up` | Start VM (create from ISO if first time, plan-only default) |
-| `adp_down` | Destroy VM (plan-only default) |
-| `adp_stop` | Graceful VM shutdown |
-| `adp_sync_status` | Mutagen sync session health |
-| `adp_sync_stop` | Stop Mutagen sync session |
-
-### In-VM Sandbox Tools (SSH-backed)
-
-| Tool | What it does |
-|------|-------------|
-| `adp_exec` | Execute commands inside a running VM via SSH |
-| `adp_file_read` | Read file content from inside a VM |
-| `adp_file_write` | Write or append content to a file inside a VM |
-| `adp_dir_list` | List directory contents inside a VM (recursive with configurable depth) |
-| `adp_glob` | Find files by pattern inside a VM |
-| `adp_grep` | Search text inside files in a VM |
-| `adp_file_download` | Download a file from a VM as base64 |
-| `adp_file_upload` | Upload base64-encoded content to a file inside a VM (plan-only default) |
-
-## Safety Design
-
-All destructive operations default to plan-only mode:
-
-- `adp_up` and `adp_down` default to `plan_only=True` — preview only
-- `adp_workspace_create` defaults to `plan_only=True` — preview only
-- `adp_workspace_close` defaults to `plan_only=True` — preview only
-- `adp_file_upload` defaults to `plan_only=True` — preview only
-
-To execute, explicitly set `plan_only=False`. All inspection tools are entirely non-destructive.
-
-## What You Can Do Today
-
-With the current 26 tools, a deer-flow agent can:
-
-| Task | Tools to use | Description |
-|------|-------------|-------------|
-| **Check platform health** | `adp_status`, `adp_doctor` | Verify all VMs running, SSH reachable, sync healthy |
-| **Manage VM lifecycle** | `adp_up`, `adp_stop`, `adp_down` | Start, stop, destroy VMs |
-| **Set up workspaces** | `adp_workspace_create`, `adp_workspace_open` | Create project directories, get entry guidance |
-| **Monitor sync** | `adp_sync_status`, `adp_sync_stop` | Check and manage file synchronization |
-| **Inspect workspaces** | `adp_workspace_list`, `adp_workspace_status`, `adp_workspace_dashboard`, `adp_workspace_project` | Full workspace visibility |
-| **Generate evidence** | `adp_workspace_report` | Markdown release evidence for PR descriptions |
-| **Discover capabilities** | `adp_capabilities`, `adp_workspace_recipes` | Platform and workflow discovery |
-| **Execute code in VM** | `adp_exec` | Run commands, install packages, execute scripts inside VMs |
-| **Read/write files in VM** | `adp_file_read`, `adp_file_write`, `adp_file_upload` | Inspect outputs, create/modify source files inside VMs |
-| **Navigate VM filesystem** | `adp_dir_list`, `adp_glob`, `adp_grep` | Browse directories, find files by pattern, search file contents |
-| **Download files from VM** | `adp_file_download` | Download VM files as base64 for transfer
-
-## Workflow Example: VM Management via Deer-Flow
-
-A typical deer-flow agent session managing ADP-OS VMs:
-
-```
-User: "Set up an ADP-OS agent workspace and check it's healthy"
-
-Agent calls:
-  1. adp_status()                    → "agent: stopped"
-  2. adp_up("agent", plan_only=False) → VM boots (30s warm, 20min first install)
-  3. adp_status("agent")             → "agent: running, reachable, healthy"
-  4. adp_doctor()                    → "47 OK, 0 issues"
-  5. adp_workspace_list()            → Projects and runtime mappings
-  6. adp_workspace_status()          → Readiness summary
-  7. adp_sync_status()               → "agent: healthy"
-```
-
-## Current Limitations
-
-The MCP server now provides both **VM-side operations** (management from the host) and **in-VM operations** (code execution inside the VM). The P0 gaps identified in the initial analysis are resolved.
-
-| Capability | Status | Notes |
-|-----------|--------|-------|
-| Start/stop/destroy VMs | ✅ Available | Use `adp_up`/`adp_stop`/`adp_down` |
-| Check VM health | ✅ Available | Use `adp_status`/`adp_doctor` |
-| Manage workspaces and sync | ✅ Available | Use workspace and sync tools |
-| Run code inside VM | ✅ Available | Use `adp_exec` via SSH |
-| Read/write files in VM | ✅ Available | Use `adp_file_read`/`adp_file_write`/`adp_file_upload` |
-| List directories in VM | ✅ Available | Use `adp_dir_list` |
-| Search files in VM | ✅ Available | Use `adp_glob`/`adp_grep` |
-| Download files from VM | ✅ Available | Use `adp_file_download` |
-
-**Remaining considerations**: First-time VM startup takes 15-45 minutes (cold ISO install). Hot-start from pre-warmed VM pool takes ~30 seconds. The `DeerFlowADPSandboxProvider` adapter in `extensions/deer_flow/` provides native deer-flow Sandbox interface integration with `VMPool` pre-warming.
-
-For full deer-flow sandbox integration details, including the `DeerFlowADPSandboxProvider` adapter class, see [extensions/deer_flow/README.md](../extensions/deer_flow/README.md).
-
-## Environment Variables
+**Environment variables**:
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `ADP_HOME` | Yes | Path to ADP-OS installation (WSL path or Windows path) |
-| `ADP_HOME_WIN` | WSL only | Windows host path to ADP-OS installation (e.g., `D:\\Dev\\ai-dev-platform`) |
+| `ADP_HOME` | Yes | ADP-OS install directory (Linux/WSL path) |
+| `ADP_HOME_WIN` | WSL only | ADP-OS Windows path for PowerShell invocation |
+| `ADP_SSH_USER` | No | VM SSH user (default: `adp`) |
+| `ADP_SSH_PASSWORD` | No | VM SSH password (default: `adp`) |
 
-Path resolution order:
-1. `ADP_HOME` / `ADP_HOME_WIN` environment variables (explicit)
-2. Relative to the server script location (`../../` from `cli/mcp/server.py`)
-3. Common paths (`D:/Dev/ai-dev-platform`, `/mnt/d/Dev/ai-dev-platform`)
+### Step 3: Restart Deer-Flow
+
+Restart deer-flow to load the MCP extension. The ADP-OS tools appear in deer-flow agent's tool list.
+
+### Step 4: Verify Integration
+
+In deer-flow, verify the tools are registered:
+
+```
+# Agent should see these tools:
+adp_status, adp_up, adp_down, adp_stop, adp_exec,
+adp_file_read, adp_file_write, adp_dir_list, adp_glob, adp_grep,
+adp_file_download, adp_file_upload, ...
+```
+
+Test with a simple VM lifecycle:
+
+```
+adp_up agent                    # Start VM (first time: 15-45 min, warm: ~30s)
+adp_status agent                # Verify VM is running
+adp_exec agent "python --version"  # Execute command in VM
+adp_stop agent                  # Graceful shutdown
+```
+
+### MCP Tools Reference
+
+26 tools in 4 categories:
+
+| Category | Tools | Count |
+|----------|-------|-------|
+| **Platform** | `adp_status`, `adp_doctor`, `adp_capabilities` | 3 |
+| **Workspace** | `adp_workspace_list`, `adp_workspace_status`, `adp_workspace_dashboard`, `adp_workspace_project`, `adp_workspace_create`, `adp_workspace_open`, `adp_workspace_sync`, `adp_workspace_close`, `adp_workspace_recipes`, `adp_workspace_report` | 10 |
+| **Runtime** | `adp_up`, `adp_down`, `adp_stop`, `adp_sync_status`, `adp_sync_stop` | 5 |
+| **In-VM Sandbox** | `adp_exec`, `adp_file_read`, `adp_file_write`, `adp_dir_list`, `adp_glob`, `adp_grep`, `adp_file_download`, `adp_file_upload` | 8 |
+
+---
+
+## Path 2: Direct Adapter (Python-Native)
+
+Import `DeerFlowADPSandboxProvider` directly in Python. Best for embedded deer-flow deployments where Python interop is available.
+
+### Step 1: Install Dependencies
+
+```bash
+cd /path/to/ai-dev-platform
+pip install paramiko   # Recommended SSH backend
+```
+
+### Step 2: Import and Initialize
+
+```python
+from extensions.deer_flow.deerflow_adp_sandbox import DeerFlowADPSandboxProvider
+
+provider = DeerFlowADPSandboxProvider(
+    adp_home="/path/to/ai-dev-platform",   # ADP-OS install directory (required)
+    pool_size=2,                            # Pre-warm VM pool size (0 = disabled)
+    ssh_user="adp",                         # VM SSH user
+    ssh_password="adp",                     # VM SSH password
+)
+```
+
+### Step 3: Pre-Warm VM Pool (Optional)
+
+```python
+# Start background VMs to eliminate cold start (15-45 min → instant)
+provider.warm_pool()
+```
+
+Pool VMs use `deerflow-pool-N` runtime names — they don't conflict with user runtimes.
+
+### Step 4: Use the Sandbox
+
+```python
+# Acquire a sandbox (maps thread_id to ADP-OS runtime)
+sandbox_id = provider.acquire(thread_id="my-agent-thread")
+print(f"Sandbox acquired: {sandbox_id}")
+
+# Get the Sandbox handle
+sandbox = provider.get(sandbox_id)
+
+# Execute commands inside the VM
+output = sandbox.execute_command("python --version")
+print(output)
+
+# Read and write files
+sandbox.write_file("/tmp/hello.py", "print('Hello from ADP-OS!')")
+content = sandbox.read_file("/tmp/hello.py")
+print(content)
+
+# List directories
+entries = sandbox.list_dir("/tmp", max_depth=1)
+for entry in entries:
+    print(entry)
+
+# Search files with glob
+matches, truncated = sandbox.glob("/tmp", "*.py")
+print(f"Found {len(matches)} Python files")
+
+# Search file contents with grep
+matches, truncated = sandbox.grep("/tmp", "Hello")
+for m in matches:
+    print(f"{m.path}:{m.line_number}: {m.line}")
+
+# Download / upload binary files
+data = sandbox.download_file("/path/to/binary")
+sandbox.update_file("/path/to/dest", data)
+
+# Release the sandbox when done
+provider.release(sandbox_id)
+```
+
+### Full Sandbox Interface Reference
+
+| Method | Signature | Returns |
+|--------|-----------|---------|
+| `execute_command` | `(command: str)` | `str` (stdout) |
+| `read_file` | `(path: str)` | `str` (file content) |
+| `write_file` | `(path: str, content: str, append: bool = False)` | `None` |
+| `list_dir` | `(path: str, max_depth: int = 2)` | `list[str]` |
+| `glob` | `(path: str, pattern: str)` | `tuple[list[str], bool]` |
+| `grep` | `(path: str, pattern: str, max_matches: int = 100, ...)` | `tuple[list[GrepMatch], bool]` |
+| `download_file` | `(path: str)` | `bytes` |
+| `update_file` | `(path: str, content: bytes)` | `None` |
+
+### Thread → Runtime Mapping
+
+The adapter maintains a persistent thread-runtime registry at `~/.adp-deerflow/thread_runtime_registry.json`:
+
+```json
+{
+  "thread-abc123": "agent",
+  "thread-def456": "sandbox"
+}
+```
+
+Default mapping when `thread_id=None`: `"agent"` runtime.
+
+---
+
+## Environment Variables Reference
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `ADP_HOME` | Yes | ADP-OS install directory (Linux/WSL path) |
+| `ADP_HOME_WIN` | WSL only | ADP-OS Windows path for `pwsh.exe` invocation |
+| `ADP_SSH_USER` | No | VM SSH username (default: `adp`) |
+| `ADP_SSH_PASSWORD` | No | VM SSH password (default: `adp`) |
+
+---
+
+## Verification Checklist
+
+- [ ] ADP-OS CLI healthy: `pwsh -File cli/adp.ps1 doctor`
+- [ ] At least one VM runtime configured: `pwsh -File cli/adp.ps1 status`
+- [ ] MCP server lists 26 tools: `python cli/mcp/server.py --list-tools`
+- [ ] MCP server tests pass: `python -m pytest tests/test-mcp-server.py -v`
+- [ ] Deer-flow adapter tests pass: `python -m pytest tests/test_deerflow_adp_sandbox.py -v`
+- [ ] (Optional) Integration test: deer-flow agent executes code in ADP-OS VM
+
+---
 
 ## Troubleshooting
 
-### Tools not appearing in deer-flow
+### VM doesn't start (timeout)
 
-1. Check `extensions_config.json` — verify `"enabled": true` and paths are correct
-2. Check deer-flow logs for MCP server startup errors
-3. Verify MCP server works standalone:
-   ```bash
-   cd /path/to/ai-dev-platform
-   ADP_HOME_WIN="D:\\Dev\\ai-dev-platform" python cli/mcp/server.py
-   ```
-   (The server starts via stdio — it expects an MCP client to connect. No output on stdout is expected.)
+**Symptoms**: `adp_up` returns timeout or "VM not ready" after several minutes.
 
-### pwsh.exe not found
+**Checks**:
+1. VMware Workstation is running
+2. ISO exists at the configured path
+3. First-time Ubuntu autoinstall can take 15-45 minutes — wait longer, or use `VMPool` pre-warming
 
-Install PowerShell 7+ from https://github.com/PowerShell/PowerShell
+### SSH connection refused
 
-### Path issues
+**Symptoms**: `adp_exec` or adapter methods return "Connection refused".
 
-- On Windows: use double backslashes in JSON (`D:\\Dev\\ai-dev-platform`)
-- On WSL: set both `ADP_HOME` (WSL path) and `ADP_HOME_WIN` (Windows path)
-- The server automatically converts between WSL and Windows paths via `wslpath`
+**Checks**:
+1. VM is running: `pwsh -File cli/adp.ps1 status agent`
+2. SSH port is reachable from integration host
+3. SSH credentials match `configs/topology.json` settings
+4. VMware NAT network is properly configured
 
-### ADP-OS not installed or not configured
+### MCP server doesn't start
 
-The MCP server wraps the ADP-OS PowerShell CLI. You need:
-1. ADP-OS installed at the configured path
-2. VMware Workstation Pro installed
-3. An ADP-OS runtime created (`adp up agent`)
+**Symptoms**: Deer-flow can't connect to MCP server.
 
-Use `adp_doctor` via MCP to verify platform health after configuration.
+**Checks**:
+1. Python 3.10+: `python --version`
+2. ADP-OS installed: `ls cli/mcp/server.py`
+3. Environment variables set in `extensions_config.json`
+4. Absolute paths used in configuration (relative paths may fail in stdio mode)
+
+### paramiko not found
+
+**Solution**: Install it, or the adapter falls back to `subprocess ssh` + `sshpass`:
+
+```bash
+pip install paramiko
+
+# Or install sshpass for fallback:
+# Ubuntu: sudo apt install sshpass
+# macOS: brew install hudochenkov/sshpass/sshpass
+```
+
+### WSL-specific: pwsh.exe not found
+
+**Symptoms**: `adp.ps1` commands fail with "pwsh not found".
+
+**Solution**: Set `ADP_HOME_WIN` to the Windows-style path for the ADP-OS directory so PowerShell scripts run via `pwsh.exe` from WSL.
+
+---
 
 ## References
 
-- [Deer-Flow MCP Server Guide](https://github.com/bytedance/deer-flow/blob/main/backend/docs/MCP_SERVER.md) — deer-flow MCP configuration
-- [Deer-Flow Sandbox Configuration](https://github.com/bytedance/deer-flow/blob/main/backend/docs/CONFIGURATION.md#sandbox) — sandbox modes
-- [ADP-OS MCP Server README](../cli/mcp/README.md) — full tool reference and architecture
-- [Deer-Flow Gap Analysis](integrations/deer-flow.md) — P0/P1/P2 gaps and integration path
-- [Copilot SDK Integration](copilot-sdk-integration.md) — alternative agent SDK integration
+- [Deer-Flow Sandbox Architecture](https://github.com/ByteDance/deer-flow/tree/main/docker/provisioner)
+- [ADP-OS MCP Server Source](../cli/mcp/server.py)
+- [Deer-Flow Gap Analysis](integrations/deer-flow.md)
+- [Adapter Module Source](../extensions/deer_flow/deerflow_adp_sandbox.py)
+- [Adapter README](../extensions/deer_flow/README.md)
