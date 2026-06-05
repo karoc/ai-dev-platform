@@ -33,7 +33,7 @@ $topology = Get-TopologyConfig
 # Step 1: Verify VMware
 # =============================================
 if (-not $Quick) {
-    Write-UIHost -English "[1/6] VMware Workstation" -Chinese "[1/6] VMware Workstation" -ForegroundColor Yellow
+    Write-UIHost -English "[1/6] VMware Workstation (~5s)" -Chinese "[1/6] VMware Workstation (~5s)" -ForegroundColor Yellow
     # Initialize VM provider
     . (Join-Path $script:ProjectRoot "core\provider\provider-discovery.ps1")
     $providerType = Get-ConfiguredProviderType
@@ -62,7 +62,7 @@ $isoCache = Resolve-Path "iso_cache"
 $isoName = if ($config.defaults.iso_path) { $config.defaults.iso_path } else { $config.defaults.ubuntu_iso }
 
 if (-not $Quick) {
-    Write-UIHost -English "[2/6] OS ISO" -Chinese "[2/6] OS ISO" -ForegroundColor Yellow
+    Write-UIHost -English "[2/6] OS ISO (~2s)" -Chinese "[2/6] OS ISO (~2s)" -ForegroundColor Yellow
 
     if ($IsoPath) {
         if (-not (Test-Path $IsoPath)) {
@@ -118,7 +118,7 @@ if (-not $Quick) {
 # Step 3: SSH Keys
 # =============================================
 if (-not $Quick) {
-    Write-UIHost -English "[3/6] SSH Keys" -Chinese "[3/6] SSH 密钥" -ForegroundColor Yellow
+    Write-UIHost -English "[3/6] SSH Keys (~2s)" -Chinese "[3/6] SSH 密钥 (~2s)" -ForegroundColor Yellow
     . (Join-Path (Get-ProjectRoot) "adapters\windows\ssh\ssh.ps1")
     $keyPath = Initialize-SSH
     $pubKey = Get-SSHPubKey
@@ -131,7 +131,7 @@ if (-not $Quick) {
 # =============================================
 # Step 4: Directories
 # =============================================
-Write-UIHost -English "[4/6] Platform Directories" -Chinese "[4/6] 平台目录" -ForegroundColor Yellow
+Write-UIHost -English "[4/6] Platform Directories (~1s)" -Chinese "[4/6] 平台目录 (~1s)" -ForegroundColor Yellow
 $workspaceRoot = Resolve-Path "workspace_root"
 $vmStore = Resolve-Path "vm_store"
 Initialize-Filesystem -BasePath $workspaceRoot
@@ -149,7 +149,7 @@ Write-UIHost -English "  VM Store:   $vmStore [OK]" -Chinese "  VM 存储:   $vm
 # =============================================
 # Step 5: VM Factory Init + Optional Provision
 # =============================================
-Write-UIHost -English "[5/6] VM Factory" -Chinese "[5/6] VM Factory" -ForegroundColor Yellow
+Write-UIHost -English "[5/6] VM Factory (~5s)" -Chinese "[5/6] VM Factory (~5s)" -ForegroundColor Yellow
 . (Join-Path (Get-ProjectRoot) "runtimes\vmware\os-profiles.ps1")
 . (Join-Path (Get-ProjectRoot) "runtimes\vmware\vm-factory.ps1")
 Initialize-VmFactory -ProjectRoot (Get-ProjectRoot) -IsoCachePath $isoCache -VmStorePath $vmStore
@@ -158,7 +158,7 @@ Write-UIHost -English "  VM Factory initialized [OK]" -Chinese "  VM Factory 已
 # =============================================
 # Step 6: Topology Summary
 # =============================================
-Write-UIHost -English "[6/6] Runtime Topology" -Chinese "[6/6] 运行时拓扑" -ForegroundColor Yellow
+Write-UIHost -English "[6/6] Runtime Topology (~1s)" -Chinese "[6/6] 运行时拓扑 (~1s)" -ForegroundColor Yellow
 foreach ($name in (Get-AllRuntimeNames)) {
     $rt = Get-RuntimeConfig $name
     $vmName = "adp-$name"

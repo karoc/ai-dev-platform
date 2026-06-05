@@ -97,7 +97,13 @@ cd ai-dev-platform
 .\setup.ps1
 ```
 
-`.\setup.ps1` is the single entry point after cloning. It guides you through the entire setup in one pass: prerequisite scanning, ISO download (~2.6 GB), platform bootstrap, initialization, and system diagnostics. If prerequisites are missing, it shows exactly what to install and exits — fix them, then re-run `.\setup.ps1`.
+Or from the scripts directory:
+
+```powershell
+.\scripts\quick-start.ps1
+```
+
+Both scripts guide you through the entire setup in one pass: prerequisite scanning, ISO download (~2.6 GB), platform bootstrap, initialization, and system diagnostics. If prerequisites are missing, the script shows exactly what to install and exits — fix them, then re-run.
 
 **Options:**
 
