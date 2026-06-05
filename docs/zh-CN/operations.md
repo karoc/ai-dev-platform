@@ -143,9 +143,11 @@ Installer 排障开关：
 
 如果 VM 已存在且正在运行，ADP 会报告当前 IP 并跳过创建。
 
-启动后，ADP 会打印配置中的连接目标、SSH 命令、SSH alias、workspace path、sync 命令和 status 命令。连接目标来自合并后的配置；如果存在 `configs\local.json`，也会包含其中的覆盖值。
+启动后，ADP 会打印配置中的连接目标、SSH 命令、SSH alias、workspace path、sync 命令和 status 命令。连接目标来自合并后的配置；如果存在 `configs\\local.json`，也会包含其中的覆盖值。
 
-`agent` 运行时可能会打印 high-IO profile 提示。这不是错误；它表示该运行时面向 AI agent 工作负载配置，执行破坏性或大范围任务前建议先创建快照。
+在创建或启动 VM 之前，`adp up` 会检查是否存在属于其他 clone 或已删除 VM 的 stale Mutagen session。如果存在同名的 stale session，ADP 会显示同步提示和安全的清理指引。停止 stale session 是安全的 — 它只移除 Mutagen session 定义，不会删除任何一侧的 workspace 文件。
+
+`agent` 运行时可能会打印 high-IO profile 提示。
 
 首次创建 VM 时包含较长的 Ubuntu autoinstall 阶段。ADP 会明确说明这是 watched OS installation，不是 CLI 卡住，然后用可复制的 plain install-monitor 心跳持续显示安装状态。心跳标题会跟随配置的 UI 语言：英文输出以 `[install monitor] INSTALLING Ubuntu in VM` 开头，简体中文输出以 `[安装监视器] 正在 VM 中安装 Ubuntu` 开头。每条心跳都会先显示人能直接理解的安装标题，再显示诊断字段，因此即使只看到日志尾部，也能判断 VM 仍在安装，而不是卡在 IP 或 SSH probe。结构化细节包括 `state=installing`、`activity=installing-ubuntu`、`status=watching`、`current-op=readiness-check`、`wait-mode=watched`、`progress=indeterminate`、`user-action=keep-open`、`diagnostics=vmware-console-after-20min`、`phase=ubuntu-autoinstall`、预期耗时、timeout、已用时间、剩余 timeout 时间、以秒显示的下一次检查间隔、已观察到的 readiness signals、下一次 readiness check，以及用户当前是否需要操作。
 
@@ -343,7 +345,7 @@ ssh -i $env:USERPROFILE\.ssh\adp-os\adp-os adp@192.168.242.131 "ls /home/adp/wor
 .\cli\adp.ps1 sync start frontend
 ```
 
-`sync start <runtime>` 不会把不可用的同名 session 当作成功。它会在创建或重写 runtime SSH alias 前停止，并要求你显式 stop 后重新创建 session。
+`sync start <runtime>` 不会把不可用的同名 session 当作成功。它会打印冷静、可操作的提示，说明为什么 session 不匹配当前 checkout，确认停止 stale session 是安全的（不会删除 workspace 文件），并要求你显式 stop 后重新创建 session。
 
 停止同步：
 

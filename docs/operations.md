@@ -143,9 +143,11 @@ The checks print remediation guidance. They do not download VMware, Mutagen, bro
 
 If a VM exists and is already running, ADP reports the current IP and skips creation.
 
-After startup, ADP prints the configured connection target, SSH command, SSH alias, workspace path, sync command, and status command. The connection target comes from the merged configuration, including `configs\local.json` when present.
+After startup, ADP prints the configured connection target, SSH command, SSH alias, workspace path, sync command, and status command. The connection target comes from the merged configuration, including `configs\\local.json` when present.
 
-The `agent` runtime may print a high-IO profile notice. This is not an error; it means the runtime is sized for AI agent workloads and snapshots are recommended before destructive or large-scale tasks.
+Before creating or starting a VM, `adp up` checks for stale Mutagen sessions that belong to a different clone or a deleted VM. If a stale same-name session exists, ADP prints a sync note with safe cleanup instructions. Stopping a stale session is safe — it only removes the Mutagen session definition and does not delete workspace files on either side.
+
+The `agent` runtime may print a high-IO profile notice.
 
 First-time VM creation includes a long Ubuntu autoinstall phase. ADP reports this as a watched OS installation, not a CLI hang, then prints plain, copyable install-monitor heartbeats. The heartbeat headline follows the configured UI language: English output starts with `[install monitor] INSTALLING Ubuntu in VM`, while Simplified Chinese output starts with `[安装监视器] 正在 VM 中安装 Ubuntu`. Each heartbeat starts with a human-readable installation headline before the diagnostic fields, so the visible tail of the log still says the VM is installing instead of looking like a stuck IP or SSH probe. The structured details include `state=installing`, `activity=installing-ubuntu`, `status=watching`, `current-op=readiness-check`, `wait-mode=watched`, `progress=indeterminate`, `user-action=keep-open`, `diagnostics=vmware-console-after-20min`, `phase=ubuntu-autoinstall`, expected duration, timeout, elapsed time, remaining timeout time, next check interval in seconds, observed readiness signals, the next readiness check, and whether user action is needed.
 
@@ -343,7 +345,7 @@ If the runtime has not been created in the current checkout yet, ADP reports the
 .\cli\adp.ps1 sync start frontend
 ```
 
-`sync start <runtime>` will not treat an unusable same-name session as success. It stops before creating or rewriting the runtime SSH alias and asks you to explicitly stop and recreate the session.
+`sync start <runtime>` will not treat an unusable same-name session as success. It prints a calm, actionable note explaining why the session doesn't match the current checkout, reassures that stopping a stale session is safe (workspace files are not deleted), and asks you to explicitly stop and recreate the session.
 
 Stop sync:
 

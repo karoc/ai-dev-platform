@@ -122,6 +122,54 @@ function Assert-VMwareNatReadyForRuntimeCreate {
     }
 }
 
+function Check-PreRuntimeStaleSessions {
+    param([string]$TargetRuntime)
+
+    $mutagenAvailable = $false
+    try {
+        . (Join-Path (Get-ProjectRoot) "adapters\windows\mutagen\mutagen.ps1")
+        Initialize-Mutagen -ProjectRoot (Get-ProjectRoot) | Out-Null
+        $mutagenAvailable = $true
+    } catch {
+        return
+    }
+
+    $sessionName = "adp-$TargetRuntime"
+    $workspaceRoot = Resolve-Path "workspace_root"
+    $rtConfig = Get-RuntimeConfig $TargetRuntime
+    $expectedLocalPath = Join-Path $workspaceRoot $rtConfig.workspace
+    $expectedRemoteUrl = "adp-os-$sessionName`:/home/adp/workspace"
+
+    $session = Get-SyncSessionInfo -SessionName $sessionName -ExpectedLocalPath $expectedLocalPath -ExpectedRemoteUrl $expectedRemoteUrl
+    if (-not $session.Exists) {
+        return
+    }
+
+    $vmStore = Resolve-Path "vm_store"
+    $vmName = "adp-$TargetRuntime"
+    $vmxPath = Join-Path $vmStore "$vmName\$vmName.vmx"
+    $runtimeCreated = Test-Path -LiteralPath $vmxPath
+
+    $recovery = Get-SyncSessionRecoveryInfo `
+        -SessionName $sessionName `
+        -ExpectedLocalPath $expectedLocalPath `
+        -ExpectedRemoteUrl $expectedRemoteUrl `
+        -RuntimeCreated $runtimeCreated `
+        -RuntimeName $TargetRuntime
+
+    if ($recovery.RecoveryScenario -eq "none") {
+        return
+    }
+
+    Write-Host ""
+    Write-UIHost -English "Sync note: a Mutagen session '$sessionName' exists but doesn't match the current environment." -Chinese "同步提示: Mutagen session '$sessionName' 已存在，但与当前环境不匹配。" -ForegroundColor Yellow
+    Write-UIHost -English "  This happens when a session was created from a different clone or a previous VM." -Chinese "  这通常是之前的 clone 或旧 VM 留下来的 session。" -ForegroundColor DarkGray
+    Write-UIHost -English "  Stopping a stale session is safe — workspace files on both sides are not deleted." -Chinese "  停止 stale session 是安全的 — 不会删除任何一侧的 workspace 文件。" -ForegroundColor Green
+    Write-UIHost -English "  To clean up before proceeding: adp sync stop $TargetRuntime" -Chinese "  继续之前先清理: adp sync stop $TargetRuntime" -ForegroundColor Yellow
+    Write-UIHost -English "  Then restart sync after the runtime is ready: adp sync start $TargetRuntime" -Chinese "  等 runtime 就绪后再启动同步: adp sync start $TargetRuntime" -ForegroundColor DarkGray
+    Write-Host ""
+}
+
 function Invoke-BootstrapIfReady {
     param(
         [string]$TargetRuntime,
@@ -184,6 +232,9 @@ foreach ($notice in (Get-RuntimeProfileNoticeItems -RuntimeName $RuntimeName -Ru
     Write-Host $notice.Text -ForegroundColor $notice.Color
 }
 Write-Host ""
+
+# Check for stale Mutagen sessions before proceeding
+Check-PreRuntimeStaleSessions -TargetRuntime $RuntimeName
 
 if ($Plan) {
     $isoName = if ($config.defaults.iso_path) { $config.defaults.iso_path } else { $config.defaults.ubuntu_iso }

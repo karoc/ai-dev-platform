@@ -631,15 +631,16 @@ function New-SyncSession {
             return
         }
 
-        Write-Host "  Existing sync session '$SessionName' is not usable for this runtime." -ForegroundColor Red
-        Write-Host "  Health: $($existingSession.Health)" -ForegroundColor Red
-        Write-Host "  Detail: $($existingSession.Detail)" -ForegroundColor Red
+        $runtimePart = $SessionName -replace '^adp-', ''
+        Write-Host "  Sync session '$SessionName' exists but points to a different environment." -ForegroundColor Yellow
+        Write-Host "  This can happen after switching clones, recreating a VM, or moving workspaces." -ForegroundColor DarkGray
+        Write-Host "  Reason: $($existingSession.Detail)" -ForegroundColor DarkGray
         Write-Host "  Current local:  $($existingSession.AlphaUrl)" -ForegroundColor DarkGray
         Write-Host "  Expected local: $LocalPath" -ForegroundColor DarkGray
-        Write-Host "  Current remote:  $($existingSession.BetaUrl)" -ForegroundColor DarkGray
+        Write-Host "  Current remote: $($existingSession.BetaUrl)" -ForegroundColor DarkGray
         Write-Host "  Expected remote: $sshUrl" -ForegroundColor DarkGray
-        Write-Host "  Remediation: adp sync stop $($SessionName -replace '^adp-', ''), then adp sync start $($SessionName -replace '^adp-', '')" -ForegroundColor Yellow
-        Write-ErrorLog -Message "Mutagen sync session '$SessionName' must be stopped and recreated before sync can start." -Component "mutagen"
+        Write-Host "  Stopping a stale session is safe — workspace files on both sides are not deleted." -ForegroundColor Green
+        Write-Host "  To fix: adp sync stop $runtimePart, then adp sync start $runtimePart" -ForegroundColor Yellow
         exit 1
     }
 
