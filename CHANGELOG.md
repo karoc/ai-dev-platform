@@ -14,6 +14,8 @@ Initial public release.
 
 ### Added
 
+- Added sync recovery diagnostics for three edge cases exposed by dogfooding: Mutagen one-sided root emptying protection, stale global same-name sessions across clones, and pre-runtime stale session cleanup. `Get-SyncSessionRecoveryInfo` in `adapters/windows/mutagen/mutagen.ps1` classifies sync recovery scenarios with structured recovery steps. `adp status`, `adp doctor`, and `adp sync status` now detect and label specific recovery scenarios (root-emptying, stale-before-creation, wrong-local-endpoint, wrong-remote-endpoint, unhealthy-session) with bilingual diagnostic output including scenario titles, detail descriptions, numbered recovery steps, and explicit safe-cleanup notes. Bilingual troubleshooting docs (`docs/troubleshooting.md`, `docs/zh-CN/troubleshooting.md`) expanded with dedicated recovery sections: "Stale Sessions Across Clones" and "Pre-Runtime Stale Session Cleanup" with diagnostic commands and recovery paths. Root-emptying detection now identifies the condition explicitly instead of reporting generic `unhealthy`.
+
 - Added community infrastructure: installation help issue template (`.github/ISSUE_TEMPLATE/install_help.yml`), enhanced CONTRIBUTING.md with step-by-step development environment setup and PR process, Discord community setup guide (`docs/discord-setup.md`, `docs/zh-CN/discord-setup.md`) with channel structure and community guidelines, and demo video script with storyboard (`docs/demo-script.md`). Added Community section to README and bilingual docs index.
 
 ### 2026-06-04

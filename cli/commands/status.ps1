@@ -338,13 +338,34 @@ function Write-StatusRuntime {
         Write-UIHost -English "  remediation:   stop or rename the stale duplicate before diagnosing SSH or network issues" -Chinese "  修复建议:      排查 SSH 或网络前，先停止或重命名 stale duplicate VM" -ForegroundColor Yellow
     }
     Write-UIHost -English "  sync:          $syncState" -Chinese "  同步:          $syncState" -ForegroundColor DarkGray
-    if ($syncState -in @("wrong-local", "wrong-remote", "unhealthy")) {
-        Write-UIHost -English "  sync note:     existing Mutagen session is not usable for this checkout/runtime" -Chinese "  sync 说明:     现有 Mutagen session 不适用于当前 checkout/runtime" -ForegroundColor Yellow
-        Write-UIHost -English "  sync fix:      adp sync stop $TargetRuntime; adp sync start $TargetRuntime" -Chinese "  sync 修复:     adp sync stop $TargetRuntime; adp sync start $TargetRuntime" -ForegroundColor Yellow
-    } elseif ($syncState -eq "stale-session") {
-        Write-UIHost -English "  sync note:     old Mutagen session exists, but this runtime is not created in the current checkout" -Chinese "  sync 说明:     存在旧 Mutagen session，但当前 checkout 尚未创建该运行时" -ForegroundColor Yellow
-        Write-UIHost -English "  sync cleanup:  adp sync stop $TargetRuntime" -Chinese "  sync 清理:     adp sync stop $TargetRuntime" -ForegroundColor Yellow
-        Write-UIHost -English "  sync next:     adp up $TargetRuntime; adp sync start $TargetRuntime" -Chinese "  sync 下一步:   adp up $TargetRuntime; adp sync start $TargetRuntime" -ForegroundColor DarkGray
+
+    # Use recovery diagnostics for detailed stale/unhealthy session guidance
+    if ($syncState -in @("wrong-local", "wrong-remote", "unhealthy", "stale-session")) {
+        $recovery = Get-SyncSessionRecoveryInfo `
+            -SessionName "adp-$TargetRuntime" `
+            -ExpectedLocalPath $workspacePath `
+            -ExpectedRemoteUrl $expectedRemoteUrl `
+            -RuntimeCreated $runtimeCreated `
+            -RuntimeName $TargetRuntime
+
+        if ($recovery.RecoveryScenario -ne "none") {
+            if ($recovery.RecoveryTitle) {
+                Write-UIHost -English "  sync recovery: $($recovery.RecoveryTitle)" -Chinese "  sync 恢复:     $($recovery.RecoveryTitle)" -ForegroundColor Yellow
+            }
+            if ($recovery.RecoveryDetail) {
+                Write-UIHost -English "  sync detail:   $($recovery.RecoveryDetail)" -Chinese "  sync 详情:     $($recovery.RecoveryDetail)" -ForegroundColor DarkGray
+            }
+            foreach ($step in $recovery.RecoverySteps) {
+                Write-UIHost -English "  sync step:     $step" -Chinese "  sync 步骤:     $step" -ForegroundColor DarkGray
+            }
+            if ($recovery.SafeCleanup) {
+                Write-UIHost -English "  sync safety:   stopping the stale session does not delete workspace files on either side." -Chinese "  sync 安全:     停止 stale session 不会删除任何一侧的 workspace 文件。" -ForegroundColor Green
+            }
+        } else {
+            # Fallback for cases that don't match specific recovery scenarios
+            Write-UIHost -English "  sync note:     existing Mutagen session is not usable for this checkout/runtime" -Chinese "  sync 说明:     现有 Mutagen session 不适用于当前 checkout/runtime" -ForegroundColor Yellow
+            Write-UIHost -English "  sync fix:      adp sync stop $TargetRuntime; adp sync start $TargetRuntime" -Chinese "  sync 修复:     adp sync stop $TargetRuntime; adp sync start $TargetRuntime" -ForegroundColor Yellow
+        }
     }
     Write-UIHost -English "  workspace:     $workspacePath" -Chinese "  工作区:        $workspacePath" -ForegroundColor DarkGray
     Write-UIHost -English "  VMX:           $($state.VmxPath)" -Chinese "  VMX:           $($state.VmxPath)" -ForegroundColor DarkGray

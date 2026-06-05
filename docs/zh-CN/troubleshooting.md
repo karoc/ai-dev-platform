@@ -90,28 +90,104 @@ New-Item -ItemType Directory -Path .tools\mutagen -Force
 使用显式 reset 路径：
 
 ```powershell
-.\cli\adp.ps1 sync stop agent
-.\cli\adp.ps1 sync start agent
-.\cli\adp.ps1 sync status
+.\\cli\\adp.ps1 sync stop agent
+.\\cli\\adp.ps1 sync start agent
+.\\cli\\adp.ps1 sync status
 ```
 
 如果 runtime 尚未在当前 checkout 创建，`sync status`、`status` 和 `doctor` 可能会把同一个 stale session 报告为 `stale-session` 或 cleanup guidance。这还不是 VM 健康失败。先停止 stale session，创建 runtime，然后再启动 sync。
 
 `sync start <runtime>` 不会静默替换不可用的同名 session。它会要求显式执行 stop/start，让用户清楚知道已有同步关系将被终止并重建。
 
+这三个命令（`status`、`doctor` 和 `sync status`）现在会检测具体的恢复场景，并提供精确的修复步骤。创建新的 sync session 不会删除 workspace 文件。停止 stale session 只会移除 Mutagen session 定义——两侧的 workspace 文件保持不动。
+
 ## 单边 root 清空保护
 
 如果 Mutagen 因 one-sided root emptying protection 而停止，说明同步 root 在一侧或两侧被清空，Mutagen 为了安全拒绝继续镜像删除。这是预期的保护行为，不是平台崩溃。通常会出现在清理 probe 文件，或者对同一个 workspace 的两侧都做过实验之后。
 
+`doctor` 和 `status` 现在会检测此特定状态并显式标注，而不是报告通用的 `unhealthy` 同步状态。诊断输出包含：
+
+- 发生了什么：哪个 session 触发了 root-emptying 保护
+- 为什么发生：Mutagen 防止镜像意外删除的安全机制
+- 恢复步骤：补回内容、停止、重启、验证
+
 恢复方式是：重新从源头把一侧内容补回去，或者如果你本来就是要重来，则明确重建项目目录。然后显式重启 session：
 
 ```powershell
-.\cli\adp.ps1 sync stop agent
-.\cli\adp.ps1 sync start agent
-.\cli\adp.ps1 sync status
+.\\cli\\adp.ps1 sync stop agent
+.\\cli\\adp.ps1 sync start agent
+.\\cli\\adp.ps1 sync status
 ```
 
 如果项目应该从头重建，不要指望 Mutagen 自动把两个空 root 恢复成可用状态，应当有意重建。
+
+无需同步即可检测 root-emptying：
+
+```powershell
+.\\cli\\adp.ps1 doctor            # 显示 [SYNC] 及恢复场景标题和步骤
+.\\cli\\adp.ps1 status agent      # 显示 sync 恢复: 含详情和步骤
+.\\cli\\adp.ps1 sync status       # 显示 session 健康分类
+```
+
+## 跨 Clone 的 Stale Session
+
+如果你同时维护 ai-dev-platform 的多个本地 clone（常用于 dogfooding ADP-OS 同时开发），在其中一个 clone 创建的 Mutagen session 全局可见。在 `D:\\ai-dev-platform` 创建的 `adp-agent` session 也会出现在 `D:\\other-clone` 中，即使 workspace 路径不同。
+
+这会导致 `status` 和 `doctor` 报告 `wrong-local` 或 `wrong-remote`，因为 session 存储的本地路径（来自创建它的 clone）与当前 checkout 的 workspace 路径不匹配。
+
+`status`、`doctor` 和 `sync status` 现在会检测这种交叉并显式标注：
+
+```
+sync 恢复:     Sync session local endpoint mismatch
+sync 详情:     Mutagen session 'adp-agent' 的本地路径来自
+              另一个 checkout 或 clone。
+sync 步骤:     此 session 很可能是在另一个 clone 中创建的。
+sync 步骤:     如果另一个 clone 仍在活跃使用中，请确认哪个
+              checkout 应拥有此 session。
+sync 步骤:     如需为当前 checkout 重建: adp sync stop agent，
+              然后 adp sync start agent
+sync 安全:     停止 stale session 不会删除任何一侧的 workspace 文件。
+```
+
+停止前请先检查 session 是否仍在活跃使用中：
+
+```powershell
+.\\cli\\adp.ps1 sync list          # 显示所有 session 及其端点
+.\\cli\\adp.ps1 status agent       # 显示预期当前 checkout 路径
+```
+
+如果另一个 clone 仍需要该 session，不要动它。如果不需要，从当前 checkout 停止并重建：
+
+```powershell
+.\\cli\\adp.ps1 sync stop agent
+.\\cli\\adp.ps1 sync start agent
+```
+
+这是安全的：`sync stop` 仅终止 Mutagen session 定义。不会删除任何一侧的 workspace 文件。
+
+## 运行时创建前的 Stale Session 清理
+
+删除 VM（或切换到新 clone）后，该 runtime 的 Mutagen session 可能仍然全局存在。`sync status`、`status` 和 `doctor` 会将其报告为 `stale-session` 或 `sync 恢复: Stale sync session before runtime creation`。
+
+这不是阻塞性故障——`doctor` 将其作为 info 级别的观察而非 issue。VM 已删除，但 Mutagen session 定义仍然保留。清理安全且直接：
+
+```powershell
+.\\cli\\adp.ps1 sync stop agent     # 停止 stale session
+.\\cli\\adp.ps1 up agent            # 创建 runtime
+.\\cli\\adp.ps1 sync start agent    # 启动新 sync session
+```
+
+诊断输出包含安全提示：停止 stale session 不会删除任何一侧的 workspace 文件。仅移除 Mutagen session 元数据。
+
+在创建 runtime 之前检测 stale session：
+
+```powershell
+.\\cli\\adp.ps1 doctor              # 以 info 级别列出 stale session
+.\\cli\\adp.ps1 sync status         # 显示 stale-session 及清理指导
+.\\cli\\adp.ps1 status agent        # 显示 sync 恢复: 含详情和步骤
+```
+
+如果你打算保留另一个活跃的 clone，且该 session 属于它，在当前 checkout 中忽略 stale-session 报告即可。
 
 ## 何时修改本地配置
 

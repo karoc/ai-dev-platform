@@ -14,6 +14,8 @@
 
 ### 新增
 
+- 添加同步恢复诊断，覆盖 dogfooding 暴露的三类边界情况：Mutagen 单边 root 清空保护、跨 clone 的全局同名 stale session、运行前 stale session 清理。`adapters/windows/mutagen/mutagen.ps1` 中新增 `Get-SyncSessionRecoveryInfo`，对同步恢复场景进行结构化分类并提供恢复步骤。`adp status`、`adp doctor` 和 `adp sync status` 现在能检测并标注具体恢复场景（root-emptying、stale-before-creation、wrong-local-endpoint、wrong-remote-endpoint、unhealthy-session），双语诊断输出包含场景标题、详情描述、编号恢复步骤和显式安全提示。双语义档（`docs/troubleshooting.md`、`docs/zh-CN/troubleshooting.md`）新增「跨 Clone 的 Stale Session」和「运行时创建前的 Stale Session 清理」恢复章节，含诊断命令和恢复路径。root-emptying 检测现在显式识别该条件，而非报告泛型 `unhealthy`。
+
 - 添加社区基础设施：安装帮助 issue 模板（`.github/ISSUE_TEMPLATE/install_help.yml`）、增强的 CONTRIBUTING.zh-CN.md（含分步开发环境搭建和 PR 流程）、Discord 社区搭建指南（`docs/discord-setup.md`、`docs/zh-CN/discord-setup.md`，含频道结构和社区准则）、演示视频脚本与分镜（`docs/demo-script.md`）。在 README 和双语文档索引中添加了「社区」板块。
 
 ### 2026-06-04

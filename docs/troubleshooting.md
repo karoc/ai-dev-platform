@@ -90,28 +90,105 @@ If `sync status`, `status`, or `doctor` reports `wrong-local`, `wrong-remote`, o
 Use the explicit reset path:
 
 ```powershell
-.\cli\adp.ps1 sync stop agent
-.\cli\adp.ps1 sync start agent
-.\cli\adp.ps1 sync status
+.\\cli\\adp.ps1 sync stop agent
+.\\cli\\adp.ps1 sync start agent
+.\\cli\\adp.ps1 sync status
 ```
 
 If the runtime has not been created in this checkout, `sync status`, `status`, and `doctor` may report the same stale session as `stale-session` or cleanup guidance. That is not a VM health failure yet. Stop the stale session, create the runtime, then start sync.
 
 `sync start <runtime>` does not silently replace an unusable same-name session. It asks for the explicit stop/start sequence so users can see that an existing sync relationship is being terminated and recreated.
 
+All three commands (`status`, `doctor`, and `sync status`) now detect the specific recovery scenario and provide diagnostic output with exact remediation steps. Starting a new sync session does not delete workspace files. Stopping a stale session only removes the Mutagen session definition — workspace files on both sides remain untouched.
+
 ## One-Sided Root Emptying
 
 If Mutagen stops with one-sided root emptying protection, it means the synced root was emptied on one side or on both sides and Mutagen refused to keep mirroring the delete. This is expected safety behavior, not a platform crash. It usually shows up after cleaning probe files or experimenting with both sides of the same workspace.
 
+`doctor` and `status` now detect this specific condition and label it explicitly rather than reporting a generic `unhealthy` sync state. The diagnostic output includes:
+
+- What happened: which session hit root-emptying protection
+- Why it happened: Mutagen's safe-guard against mirroring unintended deletes
+- Recovery steps: repopulation, stop, restart, verify
+
 Recover by repopulating one side from the source of truth, or by recreating the project tree if you intentionally started over. Then restart the session explicitly:
 
 ```powershell
-.\cli\adp.ps1 sync stop agent
-.\cli\adp.ps1 sync start agent
-.\cli\adp.ps1 sync status
+.\\cli\\adp.ps1 sync stop agent
+.\\cli\\adp.ps1 sync start agent
+.\\cli\\adp.ps1 sync status
 ```
 
 If the project should be recreated from scratch, do that deliberately instead of expecting Mutagen to recover an empty pair of roots automatically.
+
+Detect root-emptying without syncing:
+
+```powershell
+.\\cli\\adp.ps1 doctor            # Shows [SYNC] with recovery scenario title and steps
+.\\cli\\adp.ps1 status agent      # Shows sync recovery: with detail and steps
+.\\cli\\adp.ps1 sync status       # Shows session health classification
+```
+
+## Stale Sessions Across Clones
+
+If you maintain multiple local clones of the ai-dev-platform repository (common for dogfooding ADP-OS while developing it), Mutagen sessions created in one clone are visible globally. A session named `adp-agent` created in `D:\\ai-dev-platform` will show up in `D:\\other-clone` as well, even though the workspace paths differ.
+
+This causes `status` and `doctor` to report `wrong-local` or `wrong-remote` because the session's stored local path (from the clone that created it) does not match the workspace path in the current checkout.
+
+`status`, `doctor`, and `sync status` now detect this crossover and label it explicitly:
+
+```
+sync recovery: Sync session local endpoint mismatch
+sync detail:   The Mutagen session 'adp-agent' points to a local path
+               from a different checkout or clone.
+sync step:     This session was likely created from a different clone.
+sync step:     If the other clone is still active, consider which
+               checkout should own the session.
+sync step:     To reclaim for the current checkout: adp sync stop agent,
+               then adp sync start agent
+sync safety:   Stopping the stale session does not delete workspace
+               files on either side.
+```
+
+Before stopping, check whether the session is still in active use:
+
+```powershell
+.\\cli\\adp.ps1 sync list          # Shows all sessions with their endpoints
+.\\cli\\adp.ps1 status agent       # Shows which checkout path is expected
+```
+
+If the other clone still needs the session, leave it alone. If not, stop and recreate from the current checkout:
+
+```powershell
+.\\cli\\adp.ps1 sync stop agent
+.\\cli\\adp.ps1 sync start agent
+```
+
+This is safe: `sync stop` only terminates the Mutagen session definition. No workspace files on either side are deleted.
+
+## Pre-Runtime Stale Session Cleanup
+
+After deleting a VM (or switching to a fresh clone), a Mutagen session for that runtime may still exist globally. `sync status`, `status`, and `doctor` report this as `stale-session` or `sync recovery: Stale sync session before runtime creation`.
+
+This is not a blocking failure — `doctor` treats it as an info-level observation rather than an issue. The VM is gone, but the Mutagen session definition remains. Cleanup is safe and straightforward:
+
+```powershell
+.\\cli\\adp.ps1 sync stop agent     # Stop the stale session
+.\\cli\\adp.ps1 up agent            # Create the runtime
+.\\cli\\adp.ps1 sync start agent    # Start a fresh sync session
+```
+
+The diagnostic output includes a safety note: stopping the stale session does not delete workspace files on either side. Only the Mutagen session metadata is removed.
+
+Detect stale sessions before runtime creation:
+
+```powershell
+.\\cli\\adp.ps1 doctor              # Lists stale sessions as info-level entries
+.\\cli\\adp.ps1 sync status         # Shows stale-session with cleanup guidance
+.\\cli\\adp.ps1 status agent        # Shows sync recovery: with detail and steps
+```
+
+If you plan to keep the other clone active and the session belongs to it, simply ignore the stale-session report in the current checkout.
 
 ## When to Change Local Configuration
 

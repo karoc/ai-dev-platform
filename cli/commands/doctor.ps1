@@ -479,25 +479,45 @@ foreach ($name in (Get-AllRuntimeNames)) {
         try {
             $expectedLocalPath = Join-Path $workspaceRoot $rt.workspace
             $expectedRemoteUrl = "adp-os-$sessionName`:/home/adp/workspace"
-            $syncSession = Get-SyncSessionInfo -SessionName $sessionName -ExpectedLocalPath $expectedLocalPath -ExpectedRemoteUrl $expectedRemoteUrl
-            if ($syncSession.Exists) {
-                $syncOk = ($syncSession.Health -in @("healthy", "present"))
-                if (-not $hasCurrentRuntimeVm) {
-                    Write-InfoCheck -Name "$name Mutagen session" -Detail "(stale before runtime creation: $sessionName, $($syncSession.Health), $($syncSession.Detail))"
-                    Write-UIHost -English "  [INFO]  Cleanup stale session: .\cli\adp.ps1 sync stop $name" -Chinese "  [INFO]  清理 stale session: .\cli\adp.ps1 sync stop $name" -ForegroundColor DarkGray
-                    Write-UIHost -English "  [INFO]  Create runtime before starting sync: .\cli\adp.ps1 up $name; .\cli\adp.ps1 sync start $name" -Chinese "  [INFO]  启动 sync 前请先创建 runtime: .\cli\adp.ps1 up $name; .\cli\adp.ps1 sync start $name" -ForegroundColor DarkGray
-                    Write-UIHost -English "  [INFO]  Current local: $($syncSession.AlphaUrl); expected: $expectedLocalPath" -Chinese "  [INFO]  当前 local: $($syncSession.AlphaUrl); 期望: $expectedLocalPath" -ForegroundColor DarkGray
-                    Write-UIHost -English "  [INFO]  Current remote: $($syncSession.BetaUrl); expected: $expectedRemoteUrl" -Chinese "  [INFO]  当前 remote: $($syncSession.BetaUrl); 期望: $expectedRemoteUrl" -ForegroundColor DarkGray
+            $recovery = Get-SyncSessionRecoveryInfo `
+                -SessionName $sessionName `
+                -ExpectedLocalPath $expectedLocalPath `
+                -ExpectedRemoteUrl $expectedRemoteUrl `
+                -RuntimeCreated $hasCurrentRuntimeVm `
+                -RuntimeName $name
+
+            if (-not $recovery.Exists) {
+                Write-InfoCheck -Name "$name Mutagen session" -Detail "(not started: $sessionName)"
+            } elseif ($recovery.RecoveryScenario -eq "none") {
+                # Healthy or present session
+                $syncOk = ($recovery.Health -in @("healthy", "present"))
+                if ($hasCurrentRuntimeVm) {
+                    Test-Check -Name "$name Mutagen session" -Condition $syncOk -Detail "($sessionName, $($recovery.Health), $($recovery.Detail))"
+                    if (-not $syncOk) {
+                        Write-UIHost -English "  [INFO]  Remediation: .\\cli\\adp.ps1 sync stop $name; .\\cli\\adp.ps1 sync start $name" -Chinese "  [INFO]  修复: .\\cli\\adp.ps1 sync stop $name; .\\cli\\adp.ps1 sync start $name" -ForegroundColor DarkGray
+                        Write-UIHost -English "  [INFO]  Current local: $($recovery.AlphaUrl); expected: $expectedLocalPath" -Chinese "  [INFO]  当前 local: $($recovery.AlphaUrl); 期望: $expectedLocalPath" -ForegroundColor DarkGray
+                        Write-UIHost -English "  [INFO]  Current remote: $($recovery.BetaUrl); expected: $expectedRemoteUrl" -Chinese "  [INFO]  当前 remote: $($recovery.BetaUrl); 期望: $expectedRemoteUrl" -ForegroundColor DarkGray
+                    }
                 } else {
-                    Test-Check -Name "$name Mutagen session" -Condition $syncOk -Detail "($sessionName, $($syncSession.Health), $($syncSession.Detail))"
-                }
-                if ($hasCurrentRuntimeVm -and -not $syncOk) {
-                    Write-UIHost -English "  [INFO]  Remediation: .\cli\adp.ps1 sync stop $name; .\cli\adp.ps1 sync start $name" -Chinese "  [INFO]  修复: .\cli\adp.ps1 sync stop $name; .\cli\adp.ps1 sync start $name" -ForegroundColor DarkGray
-                    Write-UIHost -English "  [INFO]  Current local: $($syncSession.AlphaUrl); expected: $expectedLocalPath" -Chinese "  [INFO]  当前 local: $($syncSession.AlphaUrl); 期望: $expectedLocalPath" -ForegroundColor DarkGray
-                    Write-UIHost -English "  [INFO]  Current remote: $($syncSession.BetaUrl); expected: $expectedRemoteUrl" -Chinese "  [INFO]  当前 remote: $($syncSession.BetaUrl); 期望: $expectedRemoteUrl" -ForegroundColor DarkGray
+                    Write-InfoCheck -Name "$name Mutagen session" -Detail "(running session: $sessionName, $($recovery.Health), $($recovery.Detail))"
                 }
             } else {
-                Write-InfoCheck -Name "$name Mutagen session" -Detail "(not started: $sessionName)"
+                # Recovery scenario detected
+                Write-UIHost -English "  [SYNC]  $($recovery.RecoveryTitle)" -Chinese "  [SYNC]  $($recovery.RecoveryTitle)" -ForegroundColor Yellow
+                Write-UIHost -English "  [SYNC]  $($recovery.RecoveryDetail)" -Chinese "  [SYNC]  $($recovery.RecoveryDetail)" -ForegroundColor DarkGray
+                foreach ($step in $recovery.RecoverySteps) {
+                    Write-UIHost -English "  [SYNC]  → $step" -Chinese "  [SYNC]  → $step" -ForegroundColor DarkGray
+                }
+                if ($recovery.SafeCleanup) {
+                    Write-UIHost -English "  [SYNC]  Stopping the stale session does not delete workspace files on either side." -Chinese "  [SYNC]  停止 stale session 不会删除任何一侧的 workspace 文件。" -ForegroundColor Green
+                }
+                Write-UIHost -English "  [INFO]  Current local: $($recovery.AlphaUrl); expected: $expectedLocalPath" -Chinese "  [INFO]  当前 local: $($recovery.AlphaUrl); 期望: $expectedLocalPath" -ForegroundColor DarkGray
+                Write-UIHost -English "  [INFO]  Current remote: $($recovery.BetaUrl); expected: $expectedRemoteUrl" -Chinese "  [INFO]  当前 remote: $($recovery.BetaUrl); 期望: $expectedRemoteUrl" -ForegroundColor DarkGray
+                if ($recovery.RecoveryScenario -eq "stale-before-creation") {
+                    Write-InfoCheck -Name "$name Mutagen session" -Detail "(stale before runtime creation: $sessionName, $($recovery.Health), $($recovery.Detail))"
+                } else {
+                    $script:issues += "$name sync recovery: $($recovery.RecoveryScenario)"
+                }
             }
         } catch {
             Write-InfoCheck -Name "$name Mutagen session" -Detail "(status unavailable: $_)"
