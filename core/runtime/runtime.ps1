@@ -11,8 +11,9 @@ function Initialize-Runtime {
 
     switch ($RuntimeEngine) {
         "vmware" {
-            . (Join-Path $script:ProjectRoot "adapters\windows\vmware\vmware.ps1")
-            Initialize-VMware
+            . (Join-Path $script:ProjectRoot "core\provider\provider-discovery.ps1")
+            $providerType = Get-ConfiguredProviderType
+            Initialize-Provider -ProviderType $providerType -ProjectRoot $script:ProjectRoot | Out-Null
         }
         "hyperv" {
             throw "Hyper-V runtime not yet implemented"
@@ -33,15 +34,13 @@ function Start-Runtime {
     )
 
     $rt = Get-RuntimeConfig $RuntimeName
-    $vmStore = Resolve-Path "vm_store"
-    $vmName = "adp-$RuntimeName"
-    $vmxPath = Join-Path $vmStore "$vmName\$vmName.vmx"
 
-    if (-not (Test-Path $vmxPath)) {
-        throw "VM not found for runtime: $RuntimeName. Expected: $vmxPath"
+    $result = Start-VM -Name $RuntimeName -Mode $Mode
+    if (-not $result.Success) {
+        throw "VM not found for runtime: $RuntimeName. $($result.Error)"
     }
 
-    return Start-VM -VmxPath $vmxPath -Mode $Mode
+    return $result
 }
 
 function Stop-Runtime {
@@ -50,39 +49,32 @@ function Stop-Runtime {
         [string]$Mode = "soft"
     )
 
-    $vmStore = Resolve-Path "vm_store"
-    $vmName = "adp-$RuntimeName"
-    $vmxPath = Join-Path $vmStore "$vmName\$vmName.vmx"
-
-    if (-not (Test-Path $vmxPath)) {
+    $result = Stop-VM -Name $RuntimeName -Mode $Mode
+    if (-not $result.Success) {
         throw "VM not found for runtime: $RuntimeName"
     }
 
-    return Stop-VM -VmxPath $vmxPath -Mode $Mode
+    return $result
 }
 
 function Get-RuntimeStatus {
     param([string]$RuntimeName)
 
-    $vmStore = Resolve-Path "vm_store"
-    $vmName = "adp-$RuntimeName"
-    $vmxPath = Join-Path $vmStore "$vmName\$vmName.vmx"
-
-    if (-not (Test-Path $vmxPath)) {
-        return "not-created"
+    $result = Get-VMStatus -Name $RuntimeName
+    if ($result.Success) {
+        return $result.Data
     }
-
-    return Get-VMStatus $vmxPath
+    return "unknown"
 }
 
 function Get-RuntimeIP {
     param([string]$RuntimeName)
 
-    $vmStore = Resolve-Path "vm_store"
-    $vmName = "adp-$RuntimeName"
-    $vmxPath = Join-Path $vmStore "$vmName\$vmName.vmx"
-
-    return Get-VMIP $vmxPath
+    $result = Get-VMIP -Name $RuntimeName
+    if ($result.Success) {
+        return $result.Data
+    }
+    throw "Failed to get IP for runtime: $RuntimeName. $($result.Error)"
 }
 
 function Get-RuntimeInfo {
