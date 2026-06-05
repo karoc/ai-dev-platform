@@ -9,8 +9,10 @@ param(
     [string]$ManifestPath = "adp-workspace.json",
     [string]$StatePath,
     [switch]$Execute,
+    [switch]$Local,
     [switch]$Plan,
     [switch]$Markdown,
+    [switch]$Terse,
     # Evidence chain parameters
     [switch]$Snapshot,
     [switch]$Log,
@@ -35,7 +37,7 @@ function Show-WorkspaceUsage {
     Write-UIHost -English "  adp workspace plan [-ManifestPath <path>]          Preview workspace plan" -Chinese "  adp workspace plan [-ManifestPath <path>]          预览工作区计划" -ForegroundColor DarkGray
     Write-UIHost -English "  adp workspace status [project-name] [-ManifestPath <path>]   Show workspace task status" -Chinese "  adp workspace status [project-name] [-ManifestPath <path>]   显示工作区任务状态" -ForegroundColor DarkGray
     Write-UIHost -English "  adp workspace dashboard [-ManifestPath <path>]      Show workspace health dashboard" -Chinese "  adp workspace dashboard [-ManifestPath <path>]      显示工作区健康仪表板" -ForegroundColor DarkGray
-    Write-UIHost -English "  adp workspace report [-Markdown] [-ManifestPath <path>]   Generate workspace report" -Chinese "  adp workspace report [-Markdown] [-ManifestPath <path>]   生成工作区报告" -ForegroundColor DarkGray
+    Write-UIHost -English "  adp workspace report [-Markdown] [-Terse] [-ManifestPath <path>]   Generate workspace report" -Chinese "  adp workspace report [-Markdown] [-Terse] [-ManifestPath <path>]   生成工作区报告" -ForegroundColor DarkGray
     Write-UIHost -English "  adp workspace recipes [-ManifestPath <path>]        Show workspace recipes" -Chinese "  adp workspace recipes [-ManifestPath <path>]        显示工作区配方" -ForegroundColor DarkGray
     Write-Host ""
     Write-UIHost -English "Manage:" -Chinese "管理:" -ForegroundColor Yellow
@@ -45,6 +47,7 @@ function Show-WorkspaceUsage {
     Write-UIHost -English "  adp workspace sync [project-name] [-ManifestPath <path>]   Show sync guide for a project" -Chinese "  adp workspace sync [project-name] [-ManifestPath <path>]   显示项目同步指南" -ForegroundColor DarkGray
     Write-UIHost -English "  adp workspace project [project-name] [-ManifestPath <path>]  Show project lifecycle" -Chinese "  adp workspace project [project-name] [-ManifestPath <path>]  显示项目生命周期" -ForegroundColor DarkGray
     Write-UIHost -English "  adp workspace task <prepare|snapshot|run|validate|review|rollback|commit> <task-name> [-ManifestPath <path>]  Manage workspace tasks" -Chinese "  adp workspace task <prepare|snapshot|run|validate|review|rollback|commit> <task-name> [-ManifestPath <path>]  管理工作区任务" -ForegroundColor DarkGray
+    Write-UIHost -English "    validate supports -Execute (SSH), -Local (host), -Plan (preview)" -Chinese "    validate 支持 -Execute (SSH), -Local (本地), -Plan (预览)" -ForegroundColor DarkGray
     Write-UIHost -English "  adp workspace task mark <task-name> <state> [-StatePath <path>]  Mark task state" -Chinese "  adp workspace task mark <task-name> <state> [-StatePath <path>]  标记任务状态" -ForegroundColor DarkGray
     Write-Host ""
     Write-UIHost -English "Evidence:" -Chinese "证据:" -ForegroundColor Yellow
@@ -694,6 +697,37 @@ function Resolve-WorkspaceRemoteProjectPath {
     return "/home/adp/workspace/$($segments -join '/')"
 }
 
+function Resolve-WorkspaceLocalProjectPath {
+    param(
+        [object]$Project,
+        [string]$ManifestPath
+    )
+
+    if (-not $Project.path) {
+        throw "Workspace project '$($Project.name)' is missing projects[].path."
+    }
+
+    $projectPath = ([string]$Project.path).Replace("\", "/").Trim()
+    if ([string]::IsNullOrWhiteSpace($projectPath)) {
+        throw "Workspace project '$($Project.name)' has an empty projects[].path."
+    }
+
+    # If absolute, use as-is
+    if ([System.IO.Path]::IsPathRooted($projectPath)) {
+        return $projectPath
+    }
+
+    # Resolve relative to manifest directory
+    $manifestDir = if ($ManifestPath) {
+        (Split-Path -Parent ([System.IO.Path]::GetFullPath($ManifestPath)))
+    } else {
+        (Get-Location).Path
+    }
+
+    $localPath = Join-Path $manifestDir $projectPath
+    return [System.IO.Path]::GetFullPath($localPath)
+}
+
 function Get-WorkspaceRuntimeSshTarget {
     param([string]$RuntimeName)
 
@@ -805,6 +839,49 @@ function Set-WorkspaceTaskCheckpointWaiver {
             state      = "checkpoint-waived"
             updated_at = $timestamp
             checkpoint = $checkpoint
+        }) | Out-Null
+    }
+
+    $State.tasks = @($tasks.ToArray())
+    $State | Add-Member -NotePropertyName "updated_at" -NotePropertyValue $timestamp -Force
+    return $State
+}
+
+function Set-WorkspaceTaskExternalValidation {
+    param(
+        [object]$State,
+        [string]$TaskName,
+        [string]$ValidationStatus
+    )
+
+    $tasks = [System.Collections.Generic.List[object]]::new()
+    $updated = $false
+    $timestamp = (Get-Date).ToUniversalTime().ToString("o")
+    $stateName = if ($ValidationStatus -eq "passed") { "validated" } else { "validation_failed" }
+
+    $validation = [pscustomobject]@{
+        status       = $ValidationStatus
+        completed_at = $timestamp
+        source       = "external"
+        note         = "marked manually via adp workspace task mark — validation was run outside ADP-OS"
+    }
+
+    foreach ($taskState in (Get-WorkspaceArray $State.tasks)) {
+        if ($taskState.name -eq $TaskName) {
+            $taskState | Add-Member -NotePropertyName "state" -NotePropertyValue $stateName -Force
+            $taskState | Add-Member -NotePropertyName "updated_at" -NotePropertyValue $timestamp -Force
+            $taskState | Add-Member -NotePropertyName "validation" -NotePropertyValue $validation -Force
+            $updated = $true
+        }
+        $tasks.Add($taskState) | Out-Null
+    }
+
+    if (-not $updated) {
+        $tasks.Add([pscustomobject]@{
+            name       = $TaskName
+            state      = $stateName
+            updated_at = $timestamp
+            validation = $validation
         }) | Out-Null
     }
 
@@ -1104,6 +1181,12 @@ function Write-WorkspaceValidationDetailLines {
     }
 
     $validation = $RecordedState.validation
+    if ($validation.PSObject.Properties.Name -contains "source" -and [string]$validation.source -eq "external") {
+        Write-UIHost -English "     validation source: external (marked manually — validation was run outside ADP-OS)" -Chinese "     验证来源: 外部（手动标记 — 验证在 ADP-OS 外运行）" -ForegroundColor DarkGray
+        if ($validation.PSObject.Properties.Name -contains "note" -and -not [string]::IsNullOrWhiteSpace([string]$validation.note)) {
+            Write-UIHost -English "     note: $($validation.note)" -Chinese "     备注: $($validation.note)" -ForegroundColor DarkGray
+        }
+    }
     if ($validation.PSObject.Properties.Name -contains "failed_command" -and -not [string]::IsNullOrWhiteSpace([string]$validation.failed_command)) {
         Write-UIHost -English "     failed command: $($validation.failed_command)" -Chinese "     失败的命令: $($validation.failed_command)" -ForegroundColor DarkGray
     }
@@ -1128,8 +1211,15 @@ function Write-WorkspaceSummary {
     foreach ($project in (Get-WorkspaceArray $Manifest.projects)) {
         $runtime = if ($project.runtime) { $project.runtime } else { "not configured" }
         $sync = if ($null -ne $project.sync) { $project.sync } else { "not configured" }
-        Write-UIHost -English "  - $($project.name): $($project.path) -> $runtime (sync: $sync)" -Chinese "  - $($project.name): $($project.path) -> $runtime (同步: $sync)" -ForegroundColor DarkGray
         $projectPath = Resolve-ProjectWorkspacePath -Project $project
+        Write-UIHost -English "  - $($project.name): $projectPath -> $runtime (sync: $sync)" -Chinese "  - $($project.name): $projectPath -> $runtime (同步: $sync)" -ForegroundColor DarkGray
+        if (-not [string]::IsNullOrWhiteSpace($projectPath)) {
+            $pathLevel = if (Test-Path -LiteralPath $projectPath) { "OK" } else { "WARN" }
+            $pathStatus = if ($pathLevel -eq "OK") { "exists" } else { "missing" }
+            Write-WorkspaceCheck -Level $pathLevel -Name "project path" -ChineseName "项目路径" -Detail ("({0}: {1})" -f $pathStatus, $projectPath)
+        } else {
+            Write-WorkspaceCheck -Level "FAIL" -Name "project path" -ChineseName "项目路径" -Detail "(missing)" -ChineseDetail "(缺失)"
+        }
         $devContainerStatus = Get-WorkspaceDevContainerStatus -ProjectPath $projectPath
         Write-UIHost -English "      devcontainer: $($devContainerStatus.Status)$(if ($devContainerStatus.Detail) { ' - ' + $devContainerStatus.Detail })" -Chinese "      devcontainer: $($devContainerStatus.Status)$(if ($devContainerStatus.Detail) { ' - ' + $devContainerStatus.Detail })" -ForegroundColor DarkGray
         $syncHygieneStatus = Get-WorkspaceSyncHygieneStatus -Project $project -ProjectPath $projectPath
@@ -3157,7 +3247,8 @@ function Write-WorkspaceReportMarkdown {
     param(
         [object]$Manifest,
         [string]$ManifestPath,
-        [string]$StatePath
+        [string]$StatePath,
+        [switch]$Terse
     )
 
     $tasks = Get-WorkspaceArray $Manifest.tasks
@@ -3218,94 +3309,118 @@ function Write-WorkspaceReportMarkdown {
     Write-Output ""
     Write-Output "## Handoff Summary"
     Write-Output ""
-    Write-Output "| Metric | Value |"
-    Write-Output "| --- | ---: |"
-    Write-Output "| Tasks | $total |"
-    Write-Output "| Validation passed | $passed |"
-    Write-Output "| Validation failed | $failed |"
-    Write-Output "| Validation missing | $missing |"
-    Write-Output "| Snapshot blocked | $snapshotBlocked |"
-    Write-Output "| Ready for review | $reviewReady |"
-    Write-Output "| Ready to commit | $commitReady |"
-    Write-Output ""
-    Write-Output "| Queue | Items |"
-    Write-Output "| --- | --- |"
-    Write-Output "| Owner gaps | $(Join-WorkspaceMarkdownList $ownerGaps) |"
-    Write-Output "| Cadence gaps | $(Join-WorkspaceMarkdownList $cadenceGaps) |"
-    Write-Output "| Due attention | $(Join-WorkspaceMarkdownList $dueTasks) |"
-    Write-Output "| Attention queue | $(Join-WorkspaceMarkdownList $attentionTasks) |"
-    Write-Output ""
-    Write-Output "## Validation Execution Queue"
-    Write-Output ""
-    if ($validationQueue.Count -eq 0) {
-        Write-Output "No tasks are configured."
+    if ($Terse) {
+        $handoffParts = @()
+        $handoffParts += "$total task$(if ($total -ne 1) { 's' })"
+        if ($passed -gt 0) { $handoffParts += "$passed passed" }
+        if ($failed -gt 0) { $handoffParts += "$failed failed" }
+        if ($missing -gt 0) { $handoffParts += "$missing validation missing" }
+        if ($snapshotBlocked -gt 0) { $handoffParts += "$snapshotBlocked snapshot-blocked" }
+        if ($reviewReady -gt 0) { $handoffParts += "$reviewReady review-ready" }
+        if ($commitReady -gt 0) { $handoffParts += "$commitReady commit-ready" }
+        Write-Output "> $($handoffParts -join ' · ') · release: $($policy.Decision)"
     } else {
-        Write-Output "| Task | Validation | Commands | Readiness | Blockers | Plan | Execute preview | Execute |"
-        Write-Output "| --- | --- | ---: | --- | --- | --- | --- | --- |"
-        foreach ($entry in $validationQueue) {
-            $planCommand = Format-WorkspaceMarkdownValue $entry.PlanCommand
-            $executePreview = Format-WorkspaceMarkdownValue $entry.ExecutePreview
-            $executeCommand = Format-WorkspaceMarkdownValue $entry.ExecuteCommand
-            Write-Output "| $(Format-WorkspaceMarkdownValue $entry.TaskName) | $(Format-WorkspaceMarkdownValue $entry.Validation) | $($entry.CommandCount) | $(Format-WorkspaceMarkdownValue $entry.Readiness) | $(Join-WorkspaceMarkdownList $entry.Blockers) | $planCommand | $executePreview | $executeCommand |"
-        }
-    }
-    Write-Output ""
-    Write-Output "## Evaluation Queue"
-    Write-Output ""
-    if ($evaluationQueue.Count -eq 0) {
-        Write-Output "No evaluations are configured."
-    } else {
-        Write-Output "> Evaluation queue only. No evaluation commands were run."
+        Write-Output "| Metric | Value |"
+        Write-Output "| --- | ---: |"
+        Write-Output "| Tasks | $total |"
+        Write-Output "| Validation passed | $passed |"
+        Write-Output "| Validation failed | $failed |"
+        Write-Output "| Validation missing | $missing |"
+        Write-Output "| Snapshot blocked | $snapshotBlocked |"
+        Write-Output "| Ready for review | $reviewReady |"
+        Write-Output "| Ready to commit | $commitReady |"
         Write-Output ""
-        Write-Output "| Evaluation | Readiness | Runtime | Project | Cadence | Metrics | Commands | Tasks | Blockers | Evidence |"
-        Write-Output "| --- | --- | --- | --- | --- | --- | ---: | --- | --- | --- |"
-        foreach ($entry in $evaluationQueue) {
-            Write-Output "| $(Format-WorkspaceMarkdownValue $entry.Name) | $(Format-WorkspaceMarkdownValue $entry.Readiness) | $(Format-WorkspaceMarkdownValue $entry.RuntimeName) | $(Format-WorkspaceMarkdownValue $entry.ProjectName) | $(Format-WorkspaceMarkdownValue $entry.Cadence) | $(Join-WorkspaceMarkdownList $entry.Metrics) | $($entry.Commands.Count) | $(Join-WorkspaceMarkdownList $entry.TaskNames) | $(Join-WorkspaceMarkdownList $entry.Blockers) | $(Format-WorkspaceMarkdownValue $entry.ReportCommand) |"
+        Write-Output "| Queue | Items |"
+        Write-Output "| --- | --- |"
+        Write-Output "| Owner gaps | $(Join-WorkspaceMarkdownList $ownerGaps) |"
+        Write-Output "| Cadence gaps | $(Join-WorkspaceMarkdownList $cadenceGaps) |"
+        Write-Output "| Due attention | $(Join-WorkspaceMarkdownList $dueTasks) |"
+        Write-Output "| Attention queue | $(Join-WorkspaceMarkdownList $attentionTasks) |"
+    }
+    Write-Output ""
+    if (-not $Terse -or $validationQueue.Count -gt 0) {
+        Write-Output "## Validation Execution Queue"
+        Write-Output ""
+        if ($validationQueue.Count -eq 0) {
+            Write-Output "No tasks are configured."
+        } else {
+            Write-Output "| Task | Validation | Commands | Readiness | Blockers | Plan | Execute preview | Execute |"
+            Write-Output "| --- | --- | ---: | --- | --- | --- | --- | --- |"
+            foreach ($entry in $validationQueue) {
+                $planCommand = Format-WorkspaceMarkdownValue $entry.PlanCommand
+                $executePreview = Format-WorkspaceMarkdownValue $entry.ExecutePreview
+                $executeCommand = Format-WorkspaceMarkdownValue $entry.ExecuteCommand
+                Write-Output "| $(Format-WorkspaceMarkdownValue $entry.TaskName) | $(Format-WorkspaceMarkdownValue $entry.Validation) | $($entry.CommandCount) | $(Format-WorkspaceMarkdownValue $entry.Readiness) | $(Join-WorkspaceMarkdownList $entry.Blockers) | $planCommand | $executePreview | $executeCommand |"
+            }
         }
+        Write-Output ""
     }
 
-    Write-Output ""
-    Write-Output "## Decision Queues"
-    Write-Output ""
-    Write-Output "| Queue | Tasks |"
-    Write-Output "| --- | --- |"
-    foreach ($group in $actionGroups) {
-        Write-Output "| Action: $(Format-WorkspaceMarkdownValue $group.Name) | $(Join-WorkspaceMarkdownList @($group.Group | ForEach-Object { $_.TaskName })) |"
-    }
-    foreach ($group in $releaseGroups) {
-        Write-Output "| Release: $(Format-WorkspaceMarkdownValue $group.Name) | $(Join-WorkspaceMarkdownList @($group.Group | ForEach-Object { $_.TaskName })) |"
-    }
-    foreach ($group in $milestoneGroups) {
-        Write-Output "| Milestone: $(Format-WorkspaceMarkdownValue $group.Name) | $(Join-WorkspaceMarkdownList @($group.Group | ForEach-Object { $_.TaskName })) |"
-    }
-
-    Write-Output ""
-    Write-Output "## Milestone Checkpoints"
-    Write-Output ""
-    if ($milestoneStatuses.Count -eq 0) {
-        Write-Output "No milestones are configured."
-    } else {
-        Write-Output "| Milestone | Runtime | Snapshot | Naming | Snapshot status | Tasks |"
-        Write-Output "| --- | --- | --- | --- | --- | --- |"
-        foreach ($milestoneStatus in $milestoneStatuses) {
-            Write-Output "| $(Format-WorkspaceMarkdownValue $milestoneStatus.Name) | $(Format-WorkspaceMarkdownValue $milestoneStatus.RuntimeName) | $(Format-WorkspaceMarkdownValue $milestoneStatus.SnapshotName) | $(Format-WorkspaceMarkdownValue (Format-WorkspaceStatusWithDetail -StatusObject $milestoneStatus.SnapshotNaming -Separator ' - ')) | $(Format-WorkspaceMarkdownValue (Format-WorkspaceStatusWithDetail -StatusObject $milestoneStatus.SnapshotStatus)) | $(Join-WorkspaceMarkdownList $milestoneStatus.TaskNames) |"
+    if (-not $Terse -or $evaluationQueue.Count -gt 0) {
+        Write-Output "## Evaluation Queue"
+        Write-Output ""
+        if ($evaluationQueue.Count -eq 0) {
+            Write-Output "No evaluations are configured."
+        } else {
+            Write-Output "> Evaluation queue only. No evaluation commands were run."
+            Write-Output ""
+            Write-Output "| Evaluation | Readiness | Runtime | Project | Cadence | Metrics | Commands | Tasks | Blockers | Evidence |"
+            Write-Output "| --- | --- | --- | --- | --- | --- | ---: | --- | --- | --- |"
+            foreach ($entry in $evaluationQueue) {
+                Write-Output "| $(Format-WorkspaceMarkdownValue $entry.Name) | $(Format-WorkspaceMarkdownValue $entry.Readiness) | $(Format-WorkspaceMarkdownValue $entry.RuntimeName) | $(Format-WorkspaceMarkdownValue $entry.ProjectName) | $(Format-WorkspaceMarkdownValue $entry.Cadence) | $(Join-WorkspaceMarkdownList $entry.Metrics) | $($entry.Commands.Count) | $(Join-WorkspaceMarkdownList $entry.TaskNames) | $(Join-WorkspaceMarkdownList $entry.Blockers) | $(Format-WorkspaceMarkdownValue $entry.ReportCommand) |"
+            }
         }
-    }
 
-    Write-Output ""
-    Write-Output "## Milestone Review Rollup"
-    Write-Output ""
-    if ($milestoneRollups.Count -eq 0) {
-        Write-Output "No milestone-linked tasks are configured."
-    } else {
-        Write-Output "| Milestone | Tasks | Actions | Release | Blocked | Validation required | Review required | Ready to commit | Owners | Due attention |"
-        Write-Output "| --- | ---: | --- | --- | --- | --- | --- | --- | --- | --- |"
-        foreach ($rollup in $milestoneRollups) {
-            Write-Output "| $(Format-WorkspaceMarkdownValue $rollup.Milestone) | $($rollup.TaskCount) | $(Join-WorkspaceMarkdownList $rollup.Actions) | $(Join-WorkspaceMarkdownList $rollup.ReleaseStates) | $(Join-WorkspaceMarkdownList $rollup.Blocked) | $(Join-WorkspaceMarkdownList $rollup.ValidationRequired) | $(Join-WorkspaceMarkdownList $rollup.ReviewRequired) | $(Join-WorkspaceMarkdownList $rollup.ReadyToCommit) | $(Join-WorkspaceMarkdownList $rollup.Owners) | $(Join-WorkspaceMarkdownList $rollup.DueAttention) |"
+        Write-Output ""
+    }
+    if (-not $Terse) {
+        Write-Output "## Decision Queues"
+        Write-Output ""
+        Write-Output "| Queue | Tasks |"
+        Write-Output "| --- | --- |"
+        foreach ($group in $actionGroups) {
+            Write-Output "| Action: $(Format-WorkspaceMarkdownValue $group.Name) | $(Join-WorkspaceMarkdownList @($group.Group | ForEach-Object { $_.TaskName })) |"
         }
+        foreach ($group in $releaseGroups) {
+            Write-Output "| Release: $(Format-WorkspaceMarkdownValue $group.Name) | $(Join-WorkspaceMarkdownList @($group.Group | ForEach-Object { $_.TaskName })) |"
+        }
+        foreach ($group in $milestoneGroups) {
+            Write-Output "| Milestone: $(Format-WorkspaceMarkdownValue $group.Name) | $(Join-WorkspaceMarkdownList @($group.Group | ForEach-Object { $_.TaskName })) |"
+        }
+
+        Write-Output ""
+    }
+    if (-not $Terse -or $milestoneStatuses.Count -gt 0) {
+        Write-Output "## Milestone Checkpoints"
+        Write-Output ""
+        if ($milestoneStatuses.Count -eq 0) {
+            Write-Output "No milestones are configured."
+        } else {
+            Write-Output "| Milestone | Runtime | Snapshot | Naming | Snapshot status | Tasks |"
+            Write-Output "| --- | --- | --- | --- | --- | --- |"
+            foreach ($milestoneStatus in $milestoneStatuses) {
+                Write-Output "| $(Format-WorkspaceMarkdownValue $milestoneStatus.Name) | $(Format-WorkspaceMarkdownValue $milestoneStatus.RuntimeName) | $(Format-WorkspaceMarkdownValue $milestoneStatus.SnapshotName) | $(Format-WorkspaceMarkdownValue (Format-WorkspaceStatusWithDetail -StatusObject $milestoneStatus.SnapshotNaming -Separator ' - ')) | $(Format-WorkspaceMarkdownValue (Format-WorkspaceStatusWithDetail -StatusObject $milestoneStatus.SnapshotStatus)) | $(Join-WorkspaceMarkdownList $milestoneStatus.TaskNames) |"
+            }
+        }
+
+        Write-Output ""
     }
 
-    Write-Output ""
+    if (-not $Terse -or $milestoneRollups.Count -gt 0) {
+        Write-Output "## Milestone Review Rollup"
+        Write-Output ""
+        if ($milestoneRollups.Count -eq 0) {
+            Write-Output "No milestone-linked tasks are configured."
+        } else {
+            Write-Output "| Milestone | Tasks | Actions | Release | Blocked | Validation required | Review required | Ready to commit | Owners | Due attention |"
+            Write-Output "| --- | ---: | --- | --- | --- | --- | --- | --- | --- | --- |"
+            foreach ($rollup in $milestoneRollups) {
+                Write-Output "| $(Format-WorkspaceMarkdownValue $rollup.Milestone) | $($rollup.TaskCount) | $(Join-WorkspaceMarkdownList $rollup.Actions) | $(Join-WorkspaceMarkdownList $rollup.ReleaseStates) | $(Join-WorkspaceMarkdownList $rollup.Blocked) | $(Join-WorkspaceMarkdownList $rollup.ValidationRequired) | $(Join-WorkspaceMarkdownList $rollup.ReviewRequired) | $(Join-WorkspaceMarkdownList $rollup.ReadyToCommit) | $(Join-WorkspaceMarkdownList $rollup.Owners) | $(Join-WorkspaceMarkdownList $rollup.DueAttention) |"
+            }
+        }
+
+        Write-Output ""
+    }
     Write-Output "## Task Evidence"
     Write-Output ""
     if ($reportItems.Count -eq 0) {
@@ -3319,46 +3434,48 @@ function Write-WorkspaceReportMarkdown {
         Write-Output "| $(Format-WorkspaceMarkdownValue $item.TaskName) | $(Format-WorkspaceMarkdownValue $item.MilestoneText) | $(Format-WorkspaceMarkdownValue $item.EvaluationText) | $(Format-WorkspaceMarkdownValue $item.OwnerName) | $(Format-WorkspaceMarkdownValue $item.RuntimeName) | $(Format-WorkspaceMarkdownValue $item.Risk) | $(Format-WorkspaceMarkdownValue (Format-WorkspaceStatusWithDetail -StatusObject $item.SyncHygiene)) | $(Format-WorkspaceMarkdownValue $item.ValidationStateText) | $(Format-WorkspaceMarkdownValue $item.ReviewDecision.Verdict) | $(Format-WorkspaceMarkdownValue $item.CommitDecision.Verdict) | $(Format-WorkspaceMarkdownValue $item.ReleaseReadiness) | $(Format-WorkspaceMarkdownValue $item.Action) |"
     }
 
-    Write-Output ""
-    Write-Output "## Task Details"
-    foreach ($item in $reportItems) {
+    if (-not $Terse) {
         Write-Output ""
-        Write-Output "### $($item.TaskName)"
-        Write-Output ""
-        Write-Output "- Project: $($item.ProjectName)"
-        Write-Output "- Milestone: $($item.MilestoneText)"
-        Write-Output "- Evaluation: $($item.EvaluationText)"
-        Write-Output "- Sync hygiene: $(Format-WorkspaceStatusWithDetail -StatusObject $item.SyncHygiene -Separator ' - ')"
-        Write-Output "- Runtime: $($item.RuntimeName)"
-        Write-Output "- Owner: $($item.OwnerName)"
-        Write-Output "- Review cadence: $($item.ReviewCadence)"
-        Write-Output "- Due: $($item.DueDate) ($($item.DueStatus))"
-        Write-Output "- Snapshot: $($item.SnapshotName); required: $($item.RequiresSnapshot); gate: $($item.SnapshotGate.Status); naming: $($item.SnapshotNaming.Status) - $($item.SnapshotNaming.Detail)"
-        Write-Output "- Validation: $($item.ValidationStateText)"
-        if ($item.RecordedState -and $item.RecordedState.PSObject.Properties.Name -contains "validation" -and $item.RecordedState.validation) {
-            $validation = $item.RecordedState.validation
-            if ($validation.PSObject.Properties.Name -contains "failed_command" -and -not [string]::IsNullOrWhiteSpace([string]$validation.failed_command)) {
-                Write-Output "- Failed command: $($validation.failed_command)"
+        Write-Output "## Task Details"
+        foreach ($item in $reportItems) {
+            Write-Output ""
+            Write-Output "### $($item.TaskName)"
+            Write-Output ""
+            Write-Output "- Project: $($item.ProjectName)"
+            Write-Output "- Milestone: $($item.MilestoneText)"
+            Write-Output "- Evaluation: $($item.EvaluationText)"
+            Write-Output "- Sync hygiene: $(Format-WorkspaceStatusWithDetail -StatusObject $item.SyncHygiene -Separator ' - ')"
+            Write-Output "- Runtime: $($item.RuntimeName)"
+            Write-Output "- Owner: $($item.OwnerName)"
+            Write-Output "- Review cadence: $($item.ReviewCadence)"
+            Write-Output "- Due: $($item.DueDate) ($($item.DueStatus))"
+            Write-Output "- Snapshot: $($item.SnapshotName); required: $($item.RequiresSnapshot); gate: $($item.SnapshotGate.Status); naming: $($item.SnapshotNaming.Status) - $($item.SnapshotNaming.Detail)"
+            Write-Output "- Validation: $($item.ValidationStateText)"
+            if ($item.RecordedState -and $item.RecordedState.PSObject.Properties.Name -contains "validation" -and $item.RecordedState.validation) {
+                $validation = $item.RecordedState.validation
+                if ($validation.PSObject.Properties.Name -contains "failed_command" -and -not [string]::IsNullOrWhiteSpace([string]$validation.failed_command)) {
+                    Write-Output "- Failed command: $($validation.failed_command)"
+                }
+                if ($validation.PSObject.Properties.Name -contains "remote_path" -and -not [string]::IsNullOrWhiteSpace([string]$validation.remote_path)) {
+                    Write-Output "- Remote path: $($validation.remote_path)"
+                }
+                if ($validation.PSObject.Properties.Name -contains "command_count") {
+                    Write-Output "- Command count: $($validation.command_count)"
+                }
             }
-            if ($validation.PSObject.Properties.Name -contains "remote_path" -and -not [string]::IsNullOrWhiteSpace([string]$validation.remote_path)) {
-                Write-Output "- Remote path: $($validation.remote_path)"
-            }
-            if ($validation.PSObject.Properties.Name -contains "command_count") {
-                Write-Output "- Command count: $($validation.command_count)"
-            }
+            Write-Output "- Review: $($item.ReviewDecision.Verdict) - $($item.ReviewDecision.Detail)"
+            Write-Output "- Rollback: $($item.RollbackState)"
+            Write-Output "- Commit: $($item.CommitDecision.Verdict) - $($item.CommitDecision.Detail)"
+            Write-Output "- Next: $($item.CommitDecision.NextStep)"
+            Write-Output ""
+            Write-Output "Handoff commands:"
+            Write-Output ""
+            Write-Output '```powershell'
+            Write-Output "adp workspace task review $($item.TaskName) -ManifestPath $ManifestPath"
+            Write-Output "adp workspace task rollback $($item.TaskName) -ManifestPath $ManifestPath"
+            Write-Output "adp workspace task commit $($item.TaskName) -ManifestPath $ManifestPath"
+            Write-Output '```'
         }
-        Write-Output "- Review: $($item.ReviewDecision.Verdict) - $($item.ReviewDecision.Detail)"
-        Write-Output "- Rollback: $($item.RollbackState)"
-        Write-Output "- Commit: $($item.CommitDecision.Verdict) - $($item.CommitDecision.Detail)"
-        Write-Output "- Next: $($item.CommitDecision.NextStep)"
-        Write-Output ""
-        Write-Output "Handoff commands:"
-        Write-Output ""
-        Write-Output '```powershell'
-        Write-Output "adp workspace task review $($item.TaskName) -ManifestPath $ManifestPath"
-        Write-Output "adp workspace task rollback $($item.TaskName) -ManifestPath $ManifestPath"
-        Write-Output "adp workspace task commit $($item.TaskName) -ManifestPath $ManifestPath"
-        Write-Output '```'
     }
 
     Write-Output ""
@@ -3376,11 +3493,12 @@ function Write-WorkspaceReport {
         [object]$Manifest,
         [string]$ManifestPath,
         [string]$StatePath,
-        [switch]$Markdown
+        [switch]$Markdown,
+        [switch]$Terse
     )
 
     if ($Markdown) {
-        Write-WorkspaceReportMarkdown -Manifest $Manifest -ManifestPath $ManifestPath -StatePath $StatePath
+        Write-WorkspaceReportMarkdown -Manifest $Manifest -ManifestPath $ManifestPath -StatePath $StatePath -Terse:$Terse
         return
     }
 
@@ -3615,7 +3733,9 @@ function Write-WorkspaceTaskValidate {
         [object]$Manifest,
         [object]$Task,
         [string]$StatePath,
+        [string]$ManifestPath,
         [switch]$ExecuteValidation,
+        [switch]$LocalExecution,
         [switch]$PlanOnly
     )
 
@@ -3624,8 +3744,8 @@ function Write-WorkspaceTaskValidate {
 
     $validationCommands = Get-WorkspaceArray $Task.validation
     Write-UIHost -English "" -Chinese ""
-    $mode = if ($ExecuteValidation) { "Validation execution:" } else { "Validation plan:" }
-    $modeCn = if ($ExecuteValidation) { "验证执行:" } else { "验证计划:" }
+    $mode = if ($LocalExecution) { "Local validation execution:" } elseif ($ExecuteValidation) { "Validation execution:" } else { "Validation plan:" }
+    $modeCn = if ($LocalExecution) { "本地验证执行:" } elseif ($ExecuteValidation) { "验证执行:" } else { "验证计划:" }
     Write-UIHost -English $mode -Chinese $modeCn -ForegroundColor Yellow
     if ($validationCommands.Count -eq 0) {
         Write-WorkspaceCheck -Level "WARN" -Name "task validation" -ChineseName "任务验证" -Detail "(none configured)" -ChineseDetail "(未配置)"
@@ -3633,7 +3753,7 @@ function Write-WorkspaceTaskValidate {
         return
     }
 
-    if (-not $ExecuteValidation) {
+    if (-not $ExecuteValidation -and -not $LocalExecution) {
         $index = 1
         foreach ($command in $validationCommands) {
             Write-UIHost -English "  $index. $command" -Chinese "  $index. $command" -ForegroundColor DarkGray
@@ -3643,87 +3763,151 @@ function Write-WorkspaceTaskValidate {
         Write-UIHost -English "" -Chinese ""
         Write-UIHost -English "To execute validation explicitly:" -Chinese "显式执行验证:" -ForegroundColor Yellow
         Write-UIHost -English "  adp workspace task validate $($Task.name) -Execute -ManifestPath <manifest>" -Chinese "  adp workspace task validate $($Task.name) -Execute -ManifestPath <manifest>" -ForegroundColor DarkGray
-        Write-UIHost -English "  Add -Plan to preview the remote SSH commands without running them." -Chinese "  添加 -Plan 来预览远程 SSH 命令而不实际运行它们。" -ForegroundColor DarkGray
+        Write-UIHost -English "  adp workspace task validate $($Task.name) -Execute -Local -ManifestPath <manifest>  (run locally, no VM required)" -Chinese "  adp workspace task validate $($Task.name) -Execute -Local -ManifestPath <manifest>  (本地执行，无需 VM)" -ForegroundColor DarkGray
+        Write-UIHost -English "  Add -Plan to preview commands without running them." -Chinese "  添加 -Plan 来预览命令而不实际运行它们。" -ForegroundColor DarkGray
         return
     }
 
     $project = Find-WorkspaceProjectForTask -Manifest $Manifest -Task $Task
-    $remotePath = Resolve-WorkspaceRemoteProjectPath -Project $project
-    $sshTarget = Get-WorkspaceRuntimeSshTarget -RuntimeName $Task.runtime
-    $runtimeStatus = Get-WorkspaceRuntimeStatus -RuntimeName $Task.runtime
-    $syncExpected = ($null -ne $project.sync -and [bool]$project.sync)
-    $syncStatus = Get-WorkspaceSyncStatus -RuntimeName $Task.runtime -Expected $syncExpected
-    $resolvedStatePath = Resolve-WorkspaceStatePath -Path $StatePath
-    $state = Read-WorkspaceState -Path $resolvedStatePath
-    $recordedState = Get-WorkspaceTaskState -State $state -TaskName $Task.name
-    $snapshotStatus = Get-WorkspaceSnapshotStatus -RuntimeName $Task.runtime -SnapshotName $Task.snapshot
-    $snapshotGate = Get-WorkspaceSnapshotGate -Task $Task -SnapshotStatus $snapshotStatus -RecordedState $recordedState
 
-    Write-UIHost -English "" -Chinese ""
-    Write-UIHost -English "Readiness gate:" -Chinese "就绪门控:" -ForegroundColor Yellow
-    Write-WorkspaceCheck -Level "OK" -Name "project" -ChineseName "项目" -Detail "($($project.name): $remotePath)" -ChineseDetail "($($project.name): $remotePath)"
-    Write-WorkspaceCheck -Level $runtimeStatus.Level -Name "runtime $($Task.runtime)" -ChineseName "运行时 $($Task.runtime)" -Detail "($($runtimeStatus.Status): $($runtimeStatus.Detail))"
-    Write-WorkspaceCheck -Level $syncStatus.Level -Name "sync" -ChineseName "同步" -Detail "($($syncStatus.Status)$(if ($syncStatus.Detail) { ': ' + $syncStatus.Detail }))"
-    Write-WorkspaceCheck -Level $snapshotGate.Level -Name "snapshot-first gate" -ChineseName "快照优先门控" -Detail "($($snapshotGate.Status): $($snapshotGate.Detail))"
-    Write-WorkspaceCheck -Level "OK" -Name "ssh target" -ChineseName "SSH 目标" -Detail "($($sshTarget.User)@$($sshTarget.Host):$($sshTarget.Port))"
+    if ($LocalExecution) {
+        # --- Local execution path: no SSH, no VM, no runtime gates ---
+        $localPath = Resolve-WorkspaceLocalProjectPath -Project $project -ManifestPath $ManifestPath
 
-    if (-not $PlanOnly) {
-        $blockingReasons = @()
-        if ($runtimeStatus.Level -eq "FAIL") {
-            $blockingReasons += "runtime is blocked: $($runtimeStatus.Detail)"
-        }
-        if ($snapshotGate.Blocking) {
-            $blockingReasons += "snapshot-first gate is blocked: $($snapshotGate.Detail)"
-        }
-        if ($blockingReasons.Count -gt 0) {
-            foreach ($reason in $blockingReasons) {
-                Write-ErrorLog -Message $reason -Component "cli.workspace"
-            }
+        Write-UIHost -English "" -Chinese ""
+        Write-UIHost -English "Local readiness gate:" -Chinese "本地就绪门控:" -ForegroundColor Yellow
+        Write-WorkspaceCheck -Level "OK" -Name "project" -ChineseName "项目" -Detail "($($project.name): $localPath)" -ChineseDetail "($($project.name): $localPath)"
+        if (-not (Test-Path -LiteralPath $localPath -PathType Container)) {
+            Write-WorkspaceCheck -Level "FAIL" -Name "local directory" -ChineseName "本地目录" -Detail "(not found: $localPath)" -ChineseDetail "(未找到: $localPath)"
+            Write-ErrorLog -Message "Local validation aborted: project directory not found at $localPath" -Component "cli.workspace"
             exit 1
         }
-    }
+        Write-WorkspaceCheck -Level "OK" -Name "local directory" -ChineseName "本地目录" -Detail "($localPath)" -ChineseDetail "($localPath)"
 
-    if ($PlanOnly) {
-        Write-UIHost -English "" -Chinese ""
-        Write-UIHost -English "Plan only: validation commands will not be executed." -Chinese "仅规划: 验证命令不会被执行。" -ForegroundColor Cyan
-    } else {
-        Write-UIHost -English "" -Chinese ""
-        Write-UIHost -English "Executing declared validation commands. No packages, browsers, snapshots, Git staging, or commits are managed by ADP-OS beyond these commands." -Chinese "正在执行已声明的验证命令。ADP-OS 不会管理这些命令之外的包、浏览器、快照、Git 暂存或提交。" -ForegroundColor Yellow
-    }
-
-    $index = 1
-    $startedAt = (Get-Date).ToUniversalTime().ToString("o")
-    $commands = @($validationCommands | ForEach-Object { [string]$_ })
-    foreach ($command in $validationCommands) {
-        $remoteCommand = "cd $(Quote-PosixSingleArgument $remotePath) && $command"
-        if ($PlanOnly) {
-            Write-UIHost -English "  $index. ssh -i $($sshTarget.KeyPath) -p $($sshTarget.Port) $($sshTarget.User)@$($sshTarget.Host) $(Quote-PosixSingleArgument $remoteCommand)" -Chinese "  $index. ssh -i $($sshTarget.KeyPath) -p $($sshTarget.Port) $($sshTarget.User)@$($sshTarget.Host) $(Quote-PosixSingleArgument $remoteCommand)" -ForegroundColor DarkGray
-        } else {
+        if (-not $PlanOnly) {
             Write-UIHost -English "" -Chinese ""
-            Write-UIHost -English "[$index/$($validationCommands.Count)] $command" -Chinese "[$index/$($validationCommands.Count)] $command" -ForegroundColor Yellow
-            Invoke-WorkspaceRemoteValidationCommand -SshTarget $sshTarget -RemoteCommand $remoteCommand
-            $exitCode = $LASTEXITCODE
-            if ($exitCode -ne 0) {
-                $completedAt = (Get-Date).ToUniversalTime().ToString("o")
-                $validation = New-WorkspaceValidationResult -Task $Task -Project $project -RemotePath $remotePath -Status "failed" -StartedAt $startedAt -CompletedAt $completedAt -Commands $commands -ExitCode $exitCode -FailedCommand ([string]$command)
-                $resolvedStatePath = Write-WorkspaceValidationResult -StatePath $StatePath -Task $Task -Validation $validation
+            Write-UIHost -English "Executing declared validation commands locally. No packages, browsers, snapshots, Git staging, or commits are managed by ADP-OS beyond these commands." -Chinese "正在本地执行已声明的验证命令。ADP-OS 不会管理这些命令之外的包、浏览器、快照、Git 暂存或提交。" -ForegroundColor Yellow
+        }
+
+        $index = 1
+        $startedAt = (Get-Date).ToUniversalTime().ToString("o")
+        $commands = @($validationCommands | ForEach-Object { [string]$_ })
+        foreach ($command in $validationCommands) {
+            $localCommand = [string]$command
+            if ($PlanOnly) {
+                Write-UIHost -English "  $index. [local] $localCommand  (in $localPath)" -Chinese "  $index. [本地] $localCommand  (在 $localPath)" -ForegroundColor DarkGray
+            } else {
                 Write-UIHost -English "" -Chinese ""
-                Write-UIHost -English "Validation result recorded: $resolvedStatePath" -Chinese "验证结果已记录: $resolvedStatePath" -ForegroundColor DarkGray
-                Write-ErrorLog -Message "Workspace validation command failed with exit code $exitCode`: $command" -Component "cli.workspace"
-                exit $exitCode
+                Write-UIHost -English "[$index/$($validationCommands.Count)] $localCommand (local)" -Chinese "[$index/$($validationCommands.Count)] $localCommand (本地)" -ForegroundColor Yellow
+                $previousLocation = Get-Location
+                try {
+                    Set-Location -LiteralPath $localPath
+                    Invoke-Expression $localCommand
+                    $exitCode = $LASTEXITCODE
+                } finally {
+                    Set-Location -LiteralPath $previousLocation
+                }
+                if ($exitCode -ne 0) {
+                    $completedAt = (Get-Date).ToUniversalTime().ToString("o")
+                    $validation = New-WorkspaceValidationResult -Task $Task -Project $project -RemotePath $localPath -Status "failed" -StartedAt $startedAt -CompletedAt $completedAt -Commands $commands -ExitCode $exitCode -FailedCommand ([string]$command)
+                    $resolvedStatePath = Write-WorkspaceValidationResult -StatePath $StatePath -Task $Task -Validation $validation
+                    Write-UIHost -English "" -Chinese ""
+                    Write-UIHost -English "Validation result recorded: $resolvedStatePath" -Chinese "验证结果已记录: $resolvedStatePath" -ForegroundColor DarkGray
+                    Write-ErrorLog -Message "Workspace validation command failed with exit code $exitCode`: $command" -Component "cli.workspace"
+                    exit $exitCode
+                }
+            }
+            $index += 1
+        }
+
+        if (-not $PlanOnly) {
+            $completedAt = (Get-Date).ToUniversalTime().ToString("o")
+            $validation = New-WorkspaceValidationResult -Task $Task -Project $project -RemotePath $localPath -Status "passed" -StartedAt $startedAt -CompletedAt $completedAt -Commands $commands -ExitCode 0
+            $resolvedStatePath = Write-WorkspaceValidationResult -StatePath $StatePath -Task $Task -Validation $validation
+            Write-UIHost -English "" -Chinese ""
+            Write-UIHost -English "Workspace validation complete: $($Task.name)" -Chinese "工作区验证完成: $($Task.name)" -ForegroundColor Green
+            Write-UIHost -English "  Result recorded: $resolvedStatePath" -Chinese "  结果已记录: $resolvedStatePath" -ForegroundColor DarkGray
+            Write-UIHost -English "  Review remains explicit; ADP-OS did not stage files or commit changes." -Chinese "  审查仍需显式进行; ADP-OS 未暂存文件或提交更改。" -ForegroundColor DarkGray
+        }
+    } else {
+        # --- Remote execution path: SSH into VM ---
+        $remotePath = Resolve-WorkspaceRemoteProjectPath -Project $project
+        $sshTarget = Get-WorkspaceRuntimeSshTarget -RuntimeName $Task.runtime
+        $runtimeStatus = Get-WorkspaceRuntimeStatus -RuntimeName $Task.runtime
+        $syncExpected = ($null -ne $project.sync -and [bool]$project.sync)
+        $syncStatus = Get-WorkspaceSyncStatus -RuntimeName $Task.runtime -Expected $syncExpected
+        $resolvedStatePath = Resolve-WorkspaceStatePath -Path $StatePath
+        $state = Read-WorkspaceState -Path $resolvedStatePath
+        $recordedState = Get-WorkspaceTaskState -State $state -TaskName $Task.name
+        $snapshotStatus = Get-WorkspaceSnapshotStatus -RuntimeName $Task.runtime -SnapshotName $Task.snapshot
+        $snapshotGate = Get-WorkspaceSnapshotGate -Task $Task -SnapshotStatus $snapshotStatus -RecordedState $recordedState
+
+        Write-UIHost -English "" -Chinese ""
+        Write-UIHost -English "Readiness gate:" -Chinese "就绪门控:" -ForegroundColor Yellow
+        Write-WorkspaceCheck -Level "OK" -Name "project" -ChineseName "项目" -Detail "($($project.name): $remotePath)" -ChineseDetail "($($project.name): $remotePath)"
+        Write-WorkspaceCheck -Level $runtimeStatus.Level -Name "runtime $($Task.runtime)" -ChineseName "运行时 $($Task.runtime)" -Detail "($($runtimeStatus.Status): $($runtimeStatus.Detail))"
+        Write-WorkspaceCheck -Level $syncStatus.Level -Name "sync" -ChineseName "同步" -Detail "($($syncStatus.Status)$(if ($syncStatus.Detail) { ': ' + $syncStatus.Detail }))"
+        Write-WorkspaceCheck -Level $snapshotGate.Level -Name "snapshot-first gate" -ChineseName "快照优先门控" -Detail "($($snapshotGate.Status): $($snapshotGate.Detail))"
+        Write-WorkspaceCheck -Level "OK" -Name "ssh target" -ChineseName "SSH 目标" -Detail "($($sshTarget.User)@$($sshTarget.Host):$($sshTarget.Port))"
+
+        if (-not $PlanOnly) {
+            $blockingReasons = @()
+            if ($runtimeStatus.Level -eq "FAIL") {
+                $blockingReasons += "runtime is blocked: $($runtimeStatus.Detail)"
+            }
+            if ($snapshotGate.Blocking) {
+                $blockingReasons += "snapshot-first gate is blocked: $($snapshotGate.Detail)"
+            }
+            if ($blockingReasons.Count -gt 0) {
+                foreach ($reason in $blockingReasons) {
+                    Write-ErrorLog -Message $reason -Component "cli.workspace"
+                }
+                exit 1
             }
         }
-        $index += 1
-    }
 
-    if (-not $PlanOnly) {
-        $completedAt = (Get-Date).ToUniversalTime().ToString("o")
-        $validation = New-WorkspaceValidationResult -Task $Task -Project $project -RemotePath $remotePath -Status "passed" -StartedAt $startedAt -CompletedAt $completedAt -Commands $commands -ExitCode 0
-        $resolvedStatePath = Write-WorkspaceValidationResult -StatePath $StatePath -Task $Task -Validation $validation
-        Write-UIHost -English "" -Chinese ""
-        Write-UIHost -English "Workspace validation complete: $($Task.name)" -Chinese "工作区验证完成: $($Task.name)" -ForegroundColor Green
-        Write-UIHost -English "  Result recorded: $resolvedStatePath" -Chinese "  结果已记录: $resolvedStatePath" -ForegroundColor DarkGray
-        Write-UIHost -English "  Review remains explicit; ADP-OS did not stage files or commit changes." -Chinese "  审查仍需显式进行; ADP-OS 未暂存文件或提交更改。" -ForegroundColor DarkGray
+        if ($PlanOnly) {
+            Write-UIHost -English "" -Chinese ""
+            Write-UIHost -English "Plan only: validation commands will not be executed." -Chinese "仅规划: 验证命令不会被执行。" -ForegroundColor Cyan
+        } else {
+            Write-UIHost -English "" -Chinese ""
+            Write-UIHost -English "Executing declared validation commands. No packages, browsers, snapshots, Git staging, or commits are managed by ADP-OS beyond these commands." -Chinese "正在执行已声明的验证命令。ADP-OS 不会管理这些命令之外的包、浏览器、快照、Git 暂存或提交。" -ForegroundColor Yellow
+        }
+
+        $index = 1
+        $startedAt = (Get-Date).ToUniversalTime().ToString("o")
+        $commands = @($validationCommands | ForEach-Object { [string]$_ })
+        foreach ($command in $validationCommands) {
+            $remoteCommand = "cd $(Quote-PosixSingleArgument $remotePath) && $command"
+            if ($PlanOnly) {
+                Write-UIHost -English "  $index. ssh -i $($sshTarget.KeyPath) -p $($sshTarget.Port) $($sshTarget.User)@$($sshTarget.Host) $(Quote-PosixSingleArgument $remoteCommand)" -Chinese "  $index. ssh -i $($sshTarget.KeyPath) -p $($sshTarget.Port) $($sshTarget.User)@$($sshTarget.Host) $(Quote-PosixSingleArgument $remoteCommand)" -ForegroundColor DarkGray
+            } else {
+                Write-UIHost -English "" -Chinese ""
+                Write-UIHost -English "[$index/$($validationCommands.Count)] $command" -Chinese "[$index/$($validationCommands.Count)] $command" -ForegroundColor Yellow
+                Invoke-WorkspaceRemoteValidationCommand -SshTarget $sshTarget -RemoteCommand $remoteCommand
+                $exitCode = $LASTEXITCODE
+                if ($exitCode -ne 0) {
+                    $completedAt = (Get-Date).ToUniversalTime().ToString("o")
+                    $validation = New-WorkspaceValidationResult -Task $Task -Project $project -RemotePath $remotePath -Status "failed" -StartedAt $startedAt -CompletedAt $completedAt -Commands $commands -ExitCode $exitCode -FailedCommand ([string]$command)
+                    $resolvedStatePath = Write-WorkspaceValidationResult -StatePath $StatePath -Task $Task -Validation $validation
+                    Write-UIHost -English "" -Chinese ""
+                    Write-UIHost -English "Validation result recorded: $resolvedStatePath" -Chinese "验证结果已记录: $resolvedStatePath" -ForegroundColor DarkGray
+                    Write-ErrorLog -Message "Workspace validation command failed with exit code $exitCode`: $command" -Component "cli.workspace"
+                    exit $exitCode
+                }
+            }
+            $index += 1
+        }
+
+        if (-not $PlanOnly) {
+            $completedAt = (Get-Date).ToUniversalTime().ToString("o")
+            $validation = New-WorkspaceValidationResult -Task $Task -Project $project -RemotePath $remotePath -Status "passed" -StartedAt $startedAt -CompletedAt $completedAt -Commands $commands -ExitCode 0
+            $resolvedStatePath = Write-WorkspaceValidationResult -StatePath $StatePath -Task $Task -Validation $validation
+            Write-UIHost -English "" -Chinese ""
+            Write-UIHost -English "Workspace validation complete: $($Task.name)" -Chinese "工作区验证完成: $($Task.name)" -ForegroundColor Green
+            Write-UIHost -English "  Result recorded: $resolvedStatePath" -Chinese "  结果已记录: $resolvedStatePath" -ForegroundColor DarkGray
+            Write-UIHost -English "  Review remains explicit; ADP-OS did not stage files or commit changes." -Chinese "  审查仍需显式进行; ADP-OS 未暂存文件或提交更改。" -ForegroundColor DarkGray
+        }
     }
 }
 
@@ -3956,7 +4140,7 @@ function Write-WorkspaceTaskMark {
         [string]$Path
     )
 
-    $validStates = @("prepared", "checkpointed", "checkpoint-waived", "running", "validated", "reviewed", "rollback", "committed")
+    $validStates = @("prepared", "checkpointed", "checkpoint-waived", "running", "validated", "validation_failed", "reviewed", "rollback", "committed")
     if ([string]::IsNullOrWhiteSpace($StateName) -or $StateName -notin $validStates) {
         Write-ErrorLog -Message "Unknown workspace task state: $StateName. Valid: $($validStates -join ', ')" -Component "cli.workspace"
         exit 1
@@ -3966,6 +4150,9 @@ function Write-WorkspaceTaskMark {
     $state = Read-WorkspaceState -Path $resolvedStatePath
     if ($StateName -eq "checkpoint-waived") {
         $state = Set-WorkspaceTaskCheckpointWaiver -State $state -TaskName $Task.name
+    } elseif ($StateName -in @("validated", "validation_failed")) {
+        $status = if ($StateName -eq "validated") { "passed" } else { "failed" }
+        $state = Set-WorkspaceTaskExternalValidation -State $state -TaskName $Task.name -ValidationStatus $status
     } else {
         $state = Set-WorkspaceTaskState -State $state -TaskName $Task.name -StateName $StateName
     }
@@ -3973,7 +4160,11 @@ function Write-WorkspaceTaskMark {
 
     Write-UIHost -English "" -Chinese ""
     Write-UIHost -English "Workspace task mark: $($Task.name)" -Chinese "工作空间任务标记: $($Task.name)" -ForegroundColor Cyan
-    Write-UIHost -English "Recorded local lifecycle state only. No VM, sync, snapshot, file, Git, or validation command was run." -Chinese "仅记录本地生命周期状态。未运行任何 VM、同步、快照、文件、Git 或验证命令。" -ForegroundColor DarkGray
+    if ($StateName -in @("validated", "validation_failed")) {
+        Write-UIHost -English "Recorded external validation result as local lifecycle state. Validation was run outside ADP-OS; the recorded result satisfies review/commit readiness gates." -Chinese "记录了外部验证结果作为本地生命周期状态。验证在 ADP-OS 外运行；记录的结果满足审查/提交就绪门控。" -ForegroundColor DarkGray
+    } else {
+        Write-UIHost -English "Recorded local lifecycle state only. No VM, sync, snapshot, file, Git, or validation command was run." -Chinese "仅记录本地生命周期状态。未运行任何 VM、同步、快照、文件、Git 或验证命令。" -ForegroundColor DarkGray
+    }
     Write-UIHost -English "" -Chinese ""
     Write-UIHost -English "  State: $StateName" -Chinese "  状态: $StateName" -ForegroundColor Green
     Write-UIHost -English "  File:  $resolvedStatePath" -Chinese "  文件:  $resolvedStatePath" -ForegroundColor DarkGray
@@ -3986,7 +4177,10 @@ function Write-WorkspaceTaskMark {
             Write-UIHost -English "  Boundary: running means manual execution began or was attempted; ADP-OS did not start the agent, approve execution, validate output, or satisfy review/commit readiness." -Chinese "  边界: running 表示人工执行已开始或已尝试；ADP-OS 并未启动 agent、未批准执行、未验证输出、也未满足审查/提交就绪条件。" -ForegroundColor Yellow
         }
         "validated" {
-            Write-UIHost -English "  Boundary: validated is a local lifecycle note only. Use 'adp workspace task validate <task> -Execute' to record executable validation evidence." -Chinese "  边界: validated 仅为本机生命周期备注。使用 'adp workspace task validate <task> -Execute' 记录可执行的验证证据。" -ForegroundColor Yellow
+            Write-UIHost -English "  Boundary: validated records an external validation result (status: passed). Validation was run outside ADP-OS; the recorded result satisfies review/commit readiness gates. Use 'adp workspace task validate <task> -Execute' to record executable validation evidence from inside ADP-OS." -Chinese "  边界: validated 记录了外部验证结果（状态: 通过）。验证在 ADP-OS 外运行；记录的结果满足审查/提交就绪门控。使用 'adp workspace task validate <task> -Execute' 从 ADP-OS 内记录可执行验证证据。" -ForegroundColor Yellow
+        }
+        "validation_failed" {
+            Write-UIHost -English "  Boundary: validation_failed records an external validation result (status: failed). Validation was run outside ADP-OS. The recorded failure blocks review/commit readiness until a passing result is recorded." -Chinese "  边界: validation_failed 记录了外部验证结果（状态: 失败）。验证在 ADP-OS 外运行。记录的失败会阻塞审查/提交就绪，直到记录通过结果。" -ForegroundColor Yellow
         }
         "reviewed" {
             Write-UIHost -English "  Boundary: reviewed should be used only after human source review accepts the diff, rollback path, snapshot context, and recorded validation evidence." -Chinese "  边界: reviewed 应仅在人工源码审查接受 diff、回滚路径、快照上下文和已记录的验证证据后使用。" -ForegroundColor Yellow
@@ -4527,6 +4721,7 @@ function Invoke-WorkspaceTask {
         [string]$Path,
         [string]$LocalStatePath,
         [switch]$ExecuteValidation,
+        [switch]$LocalExecution,
         [switch]$PlanOnly
     )
 
@@ -4536,13 +4731,13 @@ function Invoke-WorkspaceTask {
         exit 1
     }
 
-    if (($ExecuteValidation -or $PlanOnly) -and $Command -ne "validate") {
-        Write-ErrorLog -Message "-Execute and -Plan are only supported with: adp workspace task validate <task-name>" -Component "cli.workspace"
+    if (($ExecuteValidation -or $PlanOnly -or $LocalExecution) -and $Command -ne "validate") {
+        Write-ErrorLog -Message "-Execute, -Local, and -Plan are only supported with: adp workspace task validate <task-name>" -Component "cli.workspace"
         exit 1
     }
 
-    if ($PlanOnly -and -not $ExecuteValidation) {
-        Write-ErrorLog -Message "-Plan is only supported with -Execute for workspace task validation." -Component "cli.workspace"
+    if ($PlanOnly -and -not $ExecuteValidation -and -not $LocalExecution) {
+        Write-ErrorLog -Message "-Plan is only supported with -Execute or -Local for workspace task validation." -Component "cli.workspace"
         exit 1
     }
 
@@ -4559,7 +4754,7 @@ function Invoke-WorkspaceTask {
             Write-WorkspaceTaskRun -Manifest $Manifest -Task $task -ManifestPath $Path -StatePath $LocalStatePath
         }
         "validate" {
-            Write-WorkspaceTaskValidate -Manifest $Manifest -Task $task -StatePath $LocalStatePath -ExecuteValidation:$ExecuteValidation -PlanOnly:$PlanOnly
+            Write-WorkspaceTaskValidate -Manifest $Manifest -Task $task -StatePath $LocalStatePath -ManifestPath $Path -ExecuteValidation:$ExecuteValidation -LocalExecution:$LocalExecution -PlanOnly:$PlanOnly
         }
         "review" {
             Write-WorkspaceTaskReview -Manifest $Manifest -Task $task -ManifestPath $Path -StatePath $LocalStatePath
@@ -4644,7 +4839,7 @@ switch ($SubCommand) {
     }
     "report" {
         $manifest = Read-WorkspaceManifest -Path $ManifestPath
-        Write-WorkspaceReport -Manifest $manifest -ManifestPath $ManifestPath -StatePath $StatePath -Markdown:$Markdown
+        Write-WorkspaceReport -Manifest $manifest -ManifestPath $ManifestPath -StatePath $StatePath -Markdown:$Markdown -Terse:$Terse
     }
     "recipes" {
         $manifest = Read-WorkspaceManifest -Path $ManifestPath
@@ -4669,12 +4864,12 @@ switch ($SubCommand) {
     "task" {
         if ([string]::IsNullOrWhiteSpace($TaskCommand)) {
             Write-ErrorLog -Message (Get-UIText -English "Usage: adp workspace task <prepare|snapshot|run|validate|review|rollback|commit|mark> <task-name>" -Chinese "用法: adp workspace task <prepare|snapshot|run|validate|review|rollback|commit|mark> <task-name>") -Component "cli.workspace"
-            Write-UIHost -English "  adp workspace task validate <task-name> [-Execute] [-Plan] [-ManifestPath <path>]" -Chinese "  adp workspace task validate <task-name> [-Execute] [-Plan] [-ManifestPath <path>]" -ForegroundColor DarkGray
+            Write-UIHost -English "  adp workspace task validate <task-name> [-Execute] [-Local] [-Plan] [-ManifestPath <path>]" -Chinese "  adp workspace task validate <task-name> [-Execute] [-Local] [-Plan] [-ManifestPath <path>]" -ForegroundColor DarkGray
             Write-UIHost -English "  adp workspace task mark <task-name> <state> [-StatePath <path>]" -Chinese "  adp workspace task mark <task-name> <state> [-StatePath <path>]" -ForegroundColor DarkGray
             exit 1
         }
         $manifest = Read-WorkspaceManifest -Path $ManifestPath
-        Invoke-WorkspaceTask -Manifest $manifest -Command $TaskCommand -Name $TaskName -StateName $TaskState -Path $ManifestPath -LocalStatePath $StatePath -ExecuteValidation:$Execute -PlanOnly:$Plan
+        Invoke-WorkspaceTask -Manifest $manifest -Command $TaskCommand -Name $TaskName -StateName $TaskState -Path $ManifestPath -LocalStatePath $StatePath -ExecuteValidation:$Execute -LocalExecution:$Local -PlanOnly:$Plan
     }
     "evidence" {
         if (-not $Snapshot -and -not $Log -and -not $Export) {
