@@ -2,7 +2,7 @@
 
 Exposes ADP-OS platform management as MCP (Model Context Protocol) tools for agent-native sandbox orchestration.
 
-## Tools (18 total)
+## Tools (26 total)
 
 ### Platform
 
@@ -36,6 +36,19 @@ Exposes ADP-OS platform management as MCP (Model Context Protocol) tools for age
 | `adp_stop` | Gracefully stop a runtime VM |
 | `adp_sync_status` | Mutagen sync session status |
 | `adp_sync_stop` | Stop sync session for a runtime |
+
+### In-VM Sandbox (SSH-backed)
+
+| Tool | Description |
+|------|-------------|
+| `adp_exec` | Execute commands inside a running VM via SSH |
+| `adp_file_read` | Read file content from inside a VM |
+| `adp_file_write` | Write or append content to a file inside a VM |
+| `adp_dir_list` | List directory contents inside a VM |
+| `adp_glob` | Find files by pattern inside a VM |
+| `adp_grep` | Search text inside files in a VM |
+| `adp_file_download` | Download a file from a VM as base64 |
+| `adp_file_upload` | Upload base64 content to a file inside a VM (plan-only default) |
 
 ## Setup
 

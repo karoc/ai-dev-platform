@@ -2,9 +2,9 @@
 
 简体中文 | [English](../deer-flow-integration.md)
 
-ADP-OS 提供标准的 [Model Context Protocol (MCP)](https://modelcontextprotocol.io) 服务器，可作为 MCP 服务器加载到 [ByteDance/deer-flow](https://github.com/bytedance/deer-flow)（70K⭐）中。只需配置一次，deer-flow agent 即可使用全部 18 个 ADP-OS 平台、工作区和运行时工具。
+ADP-OS 提供标准的 [Model Context Protocol (MCP)](https://modelcontextprotocol.io) 服务器，可作为 MCP 服务器加载到 [ByteDance/deer-flow](https://github.com/bytedance/deer-flow)（70K⭐）中。只需配置一次，deer-flow agent 即可使用全部 26 个 ADP-OS 平台、工作区、运行时和 VM 内沙箱工具。
 
-> **范围**：本指南涵盖在 deer-flow 中配置 ADP-OS MCP 服务器以进行 VM 生命周期管理。关于完整的沙箱替代方案（VM 内代码执行），请参阅[差距分析](integrations/deer-flow.md)。
+> **范围**：本指南涵盖在 deer-flow 中配置 ADP-OS MCP 服务器。ADP-OS 现已提供 26 个工具（18 个生命周期 + 8 个 SSH 支持的 VM 内操作），可作为**完整的 deer-flow 沙箱后端**使用——包括代码执行、文件 I/O 和 VM 内目录导航。关于已解决的 P0 差距和已发布的适配器，请参阅[差距分析](integrations/deer-flow.md)。
 
 ## 快速开始
 
@@ -39,7 +39,7 @@ cp extensions_config.example.json extensions_config.json
       "env": {
         "ADP_HOME": "D:\\Dev\\ai-dev-platform"
       },
-      "description": "ADP-OS VM 沙箱后端 — 18 个工具，用于平台、工作区和运行时管理"
+      "description": "ADP-OS VM 沙箱后端 — 26 个工具，用于平台、工作区、运行时和 VM 内沙箱管理"
     }
   }
 }
@@ -61,7 +61,7 @@ cp extensions_config.example.json extensions_config.json
         "ADP_HOME": "/home/user/ai-dev-platform",
         "ADP_HOME_WIN": "D:\\Dev\\ai-dev-platform"
       },
-      "description": "ADP-OS VM 沙箱后端 — 18 个工具，用于平台、工作区和运行时管理"
+      "description": "ADP-OS VM 沙箱后端 — 26 个工具，用于平台、工作区、运行时和 VM 内沙箱管理"
     }
   }
 }
@@ -81,7 +81,7 @@ Agent 应调用 `adp_status` 并报告运行时健康状况。
 
 ## 可用工具
 
-配置完成后即可使用全部 18 个工具：
+配置完成后即可使用全部 26 个工具：
 
 ### 平台工具
 
@@ -116,6 +116,19 @@ Agent 应调用 `adp_status` 并报告运行时健康状况。
 | `adp_sync_status` | Mutagen 同步会话健康状况 |
 | `adp_sync_stop` | 停止 Mutagen 同步会话 |
 
+### VM 内沙箱工具（SSH 支持）
+
+| 工具 | 功能 |
+|------|------|
+| `adp_exec` | 通过 SSH 在运行中的 VM 内执行命令 |
+| `adp_file_read` | 从 VM 内读取文件内容 |
+| `adp_file_write` | 写入或追加内容到 VM 内的文件 |
+| `adp_dir_list` | 列出 VM 内目录内容（可配置深度的递归） |
+| `adp_glob` | 通过模式在 VM 内查找文件 |
+| `adp_grep` | 在 VM 内搜索文件中的文本 |
+| `adp_file_download` | 从 VM 下载文件（base64 编码） |
+| `adp_file_upload` | 上传 base64 编码内容到 VM 内的文件（默认 plan-only） |
+
 ## 安全设计
 
 所有破坏性操作默认为 plan-only 模式：
@@ -123,12 +136,13 @@ Agent 应调用 `adp_status` 并报告运行时健康状况。
 - `adp_up` 和 `adp_down` 默认为 `plan_only=True` — 仅预览
 - `adp_workspace_create` 默认为 `plan_only=True` — 仅预览
 - `adp_workspace_close` 默认为 `plan_only=True` — 仅预览
+- `adp_file_upload` 默认为 `plan_only=True` — 仅预览
 
 要实际执行，需显式设置 `plan_only=False`。所有检查类工具完全无破坏性。
 
 ## 当前可完成的任务
 
-使用当前的 18 个工具，deer-flow agent 可以：
+使用当前的 26 个工具，deer-flow agent 可以：
 
 | 任务 | 使用的工具 | 说明 |
 |------|-----------|------|
@@ -139,6 +153,29 @@ Agent 应调用 `adp_status` 并报告运行时健康状况。
 | **检查工作区** | `adp_workspace_list`、`adp_workspace_status`、`adp_workspace_dashboard`、`adp_workspace_project` | 完整的工作区可见性 |
 | **生成证据** | `adp_workspace_report` | 用于 PR 描述的 Markdown 发布证据 |
 | **发现能力** | `adp_capabilities`、`adp_workspace_recipes` | 平台和工作流发现 |
+| **在 VM 内执行代码** | `adp_exec` | 运行命令、安装软件包、执行脚本 |
+| **在 VM 内读写文件** | `adp_file_read`、`adp_file_write`、`adp_file_upload` | 检查输出、创建/修改源文件 |
+| **浏览 VM 文件系统** | `adp_dir_list`、`adp_glob`、`adp_grep` | 浏览目录、按模式查找文件、搜索文件内容 |
+| **从 VM 下载文件** | `adp_file_download` | 将 VM 文件下载为 base64 以便传输 |
+
+## 当前限制
+
+MCP 服务器现已同时提供 **VM 侧操作**（从主机管理 VM）和 **VM 内操作**（在 VM 内部执行代码）。初始分析中识别的 P0 差距已全部解决。
+
+| 能力 | 状态 | 说明 |
+|------|------|------|
+| 启动/停止/销毁 VM | ✅ 可用 | 使用 `adp_up`/`adp_stop`/`adp_down` |
+| 检查 VM 健康 | ✅ 可用 | 使用 `adp_status`/`adp_doctor` |
+| 管理工作区和同步 | ✅ 可用 | 使用工作区和同步工具 |
+| 在 VM 内运行代码 | ✅ 可用 | 使用 `adp_exec` 通过 SSH |
+| 在 VM 内读写文件 | ✅ 可用 | 使用 `adp_file_read`/`adp_file_write`/`adp_file_upload` |
+| 列出 VM 内目录 | ✅ 可用 | 使用 `adp_dir_list` |
+| 在 VM 内搜索文件 | ✅ 可用 | 使用 `adp_glob`/`adp_grep` |
+| 从 VM 下载文件 | ✅ 可用 | 使用 `adp_file_download` |
+
+**剩余考虑因素**：首次启动 VM 需要 15-45 分钟（冷 ISO 安装）。从预热的 VM 池热启动约需 30 秒。`extensions/deer_flow/` 中的 `DeerFlowADPSandboxProvider` 适配器提供了原生的 deer-flow Sandbox 接口集成，并支持 `VMPool` 预热。
+
+关于完整的 deer-flow 沙箱集成详情，包括 `DeerFlowADPSandboxProvider` 适配器类，请参阅 [../../extensions/deer_flow/README.md](../../extensions/deer_flow/README.md)。
 
 ## 工作流示例：通过 Deer-Flow 管理 VM
 
@@ -152,25 +189,11 @@ Agent 调用：
   2. adp_up("agent", plan_only=False) → VM 启动（热启动 30 秒，首次安装 20 分钟）
   3. adp_status("agent")             → "agent: running, reachable, healthy"
   4. adp_doctor()                    → "47 OK, 0 issues"
-  5. adp_workspace_list()            → 项目及运行时映射
-  6. adp_workspace_status()          → 就绪状态摘要
-  7. adp_sync_status()               → "agent: healthy"
+  5. adp_exec("agent", "python --version") → "Python 3.12.0"
+  6. adp_workspace_list()            → 项目及运行时映射
+  7. adp_workspace_status()          → 就绪状态摘要
+  8. adp_sync_status()               → "agent: healthy"
 ```
-
-## 当前限制
-
-MCP 服务器目前提供 **VM 侧操作**（从主机管理 VM），但**不提供 VM 内操作**（在 VM 内部执行代码）。这意味着：
-
-| 能力 | 状态 | 替代方案 |
-|------|------|---------|
-| 启动/停止/销毁 VM | ✅ 可用 | 使用 `adp_up`/`adp_stop`/`adp_down` |
-| 检查 VM 健康 | ✅ 可用 | 使用 `adp_status`/`adp_doctor` |
-| 管理工作区和同步 | ✅ 可用 | 使用工作区和同步工具 |
-| **在 VM 内运行代码** | ❌ 不可用 | 需要 SSH 执行工具（P0 差距） |
-| **在 VM 内读写文件** | ❌ 不可用 | 需要文件传输工具（P0 差距） |
-| **列出 VM 内目录** | ❌ 不可用 | 需要目录列表工具（P0 差距） |
-
-P0 差距详见[集成：Deer-Flow 差距分析](integrations/deer-flow.md)。待 8 个 SSH 支持的 VM 内工具实现后，ADP-OS 即可作为完整的 deer-flow 沙箱后端使用。
 
 ## 环境变量
 

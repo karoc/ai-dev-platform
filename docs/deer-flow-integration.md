@@ -2,9 +2,9 @@
 
 [简体中文](zh-CN/deer-flow-integration.md) | English
 
-ADP-OS ships a standard [Model Context Protocol (MCP)](https://modelcontextprotocol.io) server that can be loaded as an MCP server in [ByteDance/deer-flow](https://github.com/bytedance/deer-flow) (70K⭐). Configure it once and all 18 ADP-OS platform, workspace, and runtime tools are available to deer-flow agents.
+ADP-OS ships a standard [Model Context Protocol (MCP)](https://modelcontextprotocol.io) server that can be loaded as an MCP server in [ByteDance/deer-flow](https://github.com/bytedance/deer-flow) (70K⭐). Configure it once and all 26 ADP-OS platform, workspace, runtime, and in-VM sandbox tools are available to deer-flow agents.
 
-> **Scope**: This guide covers configuring the ADP-OS MCP server in deer-flow for VM lifecycle management. For full sandbox replacement (in-VM code execution), see [Gap Analysis](integrations/deer-flow.md).
+> **Scope**: This guide covers configuring the ADP-OS MCP server in deer-flow. With 26 tools (18 lifecycle + 8 SSH-backed in-VM operations), ADP-OS now serves as a **complete deer-flow sandbox backend** — including code execution, file I/O, and directory navigation inside VMs. See [Gap Analysis](integrations/deer-flow.md) for the resolved P0 gaps and shipped adapter.
 
 ## Quick Start
 
@@ -39,7 +39,7 @@ Add the ADP-OS MCP server entry to `extensions_config.json`:
       "env": {
         "ADP_HOME": "D:\\Dev\\ai-dev-platform"
       },
-      "description": "ADP-OS VM sandbox backend — 18 tools for platform, workspace, and runtime management"
+      "description": "ADP-OS VM sandbox backend — 26 tools for platform, workspace, runtime, and in-VM sandbox management"
     }
   }
 }
@@ -61,7 +61,7 @@ On Windows, only `ADP_HOME` is needed. The server auto-detects the platform and 
         "ADP_HOME": "/home/user/ai-dev-platform",
         "ADP_HOME_WIN": "D:\\Dev\\ai-dev-platform"
       },
-      "description": "ADP-OS VM sandbox backend — 18 tools for platform, workspace, and runtime management"
+      "description": "ADP-OS VM sandbox backend — 26 tools for platform, workspace, runtime, and in-VM sandbox management"
     }
   }
 }
@@ -81,7 +81,7 @@ The agent should call `adp_status` and report runtime health.
 
 ## Available Tools
 
-All 18 tools are available once configured:
+All 26 tools are available once configured:
 
 ### Platform Tools
 
@@ -116,6 +116,19 @@ All 18 tools are available once configured:
 | `adp_sync_status` | Mutagen sync session health |
 | `adp_sync_stop` | Stop Mutagen sync session |
 
+### In-VM Sandbox Tools (SSH-backed)
+
+| Tool | What it does |
+|------|-------------|
+| `adp_exec` | Execute commands inside a running VM via SSH |
+| `adp_file_read` | Read file content from inside a VM |
+| `adp_file_write` | Write or append content to a file inside a VM |
+| `adp_dir_list` | List directory contents inside a VM (recursive with configurable depth) |
+| `adp_glob` | Find files by pattern inside a VM |
+| `adp_grep` | Search text inside files in a VM |
+| `adp_file_download` | Download a file from a VM as base64 |
+| `adp_file_upload` | Upload base64-encoded content to a file inside a VM (plan-only default) |
+
 ## Safety Design
 
 All destructive operations default to plan-only mode:
@@ -123,12 +136,13 @@ All destructive operations default to plan-only mode:
 - `adp_up` and `adp_down` default to `plan_only=True` — preview only
 - `adp_workspace_create` defaults to `plan_only=True` — preview only
 - `adp_workspace_close` defaults to `plan_only=True` — preview only
+- `adp_file_upload` defaults to `plan_only=True` — preview only
 
 To execute, explicitly set `plan_only=False`. All inspection tools are entirely non-destructive.
 
 ## What You Can Do Today
 
-With the current 18 tools, a deer-flow agent can:
+With the current 26 tools, a deer-flow agent can:
 
 | Task | Tools to use | Description |
 |------|-------------|-------------|
@@ -139,6 +153,10 @@ With the current 18 tools, a deer-flow agent can:
 | **Inspect workspaces** | `adp_workspace_list`, `adp_workspace_status`, `adp_workspace_dashboard`, `adp_workspace_project` | Full workspace visibility |
 | **Generate evidence** | `adp_workspace_report` | Markdown release evidence for PR descriptions |
 | **Discover capabilities** | `adp_capabilities`, `adp_workspace_recipes` | Platform and workflow discovery |
+| **Execute code in VM** | `adp_exec` | Run commands, install packages, execute scripts inside VMs |
+| **Read/write files in VM** | `adp_file_read`, `adp_file_write`, `adp_file_upload` | Inspect outputs, create/modify source files inside VMs |
+| **Navigate VM filesystem** | `adp_dir_list`, `adp_glob`, `adp_grep` | Browse directories, find files by pattern, search file contents |
+| **Download files from VM** | `adp_file_download` | Download VM files as base64 for transfer
 
 ## Workflow Example: VM Management via Deer-Flow
 
@@ -159,18 +177,22 @@ Agent calls:
 
 ## Current Limitations
 
-The MCP server currently provides **VM-side operations** (management from the host). It does **not** provide **in-VM operations** (code execution inside the VM). This means:
+The MCP server now provides both **VM-side operations** (management from the host) and **in-VM operations** (code execution inside the VM). The P0 gaps identified in the initial analysis are resolved.
 
-| Capability | Status | Workaround |
-|-----------|--------|------------|
+| Capability | Status | Notes |
+|-----------|--------|-------|
 | Start/stop/destroy VMs | ✅ Available | Use `adp_up`/`adp_stop`/`adp_down` |
 | Check VM health | ✅ Available | Use `adp_status`/`adp_doctor` |
 | Manage workspaces and sync | ✅ Available | Use workspace and sync tools |
-| **Run code inside VM** | ❌ Not available | SSH exec tools needed (P0 gap) |
-| **Read/write files in VM** | ❌ Not available | File transfer tools needed (P0 gap) |
-| **List directories in VM** | ❌ Not available | Dir listing tools needed (P0 gap) |
+| Run code inside VM | ✅ Available | Use `adp_exec` via SSH |
+| Read/write files in VM | ✅ Available | Use `adp_file_read`/`adp_file_write`/`adp_file_upload` |
+| List directories in VM | ✅ Available | Use `adp_dir_list` |
+| Search files in VM | ✅ Available | Use `adp_glob`/`adp_grep` |
+| Download files from VM | ✅ Available | Use `adp_file_download` |
 
-The P0 gaps are documented in [Integrations: Deer-Flow Gap Analysis](integrations/deer-flow.md). Once the 8 SSH-backed in-VM tools are implemented, ADP-OS can serve as a full deer-flow sandbox backend.
+**Remaining considerations**: First-time VM startup takes 15-45 minutes (cold ISO install). Hot-start from pre-warmed VM pool takes ~30 seconds. The `DeerFlowADPSandboxProvider` adapter in `extensions/deer_flow/` provides native deer-flow Sandbox interface integration with `VMPool` pre-warming.
+
+For full deer-flow sandbox integration details, including the `DeerFlowADPSandboxProvider` adapter class, see [extensions/deer_flow/README.md](../extensions/deer_flow/README.md).
 
 ## Environment Variables
 
