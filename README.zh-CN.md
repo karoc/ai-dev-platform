@@ -347,6 +347,10 @@ adp workspace sync [project-name]
 adp workspace project [project-name]
 adp workspace report
 adp workspace report [-Markdown]
+adp workspace evidence -Snapshot [-Json]                        签署当前快照元数据 (SHA-256 链)
+adp workspace evidence -Log -Operation <op> [-Details <text>] [-Json]  记录操作日志条目
+adp workspace evidence -Export [-Path <path>]                   导出所有证据为 ZIP
+adp workspace declare -AiAssisted [-Reviewer <name>] [-Notes "..."] [-Json]  声明 AI 辅助开发
 adp workspace task <prepare|snapshot|run|validate|review|rollback|commit> <task-name>
 adp workspace task validate <task-name> [-Execute] [-Plan]
 adp workspace task mark <task-name> <prepared|checkpointed|checkpoint-waived|running|validated|reviewed|rollback|committed>
@@ -378,6 +382,7 @@ adp workspace declare -AiAssisted [-Reviewer <name>] [-Notes "..."] [-ManifestPa
 - [发布流程](docs/zh-CN/release-process.md)
 - [贡献者工作流](docs/zh-CN/contributor-workflows.md)
 - [操作指南](docs/zh-CN/operations.md)
+- [证据链](docs/zh-CN/evidence.md)
 - [排障](docs/zh-CN/troubleshooting.md)
 - [网络说明](docs/zh-CN/networking.md)
 - [浏览器测试](docs/zh-CN/browser-testing.md)
@@ -392,7 +397,7 @@ adp workspace declare -AiAssisted [-Reviewer <name>] [-Notes "..."] [-ManifestPa
 - **[Discord](docs/zh-CN/discord-setup.md)** — 加入 ADP-OS 社区，获取实时帮助、开发讨论和发布公告。
 - **[GitHub Discussions](https://github.com/karoc/ai-dev-platform/discussions)** — 异步提问、分享想法和项目讨论。
 - **[贡献指南](CONTRIBUTING.zh-CN.md)** — 开发环境搭建、编码规范和 PR 流程。
-- **[演示视频](docs/zh-CN/demo-script.md)** — 演示视频脚本和分镜（即将推出）。
+- **[演示](docs/demo.cast)** — 终端录屏：clone → doctor → plan → status → MCP（30 秒，用 `asciinema play` 播放）。[完整演示脚本 →](docs/zh-CN/demo-script.md)
 
 ## 安全
 

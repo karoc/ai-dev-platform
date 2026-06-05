@@ -378,6 +378,10 @@ adp workspace sync [project-name]
 adp workspace project [project-name]
 adp workspace report
 adp workspace report [-Markdown]
+adp workspace evidence -Snapshot [-Json]                        Sign current snapshot metadata (SHA-256 chain)
+adp workspace evidence -Log -Operation <op> [-Details <text>] [-Json]  Record operation log entry
+adp workspace evidence -Export [-Path <path>]                   Export all evidence as ZIP
+adp workspace declare -AiAssisted [-Reviewer <name>] [-Notes "..."] [-Json]  Declare AI-assisted development
 adp workspace task <prepare|snapshot|run|validate|review|rollback|commit> <task-name>
 adp workspace task validate <task-name> [-Execute] [-Plan]
 adp workspace task mark <task-name> <prepared|checkpointed|checkpoint-waived|running|validated|reviewed|rollback|committed>
@@ -446,6 +450,7 @@ agent     watching  %USERPROFILE%\adp-workspaces\agent   /home/adp/workspace
 - [Release Process](docs/release-process.md)
 - [Contributor Workflows](docs/contributor-workflows.md)
 - [Operations](docs/operations.md)
+- [Evidence Chain](docs/evidence.md)
 - [Troubleshooting](docs/troubleshooting.md)
 - [Networking](docs/networking.md)
 - [Browser Testing](docs/browser-testing.md)
@@ -460,7 +465,7 @@ agent     watching  %USERPROFILE%\adp-workspaces\agent   /home/adp/workspace
 - **[Discord](docs/discord-setup.md)** — Join the ADP-OS community for real-time help, development discussion, and release announcements.
 - **[GitHub Discussions](https://github.com/karoc/ai-dev-platform/discussions)** — Ask questions, share ideas, and discuss the project asynchronously.
 - **[Contributing](CONTRIBUTING.md)** — Development environment setup, coding guidelines, and PR process.
-- **[Demo Video](docs/demo-script.md)** — Demo video script and storyboard (coming soon).
+- **[Demo](docs/demo.cast)** — Terminal recording: clone → doctor → plan → status → MCP (30s, play with `asciinema play`). [Full demo script →](docs/demo-script.md)
 
 ## Security
 
