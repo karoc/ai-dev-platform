@@ -1201,10 +1201,14 @@ Assert-Setup `
     -ExitCode 1 `
     -Patterns @("ADP-OS One-Click Setup", "AI Development Platform", "Scan prerequisites")
 
-Assert-Setup `
-    -Name "setup non-interactive force skip-iso skip-doctor" `
-    -Arguments @("-NonInteractive", "-Force", "-SkipIsoDownload", "-SkipDoctor") `
-    -ExitCode 0 `
-    -Patterns @("ADP-OS Quickstart", "NonInteractive", "Force")
+if (Get-Command vmrun.exe -ErrorAction SilentlyContinue) {
+    Assert-Setup `
+        -Name "setup non-interactive force skip-iso skip-doctor" `
+        -Arguments @("-NonInteractive", "-Force", "-SkipIsoDownload", "-SkipDoctor") `
+        -ExitCode 0 `
+        -Patterns @("ADP-OS Quickstart", "NonInteractive", "Force")
+} else {
+    Write-Host "SKIP: setup non-interactive test (vmrun.exe not found — CI without VMware)"
+}
 
 Write-Output "CLI smoke tests OK"
