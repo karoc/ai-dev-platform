@@ -40,7 +40,7 @@ if (-not $Quick) {
         exit 1
     }
     Initialize-VMware
-    Write-Host "  vmrun: $(Get-VmrunPath) [OK]" -ForegroundColor Green
+    Write-UIHost -English "  vmrun: $(Get-VmrunPath) [OK]" -Chinese "  vmrun: $(Get-VmrunPath) [OK]" -ForegroundColor Green
 } else {
     Write-UIHost -English "[1/6] VMware Workstation (skipped — using -Quick)" -Chinese "[1/6] VMware Workstation（已跳过 — 使用了 -Quick）" -ForegroundColor DarkGray
 }
@@ -158,8 +158,8 @@ foreach ($name in (Get-AllRuntimeNames)) {
     $statusStr = if ($exists) { Get-UIText -English "EXISTS" -Chinese "已存在" } else { Get-UIText -English "pending" -Chinese "待创建" }
     $color = if ($exists) { "Green" } else { "DarkGray" }
 
-    Write-Host "  $name" -ForegroundColor $color -NoNewline
-    Write-Host " : CPU=$($rt.cpu) RAM=$($rt.memory)MB Disk=$($rt.disk)GB [$statusStr]" -ForegroundColor DarkGray
+    Write-UIHost -English "  $name" -Chinese "  $name" -ForegroundColor $color -NoNewline
+    Write-UIHost -English " : CPU=$($rt.cpu) RAM=$($rt.memory)MB Disk=$($rt.disk)GB [$statusStr]" -Chinese " : CPU=$($rt.cpu) 内存=$($rt.memory)MB 磁盘=$($rt.disk)GB [$statusStr]" -ForegroundColor DarkGray
 }
 
 # =============================================
