@@ -11,7 +11,7 @@
 >
 > **创建服务器后：**
 > 1. 将本节替换为邀请链接：`https://discord.gg/YOUR_INVITE_CODE`
-> 2. 更新 [README.md](../README.md)（第 7 行）和 [README.zh-CN.md](../README.zh-CN.md)（第 7 行）中的 badge 链接：
+> 2. 更新 [README.md](../README.md)（第 7 行）和 [README.zh-CN.md](./README.md)（第 7 行）中的 badge 链接：
 >    - 将 `(docs/discord-setup.md)` 改为 `(https://discord.gg/YOUR_INVITE_CODE)`
 >    - 删除关于替换链接的 HTML 注释
 > 3. 更新两个 README 的社区部分中的 Discord 链接
