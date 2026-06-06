@@ -24,11 +24,12 @@ This documentation covers how to install, operate, configure, and understand ADP
 - [Troubleshooting](troubleshooting.md): symptom-to-command guidance for diagnostics, safe previews, and support escalation.
 - [Networking](networking.md): static VMware NAT networking and troubleshooting.
 - [Browser Testing](browser-testing.md): headless frontend browser acceptance testing.
+- [Evidence Chain](evidence.md): tamper-evident SHA-256 hash chains for audits.
 
 ## Community
 
 - [Discord Setup Guide](discord-setup.md) ([简体中文](zh-CN/discord-setup.md)): channel structure, roles, setup instructions, and community guidelines for the ADP-OS Discord server.
-- [Demo Video Plan](demo-script.md): assessment, script, and storyboard for an ADP-OS demo video.
+- [10-Minute Survival Value Demo](demo-script.md): presenter script with pre-demo checklist, 6-phase flow, and troubleshooting guide.
 
 ## Architecture
 

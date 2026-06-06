@@ -22,11 +22,12 @@
 - [排障](troubleshooting.md)：按症状查命令的 diagnostics、安全预览和支持升级指南。
 - [网络说明](networking.md)：静态 VMware NAT 网络和排障。
 - [浏览器测试](browser-testing.md)：frontend 运行时的 headless 浏览器验收测试。
+- [证据链](evidence.md)：防篡改的 SHA-256 哈希链，用于审计。
 
 ## 社区
 
 - [Discord 搭建指南](discord-setup.md)：ADP-OS Discord 服务器的频道结构、角色、设置说明和社区准则。
-- [演示视频计划](demo-script.md)：ADP-OS 演示视频的评估、脚本和分镜。
+- [10 分钟生存价值演示](demo-script.md)：演示脚本，包含前置准备清单、6 阶段流程和故障排除指南。
 
 ## 架构
 
