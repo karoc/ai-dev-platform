@@ -16,6 +16,7 @@
 
 - **PowerShell**：优先使用 `Write-UIHost` 而非 `Write-Host` 以支持双语输出
 - **Shell 脚本**：使用 `bootstrap/common/common.sh` 工具函数（`check-root`、`mark-step`、`is-installed`、`retry`）
+- **代码文件行数**：每个代码文件保持在 700 行以内。如果代码文件超过 700 行，必须按清晰职责拆分后才能视为完成。现有超限文件属于重构债务；除非本次工作同时减少行数或拆分文件，否则不要继续向其中加入实质性逻辑。
 - **Markdown**：所有面向用户的文档应中英双语
 - **.ps1 文件**：使用 LF 换行
 
