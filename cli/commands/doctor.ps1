@@ -23,9 +23,9 @@ Write-UIHost -English "ADP-OS Doctor — System Diagnostics" -Chinese "ADP-OS Do
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
-$script:issues = @()
-$script:ok = @()
-$script:info = @()
+$script:doctorIssues = @()
+$script:doctorOk = @()
+$script:doctorInfo = @()
 
 function Test-Check {
     param(
@@ -36,10 +36,10 @@ function Test-Check {
 
     if ($Condition) {
         Write-Host "  [OK]    $Name $Detail" -ForegroundColor Green
-        $script:ok += $Name
+        $script:doctorOk += $Name
     } else {
         Write-Host "  [FAIL]  $Name $Detail" -ForegroundColor Red
-        $script:issues += $Name
+        $script:doctorIssues += $Name
     }
 }
 
@@ -50,7 +50,7 @@ function Write-InfoCheck {
     )
 
     Write-Host "  [INFO]  $Name $Detail" -ForegroundColor DarkGray
-    $script:info += $Name
+    $script:doctorInfo += $Name
 }
 
 function Test-IPv4InCidr {
@@ -369,8 +369,8 @@ if ($FixMutagen) {
         Write-UIHost -English "  Version: $($remediation.VersionText)" -Chinese "  版本: $($remediation.VersionText)" -ForegroundColor DarkGray
         Write-UIHost -English "  Target:  $($remediation.TargetPath)" -Chinese "  目标:  $($remediation.TargetPath)" -ForegroundColor DarkGray
         Write-UIHost -English "  Archive: $($remediation.ZipPath)" -Chinese "  归档: $($remediation.ZipPath)" -ForegroundColor DarkGray
-        $script:issues = @($script:issues | Where-Object { $_ -notin @("mutagen", "mutagen version") })
-        $script:ok += "mutagen remediation"
+        $script:doctorIssues = @($script:doctorIssues | Where-Object { $_ -notin @("mutagen", "mutagen version") })
+        $script:doctorOk += "mutagen remediation"
     }
 }
 
@@ -526,7 +526,7 @@ foreach ($name in (Get-AllRuntimeNames)) {
                 if ($recovery.RecoveryScenario -eq "stale-before-creation") {
                     Write-InfoCheck -Name "$name Mutagen session" -Detail "(stale before runtime creation: $sessionName, $($recovery.Health), $($recovery.Detail))"
                 } else {
-                    $script:issues += "$name sync recovery: $($recovery.RecoveryScenario)"
+                    $script:doctorIssues += "$name sync recovery: $($recovery.RecoveryScenario)"
                 }
             }
         } catch {
@@ -538,13 +538,13 @@ foreach ($name in (Get-AllRuntimeNames)) {
 # --- Summary ---
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Cyan
-Write-UIHost -English "  Results: $($ok.Count) OK, $($issues.Count) issues, $($info.Count) info" -Chinese "  结果: $($ok.Count) OK, $($issues.Count) 个问题, $($info.Count) 条信息" -ForegroundColor $(if ($issues.Count -eq 0) { "Green" } else { "Red" })
+Write-UIHost -English "  Results: $($script:doctorOk.Count) OK, $($script:doctorIssues.Count) issues, $($script:doctorInfo.Count) info" -Chinese "  结果: $($script:doctorOk.Count) OK, $($script:doctorIssues.Count) 个问题, $($script:doctorInfo.Count) 条信息" -ForegroundColor $(if ($script:doctorIssues.Count -eq 0) { "Green" } else { "Red" })
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
-if ($issues.Count -gt 0) {
+if ($script:doctorIssues.Count -gt 0) {
     Write-UIHost -English "Issues found:" -Chinese "发现的问题:" -ForegroundColor Red
-    foreach ($issue in $issues) {
+    foreach ($issue in $script:doctorIssues) {
         Write-UIHost -English "  - $issue" -Chinese "  - $issue" -ForegroundColor Red
     }
 } else {

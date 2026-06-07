@@ -51,11 +51,11 @@ ADP-OS 不会替代 Docker。它提供可运行 Docker 的虚拟机，并在此�
 | # | 前置条件 | 获取方式 |
 |---|---------|---------|
 | 1 | **Windows 11** | 通过 设置 → 系统 → 关于 查看。不支持 Windows 10。 |
-| 2 | **PowerShell 7+** | [下载](https://github.com/PowerShell/PowerShell/releases)并安装。系统内置的 PowerShell 5.1 **不能**使用。 |
+| 2 | **PowerShell 7+** | 使用 `winget install --id Microsoft.PowerShell --source winget` 安装，或从 GitHub 下载。系统内置 PowerShell 5.1 可以启动引导 wrapper，但不能运行 ADP-OS 控制平面。 |
 | 3 | **VMware Workstation Pro** | [下载](https://www.vmware.com/products/workstation-pro.html)（个人免费使用，或付费许可）。验证 `vmrun.exe` 是否在 PATH 中。 |
 | 4 | **WSL**（Windows Subsystem for Linux） | 在管理员 PowerShell 中运行 `wsl --install`。ISO 重制需要此项。 |
 | 5 | **OpenSSH 客户端** | Windows 11 已内置。运行 `ssh -V` 验证。 |
-| 6 | **Mutagen 0.18.x** | ADP-OS 可以通过 `adp doctor -FixMutagen` 帮你安装。如果 GitHub 速度慢，也可以[手动下载](https://github.com/mutagen-io/mutagen/releases)。 |
+| 6 | **Mutagen 0.18.x** | ADP-OS 可以通过 `.\adp.cmd doctor -FixMutagen` 帮你安装。如果 GitHub 速度慢，也可以[手动下载](https://github.com/mutagen-io/mutagen/releases)。 |
 | 7 | **约 10 GB 可用磁盘空间** | 用于 ISO、VM 磁盘和工具二进制文件。 |
 
 **注意：** 第 1–5 项是你需要自己安装的前置条件。第 6 项（Mutagen）可由 ADP-OS 内置的 doctor 安装。第 7 项只是空间。
@@ -66,9 +66,9 @@ ADP-OS 不会替代 Docker。它提供可运行 Docker 的虚拟机，并在此�
 |------|------|------|
 | 克隆仓库 | < 1 分钟 | `git clone` — 几 MB 大小 |
 | 下载 Ubuntu ISO | 5–15 分钟 | ~2.6 GB 下载。速度取决于你的网络和 [Ubuntu 镜像](https://releases.ubuntu.com/26.04/) 的可达性 |
-| `adp quickstart`（安装 + 初始化） | 5–10 分钟 | 安装平台、重制 ISO、创建 VM 模板 |
-| `adp up frontend` | 5–10 分钟 | 创建并启动你的第一个 VM，运行引导脚本 |
-| 用 `adp status` 验证 | < 1 分钟 | 确认一切正常运行 |
+| `setup.cmd`（安装 + 初始化） | 5–10 分钟 | 安装平台、重制 ISO、创建 VM 模板 |
+| `.\adp.cmd up frontend` | 5–10 分钟 | 创建并启动你的第一个 VM，运行引导脚本 |
+| 用 `.\adp.cmd status` 验证 | < 1 分钟 | 确认一切正常运行 |
 | **合计** | **约 30 分钟** | 从零到可用的开发虚拟机 |
 
 以上时间假设使用典型宽带连接和配置较好的机器。ISO 下载通常是最慢的步骤。
@@ -77,7 +77,7 @@ ADP-OS 不会替代 Docker。它提供可运行 Docker 的虚拟机，并在此�
 
 ### 第 1 步：克隆仓库
 
-打开 **PowerShell 7**（不是 PowerShell 5.1），运行：
+打开 Windows Terminal、PowerShell 或 cmd.exe，运行：
 
 ```powershell
 git clone https://github.com/karoc/ai-dev-platform.git
@@ -85,14 +85,14 @@ cd ai-dev-platform
 ```
 
 > [!TIP]
-> 平台安装完成后，你可以直接使用 `adp` 作为裸命令，无需输入 `.\\cli\\adp.ps1`。快速入门示例中使用完整路径，以便你在克隆后立即运行。
+> 平台安装完成后，你可以直接使用 `adp` 作为裸命令。快速入门示例使用 `.\adp.cmd`，因此也能从普通 Windows shell 运行。
 
 ### 第 2 步：运行引导式设置
 
-**一键设置：** 在仓库根目录运行 `.\setup.ps1`：
+**一键设置：** 在仓库根目录运行 `.\setup.cmd`：
 
 ```powershell
-.\setup.ps1
+.\setup.cmd
 ```
 
 这一条命令即可完成前提条件扫描、ISO 下载、平台安装、初始化和诊断：
@@ -100,19 +100,19 @@ cd ai-dev-platform
 1. **前提条件扫描** — 检查全部 6 项前提条件，显示每项的修复步骤。
 2. **ISO 下载** — 下载 Ubuntu Server 26.04（约 2.6 GB）。显示百分比和速度。
 3. **安装** — 运行 `install.ps1`，设置目录、生成 seed ISO 并创建 VM 模板。
-4. **初始化** — 运行 `adp init -Quick` 完成平台配置。
-5. **诊断** — 运行 `adp doctor` 验证所有前置条件是否就绪。
+4. **初始化** — setup 链路会运行 `adp init -Quick` 完成平台配置。
+5. **诊断** — setup 链路会运行 `adp doctor` 验证所有前置条件是否就绪。
 
 每个阶段完成时，你会看到 `[1/6]`、`[2/6]` 等进度指示。
 
 > [!TIP]
-> 如果已有 Ubuntu ISO：`.\setup.ps1 -IsoPath C:\path\to\ubuntu.iso`
-> 非交互/脚本化使用：`.\setup.ps1 -NonInteractive`
+> 如果已有 Ubuntu ISO：`.\setup.cmd -IsoPath C:\path\to\ubuntu.iso`
+> 非交互/脚本化使用：`.\setup.cmd -NonInteractive`
 
 > [!NOTE]
 > 如果你已经有 Ubuntu ISO 文件，可以跳过下载：
 > ```powershell
-> .\cli\adp.ps1 quickstart -IsoPath C:\path\to\ubuntu-26.04-live-server-amd64.iso
+> .\adp.cmd quickstart -IsoPath C:\path\to\ubuntu-26.04-live-server-amd64.iso
 > ```
 
 ### 第 3 步：启动你的第一个 Runtime
@@ -120,7 +120,7 @@ cd ai-dev-platform
 创建并启动 frontend 虚拟机：
 
 ```powershell
-.\cli\adp.ps1 up frontend
+.\adp.cmd up frontend
 ```
 
 这条命令会：
@@ -136,7 +136,7 @@ cd ai-dev-platform
 > [!TIP]
 > 想预览 `up` 会做什么而不实际执行？使用 `-Plan`：
 > ```powershell
-> .\cli\adp.ps1 up frontend -Plan
+> .\adp.cmd up frontend -Plan
 > ```
 
 ### 第 4 步：检查一切是否正常
@@ -144,7 +144,7 @@ cd ai-dev-platform
 #### 检查 Runtime 状态
 
 ```powershell
-.\cli\adp.ps1 status
+.\adp.cmd status
 ```
 
 正常的输出如下：
@@ -159,7 +159,7 @@ frontend  running   192.168.242.131  adp-os-adp-frontend
 #### 运行诊断
 
 ```powershell
-.\cli\adp.ps1 doctor
+.\adp.cmd doctor
 ```
 
 正常的输出如下：
@@ -176,20 +176,20 @@ frontend  running   192.168.242.131  adp-os-adp-frontend
 Doctor complete: 7/7 checks passed.
 ```
 
-所有 7 项检查都应显示 `[PASS]`。如果有任何一项显示 `[FAIL]`，输出中会包含修复说明——按说明操作后重新运行 `adp doctor`。
+所有 7 项检查都应显示 `[PASS]`。如果有任何一项显示 `[FAIL]`，输出中会包含修复说明——按说明操作后重新运行 `.\adp.cmd doctor`。
 
 ### 第 5 步：启动工作区同步（可选但推荐）
 
 将你的本地项目文件同步到 VM 中：
 
 ```powershell
-.\cli\adp.ps1 sync start frontend
+.\adp.cmd sync start frontend
 ```
 
 检查同步状态：
 
 ```powershell
-.\cli\adp.ps1 sync status
+.\adp.cmd sync status
 ```
 
 预期输出：
@@ -239,7 +239,7 @@ vmrun.exe list
 **修复：** 通过浏览器手动下载 ISO（浏览器可能更好地处理断点续传），然后传入路径：
 
 ```powershell
-.\cli\adp.ps1 quickstart -IsoPath C:\Users\你的用户名\Downloads\ubuntu-26.04-live-server-amd64.iso
+.\adp.cmd quickstart -IsoPath C:\Users\你的用户名\Downloads\ubuntu-26.04-live-server-amd64.iso
 ```
 
 ISO 下载到 `%USERPROFILE%\adp-iso\`。手动下载地址：https://releases.ubuntu.com/26.04/ubuntu-26.04-live-server-amd64.iso
@@ -267,22 +267,29 @@ wsl -u root bash -lc "apt-get update && DEBIAN_FRONTEND=noninteractive apt-get i
 1. 打开 VMware Workstation，进入 编辑 → 虚拟网络编辑器
 2. 确认 NAT 网络（默认 `vmnet8`）已启用
 3. 检查子网是否与 `configs\platform.json` 匹配
-4. 运行 `.\cli\adp.ps1 doctor` — 它可以检测 NAT 主机匹配情况
+4. 运行 `.\adp.cmd doctor` — 它可以检测 NAT 主机匹配情况
 
 ### 运行 .ps1 文件时提示 "Permission denied"
 
 **症状：** PowerShell 显示红色的执行策略错误。
 
-**修复：** ADP-OS 脚本不需要修改系统执行策略。通过将脚本路径传给 `powershell.exe` 来运行：
+**修复：** ADP-OS 脚本不需要修改系统执行策略。通过将脚本路径传给 PowerShell 7 的 `pwsh.exe` 来运行：
 
 ```powershell
-powershell.exe -ExecutionPolicy Bypass -File .\install.ps1
+pwsh.exe -ExecutionPolicy Bypass -File .\install.ps1
 ```
 
-或者安装后使用 `.cmd` 封装脚本：
+如果缺少 `pwsh.exe`，先安装 PowerShell 7：
 
 ```powershell
-.\cli\adp.cmd quickstart
+winget install --id Microsoft.PowerShell --source winget
+```
+
+或者使用 `.cmd` 封装脚本；它们也会在运行 ADP-OS 前检查 PowerShell 7：
+
+```powershell
+.\setup.cmd
+.\adp.cmd quickstart
 ```
 
 ### "Mutagen 0.18.x not found"
@@ -292,7 +299,7 @@ powershell.exe -ExecutionPolicy Bypass -File .\install.ps1
 **修复：** 让 ADP-OS 帮你安装：
 
 ```powershell
-.\cli\adp.ps1 doctor -FixMutagen
+.\adp.cmd doctor -FixMutagen
 ```
 
 这会将 Mutagen 下载并安装到 `.tools\mutagen\mutagen.exe`。如果 GitHub 速度慢，请参阅[操作指南](operations.md)了解离线安装方式。
@@ -311,8 +318,8 @@ powershell.exe -ExecutionPolicy Bypass -File .\install.ps1
 想启动全部三个 runtime？在 `frontend` 运行后：
 
 ```powershell
-.\cli\adp.ps1 up backend
-.\cli\adp.ps1 up agent
+.\adp.cmd up backend
+.\adp.cmd up agent
 ```
 
 祝你编码愉快！

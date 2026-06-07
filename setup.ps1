@@ -21,6 +21,67 @@ param(
 $ErrorActionPreference = "Stop"
 $script:ProjectRoot = $PSScriptRoot
 
+function Find-ADPPowerShell7 {
+    $candidates = @(
+        (Get-Command pwsh.exe -ErrorAction SilentlyContinue).Source,
+        (Join-Path $env:ProgramFiles "PowerShell\7\pwsh.exe"),
+        (Join-Path ${env:ProgramFiles(x86)} "PowerShell\7\pwsh.exe"),
+        (Join-Path $env:LOCALAPPDATA "Programs\PowerShell\7\pwsh.exe"),
+        (Join-Path $env:USERPROFILE "AppData\Local\Microsoft\WindowsApps\pwsh.exe")
+    ) | Select-Object -Unique
+
+    foreach ($candidate in $candidates) {
+        if (Test-ADPPowerShell7 -Path $candidate) {
+            return $candidate
+        }
+    }
+
+    return $null
+}
+
+function Test-ADPPowerShell7 {
+    param([string]$Path)
+
+    if (-not $Path -or -not (Test-Path $Path)) {
+        return $false
+    }
+
+    try {
+        & $Path -NoProfile -Command "if (`$PSVersionTable.PSVersion.Major -ge 7) { exit 0 } else { exit 1 }" *> $null
+        return $LASTEXITCODE -eq 0
+    } catch {
+        return $false
+    }
+}
+
+if ($PSVersionTable.PSVersion.Major -lt 7) {
+    $pwsh = Find-ADPPowerShell7
+    if ($pwsh) {
+        $forwardArgs = @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $PSCommandPath)
+        if ($Distro -and $Distro -ne "ubuntu") { $forwardArgs += @("-Distro", $Distro) }
+        if ($IsoPath) { $forwardArgs += @("-IsoPath", $IsoPath) }
+        if ($SkipIsoDownload) { $forwardArgs += "-SkipIsoDownload" }
+        if ($SkipDoctor) { $forwardArgs += "-SkipDoctor" }
+        if ($NonInteractive) { $forwardArgs += "-NonInteractive" }
+        if ($Force) { $forwardArgs += "-Force" }
+
+        Write-Host "Restarting ADP-OS setup with PowerShell 7: $pwsh" -ForegroundColor Cyan
+        & $pwsh @forwardArgs
+        exit $LASTEXITCODE
+    }
+
+    Write-Host ""
+    Write-Host "ADP-OS requires PowerShell 7+ (pwsh.exe)." -ForegroundColor Red
+    Write-Host "Built-in Windows PowerShell 5.1 can only show this bootstrap message; it cannot run the ADP-OS control plane." -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "Install PowerShell 7, then rerun .\setup.ps1:" -ForegroundColor Cyan
+    Write-Host "  winget install --id Microsoft.PowerShell --source winget" -ForegroundColor White
+    Write-Host "Or download the MSI from:" -ForegroundColor Cyan
+    Write-Host "  https://github.com/PowerShell/PowerShell/releases" -ForegroundColor White
+    Write-Host ""
+    exit 1
+}
+
 # --- Source Core Modules (same as adp.ps1) ---
 . "$script:ProjectRoot\core\config\config.ps1"
 . "$script:ProjectRoot\core\logging\logger.ps1"

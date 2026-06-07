@@ -90,6 +90,10 @@ Invoke-ValidationStep -Name "Check Mutagen remediation behavior" -ScriptBlock {
     & ".\tests\mutagen-remediation.ps1"
 }
 
+Invoke-ValidationStep -Name "Check Windows CMD wrappers" -ScriptBlock {
+    & ".\tests\cmd-wrapper.ps1"
+}
+
 Invoke-ValidationStep -Name "Check evidence chain tests" -ScriptBlock {
     & ".\tests\evidence-chain.ps1"
 }

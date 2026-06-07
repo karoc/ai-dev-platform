@@ -51,11 +51,11 @@ Before you start, make sure you have:
 | # | Prerequisite | How to Get It |
 |---|-------------|---------------|
 | 1 | **Windows 11** | Check via Settings → System → About. Windows 10 is not supported. |
-| 2 | **PowerShell 7+** | [Download](https://github.com/PowerShell/PowerShell/releases) and install. Built-in PowerShell 5.1 will **not** work. |
+| 2 | **PowerShell 7+** | Install with `winget install --id Microsoft.PowerShell --source winget`, or download from GitHub. Built-in PowerShell 5.1 can launch the bootstrap wrapper, but it cannot run the ADP-OS control plane. |
 | 3 | **VMware Workstation Pro** | [Download](https://www.vmware.com/products/workstation-pro.html) (free for personal use, or paid license). Verify with `vmrun.exe` on your PATH. |
 | 4 | **WSL** (Windows Subsystem for Linux) | Run `wsl --install` in an admin PowerShell. Required for ISO remastering. |
 | 5 | **OpenSSH Client** | Already included in Windows 11. Verify with `ssh -V`. |
-| 6 | **Mutagen 0.18.x** | ADP-OS can install it for you via `adp doctor -FixMutagen`. Or [download manually](https://github.com/mutagen-io/mutagen/releases) if GitHub is slow. |
+| 6 | **Mutagen 0.18.x** | ADP-OS can install it for you via `.\adp.cmd doctor -FixMutagen`. Or [download manually](https://github.com/mutagen-io/mutagen/releases) if GitHub is slow. |
 | 7 | **~10 GB free disk space** | For ISOs, VM disks, and tool binaries. |
 
 **Note:** Items 1–5 are pre-requisites you install yourself. Item 6 (Mutagen) can be installed by ADP-OS's built-in doctor. Item 7 is just space.
@@ -66,9 +66,9 @@ Before you start, make sure you have:
 |------|------|-------------|
 | Clone the repo | < 1 min | `git clone` — a few megabytes |
 | Download Ubuntu ISO | 5–15 min | ~2.6 GB download. Speed depends on your connection and [Ubuntu mirror](https://releases.ubuntu.com/26.04/) reachability |
-| `adp quickstart` (install + init) | 5–10 min | Installs platform, remasters ISO, creates VM templates |
-| `adp up frontend` | 5–10 min | Provisions and boots your first VM, runs bootstrap scripts |
-| Verify with `adp status` | < 1 min | Confirms everything is running |
+| `setup.cmd` (install + init) | 5–10 min | Installs platform, remasters ISO, creates VM templates |
+| `.\adp.cmd up frontend` | 5–10 min | Provisions and boots your first VM, runs bootstrap scripts |
+| Verify with `.\adp.cmd status` | < 1 min | Confirms everything is running |
 | **Total** | **~30 minutes** | From zero to working development VM |
 
 Times assume a typical broadband connection and a reasonably fast machine. ISO download is usually the slowest step.
@@ -77,7 +77,7 @@ Times assume a typical broadband connection and a reasonably fast machine. ISO d
 
 ### Step 1: Clone the Repository
 
-Open **PowerShell 7** (not PowerShell 5.1) and run:
+Open Windows Terminal, PowerShell, or cmd.exe and run:
 
 ```powershell
 git clone https://github.com/karoc/ai-dev-platform.git
@@ -85,14 +85,14 @@ cd ai-dev-platform
 ```
 
 > [!TIP]
-> After the platform is installed, you can run `adp` as a bare command instead of `.\\cli\\adp.ps1`. The Quick Start examples use the long form so you can run them immediately after cloning.
+> After the platform is installed, you can run `adp` as a bare command. The Quick Start examples use `.\adp.cmd` so they also work from stock Windows shells.
 
 ### Step 2: Run the Guided Setup
 
-**One-click:** Run `.\setup.ps1` from the repo root:
+**One-click:** Run `.\setup.cmd` from the repo root:
 
 ```powershell
-.\setup.ps1
+.\setup.cmd
 ```
 
 This single command handles ISO download, platform installation, initialization, and diagnostics:
@@ -100,19 +100,19 @@ This single command handles ISO download, platform installation, initialization,
 1. **Prerequisite Scan** — Checks all 6 prerequisites and shows remediation for any missing items.  
 2. **ISO Download** — Downloads Ubuntu Server 26.04 (~2.6 GB). Progress shown with percentage and speed.
 3. **Install** — Runs `install.ps1` which sets up directories, generates seed ISO, and creates VM templates.
-4. **Init** — Runs `adp init -Quick` to finalize platform configuration.
-5. **Doctor** — Runs `adp doctor` to verify all prerequisites are in place.
+4. **Init** — Runs `adp init -Quick` through the setup chain to finalize platform configuration.
+5. **Doctor** — Runs `adp doctor` through the setup chain to verify all prerequisites are in place.
 
 You'll see progress indicators like `[1/6]`, `[2/6]` as each phase completes.
 
 > [!TIP]
-> If you already have the Ubuntu ISO: `.\setup.ps1 -IsoPath C:\path\to\ubuntu.iso`
-> For non-interactive/scripted use: `.\setup.ps1 -NonInteractive`
+> If you already have the Ubuntu ISO: `.\setup.cmd -IsoPath C:\path\to\ubuntu.iso`
+> For non-interactive/scripted use: `.\setup.cmd -NonInteractive`
 
 > [!NOTE]
 > If you already have the Ubuntu ISO downloaded, you can skip the download:
 > ```powershell
-> .\cli\adp.ps1 quickstart -IsoPath C:\path\to\ubuntu-26.04-live-server-amd64.iso
+> .\adp.cmd quickstart -IsoPath C:\path\to\ubuntu-26.04-live-server-amd64.iso
 > ```
 
 ### Step 3: Start Your First Runtime
@@ -120,7 +120,7 @@ You'll see progress indicators like `[1/6]`, `[2/6]` as each phase completes.
 Provision and boot the frontend VM:
 
 ```powershell
-.\cli\adp.ps1 up frontend
+.\adp.cmd up frontend
 ```
 
 This command:
@@ -136,7 +136,7 @@ You'll see output as each stage completes. The first boot takes 5–10 minutes �
 > [!TIP]
 > Want to preview what `up` will do without making changes? Use `-Plan`:
 > ```powershell
-> .\cli\adp.ps1 up frontend -Plan
+> .\adp.cmd up frontend -Plan
 > ```
 
 ### Step 4: Check Everything is Working
@@ -144,7 +144,7 @@ You'll see output as each stage completes. The first boot takes 5–10 minutes �
 #### Check Runtime Status
 
 ```powershell
-.\cli\adp.ps1 status
+.\adp.cmd status
 ```
 
 Healthy output looks like:
@@ -159,7 +159,7 @@ frontend  running   192.168.242.131  adp-os-adp-frontend
 #### Run Diagnostics
 
 ```powershell
-.\cli\adp.ps1 doctor
+.\adp.cmd doctor
 ```
 
 Healthy output looks like:
@@ -176,20 +176,20 @@ Healthy output looks like:
 Doctor complete: 7/7 checks passed.
 ```
 
-All 7 checks should show `[PASS]`. If any show `[FAIL]`, the output includes remediation instructions — follow them and re-run `adp doctor`.
+All 7 checks should show `[PASS]`. If any show `[FAIL]`, the output includes remediation instructions — follow them and re-run `.\adp.cmd doctor`.
 
 ### Step 5: Start Workspace Sync (Optional but Recommended)
 
 Synchronize your local project files into the VM:
 
 ```powershell
-.\cli\adp.ps1 sync start frontend
+.\adp.cmd sync start frontend
 ```
 
 Check sync status:
 
 ```powershell
-.\cli\adp.ps1 sync status
+.\adp.cmd sync status
 ```
 
 Expected output:
@@ -239,7 +239,7 @@ vmrun.exe list
 **Fix:** Download the ISO manually through a browser (which may handle resuming better), then pass the path:
 
 ```powershell
-.\cli\adp.ps1 quickstart -IsoPath C:\Users\YOURNAME\Downloads\ubuntu-26.04-live-server-amd64.iso
+.\adp.cmd quickstart -IsoPath C:\Users\YOURNAME\Downloads\ubuntu-26.04-live-server-amd64.iso
 ```
 
 The ISO goes to `%USERPROFILE%\adp-iso\`. Manual download URL: https://releases.ubuntu.com/26.04/ubuntu-26.04-live-server-amd64.iso
@@ -267,22 +267,29 @@ wsl -u root bash -lc "apt-get update && DEBIAN_FRONTEND=noninteractive apt-get i
 1. Open VMware Workstation, go to Edit → Virtual Network Editor
 2. Verify the NAT network (default `vmnet8`) is enabled
 3. Check that the subnet matches `configs\platform.json`
-4. Run `.\cli\adp.ps1 doctor` — it checks NAT host matching when detectable
+4. Run `.\adp.cmd doctor` — it checks NAT host matching when detectable
 
 ### "Permission denied" when running .ps1 files
 
 **Symptom:** PowerShell shows red error text about execution policy.
 
-**Fix:** ADP-OS scripts don't require changing your system execution policy. Run them by passing the script path to `powershell.exe`:
+**Fix:** ADP-OS scripts don't require changing your system execution policy. Run them with PowerShell 7 by passing the script path to `pwsh.exe`:
 
 ```powershell
-powershell.exe -ExecutionPolicy Bypass -File .\install.ps1
+pwsh.exe -ExecutionPolicy Bypass -File .\install.ps1
 ```
 
-Or use the `.cmd` wrapper after installation:
+If `pwsh.exe` is missing, install PowerShell 7 first:
 
 ```powershell
-.\cli\adp.cmd quickstart
+winget install --id Microsoft.PowerShell --source winget
+```
+
+Or use the `.cmd` wrappers; they also check for PowerShell 7 before running ADP-OS:
+
+```powershell
+.\setup.cmd
+.\adp.cmd quickstart
 ```
 
 ### "Mutagen 0.18.x not found"
@@ -292,7 +299,7 @@ Or use the `.cmd` wrapper after installation:
 **Fix:** Let ADP-OS install it for you:
 
 ```powershell
-.\cli\adp.ps1 doctor -FixMutagen
+.\adp.cmd doctor -FixMutagen
 ```
 
 This downloads and installs Mutagen into `.tools\mutagen\mutagen.exe`. If GitHub is slow, see the [Operations](operations.md) guide for offline installation.
@@ -311,8 +318,8 @@ Now that your first runtime is running:
 Want all three runtimes? After `frontend` is running:
 
 ```powershell
-.\cli\adp.ps1 up backend
-.\cli\adp.ps1 up agent
+.\adp.cmd up backend
+.\adp.cmd up agent
 ```
 
 Happy building!

@@ -28,7 +28,7 @@ if ($HelpPrereqs) {
         Write-Host "     需要: Windows 10 或更新版本 (推荐 Windows 11)"
         Write-Host ""
         Write-Host "  2. PowerShell 7+" -ForegroundColor White
-        Write-Host "     安装: winget install Microsoft.PowerShell"
+        Write-Host "     安装: winget install --id Microsoft.PowerShell --source winget"
         Write-Host "     或: https://github.com/PowerShell/PowerShell/releases"
         Write-Host ""
         Write-Host "  3. VMware Workstation Pro" -ForegroundColor White
@@ -41,7 +41,7 @@ if ($HelpPrereqs) {
         Write-Host "       wsl -u root bash -lc `"apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y xorriso`""
         Write-Host ""
         Write-Host "  5. Mutagen 0.18.x" -ForegroundColor White
-        Write-Host "     自动安装: .\cli\adp.ps1 doctor -FixMutagen"
+        Write-Host "     自动安装: .\adp.cmd doctor -FixMutagen"
         Write-Host "     或手动放到: .tools\mutagen\mutagen.exe"
         Write-Host "     下载: https://github.com/mutagen-io/mutagen/releases"
         Write-Host ""
@@ -56,7 +56,7 @@ if ($HelpPrereqs) {
         Write-Host "     Requires: Windows 10 or newer (Windows 11 recommended)"
         Write-Host ""
         Write-Host "  2. PowerShell 7+" -ForegroundColor White
-        Write-Host "     Install: winget install Microsoft.PowerShell"
+        Write-Host "     Install: winget install --id Microsoft.PowerShell --source winget"
         Write-Host "     Or: https://github.com/PowerShell/PowerShell/releases"
         Write-Host ""
         Write-Host "  3. VMware Workstation Pro" -ForegroundColor White
@@ -69,7 +69,7 @@ if ($HelpPrereqs) {
         Write-Host "       wsl -u root bash -lc `"apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y xorriso`""
         Write-Host ""
         Write-Host "  5. Mutagen 0.18.x" -ForegroundColor White
-        Write-Host "     Auto-install: .\cli\adp.ps1 doctor -FixMutagen"
+        Write-Host "     Auto-install: .\adp.cmd doctor -FixMutagen"
         Write-Host "     Or place manually at: .tools\mutagen\mutagen.exe"
         Write-Host "     Download: https://github.com/mutagen-io/mutagen/releases"
         Write-Host ""
@@ -162,7 +162,7 @@ if ($psVersion.Major -ge 7) {
 } else {
     Add-PrecheckResult -Name "PowerShell 7+" -Status "MISSING" `
         -Detail "v$psVersion" `
-        -Remediation (Get-UIText -English "Install: winget install Microsoft.PowerShell" -Chinese "安装: winget install Microsoft.PowerShell")
+        -Remediation (Get-UIText -English "Install: winget install --id Microsoft.PowerShell --source winget" -Chinese "安装: winget install --id Microsoft.PowerShell --source winget")
 }
 
 # 3. VMware Workstation Pro
@@ -212,12 +212,12 @@ if ($mutagen) {
     } else {
         Add-PrecheckResult -Name "Mutagen 0.18.x" -Status "WARN" `
             -Detail "$mutagenVersion (tested with 0.18.x)" `
-            -Remediation (Get-UIText -English "Run: .\cli\adp.ps1 doctor -FixMutagen" -Chinese "运行: .\cli\adp.ps1 doctor -FixMutagen")
+            -Remediation (Get-UIText -English "Run: .\adp.cmd doctor -FixMutagen" -Chinese "运行: .\adp.cmd doctor -FixMutagen")
     }
 } else {
     Add-PrecheckResult -Name "Mutagen 0.18.x" -Status "MISSING" `
         -Detail (Get-UIText -English "not installed" -Chinese "未安装") `
-        -Remediation (Get-UIText -English "Run: .\cli\adp.ps1 doctor -FixMutagen, or place mutagen.exe at .tools\mutagen\mutagen.exe" -Chinese "运行: .\cli\adp.ps1 doctor -FixMutagen，或把 mutagen.exe 放到 .tools\mutagen\mutagen.exe")
+        -Remediation (Get-UIText -English "Run: .\adp.cmd doctor -FixMutagen, or place mutagen.exe at .tools\mutagen\mutagen.exe" -Chinese "运行: .\adp.cmd doctor -FixMutagen，或把 mutagen.exe 放到 .tools\mutagen\mutagen.exe")
 }
 
 # 6. OpenSSH Client

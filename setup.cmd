@@ -1,6 +1,6 @@
 @echo off
-REM ADP-OS CLI Wrapper
-REM Run from the project root, or add the project root to PATH, then use "adp <command>".
+REM ADP-OS setup wrapper for stock Windows shells.
+REM Run this from cmd.exe or Windows PowerShell 5.1 after cloning the repository.
 
 setlocal
 
@@ -16,7 +16,7 @@ if not defined PWSH call :UsePowerShell7 "%UserProfile%\AppData\Local\Microsoft\
 
 if not defined PWSH (
     echo ADP-OS requires PowerShell 7+ ^(pwsh.exe^).
-    echo Install it, then rerun this command:
+    echo Install it, then rerun setup.cmd:
     echo   winget install --id Microsoft.PowerShell --source winget
     echo Or download the MSI from:
     echo   https://github.com/PowerShell/PowerShell/releases
@@ -25,13 +25,7 @@ if not defined PWSH (
     exit /b 1
 )
 
-REM --version needs -Command mode because PowerShell treats --version as a native pwsh flag in -File mode.
-if /i "%~1"=="--version" (
-    "%PWSH%" -NoProfile -ExecutionPolicy Bypass -Command "& '%~dp0cli\adp.ps1' --version"
-    exit /b %ERRORLEVEL%
-)
-
-"%PWSH%" -NoProfile -ExecutionPolicy Bypass -File "%~dp0cli\adp.ps1" %*
+"%PWSH%" -NoProfile -ExecutionPolicy Bypass -File "%~dp0setup.ps1" %*
 exit /b %ERRORLEVEL%
 
 :UsePowerShell7

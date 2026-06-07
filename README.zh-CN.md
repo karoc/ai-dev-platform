@@ -85,7 +85,8 @@ ADP-OS 兼容 [Claude Managed Agents](https://docs.anthropic.com/en/docs/agents-
 ## 环境要求
 
 - Windows 11。
-- PowerShell 7 或更高版本。
+- Git，用于克隆仓库。
+- PowerShell 7 或更高版本。`setup.cmd` 是面向普通 Windows shell 的引导入口；系统内置 Windows PowerShell 5.1 只能把 `setup.ps1` / `install.ps1` 切换到 `pwsh.exe`，或显示安装命令。ADP-OS 控制平面运行在 PowerShell 7 上。
 - VMware Workstation Pro，包含 `vmrun.exe` 和 `vmware-vdiskmanager.exe`。
 - Ubuntu Server 26.04 live server ISO。
 - WSL，以及 `xorriso` 或其他兼容的 ISO 重制路径。
@@ -106,32 +107,32 @@ wsl -u root bash -lc "apt-get update && DEBIAN_FRONTEND=noninteractive apt-get i
 > [!WARNING]
 > ADP-OS 使用默认 `adp:adp` 用户和密码来配置本地 VM，以进行自动化 sudo 配置。这些 VM 专为可信工作站上的本地单用户开发而设计。请勿在未更改凭据和审查 SSH 访问权限的情况下将其暴露给不受信任的网络。有关完整的本地开发安全模型，请参阅 [安全](SECURITY.zh-CN.md)。
 
-**推荐：一键设置 — 克隆后只需运行一条命令：**
+**推荐：从普通 Windows shell 一键设置 — 克隆后只需运行一条命令：**
 
 ```powershell
 git clone https://github.com/karoc/ai-dev-platform.git
 cd ai-dev-platform
-.\setup.ps1
+.\setup.cmd
 ```
 
-`.\setup.ps1` 是克隆后的唯一入口。它将引导您一次性完成全部设置：前提条件扫描、ISO 下载（~2.6 GB）、平台引导、初始化和系统诊断。如果缺少前提条件，它会准确显示需要安装的内容并退出 — 修复后重新运行 `.\setup.ps1`。
+`.\setup.cmd` 是克隆后面向普通 Windows shell 的推荐入口。它将引导您一次性完成全部设置：前提条件扫描、ISO 下载（~2.6 GB）、平台引导、初始化和系统诊断。如果缺少 PowerShell 7，`setup.cmd` 会先打印安装命令并退出，不会让 Windows PowerShell 5.1 误跑 ADP-OS 控制平面。已经打开 PowerShell 7 时，也可以直接运行 `.\setup.ps1`。
 
 **选项：**
 
 ```powershell
-.\setup.ps1 -IsoPath C:\...\ubuntu.iso   # 使用已下载的 ISO
-.\setup.ps1 -SkipIsoDownload              # 跳过 ISO 下载（已缓存）
-.\setup.ps1 -NonInteractive               # 无交互运行（脚本/CI 使用）
-.\setup.ps1 -Force                        # 跳过前提条件检查
+.\setup.cmd -IsoPath C:\...\ubuntu.iso   # 使用已下载的 ISO
+.\setup.cmd -SkipIsoDownload              # 跳过 ISO 下载（已缓存）
+.\setup.cmd -NonInteractive               # 无交互运行（脚本/CI 使用）
+.\setup.cmd -Force                        # 跳过前提条件检查
 ```
 
 **开始前，检查前提条件：**
 
 ```powershell
-.\cli\adp.ps1 precheck
+.\adp.cmd precheck
 ```
 
-`adp precheck` 扫描全部 6 项前提条件（Windows 11、PowerShell 7+、VMware Workstation Pro、WSL+xorriso、Mutagen 0.18.x、OpenSSH），以状态表格显示每项的修复命令。在运行 `setup.ps1` 或 `install.ps1` 之前使用它以查看需要什么。使用 `adp precheck --help-prereqs` 查看带安装命令的完整需求列表。
+`adp precheck` 扫描全部 6 项前提条件（Windows 11、PowerShell 7+、VMware Workstation Pro、WSL+xorriso、Mutagen 0.18.x、OpenSSH），以状态表格显示每项的修复命令。在运行 `setup.cmd` 或 `install.ps1` 之前使用它以查看需要什么。使用 `.\adp.cmd precheck --help-prereqs` 查看带安装命令的完整需求列表。
 
 **或者，手动分步：**
 
@@ -140,23 +141,23 @@ cd ai-dev-platform
 ```powershell
 git clone https://github.com/karoc/ai-dev-platform.git
 cd ai-dev-platform
-.\\install.ps1
+pwsh.exe -ExecutionPolicy Bypass -File .\install.ps1
 ```
 
 下载 Ubuntu Server ISO（使用 BITS 传输，支持断点续传）：
 
 ```powershell
-adp iso
+.\adp.cmd iso
 ```
 
 > [!TIP]
-> 运行 `install.ps1` 后，`adp.cmd` 包装器即已可用 — 后续所有命令均可使用裸 `adp` 代替 `.\\cli\\adp.ps1`。
+> 在仓库根目录中，请使用 `.\adp.cmd`，不要直接运行 `.\cli\adp.ps1`。如果你把仓库根目录加入了 `PATH`，才可以使用裸 `adp`。
 
 如果您在中国，使用镜像下载更快：
 
 ```powershell
-adp iso -Url "https://mirrors.aliyun.com/ubuntu-releases/26.04/ubuntu-26.04-live-server-amd64.iso"
-adp iso -Url "https://mirrors.ustc.edu.cn/ubuntu-releases/26.04/ubuntu-26.04-live-server-amd64.iso"
+.\adp.cmd iso -Url "https://mirrors.aliyun.com/ubuntu-releases/26.04/ubuntu-26.04-live-server-amd64.iso"
+.\adp.cmd iso -Url "https://mirrors.ustc.edu.cn/ubuntu-releases/26.04/ubuntu-26.04-live-server-amd64.iso"
 ```
 
 如需设置本机路径、VM 规格、静态 IP 或本地 bootstrap 凭据，可以复制已被忽略的本地覆盖示例：
@@ -170,30 +171,30 @@ Copy-Item configs\\local.example.json configs\\local.json
 初始化运行时：
 
 ```powershell
-adp init
+.\adp.cmd init
 ```
 
 创建并启动运行时：
 
 ```powershell
-adp up frontend
-adp up backend
-adp up agent
+.\adp.cmd up frontend
+.\adp.cmd up backend
+.\adp.cmd up agent
 ```
 
 查看运行时状态和连接信息：
 
 ```powershell
-adp status
-adp status agent
+.\adp.cmd status
+.\adp.cmd status agent
 ```
 
 启动工作区同步：
 
 ```powershell
-adp sync start frontend
-adp sync start backend
-adp sync start agent
+.\adp.cmd sync start frontend
+.\adp.cmd sync start backend
+.\adp.cmd sync start agent
 ```
 
 需要时准备 frontend 浏览器验收测试：
@@ -207,10 +208,10 @@ adp-frontend-browser-install chromium
 检查健康状态：
 
 ```powershell
-adp doctor
-adp doctor -FirstRun
-adp doctor -FixMutagen -Plan
-adp sync status
+.\adp.cmd doctor
+.\adp.cmd doctor -FirstRun
+.\adp.cmd doctor -FixMutagen -Plan
+.\adp.cmd sync status
 ```
 
 `install.ps1` 和 `doctor` 会检查 VMware 工具、`vmware-vdiskmanager.exe`、WSL、WSL `xorriso`、Mutagen 0.18.x、OpenSSH、ISO 是否存在以及 ISO 基本形态。它们会输出修复命令或放置路径提示，但默认不会下载大型二进制文件。如需安装经过测试的本地 Mutagen binary，先运行 `doctor -FixMutagen -Plan` 预览，再运行 `doctor -FixMutagen`；archive 和解压后的 binary 会保留在已忽略的 `.tools\mutagen` 下。如果 GitHub release 下载很慢或不可达，可以把 `mutagen_windows_amd64_v0.18.1.zip` 放到 `.tools\mutagen`，或在 `configs\local.json` 中设置 `platform.tools.mutagen.archive_path`；设置 `platform.tools.mutagen.sha256` 后会强制校验 archive hash。
@@ -239,17 +240,17 @@ adp sync status
 创建干净快照：
 
 ```powershell
-adp snapshot create frontend clean
-adp snapshot create backend clean
-adp snapshot create agent clean
+.\adp.cmd snapshot create frontend clean
+.\adp.cmd snapshot create backend clean
+.\adp.cmd snapshot create agent clean
 ```
 
 签署快照并导出证据链：
 
 ```powershell
-adp workspace evidence -Snapshot
-adp workspace evidence -Export
-adp workspace declare -AiAssisted -Reviewer "your-name"
+.\adp.cmd workspace evidence -Snapshot
+.\adp.cmd workspace evidence -Export
+.\adp.cmd workspace declare -AiAssisted -Reviewer "your-name"
 ```
 
 ## 默认运行时
@@ -265,7 +266,7 @@ adp workspace declare -AiAssisted -Reviewer "your-name"
 对已有 VM 应用配置的网络：
 
 ```powershell
-adp network apply all
+.\adp.cmd network apply all
 ```
 
 ## 工作区路径
@@ -302,16 +303,16 @@ git clone <project-url> my-project
 ADP-OS 还提供一个多场景、Spec 驱动的 workspace recipes manifest，用于常见 agent-native workflow。把 manifest 当作 Spec：声明要构建什么、如何验证、哪些里程碑把关进度，然后由平台执行并产出可审计的发布证据：
 
 ```powershell
-adp workspace show -ManifestPath configs\workspace.recipes.example.json
-adp workspace plan -ManifestPath configs\workspace.recipes.example.json
-adp workspace recipes -ManifestPath configs\workspace.recipes.example.json
-adp workspace create -Plan -ManifestPath configs\workspace.recipes.example.json
-adp workspace open frontend-app -ManifestPath configs\workspace.recipes.example.json
-adp workspace sync frontend-app -ManifestPath configs\workspace.recipes.example.json
-adp workspace project frontend-app -ManifestPath configs\workspace.recipes.example.json
-adp workspace dashboard -ManifestPath configs\workspace.recipes.example.json
-adp workspace report -ManifestPath configs\workspace.recipes.example.json
-adp workspace report -Markdown -ManifestPath configs\workspace.recipes.example.json
+.\adp.cmd workspace show -ManifestPath configs\workspace.recipes.example.json
+.\adp.cmd workspace plan -ManifestPath configs\workspace.recipes.example.json
+.\adp.cmd workspace recipes -ManifestPath configs\workspace.recipes.example.json
+.\adp.cmd workspace create -Plan -ManifestPath configs\workspace.recipes.example.json
+.\adp.cmd workspace open frontend-app -ManifestPath configs\workspace.recipes.example.json
+.\adp.cmd workspace sync frontend-app -ManifestPath configs\workspace.recipes.example.json
+.\adp.cmd workspace project frontend-app -ManifestPath configs\workspace.recipes.example.json
+.\adp.cmd workspace dashboard -ManifestPath configs\workspace.recipes.example.json
+.\adp.cmd workspace report -ManifestPath configs\workspace.recipes.example.json
+.\adp.cmd workspace report -Markdown -ManifestPath configs\workspace.recipes.example.json
 ```
 
 这些 recipes 覆盖低风险维护、frontend 浏览器验收、backend 验证，以及带 snapshot-first gate 的高风险 agent 工作。它们也演示了可选的 `milestones[]` planning，让相关 task 可以共享一个可见的 milestone checkpoint，例如 `milestone-agent-refactor-safety`；还演示了 plan-only `evaluations[]` hooks，让 agent-native review criteria、metrics 和声明式 evaluation commands 可以进入 release evidence，但不会被执行。`workspace recipes` 是这些示例的 discovery view：它会汇总 project recipes、task recipes、milestone checkpoints、evaluation hooks 和 evidence commands，但不会 clone project、打开 SSH、创建快照、运行 validation、运行 evaluation commands、启动 sync 或运行 Git。`workspace create -Plan` 会预览 manifest 声明的本地项目目录；`workspace create` 只会创建这些本地目录，仍然不会 clone project、启动 sync、启动 runtime、打开 SSH、创建快照、运行 validation、运行 evaluation commands 或运行 Git。`workspace open` 会为单个项目打印非破坏性的 open guide：local path、remote path、readiness，以及可复制的本地、编辑器、SSH、sync 和 status 命令。`workspace sync` 会打印非破坏性的 project-aware sync guide：它会把 manifest project 映射回 runtime sync session，显示 sync readiness 和 sync hygiene，并打印需要显式执行的 runtime `adp sync` 命令。`workspace project` 会在一个位置打印 project operational lifecycle：open、runtime、sync、validation、linked tasks 和 evidence handoff。`workspace report` 还会打印 release handoff summary，用于统计 validation result、列出 blockers、显示 ready for review 或 ready to commit 的 task、标明当前 release gate，暴露 milestone checkpoint status、evaluation queue status，并暴露 owner、review cadence、due date 等 task governance 字段。它还会按 owner queue、review cadence queue、milestone queue、milestone review rollup、validation execution queue、evaluation queue、attention queue 和 decision queues 聚合 task，用于周期性 review，并给出 validate、review、revise、snapshot 或 commit 等下一步动作分类，同时输出 release decision policy 和 stale-task remediation guidance。添加 `-Markdown` 可以生成可复制到 PR 或 release 的 evidence，并保持同一套 decision state，其中包含 Validation Execution Queue、Evaluation Queue、Milestone Checkpoints 和 Milestone Review Rollup tables。这些 recipes 只是 planning examples；workspace 命令不会安装 packages、下载浏览器、创建快照、运行验证、运行 evaluation commands、打开编辑器、SSH 进入 runtime、启动 sync、停止 sync 或 commit 文件。
@@ -319,13 +320,15 @@ adp workspace report -Markdown -ManifestPath configs\workspace.recipes.example.j
 Validation 可以从 task recipe 中显式执行：
 
 ```powershell
-adp workspace task validate frontend-browser-acceptance -Execute -Plan -ManifestPath configs\workspace.recipes.example.json
-adp workspace task validate frontend-browser-acceptance -Execute -ManifestPath configs\workspace.recipes.example.json
+.\adp.cmd workspace task validate frontend-browser-acceptance -Execute -Plan -ManifestPath configs\workspace.recipes.example.json
+.\adp.cmd workspace task validate frontend-browser-acceptance -Execute -ManifestPath configs\workspace.recipes.example.json
 ```
 
 `-Execute -Plan` 会预览 readiness gate 和远端 SSH 命令。`-Execute` 只会在目标项目目录中运行已声明的 `tasks[].validation` 命令，并把结果记录到已忽略的本地 workspace state。Review、rollback 和 commit 命令会读取这个记录并显示 decision gate，但 stage、restore 和真正执行 commit 仍然是独立的显式步骤。
 
 ## 命令参考
+
+本节用 `adp` 表示命令名。从仓库根目录运行时，请使用 `.\adp.cmd ...`；只有把仓库根目录加入 `PATH` 后，才使用裸 `adp ...`。
 
 ```powershell
 adp iso [ubuntu|almalinux|rocky|debian] [-Url <url>] [-Force] [-NonInteractive]
