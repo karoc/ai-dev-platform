@@ -16,6 +16,7 @@ if (Get-Command New-PesterConfiguration -ErrorAction SilentlyContinue) {
     $config = New-PesterConfiguration
     $config.Run.Path = $testPath
     $config.Run.Exit = $false
+    $config.Run.PassThru = $true
     $config.Output.Verbosity = "Normal"
     $result = Invoke-Pester -Configuration $config
 } else {

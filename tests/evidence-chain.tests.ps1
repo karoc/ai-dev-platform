@@ -6,6 +6,8 @@
 
 $ErrorActionPreference = "Stop"
 
+BeforeAll {
+
 # 1. Define minimal evidence chain functions (copied from cli/commands/workspace.ps1
 #    for self-contained testing without dot-sourcing the full routing module).
 function Get-SHA256Hash {
@@ -131,6 +133,8 @@ function Should-Match {
     }
 }
 
+}
+
 # 2. Pester test suites
 Describe "Get-EvidenceDirectory" {
     BeforeAll {
@@ -145,22 +149,22 @@ Describe "Get-EvidenceDirectory" {
 
     It "creates .evidence directory when it does not exist" {
         $evidenceDir = Get-EvidenceDirectory -ManifestPath "nonexistent.json"
-        $evidenceDir | Should Not BeNullOrEmpty
-        Test-Path $evidenceDir | Should Be $true
-        (Split-Path $evidenceDir -Leaf) | Should Be ".evidence"
+        $evidenceDir | Should -Not -BeNullOrEmpty
+        Test-Path $evidenceDir | Should -Be $true
+        (Split-Path $evidenceDir -Leaf) | Should -Be ".evidence"
     }
 
     It "returns existing .evidence directory without error" {
         $first = Get-EvidenceDirectory -ManifestPath "nonexistent.json"
         $second = Get-EvidenceDirectory -ManifestPath "nonexistent.json"
-        $second | Should Be $first
+        $second | Should -Be $first
     }
 
     It "resolves evidence dir from a real manifest path" {
         $manifestFile = Join-Path $testDir "adp-workspace.json"
         Set-Content -Path $manifestFile -Value '{"name":"test-ws"}' -Encoding utf8
         $evidenceDir = Get-EvidenceDirectory -ManifestPath $manifestFile
-        (Split-Path $evidenceDir -Parent) | Should Be $testDir
+        (Split-Path $evidenceDir -Parent) | Should -Be $testDir
     }
 }
 
@@ -172,37 +176,37 @@ Describe "New-EvidenceSnapshotEntry" {
             -MetadataContent "runtime=agent; workspace=test" `
             -PreviousHash "0000000000000000000000000000000000000000000000000000000000000000" `
             -WorkspaceName "test-workspace"
-        $result.sha256_hash | Should Match "^[a-f0-9A-F]{64}$"
-        $result.previous_hash | Should Be "0000000000000000000000000000000000000000000000000000000000000000"
-        $result.snapshot_id | Should Be "test-snap"
-        $result.workspace_name | Should Be "test-workspace"
+        $result.sha256_hash | Should -Match "^[a-f0-9A-F]{64}$"
+        $result.previous_hash | Should -Be "0000000000000000000000000000000000000000000000000000000000000000"
+        $result.snapshot_id | Should -Be "test-snap"
+        $result.workspace_name | Should -Be "test-workspace"
     }
 
     It "produces different hashes for different content" {
         $r1 = New-EvidenceSnapshotEntry -SnapshotId "s1" -Timestamp "t1" -MetadataContent "m1" -PreviousHash "0000000000000000000000000000000000000000000000000000000000000000" -WorkspaceName "w1"
         $r2 = New-EvidenceSnapshotEntry -SnapshotId "s2" -Timestamp "t2" -MetadataContent "m2" -PreviousHash "0000000000000000000000000000000000000000000000000000000000000000" -WorkspaceName "w2"
-        $r1.sha256_hash | Should Not Be $r2.sha256_hash
+        $r1.sha256_hash | Should -Not -Be $r2.sha256_hash
     }
 
     It "chains to previous hash correctly" {
         $first = New-EvidenceSnapshotEntry -SnapshotId "first" -Timestamp "t1" -MetadataContent "m1" -PreviousHash "0000000000000000000000000000000000000000000000000000000000000000" -WorkspaceName "ws"
         $second = New-EvidenceSnapshotEntry -SnapshotId "second" -Timestamp "t2" -MetadataContent "m2" -PreviousHash $first.sha256_hash -WorkspaceName "ws"
-        $second.previous_hash | Should Be $first.sha256_hash
+        $second.previous_hash | Should -Be $first.sha256_hash
 
         # Verify chain integrity: recompute first entry's hash
         $content1 = "first|t1|m1|0000000000000000000000000000000000000000000000000000000000000000|ws"
         $recomputed1 = Get-SHA256Hash -InputString $content1
-        $recomputed1 | Should Be $first.sha256_hash
+        $recomputed1 | Should -Be $first.sha256_hash
 
         # Verify chain integrity: recompute second entry's hash
         $content2 = "second|t2|m2|$($first.sha256_hash)|ws"
         $recomputed2 = Get-SHA256Hash -InputString $content2
-        $recomputed2 | Should Be $second.sha256_hash
+        $recomputed2 | Should -Be $second.sha256_hash
     }
 
     It "generates the zero hash as previous for empty chain" {
         $zeroHash = Get-LastChainHash -ChainArray @()
-        $zeroHash | Should Be "0000000000000000000000000000000000000000000000000000000000000000"
+        $zeroHash | Should -Be "0000000000000000000000000000000000000000000000000000000000000000"
     }
 }
 
@@ -214,27 +218,27 @@ Describe "New-EvidenceLogEntry" {
             -User "tester" `
             -Details "test operation" `
             -PreviousHash "0000000000000000000000000000000000000000000000000000000000000000"
-        $result.sha256_hash | Should Match "^[a-f0-9A-F]{64}$"
-        $result.operation | Should Be "create"
-        $result.user | Should Be "tester"
-        $result.details | Should Be "test operation"
+        $result.sha256_hash | Should -Match "^[a-f0-9A-F]{64}$"
+        $result.operation | Should -Be "create"
+        $result.user | Should -Be "tester"
+        $result.details | Should -Be "test operation"
     }
 
     It "produces different hashes for different operations" {
         $r1 = New-EvidenceLogEntry -Operation "sync" -Timestamp "t1" -User "u1" -Details "" -PreviousHash "0000000000000000000000000000000000000000000000000000000000000000"
         $r2 = New-EvidenceLogEntry -Operation "start" -Timestamp "t1" -User "u1" -Details "" -PreviousHash "0000000000000000000000000000000000000000000000000000000000000000"
-        $r1.sha256_hash | Should Not Be $r2.sha256_hash
+        $r1.sha256_hash | Should -Not -Be $r2.sha256_hash
     }
 
     It "chains log entries with previous hash" {
         $entry1 = New-EvidenceLogEntry -Operation "sync" -Timestamp "t1" -User "u1" -Details "" -PreviousHash "0000000000000000000000000000000000000000000000000000000000000000"
         $entry2 = New-EvidenceLogEntry -Operation "validate" -Timestamp "t2" -User "u1" -Details "" -PreviousHash $entry1.sha256_hash
-        $entry2.previous_hash | Should Be $entry1.sha256_hash
+        $entry2.previous_hash | Should -Be $entry1.sha256_hash
 
         # Verify the chain integrity
         $content2 = "validate|t2|u1||$($entry1.sha256_hash)"
         $recomputed2 = Get-SHA256Hash -InputString $content2
-        $recomputed2 | Should Be $entry2.sha256_hash
+        $recomputed2 | Should -Be $entry2.sha256_hash
     }
 }
 
@@ -265,16 +269,16 @@ Describe "Invoke-EvidenceExport" {
             $archive.Dispose()
         }
 
-        Test-Path $outputZip | Should Be $true
+        Test-Path $outputZip | Should -Be $true
 
         # Verify ZIP contents
         $verify = [System.IO.Compression.ZipFile]::OpenRead($outputZip)
         try {
             $entryNames = @($verify.Entries | ForEach-Object { $_.Name })
-            ($entryNames -contains "snapshot-hashes.json") | Should Be $true
-            ($entryNames -contains "operation-log.json") | Should Be $true
-            ($entryNames -contains "README.txt") | Should Be $true
-            $verify.Entries.Count | Should BeGreaterThan 2
+            ($entryNames -contains "snapshot-hashes.json") | Should -Be $true
+            ($entryNames -contains "operation-log.json") | Should -Be $true
+            ($entryNames -contains "README.txt") | Should -Be $true
+            $verify.Entries.Count | Should -BeGreaterThan 2
         } finally {
             $verify.Dispose()
         }
@@ -298,9 +302,9 @@ Describe "Invoke-EvidenceDeclare" {
             -Details $details `
             -PreviousHash "0000000000000000000000000000000000000000000000000000000000000000"
 
-        $entry.operation | Should Be "DECLARE"
-        $entry.sha256_hash | Should Match "^[a-f0-9A-F]{64}$"
-        $entry.details | Should Be $details
+        $entry.operation | Should -Be "DECLARE"
+        $entry.sha256_hash | Should -Match "^[a-f0-9A-F]{64}$"
+        $entry.details | Should -Be $details
     }
 
     It "defaults declaration_type to ai-assisted when -AiAssisted is set" {
@@ -312,8 +316,8 @@ Describe "Invoke-EvidenceDeclare" {
             -Details $details `
             -PreviousHash "0000000000000000000000000000000000000000000000000000000000000000"
 
-        $entry.operation | Should Be "DECLARE"
-        $entry.details | Should Match "declaration_type=ai-assisted"
+        $entry.operation | Should -Be "DECLARE"
+        $entry.details | Should -Match "declaration_type=ai-assisted"
     }
 }
 
@@ -327,10 +331,10 @@ Describe "Json output parameter support" {
             -WorkspaceName "ws"
 
         $json = $result | ConvertTo-Json
-        $json | Should Not BeNullOrEmpty
-        ($json -match "sha256_hash") | Should Be $true
-        ($json -match "previous_hash") | Should Be $true
-        ($json -match "snapshot_id") | Should Be $true
+        $json | Should -Not -BeNullOrEmpty
+        ($json -match "sha256_hash") | Should -Be $true
+        ($json -match "previous_hash") | Should -Be $true
+        ($json -match "snapshot_id") | Should -Be $true
     }
 
     It "New-EvidenceLogEntry returns a PSCustomObject convertible to JSON" {
@@ -342,9 +346,9 @@ Describe "Json output parameter support" {
             -PreviousHash "0000000000000000000000000000000000000000000000000000000000000000"
 
         $json = $result | ConvertTo-Json
-        $json | Should Not BeNullOrEmpty
-        ($json -match "operation") | Should Be $true
-        ($json -match "sha256_hash") | Should Be $true
+        $json | Should -Not -BeNullOrEmpty
+        ($json -match "operation") | Should -Be $true
+        ($json -match "sha256_hash") | Should -Be $true
     }
 }
 
@@ -356,7 +360,7 @@ Describe "Error handling and edge cases" {
             -MetadataContent "" `
             -PreviousHash "0000000000000000000000000000000000000000000000000000000000000000" `
             -WorkspaceName ""
-        $result.sha256_hash | Should Match "^[a-f0-9A-F]{64}$"
+        $result.sha256_hash | Should -Match "^[a-f0-9A-F]{64}$"
     }
 
     It "handles empty details in log entry" {
@@ -366,8 +370,8 @@ Describe "Error handling and edge cases" {
             -User "" `
             -Details "" `
             -PreviousHash "0000000000000000000000000000000000000000000000000000000000000000"
-        $result.sha256_hash | Should Match "^[a-f0-9A-F]{64}$"
-        $result.operation | Should Be ""
+        $result.sha256_hash | Should -Match "^[a-f0-9A-F]{64}$"
+        $result.operation | Should -Be ""
     }
 
     It "handles special characters in content" {
@@ -377,7 +381,7 @@ Describe "Error handling and edge cases" {
             -MetadataContent "cmd=echo hello; rm -rf /" `
             -PreviousHash "0000000000000000000000000000000000000000000000000000000000000000" `
             -WorkspaceName "test"
-        $result.sha256_hash | Should Match "^[a-f0-9A-F]{64}$"
+        $result.sha256_hash | Should -Match "^[a-f0-9A-F]{64}$"
     }
 
     It "long chain grows without breaking" {
@@ -393,9 +397,9 @@ Describe "Error handling and edge cases" {
             $chain += $entry
             $prev = $entry.sha256_hash
         }
-        $chain.Count | Should Be 10
+        $chain.Count | Should -Be 10
         for ($i = 1; $i -lt 10; $i++) {
-            $chain[$i].previous_hash | Should Be $chain[$i - 1].sha256_hash
+            $chain[$i].previous_hash | Should -Be $chain[$i - 1].sha256_hash
         }
     }
 }
@@ -410,10 +414,10 @@ Describe "Bilingual output (Write-UIHost compatibility)" {
             -WorkspaceName "shuangyuceshi"
 
         # Data fields should be consistent regardless of language
-        $result.snapshot_id | Should Not BeNullOrEmpty
-        ($result.PSObject.Properties.Name -contains "sha256_hash") | Should Be $true
-        ($result.PSObject.Properties.Name -contains "previous_hash") | Should Be $true
-        $result.workspace_name | Should Be "shuangyuceshi"
+        $result.snapshot_id | Should -Not -BeNullOrEmpty
+        ($result.PSObject.Properties.Name -contains "sha256_hash") | Should -Be $true
+        ($result.PSObject.Properties.Name -contains "previous_hash") | Should -Be $true
+        $result.workspace_name | Should -Be "shuangyuceshi"
     }
 
     It "JSON output is valid and parseable" {
@@ -426,7 +430,7 @@ Describe "Bilingual output (Write-UIHost compatibility)" {
 
         $json = $result | ConvertTo-Json
         $parsed = $json | ConvertFrom-Json
-        $parsed.sha256_hash | Should Be $result.sha256_hash
-        $parsed.previous_hash | Should Be $result.previous_hash
+        $parsed.sha256_hash | Should -Be $result.sha256_hash
+        $parsed.previous_hash | Should -Be $result.previous_hash
     }
 }
