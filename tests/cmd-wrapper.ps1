@@ -18,9 +18,7 @@ function Invoke-CmdProcess {
         [string]$Command,
 
         [Parameter(Mandatory = $true)]
-        [string]$WorkingDirectory,
-
-        [hashtable]$Environment = @{}
+        [string]$WorkingDirectory
     )
 
     $stdout = [System.IO.Path]::GetTempFileName()
@@ -31,8 +29,7 @@ function Invoke-CmdProcess {
             -WorkingDirectory $WorkingDirectory `
             -NoNewWindow -Wait -PassThru `
             -RedirectStandardOutput $stdout `
-            -RedirectStandardError $stderr `
-            -Environment $Environment
+            -RedirectStandardError $stderr
 
         $outText = Get-Content -LiteralPath $stdout -Raw -Encoding UTF8 -ErrorAction SilentlyContinue
         $errText = Get-Content -LiteralPath $stderr -Raw -Encoding UTF8 -ErrorAction SilentlyContinue
@@ -80,14 +77,14 @@ function New-IsolatedCmdEnvironment {
 
     New-Item -ItemType Directory -Path $emptyPath, $programFiles, $programFilesX86, $localAppData, $userProfile -Force | Out-Null
 
-    return @{
-        Path                  = $emptyPath
-        ProgramFiles          = $programFiles
-        "ProgramFiles(x86)"   = $programFilesX86
-        LOCALAPPDATA          = $localAppData
-        USERPROFILE           = $userProfile
-        "__PSLockdownPolicy"  = "0"
-    }
+    return @(
+        "set `"PATH=$emptyPath`"",
+        "set `"ProgramFiles=$programFiles`"",
+        "set `"ProgramFiles(x86)=$programFilesX86`"",
+        "set `"LOCALAPPDATA=$localAppData`"",
+        "set `"USERPROFILE=$userProfile`"",
+        "set `"__PSLockdownPolicy=0`""
+    ) -join " && "
 }
 
 $versionResult = Invoke-CmdProcess -Command "adp.cmd --version" -WorkingDirectory $projectRoot
@@ -131,12 +128,12 @@ Write-Output "Force=$Force"
     $isolatedEnv = New-IsolatedCmdEnvironment -Root (Join-Path $tempRoot "isolated")
     Copy-Item -LiteralPath $adpCmd -Destination (Join-Path $tempRoot "adp.cmd")
 
-    $missingAdpResult = Invoke-CmdProcess -Command "adp.cmd --version" -WorkingDirectory $tempRoot -Environment $isolatedEnv
+    $missingAdpResult = Invoke-CmdProcess -Command "$isolatedEnv && adp.cmd --version" -WorkingDirectory $tempRoot
     Assert-ExitCode -Name "adp.cmd missing pwsh" -Result $missingAdpResult -Expected 1
     Assert-OutputContains -Name "adp.cmd missing pwsh" -Result $missingAdpResult -Pattern "ADP-OS requires PowerShell 7\+"
     Assert-OutputContains -Name "adp.cmd missing pwsh" -Result $missingAdpResult -Pattern "winget install --id Microsoft\.PowerShell --source winget"
 
-    $missingSetupResult = Invoke-CmdProcess -Command "setup.cmd" -WorkingDirectory $tempRoot -Environment $isolatedEnv
+    $missingSetupResult = Invoke-CmdProcess -Command "$isolatedEnv && setup.cmd" -WorkingDirectory $tempRoot
     Assert-ExitCode -Name "setup.cmd missing pwsh" -Result $missingSetupResult -Expected 1
     Assert-OutputContains -Name "setup.cmd missing pwsh" -Result $missingSetupResult -Pattern "ADP-OS requires PowerShell 7\+"
     Assert-OutputContains -Name "setup.cmd missing pwsh" -Result $missingSetupResult -Pattern "https://github\.com/PowerShell/PowerShell/releases"
