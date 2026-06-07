@@ -106,7 +106,7 @@ New-Item -ItemType Directory -Path .tools\mutagen -Force
 .\deploy-check.ps1
 ```
 
-`validate.ps1` 是 CI 仓库验证在本地的同一入口。它会运行 PowerShell 解析、JSON 解析、CLI 参数契约、配置 schema 检查、artifact hygiene 检查、CLI smoke tests、installer smoke tests、bootstrap shell syntax 检查、Markdown 本地链接检查和文档语言链接检查。文档语言检查还会验证根目录公开文档和 `docs/zh-CN` 的翻译文件成对存在。本地迭代时可使用 `-Quick`；它保留 parser、schema、contract、artifact hygiene、shell、Markdown 和文档检查，但跳过较慢的 CLI 与 installer smoke tests。局部排障时可使用 `-SkipCliSmoke`、`-SkipInstallerSmoke` 或 `-SkipShellSyntax`。
+`validate.ps1` 是 CI 仓库验证在本地的同一入口。它会运行 PowerShell 解析、JSON 解析、CLI 参数契约、配置 schema 检查、artifact hygiene 检查、本地配置边界检查、Mutagen 修复行为检查、evidence-chain 测试、CLI smoke tests、installer smoke tests、bootstrap shell syntax 检查、Markdown 本地链接检查和文档语言链接检查。文档语言检查还会验证根目录公开文档和 `docs/zh-CN` 的翻译文件成对存在。本地迭代时可使用 `-Quick`；它保留 parser、schema、contract、artifact hygiene、本地配置边界、Mutagen 修复行为、evidence-chain、shell、Markdown 和文档检查，但跳过较慢的 CLI 与 installer smoke tests。Evidence-chain 测试需要 Pester；`validate.ps1` 不会自动安装 PowerShell 模块，因此缺少 Pester 时需要显式安装。局部排障时可使用 `-SkipCliSmoke`、`-SkipInstallerSmoke` 或 `-SkipShellSyntax`。
 
 `cli-smoke.ps1` 会检查命令分发、非破坏性预览和输入错误边界。它不会创建、启动、停止、同步或销毁 VM。
 

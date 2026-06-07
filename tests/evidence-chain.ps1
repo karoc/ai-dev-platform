@@ -6,9 +6,11 @@
 
 $ErrorActionPreference = "Stop"
 
-# Ensure Pester is available
+# Pester is required, but this test must not install modules automatically:
+# validate.ps1 should not add network or user-profile writes on clean machines.
 if (-not (Get-Module -ListAvailable -Name Pester)) {
-    Install-Module -Name Pester -Force -Scope CurrentUser -SkipPublisherCheck -ErrorAction Stop
+    Write-Error "Pester is required for evidence-chain tests. Install it explicitly with: Install-Module -Name Pester -Scope CurrentUser"
+    exit 1
 }
 Import-Module Pester -Force -ErrorAction Stop
 
