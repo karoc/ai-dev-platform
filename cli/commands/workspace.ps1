@@ -17,6 +17,7 @@ param(
     [switch]$Snapshot,
     [switch]$Log,
     [switch]$Export,
+    [Alias("Path")]
     [string]$ExportPath,
     [string]$Operation,
     [string]$Details,
@@ -4196,9 +4197,10 @@ function Get-EvidenceDirectory {
     param([string]$ManifestPath)
 
     $workspaceRoot = if (Test-Path -LiteralPath $ManifestPath) {
-        Split-Path -Path (Resolve-Path -LiteralPath $ManifestPath) -Parent
+        $resolvedManifest = Microsoft.PowerShell.Management\Resolve-Path -LiteralPath $ManifestPath
+        Split-Path -Path $resolvedManifest.ProviderPath -Parent
     } else {
-        (Get-Location).Path
+        (Get-Location).ProviderPath
     }
 
     $evidenceDir = Join-Path $workspaceRoot ".evidence"
@@ -4519,10 +4521,16 @@ function Invoke-EvidenceExport {
 
     # Determine output path
     $timestamp = (Get-Date).ToUniversalTime().ToString("yyyyMMdd-HHmmss")
+    $currentPath = (Get-Location).ProviderPath
     if ([string]::IsNullOrWhiteSpace($ExportPathParam)) {
-        $outputZip = Join-Path (Get-Location).Path "evidence-export-$timestamp.zip"
+        $outputZip = Join-Path $currentPath "evidence-export-$timestamp.zip"
     } else {
-        $fullPath = [System.IO.Path]::GetFullPath($ExportPathParam)
+        $exportPath = if ([System.IO.Path]::IsPathRooted($ExportPathParam)) {
+            $ExportPathParam
+        } else {
+            Join-Path $currentPath $ExportPathParam
+        }
+        $fullPath = [System.IO.Path]::GetFullPath($exportPath)
         if ($fullPath.EndsWith(".zip")) {
             $outputZip = $fullPath
         } else {
@@ -4560,8 +4568,8 @@ function Invoke-EvidenceExport {
 
     # workspace manifest
     if (Test-Path -LiteralPath $ManifestPath) {
-        $manifestAbs = Resolve-Path -LiteralPath $ManifestPath
-        $filesToInclude.Add(@{ Source = $manifestAbs.Path; EntryName = "adp-workspace.json" }) | Out-Null
+        $manifestAbs = Microsoft.PowerShell.Management\Resolve-Path -LiteralPath $ManifestPath
+        $filesToInclude.Add(@{ Source = $manifestAbs.ProviderPath; EntryName = "adp-workspace.json" }) | Out-Null
     }
 
     # Generate README.txt

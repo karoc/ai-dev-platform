@@ -102,6 +102,10 @@ Invoke-ValidationStep -Name "Check evidence chain tests" -ScriptBlock {
     & ".\tests\evidence-chain.ps1"
 }
 
+Invoke-ValidationStep -Name "Check workspace evidence command contract" -ScriptBlock {
+    & ".\tests\workspace-evidence-contract.ps1"
+}
+
 if (-not $SkipCliSmoke) {
     Invoke-ValidationStep -Name "Run CLI smoke tests" -ScriptBlock {
         & ".\tests\cli-smoke.ps1"

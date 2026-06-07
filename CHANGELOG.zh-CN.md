@@ -10,6 +10,12 @@
 
 首次公开发布。
 
+### 2026-06-08
+
+### 修复
+
+- 修复 `adp workspace evidence -Snapshot` 和 `adp workspace evidence -Export -Path <zip>` 在 `-ManifestPath` 指向已存在 manifest 时失败的问题。workspace evidence 代码现在会显式调用 PowerShell 内置的 `Resolve-Path` 处理文件系统路径，ZIP 输入/输出使用 provider 文件系统路径，并为导出绑定文档承诺的 `-Path` 别名，避免 survival demo 记录证据时出现路径解析器或 provider-qualified 路径错误。
+
 ### 2026-06-05
 
 ### 新增

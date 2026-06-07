@@ -10,6 +10,12 @@ Versions follow [Semantic Versioning](https://semver.org/) (`MAJOR.MINOR.PATCH`)
 
 Initial public release.
 
+### 2026-06-08
+
+### Fixed
+
+- Fixed `adp workspace evidence -Snapshot` and `adp workspace evidence -Export -Path <zip>` when `-ManifestPath` points to an existing manifest. The workspace evidence code now explicitly calls PowerShell's built-in `Resolve-Path` for filesystem paths, uses provider filesystem paths for ZIP input/output, and binds the documented `-Path` alias for exports, preventing survival demo evidence recording from failing with path resolver or provider-qualified path errors.
+
 ### 2026-06-05
 
 ### Added

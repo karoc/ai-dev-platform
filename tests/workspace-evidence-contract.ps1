@@ -1,0 +1,116 @@
+# ADP-OS workspace evidence command contract checks.
+# Guards against custom config Resolve-Path shadowing PowerShell's path cmdlet.
+
+$ErrorActionPreference = "Stop"
+
+$projectRoot = Split-Path $PSScriptRoot -Parent
+$adpScript = Join-Path $projectRoot "cli\adp.ps1"
+$pwshPath = [System.Diagnostics.Process]::GetCurrentProcess().MainModule.FileName
+
+function Invoke-AdpProcess {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string[]]$Arguments,
+
+        [Parameter(Mandatory = $true)]
+        [string]$WorkingDirectory
+    )
+
+    $stdout = [System.IO.Path]::GetTempFileName()
+    $stderr = [System.IO.Path]::GetTempFileName()
+    try {
+        $process = Start-Process -FilePath $pwshPath `
+            -ArgumentList (@("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $adpScript) + $Arguments) `
+            -WorkingDirectory $WorkingDirectory `
+            -NoNewWindow -Wait -PassThru `
+            -RedirectStandardOutput $stdout `
+            -RedirectStandardError $stderr
+
+        $outText = Get-Content -LiteralPath $stdout -Raw -Encoding UTF8 -ErrorAction SilentlyContinue
+        $errText = Get-Content -LiteralPath $stderr -Raw -Encoding UTF8 -ErrorAction SilentlyContinue
+        return [pscustomobject]@{
+            ExitCode = $process.ExitCode
+            Output   = "$outText`n$errText"
+        }
+    } finally {
+        Remove-Item -LiteralPath $stdout, $stderr -Force -ErrorAction SilentlyContinue
+    }
+}
+
+function Assert-ExitCode {
+    param(
+        [string]$Name,
+        [object]$Result,
+        [int]$Expected
+    )
+
+    if ($Result.ExitCode -ne $Expected) {
+        throw "$Name exit code was $($Result.ExitCode), expected $Expected.`n$($Result.Output)"
+    }
+}
+
+function Assert-OutputContains {
+    param(
+        [string]$Name,
+        [object]$Result,
+        [string]$Pattern
+    )
+
+    if ($Result.Output -notmatch $Pattern) {
+        throw "$Name output did not match: $Pattern`n$($Result.Output)"
+    }
+}
+
+$tempRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("adp-workspace-evidence-{0}" -f ([guid]::NewGuid().ToString("N")))
+New-Item -ItemType Directory -Path $tempRoot -Force | Out-Null
+
+try {
+    $manifestPath = Join-Path $tempRoot "adp-workspace.json"
+    @'
+{
+  "name": "evidence-contract-workspace",
+  "version": 1,
+  "projects": [],
+  "tasks": []
+}
+'@ | Set-Content -LiteralPath $manifestPath -Encoding UTF8
+
+    $snapshotResult = Invoke-AdpProcess `
+        -Arguments @("workspace", "evidence", "-Snapshot", "-ManifestPath", $manifestPath) `
+        -WorkingDirectory $projectRoot
+    Assert-ExitCode -Name "workspace evidence snapshot with existing manifest path" -Result $snapshotResult -Expected 0
+    Assert-OutputContains -Name "workspace evidence snapshot output" -Result $snapshotResult -Pattern "Evidence Snapshot Signature"
+
+    $snapshotFile = Join-Path $tempRoot ".evidence\snapshot-hashes.json"
+    if (-not (Test-Path -LiteralPath $snapshotFile)) {
+        throw "workspace evidence snapshot did not create $snapshotFile"
+    }
+
+    $zipPath = Join-Path $tempRoot "evidence-export.zip"
+    $exportResult = Invoke-AdpProcess `
+        -Arguments @("workspace", "evidence", "-Export", "-Path", $zipPath, "-ManifestPath", $manifestPath) `
+        -WorkingDirectory $projectRoot
+    Assert-ExitCode -Name "workspace evidence export with existing manifest path" -Result $exportResult -Expected 0
+    Assert-OutputContains -Name "workspace evidence export output" -Result $exportResult -Pattern "Evidence Export Complete"
+
+    if (-not (Test-Path -LiteralPath $zipPath)) {
+        throw "workspace evidence export did not create $zipPath"
+    }
+
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    $archive = [System.IO.Compression.ZipFile]::OpenRead($zipPath)
+    try {
+        $entryNames = @($archive.Entries | ForEach-Object { $_.FullName })
+        foreach ($expected in @("README.txt", "snapshot-hashes.json", "adp-workspace.json")) {
+            if ($entryNames -notcontains $expected) {
+                throw "workspace evidence export missing ZIP entry: $expected"
+            }
+        }
+    } finally {
+        $archive.Dispose()
+    }
+} finally {
+    Remove-Item -LiteralPath $tempRoot -Recurse -Force -ErrorAction SilentlyContinue
+}
+
+Write-Output "workspace evidence contract OK"
