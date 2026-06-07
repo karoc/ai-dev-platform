@@ -40,7 +40,7 @@
 [22.470744, "o", "adp status\r\n"]
 [22.871783, "o", "\r\nRUNTIME   STATE     IP               SSH\r\nfrontend  running   192.168.242.131  adp-os-adp-frontend\r\nbackend   running   192.168.242.133  adp-os-adp-backend\r\n"]
 [22.871819, "o", "agent     running   192.168.242.135  adp-os-adp-agent\r\n"]
-[25.872811, "o", "\r\n   ADP-OS MCP Server — 18 tools for AI agents\r\n"]
+[25.872811, "o", "\r\n   ADP-OS MCP Server — 26 tools for AI agents\r\n"]
 [26.375004, "o", "   -- sandbox lifecycle, snapshots, workspace sync\r\n"]
 [26.676013, "o", "   -- Claude • Copilot • Cursor • Hermes\r\n"]
 [28.677133, "o", "\r\n   ★  github.com/karoc/ai-dev-platform\r\n"]

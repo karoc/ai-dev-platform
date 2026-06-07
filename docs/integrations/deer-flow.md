@@ -10,7 +10,7 @@
 
 [LLM] [ByteDance/deer-flow](https://github.com/ByteDance/deer-flow) (70K⭐) is a SuperAgent harness with Docker-based sandbox execution. Its `SandboxProvider` / `Sandbox` abstraction supports pluggable backends — ADP-OS serves as a **hardware-VM sandbox backend** via the MCP protocol, offering stronger isolation than Docker containers.
 
-**As of 2026-06-05, all P0 gaps are resolved.** The MCP server now exposes **26 tools**: 18 lifecycle + 8 SSH-backed in-VM sandbox operations. A production-complete `DeerFlowADPSandboxProvider` adapter class, VM pool pre-warming, and thread→runtime registry have been shipped.
+**As of 2026-06-05, all P0 gaps are resolved.** The MCP server now exposes **26 tools**: 3 platform, 10 workspace, 5 runtime, and 8 SSH-backed in-VM sandbox operations. A production-complete `DeerFlowADPSandboxProvider` adapter class, VM pool pre-warming, and thread→runtime registry have been shipped.
 
 The full integration path has been validated:
 1. **Layer 1 (covered)**: VM lifecycle — `adp_up` / `adp_down` / `adp_stop` / `adp_status` via MCP 

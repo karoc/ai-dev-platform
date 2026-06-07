@@ -3,7 +3,7 @@
 简体中文 | [English](README.md)
 
 [![CI](https://github.com/karoc/ai-dev-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/karoc/ai-dev-platform/actions/workflows/ci.yml)
-[![MCP](https://img.shields.io/badge/MCP_SDK-18_tools-4B8BBE?logo=python)](cli/mcp/server.py)
+[![MCP](https://img.shields.io/badge/MCP_SDK-26_tools-4B8BBE?logo=python)](cli/mcp/server.py)
 [![Discord](https://img.shields.io/badge/Discord-社区-5865F2?logo=discord&logoColor=white)](docs/zh-CN/discord-setup.md)
 <!-- 创建 Discord 服务器后，请将上述 badge 链接替换为 https://discord.gg/YOUR_INVITE_CODE -->
 
@@ -45,18 +45,20 @@ ADP-OS 用一条可验证的**证据链**来回答这些问题：
 - 静态 IP 网络，支持配置 NAT 子网和各运行时地址。
 - VMware 快照命令，用于创建可回滚的干净检查点。
 - 诊断脚本和部署预检查脚本。
-- Agent-native MCP 服务器和 SDK，暴露 18 个平台、工作区和运行时工具。
+- Agent-native MCP 服务器和 SDK，暴露 26 个平台、工作区、运行时和 VM 内沙箱工具。
 - Agent 治理审计链：任务状态追踪、里程碑检查点、评估钩子和发布证据。
 
 ## Agent-Native API（MCP）
 
-ADP-OS 内置了一个 [Model Context Protocol (MCP)](https://modelcontextprotocol.io) 服务器和 SDK（`cli/mcp/server.py`），将完整的 ADP-OS 控制平面暴露为 18 个 agent 可访问的工具：
+ADP-OS 内置了一个 [Model Context Protocol (MCP)](https://modelcontextprotocol.io) 服务器和 SDK（`cli/mcp/server.py`），将完整的 ADP-OS 控制平面暴露为 26 个 agent 可访问的工具：
 
 **平台工具（3 个）：** `adp_status` — 运行时健康状态和 SSH 可达性。`adp_doctor` — 诊断和逐项修复指引。`adp_capabilities` — 已支持功能和路线图。
 
 **工作区工具（10 个）：** `adp_workspace_list` — 列出所有项目。`adp_workspace_status` — 就绪状态汇总。`adp_workspace_dashboard` — 任务生命周期总览。`adp_workspace_project` — 单个项目操作视图。`adp_workspace_create` — 创建项目目录。`adp_workspace_open` — 工作区入口指引。`adp_workspace_sync` — 按项目同步指引。`adp_workspace_close` — 停止运行时同步。`adp_workspace_recipes` — 可用 recipes。`adp_workspace_report` — Markdown 发布证据。
 
 **运行时工具（5 个）：** `adp_up` — 启动 VM（默认仅预览）。`adp_down` — 销毁 VM（默认仅预览）。`adp_stop` — 优雅关闭 VM。`adp_sync_status` — Mutagen 同步健康状态。`adp_sync_stop` — 停止同步会话。
+
+**VM 内沙箱工具（8 个）：** `adp_exec` — 通过 SSH 执行命令。`adp_file_read` — 读取文件。`adp_file_write` — 写入文件。`adp_dir_list` — 列出目录。`adp_glob` — 匹配文件。`adp_grep` — 搜索文件内容。`adp_file_download` — 下载文件内容。`adp_file_upload` — 上传文件内容。
 
 所有破坏性操作默认以 plan-only 模式运行，确保安全。将任何 MCP 兼容的 Agent（Claude Desktop、Claude Agent、Hermes、Cursor 等）连接到 `cli/mcp/server.py`：
 
@@ -74,11 +76,11 @@ ADP-OS 内置了一个 [Model Context Protocol (MCP)](https://modelcontextprotoc
 
 ### GitHub Copilot Agent SDK
 
-ADP-OS 与 [GitHub Copilot Agent SDK](https://github.com/github/copilot-sdk) 原生兼容。在 Copilot SDK session 中加载 ADP-OS 作为 MCP 服务器，即可访问全部 18 个平台、工作区和运行时工具。参见 **[Copilot SDK 集成指南](docs/zh-CN/copilot-sdk-integration.md)**，了解 Python 和 TypeScript 快速开始示例、环境变量配置和权限模式。
+ADP-OS 与 [GitHub Copilot Agent SDK](https://github.com/github/copilot-sdk) 原生兼容。在 Copilot SDK session 中加载 ADP-OS 作为 MCP 服务器，即可访问全部 26 个平台、工作区、运行时和 VM 内沙箱工具。参见 **[Copilot SDK 集成指南](docs/zh-CN/copilot-sdk-integration.md)**，了解 Python 和 TypeScript 快速开始示例、环境变量配置和权限模式。
 
 ### Claude Agent 支持
 
-ADP-OS 兼容 [Claude Managed Agents](https://docs.anthropic.com/en/docs/agents-and-tools/managed-agents)，该平台支持自托管 MCP 沙箱的 Agent 原生代码执行。将 ADP-OS 作为 MCP 服务器连接，即可让 Claude Agent 访问全部 18 个平台、工作区和运行时工具 —— 包括 VM 生命周期管理、工作区同步和 Spec 驱动的审计链。在 Claude Agent 的 MCP 设置中配置 `cli/mcp/server.py` 即可启用自托管沙箱操作，支持 Claude 的 managed agent 工作流。
+ADP-OS 兼容 [Claude Managed Agents](https://docs.anthropic.com/en/docs/agents-and-tools/managed-agents)，该平台支持自托管 MCP 沙箱的 Agent 原生代码执行。将 ADP-OS 作为 MCP 服务器连接，即可让 Claude Agent 访问全部 26 个平台、工作区、运行时和 VM 内沙箱工具 —— 包括 VM 生命周期管理、工作区同步、VM 内命令执行、文件操作和 Spec 驱动的审计链。在 Claude Agent 的 MCP 设置中配置 `cli/mcp/server.py` 即可启用自托管沙箱操作，支持 Claude 的 managed agent 工作流。
 
 ## 环境要求
 
@@ -383,6 +385,7 @@ adp workspace declare -AiAssisted [-Reviewer <name>] [-Notes "..."] [-ManifestPa
 - [贡献者工作流](docs/zh-CN/contributor-workflows.md)
 - [操作指南](docs/zh-CN/operations.md)
 - [证据链](docs/zh-CN/evidence.md)
+- [生存验证](docs/zh-CN/survival-validation.md)
 - [排障](docs/zh-CN/troubleshooting.md)
 - [网络说明](docs/zh-CN/networking.md)
 - [浏览器测试](docs/zh-CN/browser-testing.md)
@@ -397,7 +400,8 @@ adp workspace declare -AiAssisted [-Reviewer <name>] [-Notes "..."] [-ManifestPa
 - **[Discord](docs/zh-CN/discord-setup.md)** — 加入 ADP-OS 社区，获取实时帮助、开发讨论和发布公告。
 - **[GitHub Discussions](https://github.com/karoc/ai-dev-platform/discussions)** — 异步提问、分享想法和项目讨论。
 - **[贡献指南](CONTRIBUTING.zh-CN.md)** — 开发环境搭建、编码规范和 PR 流程。
-- **[演示](docs/demo.cast)** — 终端录屏：clone → doctor → plan → status → MCP（30 秒，用 `asciinema play` 播放）。[完整演示脚本 →](docs/zh-CN/demo-script.md)
+- **[演示](docs/demo.cast)** — 快速终端导览：clone → doctor → plan → status → MCP（30 秒，用 `asciinema play` 播放）。[10 分钟演示脚本 →](docs/zh-CN/demo-script.md)
+- **[生存验证](docs/zh-CN/survival-validation.md)** — 面向首批用户的验证流程，记录 10 分钟 demo、rollback 结果、evidence export 和反馈。
 
 ## 安全
 

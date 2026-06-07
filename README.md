@@ -3,7 +3,7 @@
 [简体中文](README.zh-CN.md) | English
 
 [![CI](https://github.com/karoc/ai-dev-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/karoc/ai-dev-platform/actions/workflows/ci.yml)
-[![MCP](https://img.shields.io/badge/MCP_SDK-18_tools-4B8BBE?logo=python)](cli/mcp/server.py)
+[![MCP](https://img.shields.io/badge/MCP_SDK-26_tools-4B8BBE?logo=python)](cli/mcp/server.py)
 [![Discord](https://img.shields.io/badge/Discord-Community-5865F2?logo=discord&logoColor=white)](docs/discord-setup.md)
 <!-- Replace Discord badge link with https://discord.gg/YOUR_INVITE_CODE after creating the server -->
 
@@ -49,18 +49,20 @@ ADP-OS answers these questions with a verifiable **evidence chain**:
 - Static IP networking with configurable NAT subnet and per-runtime addresses.
 - VMware snapshot commands for clean rollback points.
 - Diagnostics and deployment pre-check scripts.
-- Agent-native MCP server and SDK exposing 18 platform, workspace, and runtime tools.
+- Agent-native MCP server and SDK exposing 26 platform, workspace, runtime, and in-VM sandbox tools.
 - Agent governance audit chain: task state tracking, milestone checkpoints, evaluation hooks, and release evidence.
 
 ## Agent-Native API (MCP)
 
-ADP-OS ships a [Model Context Protocol (MCP)](https://modelcontextprotocol.io) server and SDK (`cli/mcp/server.py`) that exposes the full ADP-OS control plane as 18 agent-accessible tools:
+ADP-OS ships a [Model Context Protocol (MCP)](https://modelcontextprotocol.io) server and SDK (`cli/mcp/server.py`) that exposes the full ADP-OS control plane as 26 agent-accessible tools:
 
 **Platform (3):** `adp_status` — runtime health and SSH reachability. `adp_doctor` — diagnostics with per-issue remediation. `adp_capabilities` — supported features and roadmap.
 
 **Workspace (10):** `adp_workspace_list` — list all projects. `adp_workspace_status` — readiness summary. `adp_workspace_dashboard` — task lifecycle overview. `adp_workspace_project` — single project operational view. `adp_workspace_create` — create project directories. `adp_workspace_open` — workspace entry guidance. `adp_workspace_sync` — per-project sync guidance. `adp_workspace_close` — stop sync for a runtime. `adp_workspace_recipes` — available recipes. `adp_workspace_report` — Markdown release evidence.
 
 **Runtime (5):** `adp_up` — start a VM (plan-only by default). `adp_down` — destroy a VM (plan-only by default). `adp_stop` — graceful VM shutdown. `adp_sync_status` — Mutagen sync health. `adp_sync_stop` — stop a sync session.
+
+**In-VM Sandbox (8):** `adp_exec` — run a command over SSH. `adp_file_read` — read a file. `adp_file_write` — write a file. `adp_dir_list` — list directories. `adp_glob` — match files. `adp_grep` — search file contents. `adp_file_download` — download file contents. `adp_file_upload` — upload file contents.
 
 All destructive operations default to plan-only mode for safety. Connect any MCP-compatible agent (Claude Desktop, Claude Agent, Hermes, Cursor, etc.) to `cli/mcp/server.py`:
 
@@ -78,11 +80,11 @@ All destructive operations default to plan-only mode for safety. Connect any MCP
 
 ### GitHub Copilot Agent SDK
 
-ADP-OS is natively compatible with the [GitHub Copilot Agent SDK](https://github.com/github/copilot-sdk). Load ADP-OS as an MCP server in your Copilot SDK session to access all 18 platform, workspace, and runtime tools. See the **[Copilot SDK Integration Guide](docs/copilot-sdk-integration.md)** for Python and TypeScript quick-start examples, environment variable configuration, and permission patterns.
+ADP-OS is natively compatible with the [GitHub Copilot Agent SDK](https://github.com/github/copilot-sdk). Load ADP-OS as an MCP server in your Copilot SDK session to access all 26 platform, workspace, runtime, and in-VM sandbox tools. See the **[Copilot SDK Integration Guide](docs/copilot-sdk-integration.md)** for Python and TypeScript quick-start examples, environment variable configuration, and permission patterns.
 
 ### Claude Agent Support
 
-ADP-OS is compatible with [Claude Managed Agents](https://docs.anthropic.com/en/docs/agents-and-tools/managed-agents), which support self-hosted MCP sandboxes for agent-native code execution. Connect ADP-OS as an MCP server to give Claude Agent access to all 18 platform, workspace, and runtime tools — including VM lifecycle management, workspace synchronization, and the spec-driven audit chain. Configure `cli/mcp/server.py` in your Claude Agent MCP settings to enable self-hosted sandbox operations for Claude's managed agent workflows.
+ADP-OS is compatible with [Claude Managed Agents](https://docs.anthropic.com/en/docs/agents-and-tools/managed-agents), which support self-hosted MCP sandboxes for agent-native code execution. Connect ADP-OS as an MCP server to give Claude Agent access to all 26 platform, workspace, runtime, and in-VM sandbox tools — including VM lifecycle management, workspace synchronization, VM command execution, file operations, and the spec-driven audit chain. Configure `cli/mcp/server.py` in your Claude Agent MCP settings to enable self-hosted sandbox operations for Claude's managed agent workflows.
 
 ## Requirements
 
@@ -451,6 +453,7 @@ agent     watching  %USERPROFILE%\adp-workspaces\agent   /home/adp/workspace
 - [Contributor Workflows](docs/contributor-workflows.md)
 - [Operations](docs/operations.md)
 - [Evidence Chain](docs/evidence.md)
+- [Survival Validation](docs/survival-validation.md)
 - [Troubleshooting](docs/troubleshooting.md)
 - [Networking](docs/networking.md)
 - [Browser Testing](docs/browser-testing.md)
@@ -465,7 +468,8 @@ agent     watching  %USERPROFILE%\adp-workspaces\agent   /home/adp/workspace
 - **[Discord](docs/discord-setup.md)** — Join the ADP-OS community for real-time help, development discussion, and release announcements.
 - **[GitHub Discussions](https://github.com/karoc/ai-dev-platform/discussions)** — Ask questions, share ideas, and discuss the project asynchronously.
 - **[Contributing](CONTRIBUTING.md)** — Development environment setup, coding guidelines, and PR process.
-- **[Demo](docs/demo.cast)** — Terminal recording: clone → doctor → plan → status → MCP (30s, play with `asciinema play`). [Full demo script →](docs/demo-script.md)
+- **[Demo](docs/demo.cast)** — Quick terminal orientation: clone → doctor → plan → status → MCP (30s, play with `asciinema play`). [10-minute presenter script →](docs/demo-script.md)
+- **[Survival Validation](docs/survival-validation.md)** — First-users validation process for the 10-minute demo, rollback result, evidence export, and feedback capture.
 
 ## Security
 

@@ -10,7 +10,7 @@
 
 [LLM] [ByteDance/deer-flow](https://github.com/ByteDance/deer-flow)（70K⭐）是一个基于 Docker 沙箱执行的 SuperAgent 平台。其 `SandboxProvider` / `Sandbox` 抽象层支持可插拔的后端——ADP-OS 可以通过 MCP 协议作为**硬件 VM 沙箱后端**，提供比 Docker 容器更强的隔离性。
 
-**截至 2026-06-05，所有 P0 缺口已解决。** MCP 服务器现已暴露 **26 个工具**：18 个生命周期 + 8 个 SSH 支持的 VM 内沙箱操作。生产级 `DeerFlowADPSandboxProvider` 适配器类、VM 池预暖以及 thread→runtime 注册表已发布。
+**截至 2026-06-05，所有 P0 缺口已解决。** MCP 服务器现已暴露 **26 个工具**：3 个平台工具、10 个工作区工具、5 个运行时工具，以及 8 个 SSH 支持的 VM 内沙箱操作。生产级 `DeerFlowADPSandboxProvider` 适配器类、VM 池预暖以及 thread→runtime 注册表已发布。
 
 完整的集成路径已验证通过：
 1. **第一层（已覆盖）**: VM 生命周期——通过 MCP 调用 `adp_up` / `adp_down` / `adp_stop` / `adp_status`
