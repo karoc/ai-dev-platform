@@ -5,7 +5,7 @@
 > **Audience**: Windows developers who use AI coding agents and worry about agent mistakes.
 > **Pre-requisite**: Agent runtime must be pre-provisioned before the session (VM creation takes 15–45 min).
 >
-> **状态**: 就绪。基于 survival-demo-spec-20260606.md Section 2，已通过跨验证（0 Blocker）[FILE][LLM]
+> **Status**: Ready for presenter rehearsal. Verify every command on the target Windows + VMware host before recording.
 
 ---
 
@@ -15,13 +15,13 @@ Run these before the session. Do NOT include in the 10-minute window.
 
 - [ ] 1. **Verify VMware** — `adp doctor` shows VMware reachable. If "VMware: unavailable", stop — demo cannot proceed.
 - [ ] 2. **Verify agent runtime** — `adp status agent` shows "running, SSH reachable, sync watching".
-- [ ] 3. **Pre-create snapshot** — `adp snapshot create agent before-demo` (VMware snapshot; takes 30–120s). If it already exists, the command reports "Snapshot already exists" and exits fast.
+- [ ] 3. **Pre-create snapshot** — `adp snapshot create agent before-broad-agent-refactor` (VMware snapshot; takes 30–120s). If it already exists, the command reports "Snapshot already exists" and exits fast.
 - [ ] 4. **Note agent IP** — `adp status agent -Json | ConvertFrom-Json | Select-Object -ExpandProperty Runtimes | Where-Object {$_.Runtime -eq 'agent'} | Select-Object -ExpandProperty DetectedIp`. Or use SSH alias: `ssh adp-os-adp-agent`.
 - [ ] 5. **Clean terminal** — close other windows, disable notifications. Use Windows Terminal with PowerShell 7, clean profile.
 - [ ] 6. **Prepare agent workspace** — SSH into agent VM and ensure `/home/adp/workspace/agent-workspace/` has a git repo with README.md, src/main.ts, and a clean working tree.
 - [ ] 7. **Verify evidence chain** — `adp workspace evidence -Snapshot -ManifestPath configs\workspace.recipes.example.json` should succeed.
 
-> **Hard constraint**: If VMware is unavailable, the demo CANNOT be run. Section 7 Risk 2 of the spec explicitly forbids faking snapshot/restore/evidence output. [FILE]
+> **Hard constraint**: If VMware is unavailable, the demo CANNOT be run. Do not fake snapshot, restore, or evidence output.
 
 ---
 
@@ -56,11 +56,11 @@ Expected: `agent: running, SSH reachable, sync watching`.
 **Goal**: Show that ADP-OS checkpoints the ENTIRE VM, not just git. Begin cryptographic evidence chain.
 
 ```powershell
-# Step B1 — Initialize workspace manifest (existing command)
-adp workspace init -ManifestPath configs\workspace.recipes.example.json
+# Step B1 — Confirm the public recipe manifest is present
+Test-Path configs\workspace.recipes.example.json
 ```
 
-Expected: "Workspace manifest initialized."
+Expected: `True`.
 
 ```powershell
 # Step B2 — Show available recipes (existing command)
@@ -73,10 +73,10 @@ Expected: Shows 4 tasks including `broad-agent-refactor` (risk: high, requires_s
 
 ```powershell
 # Step B3 — Create VM snapshot (existing command)
-adp snapshot create agent before-demo
+adp snapshot create agent before-broad-agent-refactor
 ```
 
-Expected: "Snapshot 'before-demo' created" — or "already exists" if pre-created.
+Expected: "Snapshot 'before-broad-agent-refactor' created successfully" — or "already exists" if pre-created.
 
 > Narrator: "This is NOT git stash. This is a VMware VM snapshot — the entire filesystem, installed packages, Docker containers, systemd services, caches. Everything."
 
@@ -89,7 +89,7 @@ Expected: "Evidence snapshot entry recorded."
 
 ```powershell
 # Step B5 — Record operation log entry (existing command)
-adp workspace evidence -Log -Operation "snapshot" -Details "before-demo: clean pre-agent checkpoint" -ManifestPath configs\workspace.recipes.example.json
+adp workspace evidence -Log -Operation "snapshot" -Details "before-broad-agent-refactor: clean pre-agent checkpoint" -ManifestPath configs\workspace.recipes.example.json
 ```
 
 Expected: "Evidence log entry recorded."
@@ -136,7 +136,7 @@ adp workspace evidence -Log -Operation "run" -Details "task=broad-agent-refactor
 
 > Narrator: "Every operation is recorded. The evidence chain now has: snapshot → run. Irreversible. Immutable."
 
-**Pivot moment** — ask the viewer: *"Without ADP-OS, how would you know what the agent did?"* [LLM]
+**Pivot moment** — ask the viewer: *"Without ADP-OS, how would you know what the agent did?"*
 
 ---
 
@@ -146,10 +146,10 @@ adp workspace evidence -Log -Operation "run" -Details "task=broad-agent-refactor
 
 ```powershell
 # Step D1 — Generate workspace report (existing command)
-adp workspace report -Markdown -ManifestPath configs\workspace.recipes.example.json
+adp workspace report -Markdown -ManifestPath configs\workspace.recipes.example.json | Tee-Object -FilePath workspace-report.md
 ```
 
-Expected: Markdown report showing task lifecycle, operations, validation status.
+Expected: Markdown report printed in the terminal and saved as `workspace-report.md` for the evidence export.
 
 ```powershell
 # Step D2 — Declare AI-assisted development (existing command)
@@ -175,19 +175,19 @@ adp workspace dashboard -ManifestPath configs\workspace.recipes.example.json
 
 ```powershell
 # Step E1 — Plan the rollback first (existing command)
-adp restore agent before-demo -Plan
+adp restore agent before-broad-agent-refactor -Plan
 ```
 
-Expected: "Plan: will restore agent 'before-demo'" (no action taken).
+Expected: "Plan only: no changes will be made" and "Would restore snapshot: 'before-broad-agent-refactor'."
 
 > Narrator: "Safety first — ADP-OS defaults to plan-only. You see exactly what will happen before it happens."
 
 ```powershell
 # Step E2 — Execute rollback (existing command)
-adp restore agent before-demo -Force
+adp restore agent before-broad-agent-refactor -Force
 ```
 
-Expected: "Restored agent 'before-demo'."
+Expected: "Restored to snapshot 'before-broad-agent-refactor'."
 
 ```powershell
 # Step E3 — Verify restoration (SSH)
@@ -218,7 +218,7 @@ ssh adp-os-adp-agent "cd /home/adp/workspace/agent-workspace && ls README.md && 
 adp workspace evidence -Export -Path evidence-demo-export.zip -ManifestPath configs\workspace.recipes.example.json
 ```
 
-Expected: "Evidence exported to evidence-demo-export.zip."
+Expected: "Evidence Export Complete" and `Output      : ...\evidence-demo-export.zip`.
 
 ```powershell
 # Step F2 — Show ZIP contents (PowerShell)
@@ -226,7 +226,7 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 [System.IO.Compression.ZipFile]::OpenRead("evidence-demo-export.zip").Entries | Select-Object FullName, Length
 ```
 
-> Narrator: "The ZIP contains: snapshot-hashes.json (cryptographic proof), operation-log.json (immutable action record), workspace-report.md (human-readable summary). This is a self-contained audit trail. A reviewer can verify the SHA-256 chain and confirm nothing was tampered with."
+> Narrator: "The ZIP contains: snapshot-hashes.json (cryptographic proof), operation-log.json (immutable action record), workspace-report.md (human-readable summary), adp-workspace.json, and README.txt. This is a self-contained audit trail. A reviewer can verify the SHA-256 chain and confirm nothing was tampered with."
 
 > Narrator: **"This is the artifact that proves value."**
 
@@ -253,7 +253,7 @@ The demo must honestly disclose:
 - Does NOT prove no external side effects (network calls, API writes)
 - Does NOT prove no data exfiltration (evidence chain records VM-internal actions only)
 
-> "Rollback is a runtime safety net, not a security guarantee." [FILE][LLM]
+> "Rollback is a runtime safety net, not a security guarantee."
 
 ---
 
@@ -279,6 +279,4 @@ The demo must honestly disclose:
 
 ---
 
-> **Source Tags**: [FILE]=File read (source code or config), [CMD]=Shell command, [LLM]=LLM reasoning
->
-> **Spec reference**: `evidence/survival-demo-spec-20260606.md` (Section 2 command path, cross-validated at commit 8ff9f56, 0 Blockers).
+Before recording, rehearse the script once on the exact machine that will appear in the video. Treat any output mismatch as a script bug, not as something to explain away during the demo.
