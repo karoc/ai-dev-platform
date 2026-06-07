@@ -5,7 +5,7 @@
 > **Audience**: Windows developers who use AI coding agents and worry about agent mistakes.
 > **Pre-requisite**: Agent runtime must be pre-provisioned before the session (VM creation takes 15–45 min).
 >
-> **Status**: Ready for presenter rehearsal. Verify every command on the target Windows + VMware host before recording.
+> **Status**: Corrected after controlled Windows + VMware rehearsal. Re-run this exact script on the target host before recording.
 
 ---
 
@@ -18,8 +18,9 @@ Run these before the session. Do NOT include in the 10-minute window.
 - [ ] 3. **Pre-create snapshot** — `adp snapshot create agent before-broad-agent-refactor` (VMware snapshot; takes 30–120s). If it already exists, the command reports "Snapshot already exists" and exits fast.
 - [ ] 4. **Note agent IP** — `adp status agent -Json | ConvertFrom-Json | Select-Object -ExpandProperty Runtimes | Where-Object {$_.Runtime -eq 'agent'} | Select-Object -ExpandProperty DetectedIp`. Or use SSH alias: `ssh adp-os-adp-agent`.
 - [ ] 5. **Clean terminal** — close other windows, disable notifications. Use Windows Terminal with PowerShell 7, clean profile.
-- [ ] 6. **Prepare agent workspace** — SSH into agent VM and ensure `/home/adp/workspace/agent-workspace/` has a git repo with README.md, src/main.ts, and a clean working tree.
-- [ ] 7. **Verify evidence chain** — `adp workspace evidence -Snapshot -ManifestPath configs\workspace.recipes.example.json` should succeed.
+- [ ] 6. **Prepare agent workspace** — SSH into agent VM and ensure `/home/adp/workspace/agent-workspace/` has a git repo with README.md, src/main.ts, and a clean working tree. If the runtime was restored or sync was previously stopped, reconcile host and VM workspace state before starting the demo.
+- [ ] 7. **Plan the sync fence** — start the demo with sync watching, then stop `agent` sync before mutating the VM. Do not restart sync after restore until you have chosen the host or VM workspace as the source of truth and reconciled the other side.
+- [ ] 8. **Verify evidence chain** — `adp workspace evidence -Snapshot -ManifestPath configs\workspace.recipes.example.json` should succeed.
 
 > **Hard constraint**: If VMware is unavailable, the demo CANNOT be run. Do not fake snapshot, restore, or evidence output.
 
@@ -89,7 +90,7 @@ Expected: "Evidence snapshot entry recorded."
 
 ```powershell
 # Step B5 — Record operation log entry (existing command)
-adp workspace evidence -Log -Operation "snapshot" -Details "before-broad-agent-refactor: clean pre-agent checkpoint" -ManifestPath configs\workspace.recipes.example.json
+adp workspace evidence -Log -Operation "snapshot" -Details "snapshot=before-broad-agent-refactor;state=clean-pre-agent-checkpoint" -ManifestPath configs\workspace.recipes.example.json
 ```
 
 Expected: "Evidence log entry recorded."
@@ -115,7 +116,18 @@ adp workspace task mark broad-agent-refactor checkpointed -ManifestPath configs\
 > Narrator: "The task lifecycle records every gate. Prepared → Checkpointed → the agent can now work."
 
 ```powershell
-# Step C3 — Simulate agent modifying project (SSH into agent VM)
+# Step C3 — Stop sync before mutating the VM
+adp sync stop agent
+adp sync status
+adp workspace evidence -Log -Operation "sync" -Details "runtime=agent;action=stop;reason=restore-demo-fence" -ManifestPath configs\workspace.recipes.example.json
+```
+
+Expected: the `agent` sync session is stopped or no longer watching.
+
+> Narrator: "The demo deliberately fences sync before the agent mutates files. This prevents two-way sync from copying a bad VM state back to the host, or copying a stale host state back into the VM after restore."
+
+```powershell
+# Step C4 — Simulate agent modifying project (SSH into agent VM)
 # Use the IP noted in pre-demo setup, or SSH alias:
 ssh adp-os-adp-agent "cd /home/adp/workspace/agent-workspace && echo '// AI-generated feature' >> src/main.ts && mkdir -p generated && echo 'build artifact' > generated/output.json && rm README.md"
 ```
@@ -123,18 +135,20 @@ ssh adp-os-adp-agent "cd /home/adp/workspace/agent-workspace && echo '// AI-gene
 > Narrator: "The agent adds a feature to main.ts, generates build artifacts, and — accidentally — deletes README.md. This is a common AI agent mistake."
 
 ```powershell
-# Step C4 — Simulated validation (SSH)
-ssh adp-os-adp-agent "cd /home/adp/workspace/agent-workspace && echo 'FAIL: missing README.md' && git diff --check"
+# Step C5 — Simulated validation (SSH)
+ssh adp-os-adp-agent "cd /home/adp/workspace/agent-workspace && test -f README.md || { echo 'FAIL: missing README.md'; exit 1; } && git diff --check"
 ```
 
-> Narrator: "Validation catches the problem: README.md is gone."
+Expected: prints `FAIL: missing README.md` and exits non-zero.
+
+> Narrator: "Validation catches the problem: README.md is gone. This is a real failing check, not just a message printed before a passing command."
 
 ```powershell
-# Step C5 — Record operation (existing command)
-adp workspace evidence -Log -Operation "run" -Details "task=broad-agent-refactor; agent=claude-code; files_changed=2; warnings=1" -ManifestPath configs\workspace.recipes.example.json
+# Step C6 — Record operation (existing command)
+adp workspace evidence -Log -Operation "validate" -Details "task=broad-agent-refactor;agent=claude-code;files_changed=2;warnings=1;result=failed" -ManifestPath configs\workspace.recipes.example.json
 ```
 
-> Narrator: "Every operation is recorded. The evidence chain now has: snapshot → run. Irreversible. Immutable."
+> Narrator: "Every operation is recorded. The evidence chain now has: snapshot → sync fence → failed validation. Irreversible. Immutable."
 
 **Pivot moment** — ask the viewer: *"Without ADP-OS, how would you know what the agent did?"*
 
@@ -146,14 +160,14 @@ adp workspace evidence -Log -Operation "run" -Details "task=broad-agent-refactor
 
 ```powershell
 # Step D1 — Generate workspace report (existing command)
-adp workspace report -Markdown -ManifestPath configs\workspace.recipes.example.json | Tee-Object -FilePath workspace-report.md
+adp workspace report -Markdown -ManifestPath configs\workspace.recipes.example.json | Tee-Object -FilePath configs\workspace-report.md
 ```
 
-Expected: Markdown report printed in the terminal and saved as `workspace-report.md` for the evidence export.
+Expected: Markdown report printed in the terminal and saved as `configs\workspace-report.md` for the evidence export. The export uses the manifest directory as the workspace root.
 
 ```powershell
 # Step D2 — Declare AI-assisted development (existing command)
-adp workspace declare -AiAssisted -Reviewer "presenter" -Notes "demo: agent modified src/main.ts and generated/output.json, accidentally deleted README.md" -ManifestPath configs\workspace.recipes.example.json
+adp workspace declare -AiAssisted -Reviewer "presenter" -Notes "demo-agent-modified-src-main-ts-generated-output-json-deleted-readme" -ManifestPath configs\workspace.recipes.example.json
 ```
 
 Expected: "Evidence declare entry recorded."
@@ -190,8 +204,22 @@ adp restore agent before-broad-agent-refactor -Force
 Expected: "Restored to snapshot 'before-broad-agent-refactor'."
 
 ```powershell
-# Step E3 — Verify restoration (SSH)
-ssh adp-os-adp-agent "cd /home/adp/workspace/agent-workspace && ls README.md && echo 'README restored. generated/output.json is gone (never existed before agent).'"
+# Step E3 — Check runtime state after restore
+adp status agent
+```
+
+Expected: the runtime may be stopped after restore. If it is stopped, restart it without bootstrapping:
+
+```powershell
+adp up agent -NoBootstrap
+adp status agent
+```
+
+Expected: `agent: running, SSH reachable`. Keep sync stopped until host and VM workspace state are reconciled.
+
+```powershell
+# Step E4 — Verify restoration inside the VM (SSH)
+ssh adp-os-adp-agent "cd /home/adp/workspace/agent-workspace && test -f README.md && echo README_OK && test ! -e generated/output.json && echo GENERATED_GONE && ! grep -q 'AI-generated feature' src/main.ts && echo MAIN_TS_REVERTED"
 ```
 
 > Narrator: "Full VM rollback in one command. Let's compare with git reset:"
@@ -223,7 +251,17 @@ Expected: "Evidence Export Complete" and `Output      : ...\evidence-demo-export
 ```powershell
 # Step F2 — Show ZIP contents (PowerShell)
 Add-Type -AssemblyName System.IO.Compression.FileSystem
-[System.IO.Compression.ZipFile]::OpenRead("evidence-demo-export.zip").Entries | Select-Object FullName, Length
+$zip = [System.IO.Compression.ZipFile]::OpenRead("evidence-demo-export.zip")
+try {
+    $entries = $zip.Entries | Select-Object FullName, Length
+    $entries
+    $names = $entries.FullName
+    "README.txt", "snapshot-hashes.json", "operation-log.json", "workspace-report.md", "adp-workspace.json" | ForEach-Object {
+        if ($names -notcontains $_) { throw "Missing ZIP entry: $_" }
+    }
+} finally {
+    $zip.Dispose()
+}
 ```
 
 > Narrator: "The ZIP contains: snapshot-hashes.json (cryptographic proof), operation-log.json (immutable action record), workspace-report.md (human-readable summary), adp-workspace.json, and README.txt. This is a self-contained audit trail. A reviewer can verify the SHA-256 chain and confirm nothing was tampered with."
@@ -265,14 +303,17 @@ The demo must honestly disclose:
 | `adp status agent` shows "VMware: unavailable" | VMware Workstation not running or vmrun not in PATH | Start VMware, verify `vmrun list` |
 | `adp snapshot create` hangs | VMware snapshot taking longer than expected | Wait up to 120s; large VM disks take time |
 | SSH connection refused | Agent VM IP changed or SSH service down | `adp status agent -Json` to get current IP; `adp up agent` to restart |
-| `adp workspace evidence -Export` fails | Evidence directory missing | Run evidence -Snapshot and -Log first |
+| Restore succeeds but SSH fails | Restore left the VM stopped | Run `adp up agent -NoBootstrap`, then `adp status agent` |
+| VM restore reintroduces or loses unexpected files | Two-way sync was left running or restarted before reconciliation | Stop `agent` sync before mutation/restore; restart only after choosing host or VM as source of truth |
+| `workspace-report.md` is missing from the ZIP | Report was written outside the manifest workspace root | Generate the report at `configs\workspace-report.md` before export |
+| `adp workspace evidence -Export` fails | Evidence directory or required evidence files missing | Run `evidence -Snapshot`, record `evidence -Log`, and generate `configs\workspace-report.md` first |
 
 ---
 
 ## Recording Setup (for video production)
 
 - **Screen recording**: OBS Studio (free, Windows)
-- **Terminal**: Windows Terminal + PowerShell 7, clean profile
+- **Terminal**: Windows Terminal + PowerShell 7, clean profile. From the repository root, `.\adp.cmd ...` is the stock Windows shell entry point; PowerShell 7 is still required by the control plane.
 - **Font**: Cascadia Code or Consolas, 14pt
 - **Resolution**: 1920×1080
 - **Style**: Clean white-on-black terminal. No face cam. Text overlays for key concepts.

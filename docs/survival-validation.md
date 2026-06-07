@@ -83,11 +83,12 @@ Before showing the demo to a user:
 - Pre-provision the `agent` runtime; first VM creation is not part of the 10-minute window.
 - Confirm `adp doctor` reports 0 issues before the demo.
 - Confirm `adp status agent` reports the runtime as running and SSH reachable.
-- Confirm `adp sync status` reports the `agent` session as healthy or watching. Stop and recreate stale `adp-agent` sessions before the demo.
+- Confirm `adp sync status` reports the `agent` session as healthy or watching before the demo. Stop and recreate stale `adp-agent` sessions before starting the user-facing run.
+- Confirm the presenter script fences sync before VM mutation and rollback: stop `agent` sync before the destructive task, keep it stopped through restore, and restart it only after choosing the host or VM workspace as the source of truth.
 - Create or confirm the snapshot named by the demo script.
-- Confirm `workspace-report.md` is generated before evidence export.
-- Export a real evidence ZIP with `adp workspace evidence -Export`.
-- Verify rollback restores `README.md` and removes `generated/output.json`.
+- Confirm `workspace-report.md` is generated in the manifest workspace root before evidence export. For the public recipe manifest, that is `configs\workspace-report.md`.
+- Export a real evidence ZIP with `adp workspace evidence -Export`, then verify it contains `README.txt`, `snapshot-hashes.json`, `operation-log.json`, `workspace-report.md`, and `adp-workspace.json`.
+- Verify rollback restores `README.md`, removes `generated/output.json`, and reverts the `src/main.ts` demo mutation. If restore leaves the runtime stopped, run `adp up agent -NoBootstrap` and `adp status agent` before SSH file checks.
 - Keep the actual elapsed time. Do not round away slow snapshot or restore behavior.
 
 If a pre-provisioned `agent` VM is shown as still installing, stop treating the run as a normal first install. Run `adp status agent`, `adp doctor`, and `adp network apply agent -Plan`. A common stale-VM failure is an old guest that was already provisioned but was created before static network seed injection, so it boots on an old VMware NAT address while ADP-OS targets the current static IP. That is a network drift/product-readiness issue, not valid 10-minute demo evidence.
@@ -104,12 +105,12 @@ During the demo, record whether:
 - VMware was actually reachable.
 - `doctor` reported 0 issues before the user-facing run.
 - The `agent` runtime was already running.
-- The `agent` sync session was healthy.
+- The `agent` sync session was healthy before the demo and fenced/stopped during VM mutation and restore.
 - A real snapshot was created or reused.
 - Evidence was recorded before and after the agent-style task.
 - The task changed something Git alone would not fully clean up.
-- Rollback restored the expected runtime and workspace state.
-- An evidence ZIP was exported.
+- Rollback restored the expected runtime and workspace state; if the runtime stopped after restore, it was restarted with `adp up agent -NoBootstrap` before SSH verification.
+- An evidence ZIP was exported and contained the expected five entries.
 - The participant could explain the difference from Git reset, Docker, WSL2, and Dev Containers.
 - Any command output differed from the presenter script.
 

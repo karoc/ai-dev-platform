@@ -83,11 +83,12 @@
 - 预先创建好 `agent` runtime；首次 VM 创建不计入 10 分钟窗口。
 - 确认 `adp doctor` 在 demo 前报告 0 issues。
 - 确认 `adp status agent` 显示 runtime 正在运行且 SSH 可达。
-- 确认 `adp sync status` 显示 `agent` session healthy 或 watching。demo 前先停止并重建 stale `adp-agent` session。
+- 确认 `adp sync status` 在 demo 前显示 `agent` session healthy 或 watching。开始用户可见运行前，先停止并重建 stale `adp-agent` session。
+- 确认 presenter script 在 VM mutation 和 rollback 前设置 sync fence：破坏性任务前停止 `agent` sync，restore 期间保持 stopped，只在选定 host 或 VM workspace 作为 source of truth 并完成 reconcile 后重启。
 - 创建或确认 demo script 中指定的 snapshot。
-- 确认 evidence export 前已经生成 `workspace-report.md`。
-- 用 `adp workspace evidence -Export` 导出真实 evidence ZIP。
-- 验证 rollback 会恢复 `README.md`，并移除 `generated/output.json`。
+- 确认 evidence export 前已经在 manifest workspace root 中生成 `workspace-report.md`。使用公开 recipe manifest 时，该路径是 `configs\workspace-report.md`。
+- 用 `adp workspace evidence -Export` 导出真实 evidence ZIP，并验证其中包含 `README.txt`、`snapshot-hashes.json`、`operation-log.json`、`workspace-report.md` 和 `adp-workspace.json`。
+- 验证 rollback 会恢复 `README.md`、移除 `generated/output.json`，并回退 `src/main.ts` 的 demo mutation。如果 restore 后 runtime 处于 stopped，先运行 `adp up agent -NoBootstrap` 和 `adp status agent`，再做 SSH 文件检查。
 - 保留真实耗时，不要把 snapshot 或 restore 的慢操作美化掉。
 
 如果预先创建好的 `agent` VM 仍被显示为 installing，不要继续把这次运行当作正常首次安装。运行 `adp status agent`、`adp doctor` 和 `adp network apply agent -Plan`。一种常见 stale-VM 故障是：旧 guest 已经 provisioned，但它是在静态网络 seed 注入之前创建的，因此会启动到旧 VMware NAT 地址，而 ADP-OS 目标是当前 static IP。这是 network drift / product-readiness 问题，不是有效的 10 分钟 demo 证据。
@@ -104,12 +105,12 @@ demo 过程中记录：
 - VMware 是否真实可访问。
 - 用户可见运行前 `doctor` 是否报告 0 issues。
 - `agent` runtime 是否已经运行。
-- `agent` sync session 是否 healthy。
+- `agent` sync session 是否在 demo 前 healthy，并且在 VM mutation 和 restore 期间被 fenced/stopped。
 - 是否真实创建或复用了 snapshot。
 - agent-style task 前后是否记录了 evidence。
 - 任务是否改变了 Git 不能完整清理的内容。
-- rollback 是否恢复预期的 runtime 和 workspace 状态。
-- 是否导出了 evidence ZIP。
+- rollback 是否恢复预期的 runtime 和 workspace 状态；如果 restore 后 runtime stopped，是否先用 `adp up agent -NoBootstrap` 重启后再做 SSH 验证。
+- 是否导出了 evidence ZIP，且其中包含预期 5 个条目。
 - 参与者是否能解释它和 Git reset、Docker、WSL2、Dev Containers 的区别。
 - 是否有命令输出与 presenter script 不一致。
 
