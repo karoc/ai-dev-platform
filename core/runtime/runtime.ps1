@@ -13,7 +13,8 @@ function Initialize-Runtime {
         "vmware" {
             . (Join-Path $script:ProjectRoot "core\provider\provider-discovery.ps1")
             $providerType = Get-ConfiguredProviderType
-            Initialize-Provider -ProviderType $providerType -ProjectRoot $script:ProjectRoot | Out-Null
+            $vmStore = Resolve-Path "vm_store"
+            Initialize-Provider -ProviderType $providerType -ProjectRoot $script:ProjectRoot -InitArgs @{VmStorePath = $vmStore} | Out-Null
         }
         "hyperv" {
             throw "Hyper-V runtime not yet implemented"

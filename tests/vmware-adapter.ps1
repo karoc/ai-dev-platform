@@ -118,6 +118,18 @@ Describe "VMware Adapter mock tests" {
             $result.Success | Should -Be $true
             $observed | Should -Be "snapshot C:\vms\x\x.vmx pre-update"
         }
+
+        It "uses a bounded timeout for snapshot creation" {
+            $snapshotTimeout = 0
+            Mock Invoke-Vmrun {
+                param([string[]]$Arguments, [int]$TimeoutSeconds)
+                $snapshotTimeout = $TimeoutSeconds
+                return @{ Success = $false; StdOut = ""; StdErr = "vmrun timed out after 120s"; ExitCode = -1 }
+            }
+            $result = Create-VMSnapshot -VmxPath "C:\vms\x\x.vmx" -SnapshotName "pre-update"
+            $result.Success | Should -Be $false
+            $snapshotTimeout | Should -Be 120
+        }
     }
 
     Describe "Restore-VMSnapshot" {
@@ -137,7 +149,7 @@ Describe "VMware Adapter mock tests" {
     Describe "List-VMSnapshots" {
         It "parses snapshot names from vmrun output" {
             Mock Invoke-Vmrun {
-                return @{ Success = $true; StdOut = "clean`npost-install`npre-update"; ExitCode = 0 }
+                return @{ Success = $true; StdOut = "Total snapshots: 3`nclean`npost-install`npre-update"; ExitCode = 0 }
             }
             $snaps = List-VMSnapshots -VmxPath "C:\vms\x\x.vmx"
             $snaps.Count | Should -Be 3

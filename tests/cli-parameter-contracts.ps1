@@ -47,6 +47,7 @@ $sync = Read-Text "cli\commands\sync.ps1"
 $network = Read-Text "cli\commands\network.ps1"
 $doctor = Read-Text "cli\commands\doctor.ps1"
 $status = Read-Text "cli\commands\status.ps1"
+$runtimeModule = Read-Text "core\runtime\runtime.ps1"
 $workspace = Read-Text "cli\commands\workspace.ps1"
 $destroy = Read-Text "cli\commands\destroy.ps1"
 $stop = Read-Text "cli\commands\stop.ps1"
@@ -136,6 +137,11 @@ Assert-Contains -Name "fresh deployment up plan supports Simplified Chinese" -Te
 Assert-Contains -Name "fresh deployment up NAT mismatch supports Simplified Chinese" -Text $up -Pattern '创建 VM 前检测到 VMware NAT 不匹配[\s\S]*方案 A：将 ADP 本机覆盖对齐到当前 host VMnet8[\s\S]*方案 B：保留 ADP 配置的网段[\s\S]*未创建任何 VM'
 Assert-Contains -Name "fresh deployment status header supports Simplified Chinese" -Text $status -Pattern 'Write-UIHost[\s\S]*ADP-OS 状态[\s\S]*仅查看状态：不会修改 VM[\s\S]*本机配置:[\s\S]*网络:[\s\S]*SSH 密钥:'
 Assert-Contains -Name "fresh deployment status runtime fields support Simplified Chinese" -Text $status -Pattern '配置 IP:[\s\S]*探测 IP:[\s\S]*工作区:[\s\S]*下一步:'
+Assert-Contains -Name "status initializes provider with VM store" -Text $status -Pattern 'Resolve-Path "vm_store"[\s\S]*Initialize-Provider -ProviderType \$providerType -ProjectRoot \$script:ProjectRoot -InitArgs @\{VmStorePath = \$vmStore\}'
+Assert-Contains -Name "runtime module initializes provider with VM store" -Text $runtimeModule -Pattern 'Resolve-Path "vm_store"[\s\S]*Initialize-Provider -ProviderType \$providerType -ProjectRoot \$script:ProjectRoot -InitArgs @\{VmStorePath = \$vmStore\}'
+Assert-NotContains -Name "doctor uses provider runtime names for VM status" -Text $doctor -Pattern 'Get-VMStatus\s+\$vmxPath'
+Assert-NotContains -Name "sync uses provider runtime names for VM status and IP" -Text $sync -Pattern 'Get-VM(?:Status|IP)\s+\$vmxPath'
+Assert-NotContains -Name "network uses provider runtime names for VM status and IP" -Text $network -Pattern 'Get-VM(?:Status|IP)\s+\$vmxPath'
 Assert-Contains -Name "fresh deployment network configure-local plan supports Simplified Chinese" -Text $network -Pattern '本机 VMware NAT 覆盖计划[\s\S]*本机配置:[\s\S]*当前配置 NAT:[\s\S]*目标本机 NAT:[\s\S]*运行时 static IP'
 Assert-Contains -Name "fresh deployment network configure-local boundary supports Simplified Chinese" -Text $network -Pattern '建议的本机配置变更[\s\S]*仅预览：不会修改 configs\\local\.json[\s\S]*未修改任何文件'
 Assert-Contains -Name "fresh deployment network configure-local apply supports Simplified Chinese" -Text $network -Pattern '已用 host VMnet8 NAT 设置更新 configs\\local\.json[\s\S]*备份:[\s\S]*下一步:'
@@ -218,6 +224,9 @@ Assert-Contains -Name "VMware adapter can derive runtime IPs in detected NAT" -T
 Assert-Contains -Name "VMware adapter documents vmrun list as running-only" -Text (Read-Text "adapters\windows\vmware\vmware.ps1") -Pattern 'vmrun list returns only running VMs'
 Assert-Contains -Name "VMware adapter classifies ADP running runtime VMs" -Text (Read-Text "adapters\windows\vmware\vmware.ps1") -Pattern 'function\s+Get-ADPRuntimeNameFromVmxPath[\s\S]*function\s+Get-ADPRunningRuntimeVMs[\s\S]*IsManagedByCurrentCheckout'
 Assert-Contains -Name "VMware adapter exposes quick IP probe for progress loops" -Text (Read-Text "adapters\windows\vmware\vmware.ps1") -Pattern 'function\s+Get-VMIPQuick[\s\S]*getGuestIPAddress[\s\S]*Get-VMIPFromDhcpLeases'
+Assert-Contains -Name "VMware snapshot create has bounded wait" -Text (Read-Text "adapters\windows\vmware\vmware.ps1") -Pattern 'function\s+Create-VMSnapshot[\s\S]*TimeoutSeconds\s*=\s*120[\s\S]*Invoke-Vmrun -Arguments @\("snapshot", \$VmxPath, \$SnapshotName\) -TimeoutSeconds \$TimeoutSeconds'
+Assert-Contains -Name "VMware snapshot list skips vmrun summary header" -Text (Read-Text "adapters\windows\vmware\vmware.ps1") -Pattern 'function\s+List-VMSnapshots[\s\S]*Total snapshots:\\s\*\\d\+'
+Assert-Contains -Name "snapshot CLI confirms existing snapshot after provider failure" -Text $snapshot -Pattern 'if\s*\(\$result\.Success\)[\s\S]*else\s*\{[\s\S]*Get-SnapshotList -Name \$RuntimeName[\s\S]*Snapshot command reported failure, but snapshot ''\$SnapshotName'' exists[\s\S]*Snapshot ''\$SnapshotName'' exists'
 Assert-Contains -Name "networking docs explain NAT prerequisites" -Text $networkingDocs -Pattern '## Prerequisites[\s\S]*Virtual Network Editor[\s\S]*VMware NAT prerequisites'
 Assert-Contains -Name "Chinese networking docs explain NAT prerequisites" -Text $networkingDocsZh -Pattern '## 前置条件[\s\S]*Virtual Network Editor[\s\S]*VMware NAT prerequisites'
 Assert-Contains -Name "networking docs prefer explicit apply for local NAT overrides" -Text $networkingDocs -Pattern 'network configure-local -Plan[\s\S]*network configure-local -Apply[\s\S]*does not change files[\s\S]*without switches is also non-mutating[\s\S]*backs up an existing local file as `configs\\local\.json\.bak\.<timestamp>`[\s\S]*change VMware `VMnet8`'

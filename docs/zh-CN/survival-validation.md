@@ -78,15 +78,21 @@
 展示给用户前：
 
 - 在真实 Windows 10/11 主机上运行，且 VMware Workstation 可用并可访问。
-- 使用 PowerShell 7。
+- 控制面使用 PowerShell 7。从 stock Windows shell 运行时使用 `.\adp.cmd`；如果机器只有内置 Windows PowerShell 5.1，先运行 `.\setup.cmd`，让用户得到 PowerShell 7 安装路径，而不是直接得到失败的 ADP 命令。
 - 使用包含公开文档和 recipes 的 ADP-OS checkout。
 - 预先创建好 `agent` runtime；首次 VM 创建不计入 10 分钟窗口。
+- 确认 `adp doctor` 在 demo 前报告 0 issues。
 - 确认 `adp status agent` 显示 runtime 正在运行且 SSH 可达。
+- 确认 `adp sync status` 显示 `agent` session healthy 或 watching。demo 前先停止并重建 stale `adp-agent` session。
 - 创建或确认 demo script 中指定的 snapshot。
 - 确认 evidence export 前已经生成 `workspace-report.md`。
 - 用 `adp workspace evidence -Export` 导出真实 evidence ZIP。
 - 验证 rollback 会恢复 `README.md`，并移除 `generated/output.json`。
 - 保留真实耗时，不要把 snapshot 或 restore 的慢操作美化掉。
+
+如果预先创建好的 `agent` VM 仍被显示为 installing，不要继续把这次运行当作正常首次安装。运行 `adp status agent`、`adp doctor` 和 `adp network apply agent -Plan`。一种常见 stale-VM 故障是：旧 guest 已经 provisioned，但它是在静态网络 seed 注入之前创建的，因此会启动到旧 VMware NAT 地址，而 ADP-OS 目标是当前 static IP。这是 network drift / product-readiness 问题，不是有效的 10 分钟 demo 证据。
+
+如果 `adp snapshot create agent <name>` 看起来卡住，不要继续对用户演示，直到 snapshot 被确认。使用 `vmrun listSnapshots` 检查，或等命令返回后重新运行 `adp snapshot create`。如果 snapshot 已存在但 CLI 挂住，应把该彩排记录为产品失败，因为 rollback 和 evidence 是 survival path 的核心。
 
 硬性规则：如果 VMware 不可用，不要运行 survival demo。不要伪造 VMware、snapshot、restore、SSH、evidence chain 或 evidence export 输出。
 
@@ -96,7 +102,9 @@ demo 过程中记录：
 
 - 环境 precheck 是否通过。
 - VMware 是否真实可访问。
+- 用户可见运行前 `doctor` 是否报告 0 issues。
 - `agent` runtime 是否已经运行。
+- `agent` sync session 是否 healthy。
 - 是否真实创建或复用了 snapshot。
 - agent-style task 前后是否记录了 evidence。
 - 任务是否改变了 Git 不能完整清理的内容。

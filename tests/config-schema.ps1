@@ -4,7 +4,7 @@
 $ErrorActionPreference = "Stop"
 
 $projectRoot = Split-Path $PSScriptRoot -Parent
-$runtimeNames = @("frontend", "backend", "agent")
+$runtimeNames = @("frontend", "backend", "agent", "sandbox")
 
 function Read-ConfigJson {
     param([string]$RelativePath)

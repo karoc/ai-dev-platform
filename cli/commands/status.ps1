@@ -388,8 +388,9 @@ function Write-StatusRuntime {
 # Initialize VM provider
 . (Join-Path $script:ProjectRoot "core\provider\provider-discovery.ps1")
 $providerType = Get-ConfiguredProviderType
+$vmStore = Resolve-Path "vm_store"
 try {
-    Initialize-Provider -ProviderType $providerType -ProjectRoot $script:ProjectRoot | Out-Null
+    Initialize-Provider -ProviderType $providerType -ProjectRoot $script:ProjectRoot -InitArgs @{VmStorePath = $vmStore} | Out-Null
     $vmwareAvailable = $true
 } catch {
     $vmwareAvailable = $false

@@ -98,6 +98,157 @@ function Write-RuntimeConnectionSummary {
     Write-UIHost -English "  Doctor:    adp doctor" -Chinese "  诊断:      adp doctor" -ForegroundColor DarkGray
 }
 
+function Test-GuestProvisionMarkerViaVmwareTools {
+    param(
+        [string]$TargetRuntime,
+        [string]$TargetVmxPath
+    )
+
+    $result = [ordered]@{
+        Checked     = $false
+        Provisioned = $false
+        Detail      = ""
+        DetectedIP  = $null
+    }
+
+    if (-not (Get-Command Invoke-Vmrun -ErrorAction SilentlyContinue)) {
+        $result.Detail = "VMware guest operations are not available in this session"
+        return [pscustomobject]$result
+    }
+
+    if ([string]::IsNullOrWhiteSpace($TargetVmxPath) -or -not (Test-Path -LiteralPath $TargetVmxPath)) {
+        $result.Detail = "VMX path is unavailable for guest operation probe"
+        return [pscustomobject]$result
+    }
+
+    $platformConfig = Get-PlatformConfig
+    $guestUser = if ($platformConfig.defaults.admin_user) { [string]$platformConfig.defaults.admin_user } else { "adp" }
+    $guestPassword = if ($platformConfig.defaults.admin_password) { [string]$platformConfig.defaults.admin_password } else { "adp" }
+    $markerCommand = "test -f /home/adp/.adp-provisioned"
+
+    try {
+        $probe = Invoke-Vmrun `
+            -Arguments @("-gu", $guestUser, "-gp", $guestPassword, "runProgramInGuest", $TargetVmxPath, "/bin/bash", "-c", $markerCommand) `
+            -TimeoutSeconds 15
+
+        $result.Checked = $true
+        if ($probe.Success) {
+            $result.Provisioned = $true
+            $result.Detail = "/home/adp/.adp-provisioned exists"
+        } else {
+            $detail = @($probe.StdErr, $probe.StdOut) | Where-Object { $_ } | Select-Object -First 1
+            $result.Detail = if ($detail) { $detail } else { "guest operation did not confirm provision marker" }
+        }
+    } catch {
+        $result.Detail = "guest operation probe failed: $_"
+    }
+
+    try {
+        if (Get-Command Get-VMIPQuick -ErrorAction SilentlyContinue) {
+            $detectedIp = Get-VMIPQuick -VmxPath $TargetVmxPath -TimeoutSeconds 5
+            if ($detectedIp) {
+                $result.DetectedIP = $detectedIp
+            }
+        }
+    } catch {}
+
+    return [pscustomobject]$result
+}
+
+function Test-RuntimeConnectionProvisionMarkerViaSSH {
+    param(
+        [string]$TargetRuntime,
+        [string]$TargetVmxPath
+    )
+
+    $result = [ordered]@{
+        Checked    = $false
+        Ready      = $false
+        TargetIP   = $null
+        DetectedIP = $null
+        Detail     = ""
+    }
+
+    $staticIp = Get-RuntimeStaticIP $TargetRuntime
+    try {
+        if (Get-Command Get-VMIPQuick -ErrorAction SilentlyContinue) {
+            $detectedIp = Get-VMIPQuick -VmxPath $TargetVmxPath -TimeoutSeconds 5
+            if ($detectedIp) { $result.DetectedIP = $detectedIp }
+        }
+    } catch {}
+
+    $targetIp = if ($staticIp) { $staticIp } else { $result.DetectedIP }
+    if (-not $targetIp) {
+        $result.Detail = "no ADP connection IP available"
+        return [pscustomobject]$result
+    }
+
+    $result.TargetIP = $targetIp
+    $sshKeyPath = Join-Path "$env:USERPROFILE\.ssh\adp-os" "adp-os"
+    if (-not (Test-Path -LiteralPath $sshKeyPath)) {
+        $result.Detail = "SSH key missing at $sshKeyPath"
+        return [pscustomobject]$result
+    }
+
+    $platformConfig = Get-PlatformConfig
+    $guestUser = if ($platformConfig.defaults.admin_user) { [string]$platformConfig.defaults.admin_user } else { "adp" }
+
+    try {
+        $result.Checked = $true
+        ssh -i $sshKeyPath -o StrictHostKeyChecking=no -o IdentitiesOnly=yes -o UserKnownHostsFile=NUL -o ConnectTimeout=5 -o BatchMode=yes "$guestUser@$targetIp" "test -f /home/adp/.adp-provisioned" 2>$null | Out-Null
+        if ($LASTEXITCODE -eq 0) {
+            $result.Ready = $true
+            $result.Detail = "/home/adp/.adp-provisioned confirmed over SSH at $targetIp"
+        } else {
+            $result.Detail = "SSH did not confirm provision marker at $targetIp"
+        }
+    } catch {
+        $result.Detail = "SSH provision marker probe failed: $_"
+    }
+
+    return [pscustomobject]$result
+}
+
+function Write-ProvisionedNetworkNotReadyGuidance {
+    param(
+        [string]$TargetRuntime,
+        [string]$TargetVmxPath,
+        [object]$ProvisionMarker
+    )
+
+    $staticIp = Get-RuntimeStaticIP $TargetRuntime
+    $detectedIp = if ($ProvisionMarker -and $ProvisionMarker.DetectedIP) { [string]$ProvisionMarker.DetectedIP } else { $null }
+
+    Write-Host ""
+    Write-UIHost -English "VM is already provisioned, but ADP cannot confirm SSH readiness." -Chinese "VM 已完成 provisioning，但 ADP 无法确认 SSH 就绪。" -ForegroundColor Yellow
+    Write-UIHost -English "  VMware Tools confirmed /home/adp/.adp-provisioned inside the guest." -Chinese "  VMware Tools 已在 guest 内确认 /home/adp/.adp-provisioned。" -ForegroundColor Green
+    Write-UIHost -English "  This is not an Ubuntu install in progress; ADP will not enter the INSTALLING monitor for this VM." -Chinese "  这不是 Ubuntu 仍在安装；ADP 不会让此 VM 继续进入 INSTALLING 监控。" -ForegroundColor Yellow
+    Write-UIHost -English "  State: provisioned, network/SSH not ready." -Chinese "  状态: 已 provision，network/SSH 尚未就绪。" -ForegroundColor Yellow
+
+    if ($staticIp) {
+        Write-UIHost -English "  Configured IP: $staticIp" -Chinese "  配置 IP: $staticIp" -ForegroundColor DarkGray
+    }
+    if ($detectedIp) {
+        Write-UIHost -English "  VMware detected IP: $detectedIp" -Chinese "  VMware 探测 IP: $detectedIp" -ForegroundColor DarkGray
+    }
+    if ($staticIp -and $detectedIp -and $staticIp -ne $detectedIp) {
+        Write-UIHost -English "  Network drift likely: the guest is on $detectedIp, but ADP expects $staticIp." -Chinese "  很可能存在网络漂移: guest 当前为 $detectedIp，但 ADP 期望 $staticIp。" -ForegroundColor Yellow
+    } elseif ($staticIp -and -not $detectedIp) {
+        Write-UIHost -English "  Network drift is possible: VMware did not report a usable guest IP during the quick probe." -Chinese "  可能存在网络漂移: VMware quick probe 未报告可用 guest IP。" -ForegroundColor Yellow
+    }
+
+    Write-Host ""
+    Write-UIHost -English "Next steps:" -Chinese "下一步:" -ForegroundColor Cyan
+    Write-UIHost -English "  1. Inspect the current runtime and host NAT diagnosis:" -Chinese "  1. 查看当前 runtime 与 host NAT 诊断:" -ForegroundColor DarkGray
+    Write-Host "     adp status $TargetRuntime" -ForegroundColor DarkGray
+    Write-Host "     adp doctor" -ForegroundColor DarkGray
+    Write-UIHost -English "  2. If network drift is reported, preview the in-place guest network fix:" -Chinese "  2. 如果报告 network drift，先预览 guest 内网络修复:" -ForegroundColor DarkGray
+    Write-Host "     adp network apply $TargetRuntime -Plan" -ForegroundColor DarkGray
+    Write-UIHost -English "  3. Apply only after the plan identifies the expected runtime/IP change:" -Chinese "  3. 仅在计划确认目标 runtime/IP 变更后再应用:" -ForegroundColor DarkGray
+    Write-Host "     adp network apply $TargetRuntime" -ForegroundColor DarkGray
+    Write-UIHost -English "  Bootstrap will resume after SSH is reachable: adp up $TargetRuntime" -Chinese "  SSH 可达后再继续 bootstrap: adp up $TargetRuntime" -ForegroundColor DarkGray
+}
+
 function Assert-VMwareNatReadyForRuntimeCreate {
     param([string]$TargetRuntime)
 
@@ -194,6 +345,19 @@ function Invoke-BootstrapIfReady {
 
     $ready = Test-AutoinstallReady -RuntimeName $TargetRuntime
     if (-not $ready) {
+        $sshMarker = Test-RuntimeConnectionProvisionMarkerViaSSH -TargetRuntime $TargetRuntime -TargetVmxPath $TargetVmxPath
+        if ($sshMarker.Ready) {
+            $ready = $true
+        }
+    }
+
+    if (-not $ready) {
+        $provisionMarker = Test-GuestProvisionMarkerViaVmwareTools -TargetRuntime $TargetRuntime -TargetVmxPath $TargetVmxPath
+        if ($provisionMarker.Provisioned) {
+            Write-ProvisionedNetworkNotReadyGuidance -TargetRuntime $TargetRuntime -TargetVmxPath $TargetVmxPath -ProvisionMarker $provisionMarker
+            return
+        }
+
         if ($WaitForProvisioning) {
             Write-Host ""
             Write-UIHost -English "VM is still in Ubuntu install/provisioning. ADP will keep monitoring readiness signals." -Chinese "VM 仍在进行 Ubuntu 安装/provisioning。ADP 会继续监控 readiness signals。" -ForegroundColor Yellow
@@ -203,6 +367,12 @@ function Invoke-BootstrapIfReady {
     }
 
     if (-not $ready) {
+        $provisionMarker = Test-GuestProvisionMarkerViaVmwareTools -TargetRuntime $TargetRuntime -TargetVmxPath $TargetVmxPath
+        if ($provisionMarker.Provisioned) {
+            Write-ProvisionedNetworkNotReadyGuidance -TargetRuntime $TargetRuntime -TargetVmxPath $TargetVmxPath -ProvisionMarker $provisionMarker
+            return
+        }
+
         Write-Host ""
         Write-UIHost -English "VM is still installing or provisioning. Once the install finishes, run:" -Chinese "VM 仍在安装或 provisioning。安装完成后运行:" -ForegroundColor Yellow
         Write-Host "  adp up $TargetRuntime" -ForegroundColor DarkGray

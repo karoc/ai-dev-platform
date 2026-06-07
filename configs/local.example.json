@@ -53,6 +53,12 @@
       "memory": 16384,
       "disk": 160,
       "static_ip": "192.168.242.135"
+    },
+    "sandbox": {
+      "cpu": 2,
+      "memory": 4096,
+      "disk": 40,
+      "static_ip": "192.168.242.137"
     }
   },
   "sync_profiles": {

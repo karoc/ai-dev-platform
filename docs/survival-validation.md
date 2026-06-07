@@ -78,15 +78,21 @@ Do not optimize the first validation round for generic developers, Linux/macOS-f
 Before showing the demo to a user:
 
 - Run the demo on a real Windows 10/11 host with VMware Workstation available and reachable.
-- Use PowerShell 7.
+- Use PowerShell 7 for the control plane. From a stock Windows shell, use `.\adp.cmd`; if only built-in Windows PowerShell 5.1 is available, run `.\setup.cmd` first so the user gets the PowerShell 7 install path instead of a broken ADP command.
 - Use an ADP-OS checkout with public docs and recipes available.
 - Pre-provision the `agent` runtime; first VM creation is not part of the 10-minute window.
+- Confirm `adp doctor` reports 0 issues before the demo.
 - Confirm `adp status agent` reports the runtime as running and SSH reachable.
+- Confirm `adp sync status` reports the `agent` session as healthy or watching. Stop and recreate stale `adp-agent` sessions before the demo.
 - Create or confirm the snapshot named by the demo script.
 - Confirm `workspace-report.md` is generated before evidence export.
 - Export a real evidence ZIP with `adp workspace evidence -Export`.
 - Verify rollback restores `README.md` and removes `generated/output.json`.
 - Keep the actual elapsed time. Do not round away slow snapshot or restore behavior.
+
+If a pre-provisioned `agent` VM is shown as still installing, stop treating the run as a normal first install. Run `adp status agent`, `adp doctor`, and `adp network apply agent -Plan`. A common stale-VM failure is an old guest that was already provisioned but was created before static network seed injection, so it boots on an old VMware NAT address while ADP-OS targets the current static IP. That is a network drift/product-readiness issue, not valid 10-minute demo evidence.
+
+If `adp snapshot create agent <name>` appears stuck, do not continue the user demo until the snapshot is confirmed. Check `vmrun listSnapshots` or rerun `adp snapshot create` after the command returns. A snapshot that exists but left the CLI hanging should be recorded as a product failure for the rehearsal, because rollback and evidence are the core survival path.
 
 Hard rule: if VMware is unavailable, do not run the survival demo. Do not fake VMware, snapshot, restore, SSH, evidence chain, or evidence export output.
 
@@ -96,7 +102,9 @@ During the demo, record whether:
 
 - The environment precheck passed.
 - VMware was actually reachable.
+- `doctor` reported 0 issues before the user-facing run.
 - The `agent` runtime was already running.
+- The `agent` sync session was healthy.
 - A real snapshot was created or reused.
 - Evidence was recorded before and after the agent-style task.
 - The task changed something Git alone would not fully clean up.

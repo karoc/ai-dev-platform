@@ -70,6 +70,10 @@ Invoke-ValidationStep -Name "Check CLI parameter contracts" -ScriptBlock {
     & ".\tests\cli-parameter-contracts.ps1"
 }
 
+Invoke-ValidationStep -Name "Check up provision marker handling" -ScriptBlock {
+    & ".\tests\up-provision-marker-contract.ps1"
+}
+
 Invoke-ValidationStep -Name "Check configuration schema" -ScriptBlock {
     & ".\tests\config-schema.ps1"
 }

@@ -18,6 +18,8 @@
 .\tests\validate.ps1 -Quick
 ```
 
+从 stock Windows shell 运行时，优先使用 wrapper 形式，例如 `.\adp.cmd doctor`。如果未安装 `pwsh.exe`，先运行 `.\setup.cmd`；内置 Windows PowerShell 5.1 只是 bootstrap 路径，不运行 ADP-OS control plane。
+
 建议保留这些上下文：
 
 - Host OS 和 PowerShell version。
@@ -34,11 +36,12 @@
 | 症状 | 先运行 | 可能区域 | 后续文档 |
 | --- | --- | --- | --- |
 | 首次 setup 不清楚 | `.\cli\adp.ps1 doctor -FirstRun` | prerequisites、ISO、local overrides | [操作指南](operations.md)、[配置说明](configuration.md) |
+| 机器只有 Windows PowerShell 5.1 | `.\setup.cmd` | PowerShell 7 bootstrap | [README](../../README.zh-CN.md#环境要求) |
 | 缺少必要工具 | `.\cli\adp.ps1 doctor` | VMware、WSL、xorriso、Mutagen、OpenSSH | [操作指南](operations.md#健康检查) |
 | Mutagen 缺失或版本不对 | `.\cli\adp.ps1 doctor -FixMutagen -Plan` | local Mutagen remediation、offline archive、可选 SHA256 | [操作指南](operations.md#健康检查) |
 | Runtime startup 使用了非预期 ISO path | `.\cli\adp.ps1 up <runtime> -IsoPath <path> -Plan` | explicit ISO path、local config | [操作指南](operations.md#启动运行时) |
 | Runtime 已存在但无法连接 | `.\cli\adp.ps1 status <runtime>` | VM state、static IP、SSH reachability | [操作指南](operations.md#运行时状态)、[网络说明](networking.md) |
-| Runtime 创建看起来卡住 | 只要 `[安装监视器] 正在 VM 中安装 Ubuntu` 或 `[install monitor] INSTALLING Ubuntu in VM` 心跳仍在继续，就保持 `adp up <runtime>` 运行 | Ubuntu autoinstall、first boot、IP/SSH/provision marker readiness signals | [操作指南](operations.md#启动运行时) |
+| Runtime 创建看起来卡住 | 只要 `[安装监视器] 正在 VM 中安装 Ubuntu` 或 `[install monitor] INSTALLING Ubuntu in VM` 心跳仍在继续，就保持 `adp up <runtime>` 运行；如果该 VM 本应已预先 provisioned，转入 `status`、`doctor` 和 network drift 检查 | Ubuntu autoinstall、first boot、IP/SSH/provision marker readiness signals、stale VM networking | [操作指南](operations.md#启动运行时) |
 | `status` 报告 `auth-pending` | 等待后再次运行 `.\\cli\\adp.ps1 status <runtime>` | SSH 端口已打开，但 ADP key/user 尚未 ready | [操作指南](operations.md#运行时状态) |
 | SSH 连接失败，提示 `Permission denied` | `.\\cli\\adp.ps1 status <runtime>` | SSH 密钥不匹配，VM 是用不同密钥创建的 | [操作指南](operations.md#ssh-密钥故障排除) |
 | `status` 报告 `key-missing` | 运行任意 `adp up` 或 SSH 操作 | SSH 密钥对尚未创建 | [操作指南](operations.md#ssh-密钥故障排除) |
@@ -52,6 +55,7 @@
 | Frontend browser tests 无法运行 | 在 frontend runtime 内运行 `adp-frontend-browser-check` | on-demand browser install | [浏览器测试](browser-testing.md) |
 | Workspace task 被阻塞 | `.\cli\adp.ps1 workspace report` | validation、review、snapshot、governance gates | [工作区](workspaces.md)、[Release Readiness](release-readiness.md) |
 | 高风险 agent work 尚未 ready | `.\cli\adp.ps1 workspace dashboard` | snapshot-first gate | [工作区](workspaces.md)、[Release Readiness](release-readiness.md) |
+| `snapshot create` 看起来卡住 | 继续运行或重新演示前，先确认 snapshot 是否已经存在 | VMware snapshot command return、rollback checkpoint | [生存验证](survival-validation.md#demo-就绪清单) |
 | 仓库验证失败 | 先运行 `.\tests\validate.ps1 -Quick`，再运行 targeted checks | parser、config schema、artifact hygiene、docs、issue templates、smoke tests | [操作指南](operations.md#健康检查) |
 | 需要创建公开 issue | `.\cli\adp.ps1 doctor` 和相关 status output | support routing | [支持说明](../../SUPPORT.zh-CN.md) |
 
@@ -69,6 +73,42 @@
 ```
 
 这些命令用于展示计划或收集 evidence。它们不会创建 snapshots、运行 task validation、stage 文件、commit 文件或 destroy VMs。
+
+## 预先创建的 Runtime 仍看起来像 Installing
+
+首次创建期间，重复出现 `[install monitor] INSTALLING Ubuntu in VM` 或 `[安装监视器] 正在 VM 中安装 Ubuntu` 心跳可能是正常现象。不要仅因为 SSH 或 IP probe 重复，就中断真实首次安装。
+
+但如果 runtime 本应已经预先 provisioned，规则就不同。survival rehearsal 中，如果已有 `agent` VM 仍被描述为 installing，不要无限等待，改为运行 diagnostics：
+
+```powershell
+.\adp.cmd status agent
+.\adp.cmd doctor
+.\adp.cmd network apply agent -Plan
+.\adp.cmd sync status
+```
+
+如果 VMware 报告的 guest IP 不在当前 ADP NAT subnet 内，或 `status` / `doctor` 报告 `network drift` / `seed network drift`，应把该 VM 当作 stale networking。旧 VM 可能是在静态网络 seed 注入之前创建的，因此 guest 已经 fully provisioned，但仍启动到旧 VMware NAT 地址，而 ADP-OS 当前不再使用该地址。
+
+显式选择一种 remediation path：
+
+- VM 可以重建时，重建该 runtime。
+- 旧 guest address 可通过 SSH 访问时，使用 `network apply agent -Plan` 规划原地修复。
+- 只有为了先恢复到旧 guest address 的 SSH 时，才使用 administrator-only temporary host-route workaround。ADP 不会自动添加、修改或删除 host routes。
+
+不要把这种运行计为有效 10 分钟 demo。它是 product-readiness 或本机 stale-state 问题，必须在展示 rollback 和 evidence 价值前解决。
+
+## Snapshot 命令看起来卡住
+
+`adp snapshot create <runtime> <name>` 位于 rollback-critical path。如果它看起来卡住，在 checkpoint 被确认前，不要继续高风险 agent work 或 survival demo。
+
+先确认 snapshot 是否已经创建：
+
+```powershell
+vmrun.exe listSnapshots <path-to-runtime.vmx>
+.\adp.cmd snapshot create agent <name>
+```
+
+如果目标 snapshot 已存在，重新运行 `adp snapshot create` 应该报告它已经存在。如果 VMware 已创建 snapshot，但 ADP-OS 没有及时返回，应把这次彩排记录为产品失败。即使 VM snapshot 存在，一个无法干净确认的 rollback checkpoint 也不能作为可接受的 demo evidence。
 
 ## Mutagen 下载问题
 

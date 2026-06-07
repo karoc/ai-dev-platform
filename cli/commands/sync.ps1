@@ -127,8 +127,7 @@ switch ($SubCommand) {
             exit 1
         }
 
-        Initialize-VMware | Out-Null
-        $status = Get-VMStatus $vmxPath
+        $status = if ($statusResult.Success) { $statusResult.Data } else { "unknown" }
         if ($status -notmatch "running") {
             Write-ErrorLog -Message (Get-UIText -English "Runtime '$RuntimeName' is not running. Run: adp up $RuntimeName" -Chinese "运行时 '$RuntimeName' 未运行。请运行: adp up $RuntimeName") -Component "cli.sync"
             exit 1
@@ -136,7 +135,10 @@ switch ($SubCommand) {
 
         $ip = Get-RuntimeStaticIP $RuntimeName
         if (-not $ip) {
-            $ip = Get-VMIP $vmxPath
+            $ipResult = Get-VMIP -Name $RuntimeName
+            if ($ipResult.Success) {
+                $ip = $ipResult.Data
+            }
         }
         if (-not $ip -or $ip -eq "0.0.0.0" -or $ip -match "unknown") {
             Write-ErrorLog -Message (Get-UIText -English "Could not resolve VM IP for runtime '$RuntimeName'" -Chinese "无法解析运行时 '$RuntimeName' 的 VM IP") -Component "cli.sync"

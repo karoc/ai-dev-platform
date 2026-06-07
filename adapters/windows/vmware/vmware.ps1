@@ -637,10 +637,11 @@ function Copy-FileToGuest {
 function Create-VMSnapshot {
     param(
         [string]$VmxPath,
-        [string]$SnapshotName
+        [string]$SnapshotName,
+        [int]$TimeoutSeconds = 120
     )
 
-    return Invoke-Vmrun -Arguments @("snapshot", $VmxPath, $SnapshotName)
+    return Invoke-Vmrun -Arguments @("snapshot", $VmxPath, $SnapshotName) -TimeoutSeconds $TimeoutSeconds
 }
 
 function Restore-VMSnapshot {
@@ -656,7 +657,7 @@ function List-VMSnapshots {
     param([string]$VmxPath)
     $result = Invoke-Vmrun -Arguments @("listSnapshots", $VmxPath)
     if ($result.Success) {
-        return $result.StdOut -split "`n" | ForEach-Object { $_.Trim() } | Where-Object { $_ }
+        return $result.StdOut -split "`n" | ForEach-Object { $_.Trim() } | Where-Object { $_ -and $_ -notmatch '^Total snapshots:\s*\d+\s*$' }
     }
     return @()
 }

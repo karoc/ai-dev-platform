@@ -18,6 +18,8 @@ Run these before changing configuration or recreating a runtime:
 .\tests\validate.ps1 -Quick
 ```
 
+From a stock Windows shell, prefer the wrapper form such as `.\adp.cmd doctor`. If `pwsh.exe` is not installed, run `.\setup.cmd`; built-in Windows PowerShell 5.1 is only a bootstrap path and does not run the ADP-OS control plane.
+
 Useful context to capture:
 
 - Host OS and PowerShell version.
@@ -34,11 +36,12 @@ Do not publish secrets, tokens, private keys, VM disks, ISO files, downloaded ar
 | Symptom | Start with | Likely area | Next documentation |
 | --- | --- | --- | --- |
 | First setup is unclear | `.\cli\adp.ps1 doctor -FirstRun` | prerequisites, ISO, local overrides | [Operations](operations.md), [Configuration](configuration.md) |
+| Only Windows PowerShell 5.1 is available | `.\setup.cmd` | PowerShell 7 bootstrap | [README](../README.md#requirements) |
 | A required tool is missing | `.\cli\adp.ps1 doctor` | VMware, WSL, xorriso, Mutagen, OpenSSH | [Operations](operations.md#health-checks) |
 | Mutagen is missing or wrong version | `.\cli\adp.ps1 doctor -FixMutagen -Plan` | local Mutagen remediation, offline archive, optional SHA256 | [Operations](operations.md#health-checks) |
 | Runtime startup uses an unexpected ISO path | `.\cli\adp.ps1 up <runtime> -IsoPath <path> -Plan` | explicit ISO path, local config | [Operations](operations.md#start-runtimes) |
 | Runtime exists but connection fails | `.\cli\adp.ps1 status <runtime>` | VM state, static IP, SSH reachability | [Operations](operations.md#runtime-status), [Networking](networking.md) |
-| Runtime creation looks stuck | keep `adp up <runtime>` running while `[install monitor] INSTALLING Ubuntu in VM` heartbeats continue | Ubuntu autoinstall, first boot, readiness signals from IP/SSH/provision marker | [Operations](operations.md#start-runtimes) |
+| Runtime creation looks stuck | keep `adp up <runtime>` running while `[install monitor] INSTALLING Ubuntu in VM` heartbeats continue; if the VM was already pre-provisioned, switch to `status`, `doctor`, and network drift checks | Ubuntu autoinstall, first boot, readiness signals from IP/SSH/provision marker, stale VM networking | [Operations](operations.md#start-runtimes) |
 | `status` reports `auth-pending` | wait, then rerun `.\\cli\\adp.ps1 status <runtime>` | SSH port is open but ADP key/user is not ready | [Operations](operations.md#runtime-status) |
 | SSH connection fails with `Permission denied` | `.\\cli\\adp.ps1 status <runtime>` | SSH key mismatch, VM was created with a different key | [Operations](operations.md#troubleshooting-ssh-keys) |
 | `status` reports `key-missing` | run any `adp up` or SSH operation | SSH key pair not yet created | [Operations](operations.md#troubleshooting-ssh-keys) |
@@ -52,6 +55,7 @@ Do not publish secrets, tokens, private keys, VM disks, ISO files, downloaded ar
 | Browser tests cannot run in frontend | `adp-frontend-browser-check` inside the frontend runtime | on-demand browser install | [Browser Testing](browser-testing.md) |
 | Workspace task is blocked | `.\cli\adp.ps1 workspace report` | validation, review, snapshot, governance gates | [Workspaces](workspaces.md), [Release Readiness](release-readiness.md) |
 | High-risk agent work is not ready | `.\cli\adp.ps1 workspace dashboard` | snapshot-first gate | [Workspaces](workspaces.md), [Release Readiness](release-readiness.md) |
+| `snapshot create` appears stuck | check whether the snapshot exists before rerunning or continuing a demo | VMware snapshot command return, rollback checkpoint | [Survival Validation](survival-validation.md#demo-readiness-checklist) |
 | Repository validation fails | `.\tests\validate.ps1 -Quick` then targeted checks | parser, config schema, artifact hygiene, docs, issue templates, smoke tests | [Operations](operations.md#health-checks) |
 | Public issue is needed | `.\cli\adp.ps1 doctor` and relevant status output | support routing | [Support](../SUPPORT.md) |
 
@@ -69,6 +73,42 @@ Use plan or status commands before changing runtime state:
 ```
 
 These commands are intended to show what would happen or collect evidence. They do not create snapshots, run task validation, stage files, commit files, or destroy VMs.
+
+## Pre-Provisioned Runtime Still Looks Installing
+
+During first creation, repeated `[install monitor] INSTALLING Ubuntu in VM` heartbeats can be normal. Do not interrupt a real first install only because SSH or IP probes repeat.
+
+That rule changes when the runtime was supposed to be pre-provisioned. If an existing `agent` VM keeps being described as installing during a survival rehearsal, run diagnostics instead of waiting indefinitely:
+
+```powershell
+.\adp.cmd status agent
+.\adp.cmd doctor
+.\adp.cmd network apply agent -Plan
+.\adp.cmd sync status
+```
+
+If VMware reports a guest IP outside the configured ADP NAT subnet, or `status` / `doctor` reports `network drift` or `seed network drift`, treat the VM as stale networking. Older VMs may have been created before static network seed injection, so the guest can be fully provisioned while booting on an old VMware NAT address that ADP-OS no longer targets.
+
+Use one of the explicit remediation paths:
+
+- Rebuild the runtime if the VM can be recreated.
+- Use `network apply agent -Plan` when the old guest address is reachable over SSH.
+- Use an administrator-only temporary host-route workaround only to regain SSH to the old guest address. ADP will not add, change, or remove host routes automatically.
+
+Do not count this as a valid 10-minute demo run. It is a product-readiness or local-stale-state issue that must be resolved before showing rollback and evidence value.
+
+## Snapshot Command Appears Stuck
+
+`adp snapshot create <runtime> <name>` is on the rollback-critical path. If it appears stuck, do not proceed with high-risk agent work or a survival demo until the checkpoint is confirmed.
+
+First check whether the snapshot was created:
+
+```powershell
+vmrun.exe listSnapshots <path-to-runtime.vmx>
+.\adp.cmd snapshot create agent <name>
+```
+
+If the target snapshot exists, rerunning `adp snapshot create` should report that it already exists. If VMware created the snapshot but ADP-OS did not return promptly, record that as a product failure for the rehearsal. A rollback checkpoint that cannot be confirmed cleanly is not acceptable demo evidence, even if the VM snapshot exists.
 
 ## Mutagen Download Problems
 

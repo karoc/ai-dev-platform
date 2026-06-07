@@ -290,6 +290,7 @@ Sign your snapshot and export the evidence chain:
 | `frontend` | JavaScript and frontend development | 4 | 8192 MB | 80 GB | `192.168.242.131` |
 | `backend` | Python and backend development | 4 | 8192 MB | 120 GB | `192.168.242.133` |
 | `agent` | AI agent runtime with higher IO tuning | 6 | 16384 MB | 160 GB | `192.168.242.135` |
+| `sandbox` | Small isolated runtime for sandbox integrations | 2 | 4096 MB | 40 GB | `192.168.242.137` |
 
 Static addresses are configured in `configs\topology.json`. The VMware NAT subnet, gateway, DNS, and interface match are configured in `configs\platform.json`.
 
@@ -365,11 +366,11 @@ The reference uses `adp` as the command name. From the repository root, run `.\a
 adp iso [ubuntu|almalinux|rocky|debian] [-Url <url>] [-Force] [-NonInteractive]
 adp quickstart [-Distro <name>] [-IsoPath <path>] [-SkipIsoDownload] [-SkipDoctor] [-Force] [-NonInteractive]
 adp init
-adp init <frontend|backend|agent> [-IsoPath <path>] [-NoProvision] [-Quick] [-NonInteractive]
-adp up <frontend|backend|agent> [-IsoPath <path>] [-Plan] [-NoProvision] [-NoBootstrap]
-adp status [frontend|backend|agent]
+adp init <frontend|backend|agent|sandbox> [-IsoPath <path>] [-NoProvision] [-Quick] [-NonInteractive]
+adp up <frontend|backend|agent|sandbox> [-IsoPath <path>] [-Plan] [-NoProvision] [-NoBootstrap]
+adp status [frontend|backend|agent|sandbox]
 adp capabilities
-adp stop <frontend|backend|agent>
+adp stop <frontend|backend|agent|sandbox>
 adp sync status
 adp workspace init
 adp workspace show
@@ -390,9 +391,9 @@ adp workspace declare -AiAssisted [-Reviewer <name>] [-Notes "..."] [-Json]  Dec
 adp workspace task <prepare|snapshot|run|validate|review|rollback|commit> <task-name>
 adp workspace task validate <task-name> [-Execute] [-Plan]
 adp workspace task mark <task-name> <prepared|checkpointed|checkpoint-waived|running|validated|reviewed|rollback|committed>
-adp sync start <frontend|backend|agent>
-adp sync stop <frontend|backend|agent>
-adp network apply <frontend|backend|agent|all> [-Plan]
+adp sync start <frontend|backend|agent|sandbox>
+adp sync stop <frontend|backend|agent|sandbox>
+adp network apply <frontend|backend|agent|sandbox|all> [-Plan]
 adp snapshot create <runtime> <name>
 adp restore <runtime> <name>
 adp logs <runtime>

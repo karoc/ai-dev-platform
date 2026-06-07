@@ -498,11 +498,15 @@ function Apply-RuntimeNetwork {
         throw "VM not found for runtime '$TargetRuntime'. Run: adp up $TargetRuntime"
     }
 
-    $status = Get-VMStatus $vmxPath
+    $statusResult = Get-VMStatus -Name $TargetRuntime
+    $status = if ($statusResult.Success) { $statusResult.Data } else { "unknown" }
 
     $currentIp = $null
     try {
-        $currentIp = Get-VMIP $vmxPath
+        $ipResult = Get-VMIP -Name $TargetRuntime
+        if ($ipResult.Success) {
+            $currentIp = $ipResult.Data
+        }
     } catch {}
 
     if (-not $currentIp -and $seedNetwork -and $seedNetwork.Address -and $seedNetwork.Address -ne $network.Address) {

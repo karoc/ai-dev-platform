@@ -473,7 +473,8 @@ foreach ($name in (Get-AllRuntimeNames)) {
         } else {
             Write-InfoCheck -Name "$name seed network drift" -Detail "(seed user-data not found or static IP missing)"
         }
-        $status = Get-VMStatus $vmxPath
+        $statusResult = Get-VMStatus -Name $name
+        $status = if ($statusResult.Success) { $statusResult.Data } else { "unknown" }
         Test-Check -Name "$name VM status" -Condition ($status -match "running|stopped") -Detail "($status)"
         if ($status -match "running" -and $rt.static_ip) {
             Test-Check -Name "$name SSH reachable" -Condition (Test-RuntimeSSHReachable -HostAddress $rt.static_ip -Port $rt.ssh_port) -Detail "($($rt.static_ip):$($rt.ssh_port))"

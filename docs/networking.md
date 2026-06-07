@@ -25,6 +25,7 @@ Default runtime addresses:
 frontend  192.168.242.131
 backend   192.168.242.133
 agent     192.168.242.135
+sandbox   192.168.242.137
 ```
 
 ## Prerequisites
@@ -80,6 +81,9 @@ Edit per-runtime IPs in `configs\topology.json`:
 {
   "frontend": {
     "static_ip": "192.168.242.131"
+  },
+  "sandbox": {
+    "static_ip": "192.168.242.137"
   }
 }
 ```
