@@ -2,7 +2,7 @@
 
 > **Date**: 2026-06-05 | **Last verified**: 2026-06-05 (kanban task t_d1591f90 — fresh re-verification, parameter-level mapping added) | **Source Tags**: [GH]=GitHub API, [FILE]=Source code analysis, [LLM]=LLM reasoning
 > **Bilingual**: English & 中文 | **Target audience**: ADP-OS maintainers, deer-flow integrators
-> **Integration guides**: [VM Backend Guide](deer-flow-backend.md) (deployment) | [Deer-Flow Integration Guide](../deer-flow-integration.md) (comprehensive) | [MCP Server Setup Guide](deer-flow-mcp-setup.md) (quick-start) | [简体中文](../zh-CN/deer-flow-integration.md) ([MCP 配置指南](../zh-CN/integrations/deer-flow-mcp-setup.md))
+> **Integration guides**: [VM Backend Guide](deer-flow-backend.md) (deployment) | [Deer-Flow Integration Guide](../deer-flow-integration.md) (comprehensive) | [MCP Server Setup Guide](deer-flow-mcp-setup.md) (quick-start) | [简体中文](../zh-CN/integrations/deer-flow.md) | [MCP 配置指南](../zh-CN/integrations/deer-flow-mcp-setup.md)
 
 ---
 
@@ -134,6 +134,121 @@ class Sandbox(ABC):
 
 ---
 
+## Configuration
+
+Two integration paths are available: MCP Server (cross-language, stdio transport) and Direct Adapter (Python-native, zero overhead). The MCP Server path exposes 26 MCP tools; both paths cover the 8 in-VM sandbox operations deer-flow needs.
+
+### Path 1: MCP Server (Recommended for Quick Start)
+
+Deer-flow loads ADP-OS as an MCP tool provider via stdio transport. All 26 tools are discovered automatically.
+
+**Step 1 — Verify MCP server** (26 tools expected):
+
+```bash
+cd /path/to/ai-dev-platform
+python3 -c "
+from cli.mcp.server import mcp
+tools = list(mcp._tool_manager._tools.keys())
+print(f'MCP tools registered: {len(tools)}')
+print(sorted(tools))
+"
+```
+
+**Step 2 — Configure deer-flow**: Create `extensions_config.json` in your deer-flow project root:
+
+```json
+{
+  "adp_os_sandbox": {
+    "type": "stdio",
+    "command": "python3",
+    "args": [
+      "/absolute/path/to/ai-dev-platform/cli/mcp/server.py"
+    ],
+    "env": {
+      "ADP_HOME": "/absolute/path/to/ai-dev-platform"
+    }
+  }
+}
+```
+
+WSL users must also set `ADP_HOME_WIN` (see [MCP Server Setup Guide](deer-flow-mcp-setup.md) for Windows and WSL-to-Windows host examples).
+
+**Step 3 — Restart deer-flow** to load the MCP extension. ADP-OS tools appear alongside built-in tools.
+
+**Step 4 — Validate from the MCP client**:
+
+```
+adp_up agent                    # Boot VM (~30s warm, 15-45 min first install)
+adp_status agent                # Confirm VM is running
+adp_exec agent "python3 --version"  # Execute code inside VM
+adp_stop agent                  # Graceful shutdown
+```
+
+These are MCP tool names, not local shell executables. For local PowerShell CLI verification, use `pwsh -File cli/adp.ps1 up agent`, `pwsh -File cli/adp.ps1 status agent`, and `pwsh -File cli/adp.ps1 stop agent`.
+
+> For detailed MCP setup including environment variables, troubleshooting, and platform-specific examples, see the [MCP Server Setup Guide](deer-flow-mcp-setup.md).
+
+### Path 2: Direct Adapter (Python-Native, Production)
+
+Import `DeerFlowADPSandboxProvider` directly — zero protocol overhead, persistent SSH connection pool, VM pre-warming.
+
+**Step 1 — Install dependencies**:
+
+```bash
+pip install paramiko    # SSH connection management (recommended)
+```
+
+**Step 2 — Initialize provider**:
+
+```python
+from extensions.deer_flow.deerflow_adp_sandbox import DeerFlowADPSandboxProvider
+
+provider = DeerFlowADPSandboxProvider(
+    adp_home="/path/to/ai-dev-platform",   # ADP-OS install directory (required)
+    pool_size=2,                            # Pre-warm 2 VMs (0 = disable)
+    ssh_user="adp",                         # VM SSH username (default)
+    ssh_password="adp",                     # VM SSH password (default)
+)
+
+# Optional: pre-warm VM pool to eliminate cold start
+provider.warm_pool()
+```
+
+**Step 3 — Use the sandbox**:
+
+```python
+# Acquire a sandbox for a deer-flow thread
+sandbox_id = provider.acquire(thread_id="my-thread")
+
+# Get sandbox handle and execute operations
+sandbox = provider.get(sandbox_id)
+output = sandbox.execute_command("pip install requests")
+sandbox.write_file("/app/main.py", "print('Hello from ADP-OS VM!')")
+content = sandbox.read_file("/app/main.py")
+entries = sandbox.list_dir("/app", max_depth=1)
+matches, truncated = sandbox.grep("/app", "Hello")
+
+# Release when done
+provider.release(sandbox_id)
+```
+
+> For full provider configuration reference, thread→runtime mapping, VM pool pre-warming, and performance characteristics, see the [VM Backend Guide](deer-flow-backend.md).
+
+### Path Selection
+
+| Factor | MCP Server | Direct Adapter |
+|--------|-----------|----------------|
+| Setup complexity | Low (JSON config only) | Medium (Python import) |
+| Cross-language | Yes (any MCP client) | Python only |
+| Protocol overhead | MCP stdio JSON | None (direct SSH) |
+| VM pool pre-warming | Not available | Yes (`pool_size` + `warm_pool()`) |
+| Thread→runtime mapping | Manual (runtime parameter) | Automatic (persistent registry) |
+| SSH connection caching | Per-call | Cached `SSHConnection` pool |
+
+**Recommendation**: Start with MCP Server for quick integration. Switch to Direct Adapter when you need VM pool pre-warming, persistent SSH connections, or lower protocol overhead.
+
+---
+
 ## Interface Mapping
 
 ### Lifecycle Mapping (Layer 1 — ✅ Covered)
@@ -221,6 +336,50 @@ All P0 gaps resolved via commits f7453c8 (8 SSH-backed in-VM tools) and 7a976fd 
 
 ---
 
+## Known Limitations
+
+This section documents practical constraints that integrators should be aware of when deploying ADP-OS as a deer-flow VM sandbox backend.
+
+### Platform
+
+| Limitation | Impact | Mitigation |
+|-----------|--------|------------|
+| **Windows host only** | ADP-OS VM provisioning requires VMware Workstation on Windows. No Linux/macOS host support. | Use a dedicated Windows machine as the sandbox host. The MCP server can be launched from Windows PowerShell or WSL when `ADP_HOME_WIN` points to the Windows repo path; do not treat native macOS/Linux as supported VM hosts. |
+| **VMware dependency** | Requires VMware Workstation installation (~800 MB download). No Hyper-V, VirtualBox, or KVM backend available yet. | VMware Workstation Pro is free for personal use since 2024-05. Hyper-V backend is on the P2 roadmap — see [capabilities](../capabilities.md). |
+
+### Startup
+
+| Limitation | Impact | Mitigation |
+|-----------|--------|------------|
+| **Cold start: 15–45 minutes** | First-time VM creation runs Ubuntu autoinstall from ISO — ~15-45 minutes depending on hardware. | **Direct Adapter path**: Use `VMPool` pre-warming (`pool_size=N` + `warm_pool()`). **MCP Server path**: invoke `adp_up` from the MCP client, or run `pwsh -File cli/adp.ps1 up agent` locally before agent sessions begin. Subsequent boots are ~30 seconds. |
+| **No suspend/resume** | VMs must be fully shut down (`adp_stop`) or destroyed (`adp_down`). No VMware suspend/snapshot support in MCP tools. | Use `adp_stop` for graceful shutdown (~5s). ADP-OS has snapshot infrastructure but it is not yet exposed as MCP tools (P2-2). |
+
+### Isolation
+
+| Limitation | Impact | Mitigation |
+|-----------|--------|------------|
+| **Shared filesystem within one runtime** | Concurrent agents assigned to the same ADP-OS runtime share that VM filesystem and may interfere with each other (file conflicts, process collisions). Deer-flow's native Docker sandboxes provide isolated filesystems per session. | Use different runtime names (`agent`, `frontend`, `backend`, `sandbox`) for concurrent agent isolation. Each runtime is a separate VM with its own filesystem. |
+| **No network sandboxing** | VMs have unrestricted outbound network access. Malicious code could exfiltrate data. | ADP-OS VMs are designed for trusted agent workloads. For untrusted code execution, consider network-level restrictions at the VMware NAT level. |
+| **Workspace → Thread isolation mismatch** | ADP-OS workspaces are project-level (a workspace groups multiple projects). Deer-flow threads are session-level. No automatic workspace-per-thread isolation. | Use the Direct Adapter's `ThreadRuntimeRegistry` to map deer-flow `thread_id` → ADP-OS `runtime`. Each thread gets its own VM. |
+
+### Operations
+
+| Limitation | Impact | Mitigation |
+|-----------|--------|------------|
+| **Static SSH credentials** | Default VM SSH credentials are `adp`/`adp`. Anyone with network access to the VMware NAT subnet can connect. | Change SSH password after first boot: `adp_exec agent "echo 'adp:NEW_PASSWORD' | sudo chpasswd"`. Set via `ADP_SSH_USER`/`ADP_SSH_PASSWORD` env vars. For production, use SSH keys. |
+| **Single host** | All VMs run on the same VMware host. No distributed VM scheduling. | For multi-host scaling, deploy multiple ADP-OS instances and route deer-flow threads to them via the adapter's `thread_id→runtime` mapping. |
+| **No snapshot/rollback in MCP** | ADP-OS has VM snapshot infrastructure but it is not exposed as MCP tools. Cannot checkpoint and restore VM state from deer-flow agents. | Snapshot exposure is a P2 roadmap item. Current workaround: manage snapshots manually via `adp.ps1 workspace task snapshot`. |
+| **Linux guest only** | ADP-OS VMs currently run Ubuntu 26.04 (autoinstalled from ISO). No Windows or macOS guest support. | This matches deer-flow's expectations — all deer-flow sandbox tools (bash, ls, glob, grep) assume Linux. |
+
+### Performance
+
+| Limitation | Impact | Mitigation |
+|-----------|--------|------------|
+| **In-VM command latency: ~1s** | Each `adp_exec` / file operation requires an SSH round-trip (~1s). Compare to Docker exec (~50ms). | Acceptable for agent workflows where tool calls are measured in seconds, not milliseconds. Batch operations where possible. Use the Direct Adapter's persistent SSH connection pool to avoid handshake overhead. |
+| **VM resource overhead** | Default topology values are VM-scale resources: the smallest `sandbox` runtime is 4 GB RAM / 40 GB disk, and the default `agent` runtime is 16 GB RAM / 160 GB disk. Compare to Docker containers (~50 MB RAM, ~100 MB overlay). | Plan VM pool size based on available host resources. Pre-warmed pool VMs consume RAM even when idle. |
+
+---
+
 ## Integration Path
 
 All phases are complete as of 2026-06-05.
@@ -288,7 +447,7 @@ class DeerFlowADPSandboxProvider(SandboxProvider):
 # deer-flow agent calls bash tool
 # → SandboxMiddleware acquires ADP-OS VM
 # → ADP-OS MCP: adp_up("agent", plan_only=False)
-#   → VMware boots Ubuntu VM (~30s for cached, ~20min for first install)
+#   → VMware boots Ubuntu VM (~30s for cached, ~15-45min for first install)
 # → ADPSandbox.execute_command("pip install requests")
 #   → MCP tool adp_exec("agent", "pip install requests")
 #   → SSH into VM, run command, return stdout
@@ -299,6 +458,8 @@ class DeerFlowADPSandboxProvider(SandboxProvider):
 
 ## Verification Checklist
 
+### Pre-Integration
+
 - [x] MCP server tests pass (45/45, all tests green as of 2026-06-05)
 - [x] Deer-flow MCP configuration format verified (extensions_config.json, stdio type)
 - [x] Integration guides written (docs/deer-flow-integration.md en + zh-CN)
@@ -307,9 +468,59 @@ class DeerFlowADPSandboxProvider(SandboxProvider):
 - [x] Test suite updated (`tests/test-mcp-server.py`) covering new tools — 45 tests
 - [x] Deer-flow `SandboxProvider` adapter class implemented — commit 7a976fd
 - [x] Test suite for SandboxProvider (`tests/test_deerflow_adp_sandbox.py`) — 30+ tests
-- [ ] Integration test: deer-flow agent → ADP-OS VM → code execution (requires deer-flow + VMware environment)
 - [x] Startup time documented (cold start 15-45 min vs warm VM ~30s — documented in this guide and adapter README)
 - [x] Thread→runtime mapping registry documented (persisted to `~/.adp-deerflow/thread_runtime_registry.json`, documented in this guide and adapter README)
+
+### Path 1: MCP Server Verification
+
+| # | Test | Command | Expected |
+|---|------|---------|----------|
+| 1 | MCP tools registered | `python3 -c "from cli.mcp.server import mcp; print(len(mcp._tool_manager._tools))"` | `26` |
+| 2 | MCP server tests | `python3 -m pytest tests/test-mcp-server.py -q` | `45 passed` |
+| 3 | Deer-flow config valid | Validate `extensions_config.json` syntax | Valid JSON, absolute paths |
+| 4 | Deer-flow sees ADP-OS tools | Restart deer-flow, check tool list | `adp_up`, `adp_exec`, etc. visible |
+| 5 | VM lifecycle — boot | `adp_up agent` | VM boots, SSH reachable |
+| 6 | VM lifecycle — status | `adp_status agent` | Shows `running`, SSH reachable |
+| 7 | In-VM exec | `adp_exec agent "python3 --version"` | Returns Python version string |
+| 8 | In-VM file write | `adp_file_write agent "/tmp/test.py" "print(42)" plan_only=False` | File written, bytes count returned |
+| 9 | In-VM file read | `adp_file_read agent "/tmp/test.py"` | Returns `"print(42)"` |
+| 10 | In-VM exec file | `adp_exec agent "python3 /tmp/test.py"` | Returns `"42"` |
+| 11 | In-VM dir list | `adp_dir_list agent "/tmp" max_depth=1` | Lists directory entries |
+| 12 | In-VM glob | `adp_glob agent "/tmp" "*.py"` | Matches `test.py` |
+| 13 | In-VM grep | `adp_grep agent "/tmp" "print"` | Matches `test.py` |
+| 14 | In-VM download | `adp_file_download agent "/tmp/test.py"` | Returns base64 content |
+| 15 | In-VM upload | `adp_file_upload agent "/tmp/uploaded.txt" "<base64>" plan_only=False` | File created |
+| 16 | VM lifecycle — stop | `adp_stop agent` | VM shuts down gracefully |
+| 17 | VM lifecycle — destroy | `adp_down agent` | VM destroyed |
+
+### Path 2: Direct Adapter Verification
+
+| # | Test | Expected |
+|---|------|----------|
+| 1 | Adapter tests pass | `python3 -m pytest tests/test_deerflow_adp_sandbox.py -q` → `30+ passed` |
+| 2 | Provider initialization | `DeerFlowADPSandboxProvider(adp_home=...)` creates without error |
+| 3 | VM pool pre-warming | `provider.warm_pool()` boots pool VMs in background |
+| 4 | Thread→runtime mapping | `provider.acquire(thread_id="test-123")` returns runtime name |
+| 5 | Sandbox handle retrieval | `provider.get(sandbox_id)` returns `ADPSSHSandbox` |
+| 6 | Command execution | `sandbox.execute_command("python3 --version")` returns version |
+| 7 | File read/write | `sandbox.write_file(...)` + `sandbox.read_file(...)` round-trip |
+| 8 | Directory listing | `sandbox.list_dir("/tmp")` returns entries |
+| 9 | Glob search | `sandbox.glob("/tmp", "*.py")` returns matches |
+| 10 | Grep search | `sandbox.grep("/tmp", "pattern")` returns matches |
+| 11 | File download/upload | `sandbox.download_file(...)` + `sandbox.update_file(...)` round-trip |
+| 12 | Release + cleanup | `provider.release(sandbox_id)` stops/destroys VM |
+
+### Integration Test (End-to-End)
+
+- [ ] Integration test: deer-flow agent → ADP-OS VM → code execution (requires deer-flow + VMware environment)
+
+### Post-Integration Health
+
+- [ ] ADP-OS CLI healthy: `pwsh -File cli/adp.ps1 doctor`
+- [ ] At least one VM runtime configured: `pwsh -File cli/adp.ps1 status`
+- [ ] No orphaned VMs after agent sessions: `pwsh -File cli/adp.ps1 status` shows expected runtimes only
+- [ ] Mutagen sync healthy (if using workspace tools): `adp_sync_status`
+- [ ] SSH credentials changed from defaults (production)
 
 ---
 

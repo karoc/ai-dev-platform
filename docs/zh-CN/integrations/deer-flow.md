@@ -2,7 +2,7 @@
 
 > **日期**: 2026-06-05 | **最后验证**: 2026-06-05（看板任务 t_d1591f90 — 重新验证，新增参数级映射）| **来源标签**: [GH]=GitHub API, [FILE]=源码分析, [LLM]=LLM 推理
 > **双语**: 中文 & English | **目标读者**: ADP-OS 维护者、deer-flow 集成者
-> **集成指南**: [VM 后端指南](deer-flow-backend.md)（部署）| [Deer-Flow 集成指南](../deer-flow-integration.md)（综合参考）| [MCP 配置指南](deer-flow-mcp-setup.md)（快速上手）| [English](../../integrations/deer-flow-mcp-setup.md)
+> **集成指南**: [VM 后端指南](deer-flow-backend.md)（部署）| [Deer-Flow 集成指南](../deer-flow-integration.md)（综合参考）| [MCP 配置指南](deer-flow-mcp-setup.md)（快速上手）| [English](../../integrations/deer-flow.md) | [MCP Setup Guide](../../integrations/deer-flow-mcp-setup.md)
 
 ---
 
@@ -134,6 +134,121 @@ class Sandbox(ABC):
 
 ---
 
+## 配置方式
+
+提供两种集成路径：MCP 服务器（跨语言，stdio 传输）和直接适配器（Python 原生，零协议开销）。MCP 服务器路径暴露 26 个 MCP 工具；两种路径都覆盖 deer-flow 需要的 8 个 VM 内沙箱操作。
+
+### 路径 1: MCP 服务器（推荐快速上手）
+
+Deer-flow 通过 stdio 传输将 ADP-OS 加载为 MCP 工具提供者。所有 26 个工具自动发现。
+
+**步骤 1 — 验证 MCP 服务器**（预期 26 个工具）：
+
+```bash
+cd /path/to/ai-dev-platform
+python3 -c "
+from cli.mcp.server import mcp
+tools = list(mcp._tool_manager._tools.keys())
+print(f'MCP 工具数: {len(tools)}')
+print(sorted(tools))
+"
+```
+
+**步骤 2 — 配置 deer-flow**：在 deer-flow 项目根目录创建 `extensions_config.json`：
+
+```json
+{
+  "adp_os_sandbox": {
+    "type": "stdio",
+    "command": "python3",
+    "args": [
+      "/absolute/path/to/ai-dev-platform/cli/mcp/server.py"
+    ],
+    "env": {
+      "ADP_HOME": "/absolute/path/to/ai-dev-platform"
+    }
+  }
+}
+```
+
+WSL 用户必须同时设置 `ADP_HOME_WIN`（详见 [MCP 配置指南](deer-flow-mcp-setup.md)，包含 Windows 与 WSL 调用 Windows 主机的示例）。
+
+**步骤 3 — 重启 deer-flow** 以加载 MCP 扩展。ADP-OS 工具将出现在内置工具旁边。
+
+**步骤 4 — 从 MCP 客户端验证**：
+
+```
+adp_up agent                    # 启动 VM（热 VM ~30 秒，首次安装 15-45 分钟）
+adp_status agent                # 确认 VM 运行中
+adp_exec agent "python3 --version"  # 在 VM 内执行代码
+adp_stop agent                  # 优雅关闭
+```
+
+这些是 MCP 工具名，不是本地 shell 可执行文件。本地 PowerShell CLI 验证请使用 `pwsh -File cli/adp.ps1 up agent`、`pwsh -File cli/adp.ps1 status agent` 和 `pwsh -File cli/adp.ps1 stop agent`。
+
+> 详细 MCP 配置包括环境变量、故障排查和平台特定示例，请参阅 [MCP 配置指南](deer-flow-mcp-setup.md)。
+
+### 路径 2: 直接适配器（Python 原生，生产环境）
+
+直接导入 `DeerFlowADPSandboxProvider`——零协议开销、持久 SSH 连接池、VM 预暖。
+
+**步骤 1 — 安装依赖**：
+
+```bash
+pip install paramiko    # SSH 连接管理（推荐）
+```
+
+**步骤 2 — 初始化 provider**：
+
+```python
+from extensions.deer_flow.deerflow_adp_sandbox import DeerFlowADPSandboxProvider
+
+provider = DeerFlowADPSandboxProvider(
+    adp_home="/path/to/ai-dev-platform",   # ADP-OS 安装目录（必需）
+    pool_size=2,                            # 预暖 2 个 VM（0 = 禁用）
+    ssh_user="adp",                         # VM SSH 用户名（默认）
+    ssh_password="adp",                     # VM SSH 密码（默认）
+)
+
+# 可选：预暖 VM 池以消除冷启动延迟
+provider.warm_pool()
+```
+
+**步骤 3 — 使用沙箱**：
+
+```python
+# 为 deer-flow 线程获取沙箱
+sandbox_id = provider.acquire(thread_id="my-thread")
+
+# 获取沙箱句柄并执行操作
+sandbox = provider.get(sandbox_id)
+output = sandbox.execute_command("pip install requests")
+sandbox.write_file("/app/main.py", "print('Hello from ADP-OS VM!')")
+content = sandbox.read_file("/app/main.py")
+entries = sandbox.list_dir("/app", max_depth=1)
+matches, truncated = sandbox.grep("/app", "Hello")
+
+# 完成后释放
+provider.release(sandbox_id)
+```
+
+> 完整的 provider 配置参考、thread→runtime 映射、VM 池预暖及性能特征，请参阅 [VM 后端指南](deer-flow-backend.md)。
+
+### 路径选择
+
+| 因素 | MCP 服务器 | 直接适配器 |
+|------|-----------|-----------|
+| 配置复杂度 | 低（仅 JSON 配置） | 中（Python import） |
+| 跨语言 | 是（任何 MCP 客户端） | 仅 Python |
+| 协议开销 | MCP stdio JSON | 无（直接 SSH） |
+| VM 池预暖 | 不可用 | 是（`pool_size` + `warm_pool()`） |
+| Thread→runtime 映射 | 手动（runtime 参数） | 自动（持久化注册表） |
+| SSH 连接缓存 | 每次调用 | 缓存的 `SSHConnection` 池 |
+
+**推荐**：从 MCP 服务器路径开始快速集成。当需要 VM 池预暖、持久 SSH 连接或更低协议开销时，切换到直接适配器路径。
+
+---
+
 ## 接口映射
 
 ### 生命周期映射（第一层 — ✅ 已覆盖）
@@ -221,6 +336,50 @@ class Sandbox(ABC):
 
 ---
 
+## 已知限制
+
+本节记录了集成者在将 ADP-OS 部署为 deer-flow VM 沙箱后端时应注意的实际约束。
+
+### 平台
+
+| 限制 | 影响 | 缓解措施 |
+|------|------|---------|
+| **仅限 Windows 主机** | ADP-OS VM 配置需要 Windows 上的 VMware Workstation。不支持 Linux/macOS 主机。 | 使用专用 Windows 机器作为沙箱主机。MCP 服务器可从 Windows PowerShell 或 WSL 启动，但 WSL 场景需要 `ADP_HOME_WIN` 指向 Windows 仓库路径；不要把原生 macOS/Linux 当作受支持的 VM 主机。 |
+| **VMware 依赖** | 需要安装 VMware Workstation（约 800 MB 下载）。尚无 Hyper-V、VirtualBox 或 KVM 后端。 | VMware Workstation Pro 自 2024-05 起对个人用户免费。Hyper-V 后端在 P2 路线图上——参见[平台能力](../capabilities.md)。 |
+
+### 启动
+
+| 限制 | 影响 | 缓解措施 |
+|------|------|---------|
+| **冷启动：15–45 分钟** | 首次 VM 创建从 ISO 运行 Ubuntu 自动安装——约 15-45 分钟（取决于硬件）。 | **直接适配器路径**：使用 `VMPool` 预暖（`pool_size=N` + `warm_pool()`）。**MCP 服务器路径**：从 MCP 客户端调用 `adp_up`，或在 agent 会话开始前本地运行 `pwsh -File cli/adp.ps1 up agent`。后续启动约 30 秒。 |
+| **不支持挂起/恢复** | VM 必须完全关闭（`adp_stop`）或销毁（`adp_down`）。MCP 工具不支持 VMware 挂起/快照。 | 使用 `adp_stop` 进行优雅关闭（约 5 秒）。ADP-OS 有快照基础设施但尚未作为 MCP 工具暴露（P2-2）。 |
+
+### 隔离性
+
+| 限制 | 影响 | 缓解措施 |
+|------|------|---------|
+| **单个 runtime 内共享文件系统** | 分配到同一 ADP-OS runtime 的并发 agent 会共享该 VM 文件系统，可能互相干扰（文件冲突、进程碰撞）。Deer-flow 原生 Docker 沙箱提供每个会话的独立文件系统。 | 使用不同的 runtime 名称（`agent`、`frontend`、`backend`、`sandbox`）实现并发 agent 隔离。每个 runtime 是拥有独立文件系统的独立 VM。 |
+| **无网络沙箱** | VM 具有不受限制的出站网络访问。恶意代码可能泄露数据。 | ADP-OS VM 设计用于可信 agent 工作负载。对于不受信任的代码执行，考虑在 VMware NAT 层面实施网络限制。 |
+| **工作区→线程隔离不匹配** | ADP-OS 工作区是项目级别的（一个工作区包含多个项目）。Deer-flow 线程是会话级别的。无自动的 workspace-per-thread 隔离。 | 使用直接适配器的 `ThreadRuntimeRegistry` 将 deer-flow `thread_id` → ADP-OS `runtime` 映射。每个线程获得独立的 VM。 |
+
+### 运维
+
+| 限制 | 影响 | 缓解措施 |
+|------|------|---------|
+| **静态 SSH 凭证** | 默认 VM SSH 凭证为 `adp`/`adp`。能访问 VMware NAT 子网的任何人都可连接。 | 首次启动后更改 SSH 密码：`adp_exec agent "echo 'adp:NEW_PASSWORD' | sudo chpasswd"`。通过 `ADP_SSH_USER`/`ADP_SSH_PASSWORD` 环境变量设置。生产环境使用 SSH 密钥。 |
+| **单主机** | 所有 VM 在同一 VMware 主机上运行。无分布式 VM 调度。 | 多主机扩展需部署多个 ADP-OS 实例，并通过适配器的 `thread_id→runtime` 映射将 deer-flow 线程路由到对应实例。 |
+| **MCP 无快照/回滚** | ADP-OS 有 VM 快照基础设施但未作为 MCP 工具暴露。无法从 deer-flow agent 进行检查点和恢复 VM 状态。 | 快照暴露是 P2 路线图项目。当前变通方案：通过 `adp.ps1 workspace task snapshot` 手动管理快照。 |
+| **仅 Linux 客户机** | ADP-OS VM 当前运行 Ubuntu 26.04（从 ISO 自动安装）。不支持 Windows 或 macOS 客户机。 | 这符合 deer-flow 的预期——所有 deer-flow 沙箱工具（bash、ls、glob、grep）均假设 Linux 环境。 |
+
+### 性能
+
+| 限制 | 影响 | 缓解措施 |
+|------|------|---------|
+| **VM 内命令延迟：约 1 秒** | 每次 `adp_exec`/文件操作需要 SSH 往返（约 1 秒）。对比 Docker exec（约 50 毫秒）。 | 对于工具调用以秒为单位的 agent 工作流可接受。尽量批量操作。使用直接适配器的持久 SSH 连接池避免握手开销。 |
+| **VM 资源开销** | 默认拓扑是 VM 级资源：最小的 `sandbox` runtime 为 4 GB 内存 / 40 GB 磁盘，默认 `agent` runtime 为 16 GB 内存 / 160 GB 磁盘。对比 Docker 容器（约 50 MB 内存、100 MB overlay）。 | 根据可用主机资源规划 VM 池大小。预暖池 VM 在空闲时仍消耗内存。 |
+
+---
+
 ## 集成路径
 
 截至 2026-06-05 全部阶段已完成。
@@ -288,7 +447,7 @@ class DeerFlowADPSandboxProvider(SandboxProvider):
 # deer-flow agent 调用 bash 工具
 # → SandboxMiddleware 获取 ADP-OS VM
 # → ADP-OS MCP: adp_up("agent", plan_only=False)
-#   → VMware 启动 Ubuntu VM（缓存约 30 秒，首次安装约 20 分钟）
+#   → VMware 启动 Ubuntu VM（缓存约 30 秒，首次安装约 15-45 分钟）
 # → ADPSandbox.execute_command("pip install requests")
 #   → MCP 工具 adp_exec("agent", "pip install requests")
 #   → SSH 进入 VM，运行命令，返回 stdout
@@ -299,6 +458,8 @@ class DeerFlowADPSandboxProvider(SandboxProvider):
 
 ## 验证清单
 
+### 集成前检查
+
 - [x] MCP 服务器测试通过（45/45，截至 2026-06-05 全部绿色）
 - [x] Deer-flow MCP 配置格式已验证（extensions_config.json，stdio 类型）
 - [x] 集成指南已编写（docs/deer-flow-integration.md 英文 + 简体中文）
@@ -307,9 +468,59 @@ class DeerFlowADPSandboxProvider(SandboxProvider):
 - [x] 测试套件已更新（`tests/test-mcp-server.py`）覆盖新工具 — 45 个测试
 - [x] Deer-flow `SandboxProvider` 适配器类已实现 — 提交 7a976fd
 - [x] SandboxProvider 测试套件（`tests/test_deerflow_adp_sandbox.py`）— 30+ 个测试
-- [ ] 集成测试: deer-flow agent → ADP-OS VM → 代码执行（需要 deer-flow + VMware 环境）
 - [x] 启动时间已记录（冷启动 15-45 分钟 vs 热 VM ~30 秒 — 已记录于本文档及适配器 README）
 - [x] Thread→runtime 映射注册表已记录（持久化到 `~/.adp-deerflow/thread_runtime_registry.json`，已记录于本文档及适配器 README）
+
+### 路径 1: MCP 服务器验证
+
+| # | 测试项 | 命令 | 预期结果 |
+|---|--------|------|---------|
+| 1 | MCP 工具注册 | `python3 -c "from cli.mcp.server import mcp; print(len(mcp._tool_manager._tools))"` | `26` |
+| 2 | MCP 服务器测试 | `python3 -m pytest tests/test-mcp-server.py -q` | `45 passed` |
+| 3 | Deer-flow 配置有效 | 验证 `extensions_config.json` 语法 | 有效 JSON，绝对路径 |
+| 4 | Deer-flow 可看到 ADP-OS 工具 | 重启 deer-flow，检查工具列表 | `adp_up`、`adp_exec` 等可见 |
+| 5 | VM 生命周期——启动 | `adp_up agent` | VM 启动，SSH 可达 |
+| 6 | VM 生命周期——状态 | `adp_status agent` | 显示 `running`，SSH 可达 |
+| 7 | VM 内执行命令 | `adp_exec agent "python3 --version"` | 返回 Python 版本字符串 |
+| 8 | VM 内文件写入 | `adp_file_write agent "/tmp/test.py" "print(42)" plan_only=False` | 文件写入，返回字节数 |
+| 9 | VM 内文件读取 | `adp_file_read agent "/tmp/test.py"` | 返回 `"print(42)"` |
+| 10 | VM 内执行文件 | `adp_exec agent "python3 /tmp/test.py"` | 返回 `"42"` |
+| 11 | VM 内目录列表 | `adp_dir_list agent "/tmp" max_depth=1` | 列出目录条目 |
+| 12 | VM 内 glob | `adp_glob agent "/tmp" "*.py"` | 匹配 `test.py` |
+| 13 | VM 内 grep | `adp_grep agent "/tmp" "print"` | 匹配 `test.py` |
+| 14 | VM 内下载 | `adp_file_download agent "/tmp/test.py"` | 返回 base64 内容 |
+| 15 | VM 内上传 | `adp_file_upload agent "/tmp/uploaded.txt" "<base64>" plan_only=False` | 文件创建 |
+| 16 | VM 生命周期——停止 | `adp_stop agent` | VM 优雅关闭 |
+| 17 | VM 生命周期——销毁 | `adp_down agent` | VM 已销毁 |
+
+### 路径 2: 直接适配器验证
+
+| # | 测试项 | 预期结果 |
+|---|--------|---------|
+| 1 | 适配器测试通过 | `python3 -m pytest tests/test_deerflow_adp_sandbox.py -q` → `30+ passed` |
+| 2 | Provider 初始化 | `DeerFlowADPSandboxProvider(adp_home=...)` 创建无错误 |
+| 3 | VM 池预暖 | `provider.warm_pool()` 在后台启动池 VM |
+| 4 | Thread→runtime 映射 | `provider.acquire(thread_id="test-123")` 返回 runtime 名称 |
+| 5 | 沙箱句柄获取 | `provider.get(sandbox_id)` 返回 `ADPSSHSandbox` |
+| 6 | 命令执行 | `sandbox.execute_command("python3 --version")` 返回版本 |
+| 7 | 文件读取/写入 | `sandbox.write_file(...)` + `sandbox.read_file(...)` 往返 |
+| 8 | 目录列表 | `sandbox.list_dir("/tmp")` 返回条目 |
+| 9 | Glob 搜索 | `sandbox.glob("/tmp", "*.py")` 返回匹配 |
+| 10 | Grep 搜索 | `sandbox.grep("/tmp", "pattern")` 返回匹配 |
+| 11 | 文件下载/上传 | `sandbox.download_file(...)` + `sandbox.update_file(...)` 往返 |
+| 12 | 释放 + 清理 | `provider.release(sandbox_id)` 停止/销毁 VM |
+
+### 集成测试（端到端）
+
+- [ ] 集成测试: deer-flow agent → ADP-OS VM → 代码执行（需要 deer-flow + VMware 环境）
+
+### 集成后健康检查
+
+- [ ] ADP-OS CLI 健康: `pwsh -File cli/adp.ps1 doctor`
+- [ ] 至少一个 VM runtime 已配置: `pwsh -File cli/adp.ps1 status`
+- [ ] Agent 会话后无遗留 VM: `pwsh -File cli/adp.ps1 status` 仅显示预期的 runtime
+- [ ] Mutagen 同步健康（如使用工作区工具）: `adp_sync_status`
+- [ ] SSH 凭证已更改默认值（生产环境）
 
 ---
 
