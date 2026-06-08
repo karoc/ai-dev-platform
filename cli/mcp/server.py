@@ -253,7 +253,7 @@ _SSH_BASE_OPTS = [
 
 
 def _get_runtime_ip(runtime: str) -> str:
-    """Resolve a runtime name to its VM IP address via adp status.
+    """Resolve a runtime name to its VM IP address via adpos status.
 
     Returns the IP address string, or raises RuntimeError if the runtime
     is not found or not running.
@@ -262,7 +262,7 @@ def _get_runtime_ip(runtime: str) -> str:
     if not result["success"]:
         raise RuntimeError(
             f"Cannot resolve runtime '{runtime}': "
-            f"adp status failed (exit {result['exit_code']}): {result['stderr']}"
+            f"adpos status failed (exit {result['exit_code']}): {result['stderr']}"
         )
 
     parsed = _parse_status(result["stdout"])
@@ -370,7 +370,7 @@ def _ssh_result(runtime: str, result: dict, parsed: Optional[dict] = None) -> di
     return base
 
 # ---------------------------------------------------------------------------
-# ADP CLI invocation
+# ADP-OS command invocation
 # ---------------------------------------------------------------------------
 
 def _find_pwsh() -> str:
@@ -393,7 +393,7 @@ def _find_pwsh() -> str:
 
 
 def _run_adp(args: list[str], timeout: int = 120) -> dict:
-    """Execute an ADP CLI command and return structured result.
+    """Execute an ADP-OS command and return structured result.
 
     Returns:
         dict with keys: stdout, stderr, exit_code, success
@@ -441,7 +441,7 @@ def _run_adp(args: list[str], timeout: int = 120) -> dict:
 
 
 def _format_output(result: dict) -> str:
-    """Format ADP CLI output for MCP response."""
+    """Format ADP-OS command output for MCP response."""
     parts = []
     if result["stdout"]:
         parts.append(result["stdout"])
@@ -477,7 +477,7 @@ def _structured_result(result: dict, parsed: Optional[dict] = None) -> dict:
 
 
 def _parse_status(stdout: str) -> dict:
-    """Parse 'adp status' output into structured fields."""
+    """Parse 'adpos status' output into structured fields."""
     runtimes: list[dict] = []
     # Match runtime entries like: "agent      running      192.168.242.135  reachable  healthy"
     # The status output format varies; try common patterns
@@ -512,7 +512,7 @@ def _parse_status(stdout: str) -> dict:
 
 
 def _parse_doctor(stdout: str) -> dict:
-    """Parse 'adp doctor' output into structured fields."""
+    """Parse 'adpos doctor' output into structured fields."""
     # Extract OK count and issue count
     ok_match = re.search(r"(\d+)\s*OK", stdout)
     issue_match = re.search(r"(\d+)\s*(?:issue|问题)", stdout, re.IGNORECASE)
@@ -541,7 +541,7 @@ def _parse_doctor(stdout: str) -> dict:
 
 
 def _parse_workspace_show(stdout: str) -> dict:
-    """Parse 'adp workspace show' output into structured fields."""
+    """Parse 'adpos workspace show' output into structured fields."""
     projects: list[dict] = []
     current_project: Optional[dict] = None
 
@@ -573,7 +573,7 @@ def _parse_workspace_show(stdout: str) -> dict:
 
 
 def _parse_sync_status(stdout: str) -> dict:
-    """Parse 'adp sync status' output into structured fields."""
+    """Parse 'adpos sync status' output into structured fields."""
     sessions: list[dict] = []
 
     for line in stdout.split("\n"):
@@ -603,7 +603,7 @@ def _parse_sync_status(stdout: str) -> dict:
 
 
 def _parse_capabilities(stdout: str) -> dict:
-    """Parse 'adp capabilities' output into structured fields."""
+    """Parse 'adpos capabilities' output into structured fields."""
     supported: list[str] = []
     planned: list[str] = []
     exploratory: list[str] = []

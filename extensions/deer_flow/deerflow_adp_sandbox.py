@@ -399,14 +399,14 @@ class ADPCLI:
             return {"stdout": "", "stderr": f"pwsh not found: {self.pwsh}", "exit_code": -1, "success": False}
 
     def status(self, runtime: str | None = None) -> dict:
-        """Run ``adp status [runtime]`` and parse output."""
+        """Run ``adpos status [runtime]`` and parse output."""
         args = ["status"]
         if runtime:
             args.append(runtime)
         return self._run(args, timeout=60)
 
     def up(self, runtime: str, plan_only: bool = False, iso_path: str | None = None) -> dict:
-        """Run ``adp up <runtime>``."""
+        """Run ``adpos up <runtime>``."""
         args = ["up", runtime]
         if plan_only:
             args.append("-Plan")
@@ -416,7 +416,7 @@ class ADPCLI:
         return self._run(args, timeout=1800)  # 30 min — first boot can be long
 
     def stop(self, runtime: str) -> dict:
-        """Run ``adp stop <runtime>``."""
+        """Run ``adpos stop <runtime>``."""
         return self._run(["stop", runtime], timeout=120)
 
     def down(self, runtime: str, plan_only: bool = False, force: bool = False) -> dict:
@@ -429,7 +429,7 @@ class ADPCLI:
         return self._run(args, timeout=300)
 
     def doctor(self) -> dict:
-        """Run ``adp doctor``."""
+        """Run ``adpos doctor``."""
         return self._run(["doctor"], timeout=120)
 
 
@@ -991,7 +991,7 @@ class DeerFlowADPSandboxProvider(SandboxProvider):
             ssh_info = self.cli.get_runtime_ssh_info(sandbox_id)
             ip = ssh_info.get("ip")
             if not ip:
-                # Try to get IP from adp status
+                # Try to get IP from adpos status
                 status = self.cli.status(sandbox_id)
                 if status["success"]:
                     ip = self._extract_ip(status["stdout"], sandbox_id)
@@ -1044,7 +1044,7 @@ class DeerFlowADPSandboxProvider(SandboxProvider):
     # ------------------------------------------------------------------
 
     def _wait_for_ssh(self, runtime: str, timeout: float = 120.0) -> None:
-        """Poll adp status until the VM reports reachable SSH."""
+        """Poll adpos status until the VM reports reachable SSH."""
         deadline = time.time() + timeout
         while time.time() < deadline:
             result = self.cli.status(runtime)
@@ -1057,7 +1057,7 @@ class DeerFlowADPSandboxProvider(SandboxProvider):
 
     @staticmethod
     def _extract_ip(status_output: str, runtime: str) -> str | None:
-        """Extract IP address from adp status output for *runtime*."""
+        """Extract IP address from adpos status output for *runtime*."""
         for line in status_output.split("\n"):
             if runtime.lower() in line.lower():
                 # Match IPv4 pattern

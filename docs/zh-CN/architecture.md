@@ -24,9 +24,10 @@ Host OS
 
 ```text
 adp-os/
+  adpos.cmd
   install.ps1
   cli/
-    adp.ps1
+    adp.ps1        # 内部 PowerShell control plane
     commands/
   core/
     bootstrap/
@@ -55,7 +56,7 @@ adp-os/
 
 ## 控制平面
 
-CLI 入口是 `cli\adp.ps1`。它加载：
+用户入口是 `adpos`。仓库内的 `adpos.cmd` wrapper 和全局 `adpos` shim 会分发到内部 PowerShell control plane：`cli\adp.ps1`。这个内部 control plane 会加载：
 
 - `core\config\config.ps1`
 - `core\logging\logger.ps1`

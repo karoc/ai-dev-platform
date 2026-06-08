@@ -24,7 +24,7 @@ if ($Shell -eq "powershell") {
 # Or install permanently:
 #   adpos completion powershell >> $PROFILE
 
-Register-ArgumentCompleter -CommandName adpos,adpos.cmd,adp,adp.cmd,adp.ps1 -ParameterName Command -ScriptBlock {
+Register-ArgumentCompleter -CommandName adpos,adpos.cmd -ParameterName Command -ScriptBlock {
     param($wordToComplete, $commandAst, $cursorPosition)
     $commands = @(
         "setup", "init", "up", "run", "status", "stop", "sync",
@@ -57,6 +57,6 @@ _adpos_completion() {
         return
     fi
 }
-complete -F _adpos_completion adpos adpos.cmd adp adp.cmd
+complete -F _adpos_completion adpos adpos.cmd
 '@
 }

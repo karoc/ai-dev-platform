@@ -18,7 +18,7 @@ adpos sync status
 .\tests\validate.ps1 -Quick
 ```
 
-After `.\setup.cmd`, `adpos` is the formal command and should work from any directory. If the current shell has not refreshed `PATH`, open a new terminal or use `.\adpos.cmd doctor` from the repository root. `adp` and `.\adp.cmd` remain compatibility aliases. If `pwsh.exe` is not installed, run `.\setup.cmd`; it attempts to install PowerShell 7 with `winget`, then restarts setup with `pwsh.exe`. Built-in Windows PowerShell 5.1 is only a bootstrap path and does not run the ADP-OS control plane.
+After `.\setup.cmd`, `adpos` is the formal command and should work from any directory. If the current shell has not refreshed `PATH`, open a new terminal or use `.\adpos.cmd doctor` from the repository root. ADP-OS exposes `adpos` as the only user-facing shell command. If `pwsh.exe` is not installed, run `.\setup.cmd`; it attempts to install PowerShell 7 with `winget`, then restarts setup with `pwsh.exe`. Built-in Windows PowerShell 5.1 is only a bootstrap path and does not run the ADP-OS control plane.
 
 Useful context to capture:
 

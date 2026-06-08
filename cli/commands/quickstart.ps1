@@ -30,6 +30,26 @@ function Get-QuickstartExitCode {
     return [int]$global:LASTEXITCODE
 }
 
+function Write-QuickstartRegistrationResult {
+    param([Parameter(Mandatory = $true)][object]$Registration)
+
+    if ($Registration.Skipped) {
+        Write-UIHost -English "Step 2b: Global command kept: adpos" -Chinese "步骤 2b：已保留全局命令: adpos" -ForegroundColor Yellow
+        Write-UIHost -English "  Existing binding: $($Registration.PreviousHome)" -Chinese "  现有绑定: $($Registration.PreviousHome)" -ForegroundColor DarkGray
+        Write-UIHost -English "  Use this checkout locally: .\adpos.cmd" -Chinese "  使用当前版本请在本仓库运行: .\adpos.cmd" -ForegroundColor DarkGray
+        Write-Host ""
+        return
+    }
+
+    if (-not $NonInteractive) {
+        $english = if ($Registration.Replaced) { "Step 2b: Global command replaced: adpos" } else { "Step 2b: Global command registered: adpos" }
+        $chinese = if ($Registration.Replaced) { "步骤 2b：已替换全局命令: adpos" } else { "步骤 2b：已注册全局命令: adpos" }
+        Write-UIHost -English $english -Chinese $chinese -ForegroundColor Green
+        Write-Host "  $($Registration.ShimPath)" -ForegroundColor DarkGray
+        Write-Host ""
+    }
+}
+
 # --- --help-prereqs: delegate to precheck ---
 if ($HelpPrereqs) {
     $precheckCommand = Join-Path (Get-ProjectRoot) "cli\commands\precheck.ps1"
@@ -171,6 +191,12 @@ if (-not $alreadyInstalled) {
     if ($NoRegisterCommand) {
         $installArgs += "-NoRegisterCommand"
     }
+    if ($NonInteractive) {
+        $installArgs += "-NonInteractive"
+    }
+    if ($Force) {
+        $installArgs += "-RegisterCommandForce"
+    }
 
     Reset-QuickstartExitCode
     & $installScript @installArgs
@@ -187,12 +213,8 @@ if (-not $alreadyInstalled) {
         Write-Host ""
     }
     if (-not $NoRegisterCommand) {
-        $registration = Install-ADPOSCommandRegistration -ProjectRoot $projectRoot
-        if (-not $NonInteractive) {
-            Write-UIHost -English "Step 2b: Global command registered: adpos" -Chinese "步骤 2b：已注册全局命令: adpos" -ForegroundColor Green
-            Write-Host "  $($registration.ShimPath)" -ForegroundColor DarkGray
-            Write-Host ""
-        }
+        $registration = Install-ADPOSCommandRegistration -ProjectRoot $projectRoot -NonInteractive:$NonInteractive -Force:$Force
+        Write-QuickstartRegistrationResult -Registration $registration
     }
 }
 
@@ -248,6 +270,9 @@ if (-not $SkipDoctor) {
 # =============================================
 # Summary
 # =============================================
+$currentRegistration = Get-ADPOSExistingRegistration -ProjectRoot $projectRoot
+$nextCommand = if ($NoRegisterCommand -or $currentRegistration.IsDifferentHome) { ".\adpos.cmd" } else { "adpos" }
+
 if (-not $NonInteractive) {
     Write-Host ""
     Write-Host "========================================" -ForegroundColor Cyan
@@ -257,10 +282,14 @@ if (-not $NonInteractive) {
     Write-UIHost -English "  Platform initialized successfully." -Chinese "  平台已成功初始化。" -ForegroundColor Green
     Write-Host ""
     Write-UIHost -English "Next steps:" -Chinese "下一步:" -ForegroundColor Cyan
-    Write-UIHost -English "  adpos up frontend    Start your first runtime (creates VM from ISO, ~15-45 min first time)" -Chinese "  adpos up frontend    启动第一个运行时（从 ISO 创建 VM，首次约 15-45 分钟）" -ForegroundColor DarkGray
-    Write-UIHost -English "  adpos doctor         Check platform health" -Chinese "  adpos doctor         检查平台健康状态" -ForegroundColor DarkGray
-    Write-UIHost -English "  adpos help           See all commands" -Chinese "  adpos help           查看所有命令" -ForegroundColor DarkGray
-    Write-UIHost -English "  adpos uninstall      Remove the global command registration" -Chinese "  adpos uninstall      移除全局命令注册" -ForegroundColor DarkGray
+    Write-UIHost -English "  $nextCommand up frontend    Start your first runtime (creates VM from ISO, ~15-45 min first time)" -Chinese "  $nextCommand up frontend    启动第一个运行时（从 ISO 创建 VM，首次约 15-45 分钟）" -ForegroundColor DarkGray
+    Write-UIHost -English "  $nextCommand doctor         Check platform health" -Chinese "  $nextCommand doctor         检查平台健康状态" -ForegroundColor DarkGray
+    Write-UIHost -English "  $nextCommand help           See all commands" -Chinese "  $nextCommand help           查看所有命令" -ForegroundColor DarkGray
+    if ($currentRegistration.IsDifferentHome) {
+        Write-UIHost -English "  Global adpos is unchanged; uninstall it from its owning checkout if needed." -Chinese "  全局 adpos 未改变；如需卸载，请在其所属 checkout 中执行。" -ForegroundColor DarkGray
+    } elseif (-not $NoRegisterCommand) {
+        Write-UIHost -English "  adpos uninstall      Remove the global command registration" -Chinese "  adpos uninstall      移除全局命令注册" -ForegroundColor DarkGray
+    }
     Write-UIHost -English "  If this terminal cannot find adpos yet, open a new terminal or use .\adpos.cmd from this repository." -Chinese "  如果当前终端暂时找不到 adpos，请打开新终端，或在本仓库中使用 .\adpos.cmd。" -ForegroundColor DarkGray
     Write-Host ""
     Write-UIHost -English "  For more info: https://github.com/karoc/ai-dev-platform" -Chinese "  更多信息：https://github.com/karoc/ai-dev-platform" -ForegroundColor DarkGray

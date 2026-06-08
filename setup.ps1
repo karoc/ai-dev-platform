@@ -103,7 +103,7 @@ if ($PSVersionTable.PSVersion.Major -lt 7) {
     exit 1
 }
 
-# --- Source Core Modules (same as adp.ps1) ---
+# --- Source Core Modules (same as the internal CLI) ---
 . "$script:ProjectRoot\core\config\config.ps1"
 . "$script:ProjectRoot\core\logging\logger.ps1"
 . "$script:ProjectRoot\core\utility\circuit-breaker.ps1"

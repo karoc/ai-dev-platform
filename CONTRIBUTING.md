@@ -29,7 +29,7 @@ cd ai-dev-platform
 .\setup.cmd            # Guided setup; registers the global `adpos` command
 ```
 
-After setup, use `adpos` from any directory. If the current shell has not refreshed `PATH`, use `.\adpos.cmd` from the repository root. `adp` and `.\adp.cmd` remain compatibility aliases for existing scripts.
+After setup, use `adpos` from any directory. If the current shell has not refreshed `PATH`, use `.\adpos.cmd` from the repository root. ADP-OS exposes `adpos` as the only user-facing shell command.
 
 ### Validation Flow
 
@@ -146,7 +146,7 @@ cd ai-dev-platform
 .\setup.cmd            # 引导式设置；注册全局 `adpos` 命令
 ```
 
-设置完成后，在任意目录使用 `adpos`。如果当前 shell 尚未刷新 `PATH`，可在仓库根目录使用 `.\adpos.cmd`。`adp` 和 `.\adp.cmd` 作为已有脚本的兼容别名继续保留。
+设置完成后，在任意目录使用 `adpos`。如果当前 shell 尚未刷新 `PATH`，可在仓库根目录使用 `.\adpos.cmd`。ADP-OS 对外只暴露 `adpos` 这一个用户 shell 命令。
 
 ### 验证流程
 

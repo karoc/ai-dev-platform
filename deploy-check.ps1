@@ -105,5 +105,5 @@ Write-Host "  All checks passed!" -ForegroundColor Green
 Write-Host "========================================" -ForegroundColor Green
 Write-Host ""
 Write-Host "Ready to deploy. Run:" -ForegroundColor Cyan
-Write-Host "  pwsh cli/adp.ps1 up frontend" -ForegroundColor DarkGray
+Write-Host "  adpos up frontend" -ForegroundColor DarkGray
 Write-Host ""

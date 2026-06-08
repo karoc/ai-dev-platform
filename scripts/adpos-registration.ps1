@@ -55,6 +55,99 @@ function Test-ADPOSPathListContains {
     return $false
 }
 
+function Get-ADPOSPathCommandHomes {
+    param([string]$PathList)
+
+    $homes = @()
+    foreach ($entry in (($PathList -split ';') | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })) {
+        $normalizedEntry = Normalize-ADPOSPath -Path $entry
+        if ([string]::IsNullOrWhiteSpace($normalizedEntry)) {
+            continue
+        }
+
+        $repoCommand = Join-Path $normalizedEntry "adpos.cmd"
+        $legacyCli = Join-Path $normalizedEntry "cli\adp.ps1"
+        $adposCli = Join-Path $normalizedEntry "cli\adpos.ps1"
+        if ((Test-Path -LiteralPath $repoCommand) -and ((Test-Path -LiteralPath $legacyCli) -or (Test-Path -LiteralPath $adposCli))) {
+            $homes += $normalizedEntry
+        }
+    }
+
+    return @($homes | Select-Object -Unique)
+}
+
+function Get-ADPOSExistingRegistration {
+    param([string]$ProjectRoot)
+
+    $resolvedProjectRoot = Normalize-ADPOSPath -Path $ProjectRoot
+    $binPath = Get-ADPOSCommandBinPath
+    $shimPath = Get-ADPOSCommandShimPath
+    $homeVariableName = Get-ADPOSHomeVariableName
+    $userHome = [System.Environment]::GetEnvironmentVariable($homeVariableName, "User")
+    $machineHome = [System.Environment]::GetEnvironmentVariable($homeVariableName, "Machine")
+    $processHome = [System.Environment]::GetEnvironmentVariable($homeVariableName, "Process")
+    $userPath = [System.Environment]::GetEnvironmentVariable("Path", "User")
+    $machinePath = [System.Environment]::GetEnvironmentVariable("Path", "Machine")
+    $userPathHomes = @(Get-ADPOSPathCommandHomes -PathList $userPath)
+    $machinePathHomes = @(Get-ADPOSPathCommandHomes -PathList $machinePath)
+    $pathHomes = @($userPathHomes + $machinePathHomes | Where-Object { $_ } | Select-Object -Unique)
+    $effectiveHome = $null
+
+    if (-not [string]::IsNullOrWhiteSpace($userHome)) {
+        $effectiveHome = $userHome
+    } elseif (-not [string]::IsNullOrWhiteSpace($machineHome)) {
+        $effectiveHome = $machineHome
+    } elseif ($pathHomes.Count -gt 0) {
+        $effectiveHome = $pathHomes[0]
+    }
+
+    $normalizedEffectiveHome = Normalize-ADPOSPath -Path $effectiveHome
+    $shimOwned = $false
+    if (Test-Path -LiteralPath $shimPath) {
+        $shimContent = Get-Content -LiteralPath $shimPath -Raw -ErrorAction SilentlyContinue
+        $shimOwned = ($shimContent -match "ADP-OS global command shim")
+    }
+
+    $isDifferentHome = $false
+    if (-not [string]::IsNullOrWhiteSpace($normalizedEffectiveHome)) {
+        $isDifferentHome = -not [string]::Equals($normalizedEffectiveHome, $resolvedProjectRoot, [System.StringComparison]::OrdinalIgnoreCase)
+    }
+
+    return [pscustomobject]@{
+        Home              = $normalizedEffectiveHome
+        UserHome          = Normalize-ADPOSPath -Path $userHome
+        MachineHome       = Normalize-ADPOSPath -Path $machineHome
+        ProcessHome       = Normalize-ADPOSPath -Path $processHome
+        UserPathHomes     = $userPathHomes
+        MachinePathHomes  = $machinePathHomes
+        PathHomes         = $pathHomes
+        UserPathHasBin    = Test-ADPOSPathListContains -PathList $userPath -Path $binPath
+        MachinePathHasBin = Test-ADPOSPathListContains -PathList $machinePath -Path $binPath
+        ShimPath          = $shimPath
+        ShimExists        = Test-Path -LiteralPath $shimPath
+        ShimOwned         = $shimOwned
+        IsDifferentHome   = $isDifferentHome
+    }
+}
+
+function Confirm-ADPOSRegistrationReplacement {
+    param(
+        [Parameter(Mandatory = $true)]
+        [object]$ExistingRegistration,
+
+        [Parameter(Mandatory = $true)]
+        [string]$ProjectRoot
+    )
+
+    Write-Host ""
+    Write-Host "A global adpos command is already registered for another ADP-OS checkout." -ForegroundColor Yellow
+    Write-Host "  Existing: $($ExistingRegistration.Home)" -ForegroundColor DarkGray
+    Write-Host "  This one: $ProjectRoot" -ForegroundColor DarkGray
+    Write-Host ""
+    $answer = Read-Host "Replace the global adpos binding with this checkout? [y/N]"
+    return ($answer -match '^(y|yes)$')
+}
+
 function Add-ADPOSPathEntry {
     param([string]$Path)
 
@@ -94,7 +187,10 @@ function Remove-ADPOSPathEntry {
 function Install-ADPOSCommandRegistration {
     param(
         [Parameter(Mandatory = $true)]
-        [string]$ProjectRoot
+        [string]$ProjectRoot,
+
+        [switch]$NonInteractive,
+        [switch]$Force
     )
 
     $resolvedProjectRoot = [System.IO.Path]::GetFullPath($ProjectRoot)
@@ -106,6 +202,30 @@ function Install-ADPOSCommandRegistration {
     $binPath = Get-ADPOSCommandBinPath
     $shimPath = Get-ADPOSCommandShimPath
     $homeVariableName = Get-ADPOSHomeVariableName
+    $existingRegistration = Get-ADPOSExistingRegistration -ProjectRoot $resolvedProjectRoot
+    $previousHome = $existingRegistration.Home
+
+    if ($existingRegistration.IsDifferentHome -and -not $Force) {
+        $replace = $false
+        if (-not $NonInteractive) {
+            $replace = Confirm-ADPOSRegistrationReplacement -ExistingRegistration $existingRegistration -ProjectRoot $resolvedProjectRoot
+        }
+
+        if (-not $replace) {
+            return [pscustomobject]@{
+                Command      = "adpos"
+                BinPath      = $binPath
+                ShimPath     = $shimPath
+                Home         = $resolvedProjectRoot
+                PreviousHome = $previousHome
+                Registered   = $false
+                Replaced     = $false
+                Skipped      = $true
+                Reason       = "kept-existing-global"
+            }
+        }
+    }
+
     New-Item -ItemType Directory -Path $binPath -Force | Out-Null
 
     $shimLines = @(
@@ -147,10 +267,15 @@ function Install-ADPOSCommandRegistration {
     Add-ADPOSPathEntry -Path $binPath
 
     return [pscustomobject]@{
-        Command  = "adpos"
-        BinPath  = $binPath
-        ShimPath = $shimPath
-        Home     = $resolvedProjectRoot
+        Command      = "adpos"
+        BinPath      = $binPath
+        ShimPath     = $shimPath
+        Home         = $resolvedProjectRoot
+        PreviousHome = $previousHome
+        Registered   = $true
+        Replaced     = $existingRegistration.IsDifferentHome
+        Skipped      = $false
+        Reason       = ""
     }
 }
 

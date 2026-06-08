@@ -130,7 +130,9 @@ If you already have PowerShell 7 open, you can run the PowerShell entry point di
 
 Both entries guide you through the entire setup in one pass: prerequisite scanning, ISO download (~2.6 GB), platform bootstrap, initialization, and system diagnostics. If PowerShell 7 is missing, `setup.cmd` and `setup.ps1` first try to install it with `winget`; if that cannot produce a working `pwsh.exe`, they print the manual install path and exit before running the ADP-OS control plane. If you launch `setup.ps1` from built-in Windows PowerShell 5.1 and PowerShell 7 is available or successfully installed, it restarts itself with `pwsh.exe`.
 
-Setup also registers the global `adpos` command for your user account, so after installation you can run ADP-OS from any directory. Open a new terminal if the current shell has not picked up the updated user `PATH` yet. From the repository root, `.\adpos.cmd` is the preferred local wrapper; `adp` and `.\adp.cmd` remain compatibility aliases for existing users and scripts.
+Setup also registers the global `adpos` command for your user account, so after installation you can run ADP-OS from any directory. ADP-OS exposes `adpos` as the only user-facing shell command. Open a new terminal if the current shell has not picked up the updated user `PATH` yet; from the repository root, use `.\adpos.cmd` as the local wrapper.
+
+Multiple ADP-OS checkouts can coexist. The global `adpos` command can point to only one checkout at a time; if setup detects an existing global binding to another checkout, it asks whether to replace it. If you keep the existing binding, use `.\adpos.cmd` from the new checkout. Before running multiple VM environments side by side, configure distinct local paths and network settings such as workspace root, VM store, and static IPs.
 
 **Options:**
 
@@ -201,7 +203,7 @@ adpos init           # or: adpos init -Quick (skip redundant dep re-checks since
 ```
 
 > [!NOTE]
-> Use `adpos` as the formal command after setup. From the repository root, `.\adpos.cmd` is available if your current shell has not refreshed `PATH`. `adp` and `.\adp.cmd` remain compatibility aliases.
+> Use `adpos` as the formal command after setup. From the repository root, `.\adpos.cmd` is available if your current shell has not refreshed `PATH`.
 
 ### Runtime Operations
 
@@ -375,7 +377,7 @@ adpos workspace task validate frontend-browser-acceptance -Execute -ManifestPath
 
 ## Command Reference
 
-The reference uses `adpos`, the formal command installed by `.\setup.cmd`. From the repository root, `.\adpos.cmd ...` is the local wrapper if your current shell has not refreshed `PATH`. `adp` and `.\adp.cmd` remain compatibility aliases; MCP tool names such as `adp_status` stay unchanged protocol identifiers.
+The reference uses `adpos`, the formal command installed by `.\setup.cmd`. From the repository root, `.\adpos.cmd ...` is the local wrapper if your current shell has not refreshed `PATH`. MCP tool names such as `adp_status` stay unchanged protocol identifiers.
 
 `adpos uninstall` removes only the global command registration. Runtime data, workspace data, caches, tools, logs, and repository files remain untouched.
 

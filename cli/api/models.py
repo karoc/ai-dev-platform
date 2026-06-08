@@ -76,7 +76,7 @@ class ErrorResponse(BaseModel):
 # ---------------------------------------------------------------------------
 
 class ADPResult(BaseModel):
-    """Structured result from an ADP CLI command execution."""
+    """Structured result from an ADP-OS command execution."""
     text: str = Field(..., alias="_text", description="Formatted human-readable output")
     exit_code: int = Field(..., alias="_exit_code", description="Command exit code")
     success: bool = Field(..., alias="_success", description="Whether the command succeeded")

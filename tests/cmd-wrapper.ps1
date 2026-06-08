@@ -9,7 +9,25 @@ if (-not $IsWindows) {
 }
 
 $projectRoot = Split-Path $PSScriptRoot -Parent
-$adpCmd = Join-Path $projectRoot "adp.cmd"
+
+if ($projectRoot.StartsWith("\\")) {
+    $tempProjectRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("adpos-cmd-wrapper-source-{0}" -f ([guid]::NewGuid().ToString("N")))
+    $excludedNames = @(".git", "logs", ".tools", ".venv", "node_modules")
+    New-Item -ItemType Directory -Path $tempProjectRoot -Force | Out-Null
+    try {
+        Get-ChildItem -LiteralPath $projectRoot -Force |
+            Where-Object { $excludedNames -notcontains $_.Name } |
+            Copy-Item -Destination $tempProjectRoot -Recurse -Force
+
+        $pwshPath = (Get-Process -Id $PID).Path
+        & $pwshPath -NoProfile -ExecutionPolicy Bypass -File (Join-Path $tempProjectRoot "tests\cmd-wrapper.ps1")
+        exit $LASTEXITCODE
+    } finally {
+        Remove-Item -LiteralPath $tempProjectRoot -Recurse -Force -ErrorAction SilentlyContinue
+    }
+}
+
+$legacyAdpCmd = Join-Path $projectRoot "adp.cmd"
 $adposCmd = Join-Path $projectRoot "adpos.cmd"
 $setupCmd = Join-Path $projectRoot "setup.cmd"
 $uninstallCmd = Join-Path $projectRoot "uninstall.cmd"
@@ -89,9 +107,9 @@ function New-IsolatedCmdEnvironment {
     ) -join " && "
 }
 
-$versionResult = Invoke-CmdProcess -Command "adp.cmd --version" -WorkingDirectory $projectRoot
-Assert-ExitCode -Name "adp.cmd --version" -Result $versionResult -Expected 0
-Assert-OutputContains -Name "adp.cmd --version" -Result $versionResult -Pattern "ADP-OS version"
+if (Test-Path -LiteralPath $legacyAdpCmd) {
+    throw "adp.cmd must not be exposed as a repo-local command; use adpos.cmd instead."
+}
 
 $adposVersionResult = Invoke-CmdProcess -Command "adpos.cmd --version" -WorkingDirectory $projectRoot
 Assert-ExitCode -Name "adpos.cmd --version" -Result $adposVersionResult -Expected 0
@@ -159,13 +177,7 @@ Write-Output "NonInteractive=$NonInteractive"
     Assert-OutputContains -Name "uninstall.cmd tolerates leading uninstall subcommand" -Result $uninstallSubcommandResult -Pattern "NonInteractive=True"
 
     $isolatedEnv = New-IsolatedCmdEnvironment -Root (Join-Path $tempRoot "isolated")
-    Copy-Item -LiteralPath $adpCmd -Destination (Join-Path $tempRoot "adp.cmd")
     Copy-Item -LiteralPath $adposCmd -Destination (Join-Path $tempRoot "adpos.cmd")
-
-    $missingAdpResult = Invoke-CmdProcess -Command "$isolatedEnv && adp.cmd --version" -WorkingDirectory $tempRoot
-    Assert-ExitCode -Name "adp.cmd missing pwsh" -Result $missingAdpResult -Expected 1
-    Assert-OutputContains -Name "adp.cmd missing pwsh" -Result $missingAdpResult -Pattern "ADP-OS requires PowerShell 7\+"
-    Assert-OutputContains -Name "adp.cmd missing pwsh" -Result $missingAdpResult -Pattern "winget install --id Microsoft\.PowerShell --source winget"
 
     $missingAdposResult = Invoke-CmdProcess -Command "$isolatedEnv && adpos.cmd --version" -WorkingDirectory $tempRoot
     Assert-ExitCode -Name "adpos.cmd missing pwsh" -Result $missingAdposResult -Expected 1

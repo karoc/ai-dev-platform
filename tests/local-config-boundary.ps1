@@ -16,6 +16,10 @@ function New-BoundarySandbox {
 
     foreach ($relativePath in $trackedFiles) {
         $source = Join-Path $projectRoot $relativePath
+        if (-not (Test-Path -LiteralPath $source)) {
+            continue
+        }
+
         $target = Join-Path $sandboxRoot $relativePath
         $targetDirectory = Split-Path $target -Parent
         if (-not (Test-Path -LiteralPath $targetDirectory)) {

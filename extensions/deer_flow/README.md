@@ -9,7 +9,7 @@
 ```
 Deer-Flow Agent
     │
-    ├── acquire(thread_id) → sandbox_id     ← ADP CLI: adp up <runtime>
+    ├── acquire(thread_id) → sandbox_id     ← ADP-OS CLI: adpos up <runtime>
     ├── get(sandbox_id)    → ADPSSHSandbox  ← SSH to VM
     │   ├── execute_command("pip install ...")
     │   ├── read_file("/path/to/file")
@@ -19,7 +19,7 @@ Deer-Flow Agent
     │   ├── grep("/path", "TODO")
     │   ├── download_file("/path")
     │   └── update_file("/path", bytes)
-    └── release(sandbox_id)                 ← ADP CLI: adp stop <runtime>
+    └── release(sandbox_id)                 ← ADP-OS CLI: adpos stop <runtime>
 ```
 
 ## 安装
@@ -81,9 +81,9 @@ provider.release(sandbox_id)
 
 | 方法 | 说明 | ADP-OS 映射 |
 |------|------|------------|
-| `acquire(thread_id)` → `sandbox_id` | 获取 sandbox | `adp up <runtime>` |
+| `acquire(thread_id)` → `sandbox_id` | 获取 sandbox | `adpos up <runtime>` |
 | `get(sandbox_id)` → `Sandbox` | 获取 SSH 连接句柄 | 创建 SSH 连接到 VM |
-| `release(sandbox_id)` | 释放 sandbox | `adp stop <runtime>` |
+| `release(sandbox_id)` | 释放 sandbox | `adpos stop <runtime>` |
 
 ## Sandbox 接口（8 个方法）
 
@@ -143,7 +143,7 @@ SSH 配置来源于 `configs/topology.json` 中的 `static_ip` 和 `ssh_port`。
 
 | 依赖 | 必需？ | 说明 |
 |------|-------|------|
-| ADP-OS CLI | ✅ | `cli/adp.ps1` + PowerShell 7+ |
+| ADP-OS CLI | ✅ | `adpos` or repo-local `.\adpos.cmd` + PowerShell 7+ |
 | paramiko | 推荐 | SSH 连接（无则回退 subprocess ssh） |
 | sshpass | 回退时 | subprocess SSH 密码认证 |
 | VMware Workstation | ✅ | VM 运行时 |

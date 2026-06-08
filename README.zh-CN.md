@@ -116,7 +116,9 @@ cd ai-dev-platform
 
 `.\setup.cmd` 是克隆后面向普通 Windows shell 的推荐入口。它将引导您一次性完成全部设置：前提条件扫描、ISO 下载（~2.6 GB）、平台引导、初始化和系统诊断。如果缺少 PowerShell 7，`setup.cmd` / `setup.ps1` 会先尝试用 `winget` 自动安装；如果仍无法获得可用的 `pwsh.exe`，才会打印手动安装路径并退出，不会让 Windows PowerShell 5.1 误跑 ADP-OS 控制平面。已经打开 PowerShell 7 时，也可以直接运行 `.\setup.ps1`。
 
-设置流程还会为当前用户注册全局 `adpos` 命令。安装完成后，可以在任意目录运行 `adpos` 操作 ADP-OS；如果当前 shell 还没有刷新用户 `PATH`，请打开一个新终端。仓库根目录下优先使用 `.\adpos.cmd` 作为本地 wrapper；`adp` 和 `.\adp.cmd` 保留为兼容别名，供已有用户和脚本继续使用。
+设置流程还会为当前用户注册全局 `adpos` 命令。安装完成后，可以在任意目录运行 `adpos` 操作 ADP-OS；ADP-OS 对外只暴露 `adpos` 这一个用户 shell 命令。如果当前 shell 还没有刷新用户 `PATH`，请打开一个新终端；在仓库根目录下使用 `.\adpos.cmd` 作为本地 wrapper。
+
+多个 ADP-OS checkout 可以共存，但全局 `adpos` 同一时间只能指向其中一个。setup 如果检测到已有全局绑定指向其他 checkout，会询问是否替换；如果保留现有绑定，请在新 checkout 根目录使用 `.\adpos.cmd`。如果要同时运行多个 VM 环境，请先配置不同的本机路径和网络设置，例如 workspace root、VM store、静态 IP。
 
 **选项：**
 
@@ -152,7 +154,7 @@ adpos iso
 ```
 
 > [!TIP]
-> 安装后请使用正式入口 `adpos`。如果当前 shell 尚未刷新 `PATH`，可在仓库根目录使用 `.\adpos.cmd`；`adp` 和 `.\adp.cmd` 仅作为兼容入口保留。
+> 安装后请使用正式入口 `adpos`。如果当前 shell 尚未刷新 `PATH`，可在仓库根目录使用 `.\adpos.cmd`。
 
 如果您在中国，使用镜像下载更快：
 
@@ -343,7 +345,7 @@ adpos workspace task validate frontend-browser-acceptance -Execute -ManifestPath
 
 ## 命令参考
 
-本节使用 `adpos`，也就是 `.\setup.cmd` 安装后注册的正式命令。若当前 shell 尚未刷新 `PATH`，可在仓库根目录使用 `.\adpos.cmd ...`。`adp` 和 `.\adp.cmd` 仍作为兼容别名保留；MCP 工具名（例如 `adp_status`）是稳定协议标识，保持不变。
+本节使用 `adpos`，也就是 `.\setup.cmd` 安装后注册的正式命令。若当前 shell 尚未刷新 `PATH`，可在仓库根目录使用 `.\adpos.cmd ...`。MCP 工具名（例如 `adp_status`）是稳定协议标识，保持不变。
 
 `adpos uninstall` 只移除全局命令注册。Runtime 数据、workspace 数据、缓存、工具、日志和仓库文件都会保留。
 

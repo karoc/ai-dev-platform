@@ -24,9 +24,10 @@ The current MVP targets:
 
 ```text
 adp-os/
+  adpos.cmd
   install.ps1
   cli/
-    adp.ps1
+    adp.ps1        # internal PowerShell control plane
     commands/
   core/
     bootstrap/
@@ -55,7 +56,7 @@ adp-os/
 
 ## Control Plane
 
-The CLI entry point is `cli\adp.ps1`. It loads:
+The user-facing command is `adpos`. The repo-local `adpos.cmd` wrapper and the global `adpos` shim dispatch into the internal PowerShell control plane at `cli\adp.ps1`. That internal control plane loads:
 
 - `core\config\config.ps1`
 - `core\logging\logger.ps1`

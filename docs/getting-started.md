@@ -86,7 +86,7 @@ cd ai-dev-platform
 ```
 
 > [!TIP]
-> After setup, use `adpos` from any directory. If the current shell has not picked up the updated user `PATH` yet, open a new terminal or use `.\adpos.cmd` from the repository root. `adp` and `.\adp.cmd` remain compatibility aliases.
+> After setup, use `adpos` from any directory. If the current shell has not picked up the updated user `PATH` yet, open a new terminal or use `.\adpos.cmd` from the repository root. ADP-OS exposes `adpos` as the only user-facing shell command.
 
 ### Step 2: Run the Guided Setup
 

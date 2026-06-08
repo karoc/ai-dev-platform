@@ -104,7 +104,7 @@ curl -X POST http://localhost:8000/v1/auth/refresh \
 ## Architecture
 
 Shares the same `_run_adp()` subprocess wrapper as the MCP server (`cli/mcp/server.py`).
-The REST API wraps ADP-OS PowerShell CLI commands via `pwsh -File adp.ps1`.
+The REST API exposes the same command surface as `adpos`; the PowerShell control plane remains an internal implementation detail.
 
 ```
 Agent / Client
@@ -113,7 +113,10 @@ Agent / Client
 FastAPI REST Server  (cli/api/server.py)
     │  subprocess.run
     ▼
-pwsh -File cli/adp.ps1  (ADP-OS PowerShell CLI)
+adpos / adpos.cmd  (ADP-OS command)
+    │
+    ▼
+cli/adp.ps1  (internal PowerShell control plane)
     │
     ▼
 VMware Workstation → Ubuntu Server VMs

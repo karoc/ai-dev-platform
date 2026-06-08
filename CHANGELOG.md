@@ -14,9 +14,14 @@ Initial public release.
 
 ### Added
 
-- Added `adpos` as the formal public command entry. `setup.cmd` / `setup.ps1` now register a user-level `adpos` shim by default under `%LOCALAPPDATA%\ADP-OS\bin`, add only that bin directory to the user `PATH`, and keep `adp` / `adp.cmd` as compatibility aliases.
+- Added `adpos` as the only user-facing shell command. `setup.cmd` / `setup.ps1` now register a user-level `adpos` shim by default under `%LOCALAPPDATA%\ADP-OS\bin` and add only that bin directory to the user `PATH`.
 - Added one-click safe uninstall through `adpos uninstall` and the repository-root `uninstall.cmd` wrapper. The default uninstall removes only the global `adpos` command registration and does not delete VMs, workspaces, ISO cache, local tools, logs, or repository files.
 - Improved one-click bootstrap behavior for stock Windows shells. `setup.cmd`, `setup.ps1`, and `install.ps1` now attempt to install PowerShell 7 with `winget` when `pwsh.exe` is missing, then continue setup with PowerShell 7. `uninstall.cmd` can remove the command registration through Windows PowerShell 5.1 when PowerShell 7 is unavailable.
+
+### Changed
+
+- Removed the repo-root `adp.cmd` compatibility wrapper and stopped advertising `adp` / `adp.cmd` shell completions. Public docs, PR templates, deploy guidance, and extension docs now use `adpos` or repo-local `.\adpos.cmd`.
+- Setup now detects an existing global `adpos` binding through `ADPOS_HOME`, the user/system `PATH`, and the generated shim. Interactive setup asks before replacing a binding to another checkout; non-interactive setup keeps the existing binding unless `-Force` is used, and prints `.\adpos.cmd` guidance for the current checkout.
 
 ### Fixed
 

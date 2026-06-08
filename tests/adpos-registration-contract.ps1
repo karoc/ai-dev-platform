@@ -43,6 +43,9 @@ Assert-Contains -Name "registration resolves LOCALAPPDATA before USERPROFILE fal
 Assert-Contains -Name "registration uses dedicated ADP-OS user bin directory" -Text $registration -Pattern 'function\s+Get-ADPOSCommandBinPath[\s\S]*Join-Path\s+\(Get-ADPOSLocalAppData\)\s+"ADP-OS\\bin"'
 Assert-Contains -Name "registration creates adpos command shim" -Text $registration -Pattern 'function\s+Get-ADPOSCommandShimPath[\s\S]*"adpos\.cmd"'
 Assert-Contains -Name "registration defines ADPOS_HOME environment variable" -Text $registration -Pattern 'function\s+Get-ADPOSHomeVariableName[\s\S]*return "ADPOS_HOME"'
+Assert-Contains -Name "registration detects existing ADPOS_HOME and PATH command homes" -Text $registration -Pattern 'function\s+Get-ADPOSExistingRegistration[\s\S]*GetEnvironmentVariable\(\$homeVariableName, "User"\)[\s\S]*GetEnvironmentVariable\(\$homeVariableName, "Machine"\)[\s\S]*Get-ADPOSPathCommandHomes'
+Assert-Contains -Name "registration prompts before replacing another checkout" -Text $registration -Pattern 'function\s+Confirm-ADPOSRegistrationReplacement[\s\S]*Existing:[\s\S]*This one:[\s\S]*Read-Host "Replace the global adpos binding'
+Assert-Contains -Name "registration can skip a different global binding" -Text $registration -Pattern 'Install-ADPOSCommandRegistration[\s\S]*\[switch\]\$NonInteractive[\s\S]*\[switch\]\$Force[\s\S]*IsDifferentHome[\s\S]*-not \$Force[\s\S]*Skipped\s+=\s+\$true[\s\S]*kept-existing-global'
 Assert-Contains -Name "registration shim identifies ADP ownership" -Text $registration -Pattern 'REM ADP-OS global command shim'
 Assert-Contains -Name "registration writes project home to user environment" -Text $registration -Pattern 'SetEnvironmentVariable\(\$homeVariableName, \$resolvedProjectRoot, "User"\)[\s\S]*Set-Item -Path "Env:\$homeVariableName"'
 Assert-Contains -Name "registration shim delegates to repo-local adpos.cmd through ADPOS_HOME" -Text $registration -Pattern 'if ""%ADPOS_HOME%""==""""[\s\S]*call ""%ADPOS_HOME%\\adpos\.cmd"" %\*'
@@ -57,8 +60,10 @@ Assert-Contains -Name "unregistration removes the command bin from PATH" -Text $
 Assert-Contains -Name "unregistration removes ADPOS_HOME" -Text $registration -Pattern 'Uninstall-ADPOSCommandRegistration[\s\S]*SetEnvironmentVariable\(\$homeVariableName, \$null, "User"\)'
 
 Assert-Contains -Name "install registers adpos by default" -Text $install -Pattern 'if\s*\(-not\s+\$NoRegisterCommand\)\s*\{[\s\S]*Install-ADPOSCommandRegistration'
+Assert-Contains -Name "install passes non-interactive and force registration switches" -Text $install -Pattern '\[switch\]\$NonInteractive[\s\S]*\[switch\]\$RegisterCommandForce[\s\S]*Install-ADPOSCommandRegistration[\s\S]*-NonInteractive:\$NonInteractive[\s\S]*-Force:\$RegisterCommandForce'
 Assert-Contains -Name "install supports NoRegisterCommand skip" -Text $install -Pattern '\[switch\]\$NoRegisterCommand[\s\S]*Global command registration skipped by -NoRegisterCommand'
 Assert-Contains -Name "quickstart propagates NoRegisterCommand to install" -Text $quickstart -Pattern '\[switch\]\$NoRegisterCommand[\s\S]*\$installArgs\s*\+=\s*"-NoRegisterCommand"'
+Assert-Contains -Name "quickstart passes setup mode to registration" -Text $quickstart -Pattern '\$installArgs\s*\+=\s*"-NonInteractive"[\s\S]*\$installArgs\s*\+=\s*"-RegisterCommandForce"[\s\S]*Install-ADPOSCommandRegistration[\s\S]*-NonInteractive:\$NonInteractive[\s\S]*-Force:\$Force'
 Assert-Contains -Name "uninstall script delegates to registration uninstaller" -Text $uninstall -Pattern 'scripts\\adpos-registration\.ps1[\s\S]*Uninstall-ADPOSCommandRegistration'
 Assert-Contains -Name "uninstall default is non-destructive" -Text $uninstall -Pattern 'No VMs, workspace files, ISO cache, local tools, logs, or repository files were removed'
 

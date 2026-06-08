@@ -86,7 +86,7 @@ cd ai-dev-platform
 ```
 
 > [!TIP]
-> 安装完成后，你可以在任意目录直接使用 `adpos`。如果当前 shell 尚未刷新用户 `PATH`，请打开新终端，或在仓库根目录使用 `.\adpos.cmd`。`adp` 和 `.\adp.cmd` 保留为兼容别名。
+> 安装完成后，你可以在任意目录直接使用 `adpos`。如果当前 shell 尚未刷新用户 `PATH`，请打开新终端，或在仓库根目录使用 `.\adpos.cmd`。ADP-OS 对外只暴露 `adpos` 这一个用户 shell 命令。
 
 ### 第 2 步：运行引导式设置
 

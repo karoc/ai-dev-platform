@@ -7,7 +7,9 @@ param(
     [switch]$SkipVMValidation,
     [switch]$Quick,
     [string]$IsoPath,
-    [switch]$NoRegisterCommand
+    [switch]$NoRegisterCommand,
+    [switch]$NonInteractive,
+    [switch]$RegisterCommandForce
 )
 
 $ErrorActionPreference = "Stop"
@@ -73,6 +75,8 @@ if ($PSVersionTable.PSVersion.Major -lt 7) {
         if ($Quick) { $forwardArgs += "-Quick" }
         if ($IsoPath) { $forwardArgs += @("-IsoPath", $IsoPath) }
         if ($NoRegisterCommand) { $forwardArgs += "-NoRegisterCommand" }
+        if ($NonInteractive) { $forwardArgs += "-NonInteractive" }
+        if ($RegisterCommandForce) { $forwardArgs += "-RegisterCommandForce" }
 
         Write-Host "Restarting ADP-OS install with PowerShell 7: $pwsh" -ForegroundColor Cyan
         & $pwsh @forwardArgs
@@ -136,6 +140,40 @@ function Write-InstallBanner {
     Write-Host ""
 }
 
+function Write-InstallRegistrationResult {
+    param(
+        [Parameter(Mandatory = $true)]
+        [object]$Registration,
+
+        [string]$Indent = "  "
+    )
+
+    if ($Registration.Skipped) {
+        Write-InstallHost -English "${Indent}Global command kept: adpos" -Chinese "${Indent}已保留全局命令: adpos" -ForegroundColor Yellow
+        Write-InstallHost -English "${Indent}Existing binding: $($Registration.PreviousHome)" -Chinese "${Indent}现有绑定: $($Registration.PreviousHome)" -ForegroundColor DarkGray
+        Write-InstallHost -English "${Indent}Use this checkout locally: .\adpos.cmd" -Chinese "${Indent}使用当前版本请在本仓库运行: .\adpos.cmd" -ForegroundColor DarkGray
+        return
+    }
+
+    $messageEnglish = if ($Registration.Replaced) { "${Indent}Global command replaced: adpos" } else { "${Indent}Global command registered: adpos" }
+    $messageChinese = if ($Registration.Replaced) { "${Indent}已替换全局命令: adpos" } else { "${Indent}已注册全局命令: adpos" }
+    Write-InstallHost -English $messageEnglish -Chinese $messageChinese -ForegroundColor Green
+    Write-Host "$Indent$($Registration.ShimPath)" -ForegroundColor DarkGray
+}
+
+function Get-InstallCommandPrefix {
+    param(
+        [object]$Registration,
+        [switch]$NoRegisterCommand
+    )
+
+    if ($NoRegisterCommand -or ($Registration -and $Registration.Skipped)) {
+        return ".\adpos.cmd"
+    }
+
+    return "adpos"
+}
+
 Write-InstallBanner
 Write-InfoLog -Message (Get-InstallText -English "ADP-OS Install starting..." -Chinese "ADP-OS 安装开始...") -Component "install"
 Write-InfoLog -Message (Get-InstallText -English "Project root: $script:ProjectRoot" -Chinese "项目根目录: $script:ProjectRoot") -Component "install"
@@ -158,15 +196,15 @@ if ($Quick -and $alreadyInitialized) {
     $workspaceRoot = Resolve-Path "workspace_root"
     $isoCache = Resolve-Path "iso_cache"
     if (-not $NoRegisterCommand) {
-        $registration = Install-ADPOSCommandRegistration -ProjectRoot $script:ProjectRoot
-        Write-InstallHost -English "Global command registered: adpos" -Chinese "已注册全局命令: adpos" -ForegroundColor Green
-        Write-Host "  $($registration.ShimPath)" -ForegroundColor DarkGray
+        $registration = Install-ADPOSCommandRegistration -ProjectRoot $script:ProjectRoot -NonInteractive:$NonInteractive -Force:$RegisterCommandForce
+        Write-InstallRegistrationResult -Registration $registration -Indent ""
     }
+    $nextCommand = Get-InstallCommandPrefix -Registration $registration -NoRegisterCommand:$NoRegisterCommand
     Write-Host ""
     Write-InstallHost -English "Next steps:" -Chinese "下一步:" -ForegroundColor Cyan
-    Write-InstallHost -English "  adpos setup       Guided setup (ISO + init + doctor)" -Chinese "  adpos setup       引导式设置 (ISO + init + doctor)" -ForegroundColor DarkGray
-    Write-InstallHost -English "  adpos doctor      Check platform health" -Chinese "  adpos doctor      检查平台健康状态" -ForegroundColor DarkGray
-    Write-InstallHost -English "  adpos up frontend Start your first runtime" -Chinese "  adpos up frontend 启动第一个运行时" -ForegroundColor DarkGray
+    Write-InstallHost -English "  $nextCommand setup       Guided setup (ISO + init + doctor)" -Chinese "  $nextCommand setup       引导式设置 (ISO + init + doctor)" -ForegroundColor DarkGray
+    Write-InstallHost -English "  $nextCommand doctor      Check platform health" -Chinese "  $nextCommand doctor      检查平台健康状态" -ForegroundColor DarkGray
+    Write-InstallHost -English "  $nextCommand up frontend Start your first runtime" -Chinese "  $nextCommand up frontend 启动第一个运行时" -ForegroundColor DarkGray
     Write-Host ""
     exit 0
 }
@@ -453,9 +491,8 @@ Write-InfoLog -Message (Get-InstallText -English "Config finalization" -Chinese 
 Set-ADPInitialized
 
 if (-not $NoRegisterCommand) {
-    $registration = Install-ADPOSCommandRegistration -ProjectRoot $script:ProjectRoot
-    Write-InstallHost -English "  Global command registered: adpos" -Chinese "  已注册全局命令: adpos" -ForegroundColor Green
-    Write-Host "    $($registration.ShimPath)" -ForegroundColor DarkGray
+    $registration = Install-ADPOSCommandRegistration -ProjectRoot $script:ProjectRoot -NonInteractive:$NonInteractive -Force:$RegisterCommandForce
+    Write-InstallRegistrationResult -Registration $registration
 } else {
     Write-InstallHost -English "  Global command registration skipped by -NoRegisterCommand." -Chinese "  已通过 -NoRegisterCommand 跳过全局命令注册。" -ForegroundColor Yellow
 }
@@ -517,13 +554,18 @@ if ($SkipDependencyCheck) {
 
 Write-Host ""
 Write-InstallHost -English "Next steps:" -Chinese "下一步:" -ForegroundColor Cyan
-Write-InstallHost -English "  Recommended: adpos setup       One-command guided setup (ISO + init + doctor)" -Chinese "  推荐: adpos setup       一键引导式设置 (ISO + init + doctor)" -ForegroundColor Green
+$nextCommand = Get-InstallCommandPrefix -Registration $registration -NoRegisterCommand:$NoRegisterCommand
+Write-InstallHost -English "  Recommended: $nextCommand setup       One-command guided setup (ISO + init + doctor)" -Chinese "  推荐: $nextCommand setup       一键引导式设置 (ISO + init + doctor)" -ForegroundColor Green
 Write-InstallHost -English "  Or step by step:" -Chinese "  或逐步操作:" -ForegroundColor DarkGray
-Write-InstallHost -English "    1. adpos iso                 Download a supported Linux ISO (~2.6 GB, 10-30 min)" -Chinese "    1. adpos iso                 下载受支持的 Linux ISO (~2.6 GB, 10-30 分钟)" -ForegroundColor DarkGray
-Write-InstallHost -English "    2. adpos init [-IsoPath <path>] Initialize platform with ISO (~30s)" -Chinese "    2. adpos init [-IsoPath <path>] 使用 ISO 初始化平台 (~30s)" -ForegroundColor DarkGray
-Write-InstallHost -English "    3. adpos doctor -FirstRun     Verify platform health and see setup checklist" -Chinese "    3. adpos doctor -FirstRun     验证平台健康状态并查看设置清单" -ForegroundColor DarkGray
-Write-InstallHost -English "    4. adpos up frontend [-Plan]  Start your first runtime (~15-45 min first time)" -Chinese "    4. adpos up frontend [-Plan]  启动第一个运行时（首次约 15-45 分钟）" -ForegroundColor DarkGray
-Write-InstallHost -English "  Uninstall: adpos uninstall      Remove the global command registration" -Chinese "  卸载: adpos uninstall      移除全局命令注册" -ForegroundColor DarkGray
+Write-InstallHost -English "    1. $nextCommand iso                 Download a supported Linux ISO (~2.6 GB, 10-30 min)" -Chinese "    1. $nextCommand iso                 下载受支持的 Linux ISO (~2.6 GB, 10-30 分钟)" -ForegroundColor DarkGray
+Write-InstallHost -English "    2. $nextCommand init [-IsoPath <path>] Initialize platform with ISO (~30s)" -Chinese "    2. $nextCommand init [-IsoPath <path>] 使用 ISO 初始化平台 (~30s)" -ForegroundColor DarkGray
+Write-InstallHost -English "    3. $nextCommand doctor -FirstRun     Verify platform health and see setup checklist" -Chinese "    3. $nextCommand doctor -FirstRun     验证平台健康状态并查看设置清单" -ForegroundColor DarkGray
+Write-InstallHost -English "    4. $nextCommand up frontend [-Plan]  Start your first runtime (~15-45 min first time)" -Chinese "    4. $nextCommand up frontend [-Plan]  启动第一个运行时（首次约 15-45 分钟）" -ForegroundColor DarkGray
+if ($registration -and $registration.Skipped) {
+    Write-InstallHost -English "  Global adpos is unchanged; uninstall it from its owning checkout if needed." -Chinese "  全局 adpos 未改变；如需卸载，请在其所属 checkout 中执行。" -ForegroundColor DarkGray
+} elseif (-not $NoRegisterCommand) {
+    Write-InstallHost -English "  Uninstall: adpos uninstall      Remove the global command registration" -Chinese "  卸载: adpos uninstall      移除全局命令注册" -ForegroundColor DarkGray
+}
 Write-InstallHost -English "  If this terminal cannot find adpos yet, open a new terminal or use .\adpos.cmd from this repository." -Chinese "  如果当前终端暂时找不到 adpos，请打开新终端，或在本仓库中使用 .\adpos.cmd。" -ForegroundColor DarkGray
 Write-Host ""
 

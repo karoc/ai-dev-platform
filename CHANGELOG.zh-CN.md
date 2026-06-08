@@ -14,9 +14,14 @@
 
 ### 新增
 
-- 新增 `adpos` 作为正式公开命令入口。`setup.cmd` / `setup.ps1` 现在默认会在 `%LOCALAPPDATA%\ADP-OS\bin` 下注册用户级 `adpos` shim，并且只把该 bin 目录加入用户 `PATH`；`adp` / `adp.cmd` 作为兼容别名继续保留。
+- 新增 `adpos` 作为唯一面向用户的 shell 命令。`setup.cmd` / `setup.ps1` 现在默认会在 `%LOCALAPPDATA%\ADP-OS\bin` 下注册用户级 `adpos` shim，并且只把该 bin 目录加入用户 `PATH`。
 - 新增一键安全卸载入口：`adpos uninstall` 以及仓库根目录的 `uninstall.cmd` wrapper。默认卸载只移除全局 `adpos` 命令注册，不删除 VM、workspace、ISO 缓存、本地工具、日志或仓库文件。
 - 改进 stock Windows shell 的一键 bootstrap 行为。缺少 `pwsh.exe` 时，`setup.cmd`、`setup.ps1` 和 `install.ps1` 现在会尝试用 `winget` 安装 PowerShell 7，然后继续用 PowerShell 7 执行 setup。PowerShell 7 不可用时，`uninstall.cmd` 也可以通过 Windows PowerShell 5.1 移除命令注册。
+
+### 变更
+
+- 移除仓库根目录的 `adp.cmd` 兼容 wrapper，并停止在 shell completion 中暴露 `adp` / `adp.cmd`。公开文档、PR 模板、部署提示和扩展文档现在统一使用 `adpos` 或仓库本地 `.\adpos.cmd`。
+- setup 现在会通过 `ADPOS_HOME`、用户/系统 `PATH` 和生成的 shim 检测已有全局 `adpos` 绑定。交互模式发现其他 checkout 时会询问是否替换；非交互模式会保留现有绑定，除非使用 `-Force`，并提示当前 checkout 使用 `.\adpos.cmd`。
 
 ### 修复
 
