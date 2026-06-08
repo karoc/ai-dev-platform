@@ -163,7 +163,7 @@ try {
         [pscustomobject]@{
             Name = "install skip checks"
             Script = $installScript
-            Arguments = @("-SkipDependencyCheck", "-SkipVMValidation")
+            Arguments = @("-SkipDependencyCheck", "-SkipVMValidation", "-NoRegisterCommand")
             AllowedExitCodes = @(0)
         }
         [pscustomobject]@{

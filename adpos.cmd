@@ -17,7 +17,7 @@ if not defined PWSH call :UsePowerShell7 "%UserProfile%\AppData\Local\Microsoft\
 if not defined PWSH (
     if /i "%~1"=="uninstall" (
         if exist "%~dp0uninstall.cmd" (
-            call "%~dp0uninstall.cmd" %*
+            call "%~dp0uninstall.cmd" %2 %3 %4 %5 %6 %7 %8 %9
             exit /b %ERRORLEVEL%
         )
     )

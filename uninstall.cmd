@@ -6,6 +6,9 @@ setlocal
 
 set "PWSH="
 set "WINPS="
+set "UNINSTALL_ARGS=%*"
+if /i "%~1"=="uninstall" set "UNINSTALL_ARGS=%2 %3 %4 %5 %6 %7 %8 %9"
+
 for /f "delims=" %%P in ('where pwsh.exe 2^>nul') do (
     if not defined PWSH call :UsePowerShell7 "%%P"
 )
@@ -17,7 +20,7 @@ if not defined PWSH call :UsePowerShell7 "%UserProfile%\AppData\Local\Microsoft\
 
 if not defined PWSH goto UseWindowsPowerShellFallback
 
-"%PWSH%" -NoProfile -ExecutionPolicy Bypass -File "%~dp0uninstall.ps1" %*
+"%PWSH%" -NoProfile -ExecutionPolicy Bypass -File "%~dp0uninstall.ps1" %UNINSTALL_ARGS%
 exit /b %ERRORLEVEL%
 
 :UseWindowsPowerShellFallback
@@ -29,7 +32,7 @@ if not defined WINPS (
     )
 )
 if not defined WINPS goto NoWindowsPowerShellFallback
-"%WINPS%" -NoProfile -ExecutionPolicy Bypass -File "%~dp0uninstall.ps1" %*
+"%WINPS%" -NoProfile -ExecutionPolicy Bypass -File "%~dp0uninstall.ps1" %UNINSTALL_ARGS%
 exit /b %ERRORLEVEL%
 
 :NoWindowsPowerShellFallback

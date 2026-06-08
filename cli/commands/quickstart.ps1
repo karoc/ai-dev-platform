@@ -18,11 +18,24 @@ param(
 
 Write-InfoLog -Message (Get-UIText -English "adpos quickstart" -Chinese "adpos 快速启动") -Component "cli.quickstart"
 
+function Reset-QuickstartExitCode {
+    $global:LASTEXITCODE = 0
+}
+
+function Get-QuickstartExitCode {
+    if ($null -eq $global:LASTEXITCODE -or [string]::IsNullOrWhiteSpace([string]$global:LASTEXITCODE)) {
+        return 0
+    }
+
+    return [int]$global:LASTEXITCODE
+}
+
 # --- --help-prereqs: delegate to precheck ---
 if ($HelpPrereqs) {
     $precheckCommand = Join-Path (Get-ProjectRoot) "cli\commands\precheck.ps1"
+    Reset-QuickstartExitCode
     . $precheckCommand -HelpPrereqs
-    exit $LASTEXITCODE
+    exit (Get-QuickstartExitCode)
 }
 
 # --- Precheck scan ---
@@ -116,9 +129,10 @@ if (-not $SkipIsoDownload) {
         if ($NonInteractive) {
             $isoArgs.NonInteractive = $true
         }
+        Reset-QuickstartExitCode
         . $isoCommand @isoArgs
 
-        if ($LASTEXITCODE -ne 0) {
+        if ((Get-QuickstartExitCode) -ne 0) {
             Write-UIHost -English "  ISO download failed. You can retry or use -SkipIsoDownload to proceed with your own ISO." -Chinese "  ISO 下载失败。您可以重试或使用 -SkipIsoDownload 用自己的 ISO 继续。" -ForegroundColor Yellow
         }
     } elseif ($IsoPath) {
@@ -158,10 +172,12 @@ if (-not $alreadyInstalled) {
         $installArgs += "-NoRegisterCommand"
     }
 
+    Reset-QuickstartExitCode
     & $installScript @installArgs
+    $installExitCode = Get-QuickstartExitCode
 
-    if ($LASTEXITCODE -ne 0) {
-        Write-ErrorLog -Message "install.ps1 failed with exit code $LASTEXITCODE" -Component "cli.quickstart"
+    if ($installExitCode -ne 0) {
+        Write-ErrorLog -Message "install.ps1 failed with exit code $installExitCode" -Component "cli.quickstart"
         Write-UIHost -English "  Platform bootstrap failed. Check output above for details." -Chinese "  平台引导失败。请查看上方输出了解详情。" -ForegroundColor Red
         exit 1
     }
@@ -194,10 +210,12 @@ if ($IsoPath) {
     $initArgs.IsoPath = $IsoPath
 }
 
+Reset-QuickstartExitCode
 . $initCommand @initArgs
+$initExitCode = Get-QuickstartExitCode
 
-if ($LASTEXITCODE -ne 0) {
-    Write-ErrorLog -Message "adpos init failed with exit code $LASTEXITCODE" -Component "cli.quickstart"
+if ($initExitCode -ne 0) {
+    Write-ErrorLog -Message "adpos init failed with exit code $initExitCode" -Component "cli.quickstart"
     Write-UIHost -English "  Platform init failed. Try running 'adpos init' directly to see detailed errors." -Chinese "  平台初始化失败。尝试直接运行 'adpos init' 查看详细错误。" -ForegroundColor Red
     exit 1
 }
@@ -212,10 +230,12 @@ if (-not $SkipDoctor) {
     }
 
     $doctorCommand = Join-Path $projectRoot "cli\commands\doctor.ps1"
+    Reset-QuickstartExitCode
     . $doctorCommand
+    $doctorExitCode = Get-QuickstartExitCode
 
-    if ($LASTEXITCODE -ne 0) {
-        Write-WarnLog -Message "adpos doctor reported issues (exit code $LASTEXITCODE)" -Component "cli.quickstart"
+    if ($doctorExitCode -ne 0) {
+        Write-WarnLog -Message "adpos doctor reported issues (exit code $doctorExitCode)" -Component "cli.quickstart"
         Write-UIHost -English "  Doctor found issues. Review the output above for remediation steps." -Chinese "  Doctor 发现问题。请查看上方输出了解修复步骤。" -ForegroundColor Yellow
     }
 } else {

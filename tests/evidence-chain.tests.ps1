@@ -6,6 +6,9 @@
 
 $ErrorActionPreference = "Stop"
 
+Describe "Evidence chain" {
+BeforeAll {
+
 # 1. Define minimal evidence chain functions (copied from cli/commands/workspace.ps1
 #    for self-contained testing without dot-sourcing the full routing module).
 function Get-SHA256Hash {
@@ -158,8 +161,10 @@ function Assert-GreaterThan {
     }
 }
 
+}
+
 # 2. Pester test suites
-Describe "Get-EvidenceDirectory" {
+Context "Get-EvidenceDirectory" {
     BeforeAll {
         $testDir = Join-Path $TestDrive "evidence-test"
         New-Item -ItemType Directory -Path $testDir -Force | Out-Null
@@ -191,7 +196,7 @@ Describe "Get-EvidenceDirectory" {
     }
 }
 
-Describe "New-EvidenceSnapshotEntry" {
+Context "New-EvidenceSnapshotEntry" {
     It "generates a valid SHA-256 hash (64 hex chars)" {
         $result = New-EvidenceSnapshotEntry `
             -SnapshotId "test-snap" `
@@ -233,7 +238,7 @@ Describe "New-EvidenceSnapshotEntry" {
     }
 }
 
-Describe "New-EvidenceLogEntry" {
+Context "New-EvidenceLogEntry" {
     It "generates a valid SHA-256 hash for log entries" {
         $result = New-EvidenceLogEntry `
             -Operation "create" `
@@ -265,7 +270,7 @@ Describe "New-EvidenceLogEntry" {
     }
 }
 
-Describe "Invoke-EvidenceExport" {
+Context "Invoke-EvidenceExport" {
     It "creates a ZIP file with expected entries" {
         $testEvidenceDir = Join-Path $TestDrive ".evidence"
         New-Item -ItemType Directory -Path $testEvidenceDir -Force | Out-Null
@@ -308,7 +313,7 @@ Describe "Invoke-EvidenceExport" {
     }
 }
 
-Describe "Invoke-EvidenceDeclare" {
+Context "Invoke-EvidenceDeclare" {
     BeforeAll {
         $testEvidenceDir = Join-Path $TestDrive ".evidence"
         New-Item -ItemType Directory -Path $testEvidenceDir -Force | Out-Null
@@ -344,7 +349,7 @@ Describe "Invoke-EvidenceDeclare" {
     }
 }
 
-Describe "Json output parameter support" {
+Context "Json output parameter support" {
     It "New-EvidenceSnapshotEntry returns a PSCustomObject convertible to JSON" {
         $result = New-EvidenceSnapshotEntry `
             -SnapshotId "json-test" `
@@ -375,7 +380,7 @@ Describe "Json output parameter support" {
     }
 }
 
-Describe "Error handling and edge cases" {
+Context "Error handling and edge cases" {
     It "handles empty metadata content" {
         $result = New-EvidenceSnapshotEntry `
             -SnapshotId "empty-meta" `
@@ -427,7 +432,7 @@ Describe "Error handling and edge cases" {
     }
 }
 
-Describe "Bilingual output (Write-UIHost compatibility)" {
+Context "Bilingual output (Write-UIHost compatibility)" {
     It "snapshot entry fields are language-agnostic (no UI strings in data)" {
         $result = New-EvidenceSnapshotEntry `
             -SnapshotId "lang-test" `
@@ -456,4 +461,6 @@ Describe "Bilingual output (Write-UIHost compatibility)" {
         Assert-Equal $parsed.sha256_hash $result.sha256_hash
         Assert-Equal $parsed.previous_hash $result.previous_hash
     }
+}
+
 }

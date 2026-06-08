@@ -46,6 +46,7 @@ Assert-Contains -Name "registration defines ADPOS_HOME environment variable" -Te
 Assert-Contains -Name "registration shim identifies ADP ownership" -Text $registration -Pattern 'REM ADP-OS global command shim'
 Assert-Contains -Name "registration writes project home to user environment" -Text $registration -Pattern 'SetEnvironmentVariable\(\$homeVariableName, \$resolvedProjectRoot, "User"\)[\s\S]*Set-Item -Path "Env:\$homeVariableName"'
 Assert-Contains -Name "registration shim delegates to repo-local adpos.cmd through ADPOS_HOME" -Text $registration -Pattern 'if ""%ADPOS_HOME%""==""""[\s\S]*call ""%ADPOS_HOME%\\adpos\.cmd"" %\*'
+Assert-Contains -Name "registration shim self-uninstalls without synchronously deleting itself" -Text $registration -Pattern 'if /i ""%~1""==""uninstall"" goto ADPOS_UNINSTALL_FALLBACK[\s\S]*start """" /min cmd\.exe /d /c'
 Assert-Contains -Name "registration shim has missing-repository uninstall fallback" -Text $registration -Pattern 'ADPOS_UNINSTALL_FALLBACK[\s\S]*SetEnvironmentVariable\(''ADPOS_HOME'',`\$null,''User''\)'
 Assert-Contains -Name "registration writes user PATH only" -Text $registration -Pattern 'GetEnvironmentVariable\("Path", "User"\)[\s\S]*SetEnvironmentVariable\("Path", \$newUserPath, "User"\)'
 Assert-Contains -Name "unregistration removes user PATH entry" -Text $registration -Pattern 'function\s+Remove-ADPOSPathEntry[\s\S]*SetEnvironmentVariable\("Path", \(\$keptUserEntries -join '';''\), "User"\)'

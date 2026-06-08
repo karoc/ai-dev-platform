@@ -124,17 +124,21 @@ function Install-ADPOSCommandRegistration {
         "    echo Re-run setup.cmd from the cloned ADP-OS repository to repair adpos.",
         "    exit /b 1",
         ")",
-        "if /i ""%~1""==""uninstall"" (",
-        "    call ""%ADPOS_HOME%\uninstall.cmd"" %*",
-        "    exit /b %ERRORLEVEL%",
-        ")",
+        "if /i ""%~1""==""uninstall"" goto ADPOS_UNINSTALL_FALLBACK",
         "call ""%ADPOS_HOME%\adpos.cmd"" %*",
         "exit /b %ERRORLEVEL%",
         ":ADPOS_UNINSTALL_FALLBACK",
+        "if not defined LOCALAPPDATA if defined USERPROFILE set ""LOCALAPPDATA=%USERPROFILE%\AppData\Local""",
+        "set ""ADPOS_BIN=%LOCALAPPDATA%\ADP-OS\bin""",
+        "set ""ADPOS_SHIM=%ADPOS_BIN%\adpos.cmd""",
         "set ""ADPOS_WINPS=%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe""",
         "if not exist ""%ADPOS_WINPS%"" set ""ADPOS_WINPS=powershell.exe""",
-        """%ADPOS_WINPS%"" -NoProfile -ExecutionPolicy Bypass -Command ""`$bin=Join-Path `$env:LOCALAPPDATA 'ADP-OS\bin'; `$shim=Join-Path `$bin 'adpos.cmd'; if (Test-Path -LiteralPath `$shim) { Remove-Item -LiteralPath `$shim -Force }; `$path=[Environment]::GetEnvironmentVariable('Path','User'); `$new=((`$path -split ';') | Where-Object { `$_ -and ((`$_ -replace '[\\/]+$','') -ine (`$bin -replace '[\\/]+$','')) }) -join ';'; [Environment]::SetEnvironmentVariable('Path',`$new,'User'); [Environment]::SetEnvironmentVariable('ADPOS_HOME',`$null,'User')""",
-        "exit /b %ERRORLEVEL%"
+        """%ADPOS_WINPS%"" -NoProfile -ExecutionPolicy Bypass -Command ""`$bin=`$env:ADPOS_BIN; `$path=[Environment]::GetEnvironmentVariable('Path','User'); `$new=((`$path -split ';') | Where-Object { `$_ -and ((`$_ -replace '[\\/]+$','') -ine (`$bin -replace '[\\/]+$','')) }) -join ';'; [Environment]::SetEnvironmentVariable('Path',`$new,'User'); [Environment]::SetEnvironmentVariable('ADPOS_HOME',`$null,'User')""",
+        "if errorlevel 1 exit /b %ERRORLEVEL%",
+        "start """" /min cmd.exe /d /c ""ping 127.0.0.1 -n 2 >nul & del /f /q """"%ADPOS_SHIM%"""" >nul 2>nul & rd """"%ADPOS_BIN%"""" 2>nul""",
+        "echo Removed global command: adpos",
+        "echo No VMs, workspace files, ISO cache, local tools, logs, or repository files were removed.",
+        "exit /b 0"
     )
     Set-Content -LiteralPath $shimPath -Value $shimLines -Encoding ascii
 

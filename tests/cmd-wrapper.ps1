@@ -151,6 +151,13 @@ Write-Output "NonInteractive=$NonInteractive"
     Assert-OutputContains -Name "uninstall.cmd forwards arguments" -Result $uninstallForwardResult -Pattern "UNINSTALL_STUB_OK"
     Assert-OutputContains -Name "uninstall.cmd forwards arguments" -Result $uninstallForwardResult -Pattern "NonInteractive=True"
 
+    $uninstallSubcommandResult = Invoke-CmdProcess `
+        -Command "uninstall.cmd uninstall -NonInteractive" `
+        -WorkingDirectory $tempRoot
+    Assert-ExitCode -Name "uninstall.cmd tolerates leading uninstall subcommand" -Result $uninstallSubcommandResult -Expected 0
+    Assert-OutputContains -Name "uninstall.cmd tolerates leading uninstall subcommand" -Result $uninstallSubcommandResult -Pattern "UNINSTALL_STUB_OK"
+    Assert-OutputContains -Name "uninstall.cmd tolerates leading uninstall subcommand" -Result $uninstallSubcommandResult -Pattern "NonInteractive=True"
+
     $isolatedEnv = New-IsolatedCmdEnvironment -Root (Join-Path $tempRoot "isolated")
     Copy-Item -LiteralPath $adpCmd -Destination (Join-Path $tempRoot "adp.cmd")
     Copy-Item -LiteralPath $adposCmd -Destination (Join-Path $tempRoot "adpos.cmd")
