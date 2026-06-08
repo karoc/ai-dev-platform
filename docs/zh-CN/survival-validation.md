@@ -205,7 +205,7 @@ notes: "Short summary. Avoid secrets, tokens, private code, and personal data."
 - 不伪造 star、issue、testimonial、review 或用户身份。
 - 未经明确许可，不公开参与者姓名。
 - 诚实说明 ADP-OS 仍处于早期验证阶段。
-- 请通过 GitHub Discussions，或维护者在本次验证中提供的反馈渠道提交反馈。Discord server 创建前，不要把 Discord 当成已经上线的官方渠道。
+- 请通过 GitHub Issues，或维护者在本次验证中提供的反馈渠道提交反馈。Discord 或 GitHub Discussions 真正启用前，不要把它们当成已经上线的官方渠道。
 
 ## 范围护栏
 

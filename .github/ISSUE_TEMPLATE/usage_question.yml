@@ -23,7 +23,7 @@ body:
     id: commands
     attributes:
       label: Commands Tried
-      description: What commands have you run? Paste the output of `adp doctor` and `adp status`.
+      description: What commands have you run? Paste the output of `adpos doctor` and `adpos status`.
     validations:
       required: true
 

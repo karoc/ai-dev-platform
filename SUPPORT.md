@@ -9,12 +9,14 @@ AI Dev Platform OS is an early local-development MVP. Support is best-effort and
 Before opening an issue, run the non-destructive checks that match your problem:
 
 ```powershell
-.\cli\adp.ps1 doctor
-.\cli\adp.ps1 doctor -FirstRun
-.\cli\adp.ps1 status
-.\cli\adp.ps1 sync status
+adpos doctor
+adpos doctor -FirstRun
+adpos status
+adpos sync status
 .\tests\validate.ps1 -Quick
 ```
+
+After `.\setup.cmd`, `adpos` is available from any directory. If the current shell has not refreshed `PATH`, run the repository-root wrapper instead, for example `.\adpos.cmd doctor`.
 
 Use the documentation entry points:
 

@@ -1,20 +1,18 @@
-# Discord 社区搭建指南
+# Discord 社区搭建计划
 
-> **状态**: 准备启动。所有前置条件已就位 — issue 模板、CONTRIBUTING.md、README 引用均已完善。
+> **状态**: 计划中，尚未启动。GitHub Issues 是当前公开支持和反馈渠道。
 
 ## 服务器邀请链接（创建服务器后更新）
 
 <!-- 创建 Discord 服务器后，请将本节替换为实际的邀请链接。 -->
 
 > [!IMPORTANT]
-> Discord 服务器**尚未创建**。README badge 目前链接到此搭建指南。
+> Discord 服务器**尚未创建**。发布真实邀请链接前，不要把 Discord 当作当前可用的支持渠道。
 >
 > **创建服务器后：**
 > 1. 将本节替换为邀请链接：`https://discord.gg/YOUR_INVITE_CODE`
-> 2. 更新 [英文 README.md](../README.md)（第 7 行）和 [README.zh-CN.md](./README.md)（第 7 行）中的 badge 链接：
->    - 将 `(docs/discord-setup.md)` 改为 `(https://discord.gg/YOUR_INVITE_CODE)`
->    - 删除关于替换链接的 HTML 注释
-> 3. 更新两个 README 的社区部分中的 Discord 链接
+> 2. 将两个 README 社区部分中的 Discord 条目从搭建计划改为真实邀请链接。
+> 3. 如果已启用 GitHub Discussions，同步更新支持文档中的异步讨论入口。
 
 ## 为什么选择 Discord？
 
@@ -181,7 +179,7 @@ Discord 服务器应在以下条件满足后创建：
 
 - [x] 所有 issue 模板就位（Bug Report、Feature Request、安装帮助、使用问题）
 - [x] CONTRIBUTING.md 包含完整的开发环境搭建说明
-- [x] README 和文档中引用了 Discord 服务器
+- [x] README 和文档仅将 Discord 作为搭建计划引用，而不是当前可用支持渠道
 - [ ] GitHub Discussions 已启用（推荐——在仓库 Settings → General → Features 中启用）
 
 **推荐启动时机**：与首次公开发布公告同步。GitHub Discussions 应在启动前启用，作为 Discord 旁的轻量级异步讨论空间。

@@ -124,7 +124,7 @@ mcpServers: {
 MCP 服务器通过三级回退机制解析 `ADP_HOME`：
 
 1. `ADP_HOME` 环境变量（显式设置）
-2. 自动检测：从 `cli/mcp/server.py` 向上查找项目根目录（`cli/adp.ps1`）
+2. 自动检测：从 `cli/mcp/server.py` 向上查找包含内部 CLI 实现（`cli/adp.ps1`）的项目根目录。面向用户的 shell 命令仍应使用 `adpos`。
 3. 平台特定的已知路径（`D:/Dev/ai-dev-platform`、`~/ai-dev-platform`、`/mnt/d/Dev/ai-dev-platform`）
 
 如果遇到 `FileNotFoundError: Cannot locate ADP-OS installation` 错误，请显式设置 `ADP_HOME`。
@@ -244,7 +244,7 @@ class ReadOnlyHandler(PermissionHandler):
 ADP-OS 设计用于**单用户、可信工作站**环境。MCP 服务器继承此模型：
 
 - VM 在本地运行，使用默认的 `adp:adp` 凭据进行自动化 sudo 配置。
-- MCP 服务器执行 ADP-OS CLI 命令——其访问权限与直接运行 `adp.ps1` 相同。
+- MCP 服务器执行 ADP-OS CLI 命令——其访问权限与从该安装运行 `adpos` 相同。
 - 在未更换凭据和加固 SSH 之前，不要将 MCP 服务器暴露到不受信任的网络或多租户环境（参见[安全策略](../../SECURITY.zh-CN.md)）。
 
 ## 参见

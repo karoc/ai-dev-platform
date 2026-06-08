@@ -124,7 +124,7 @@ mcpServers: {
 The MCP server resolves `ADP_HOME` with a three-tier fallback:
 
 1. `ADP_HOME` environment variable (explicit)
-2. Auto-detection: walks up from `cli/mcp/server.py` to find the project root (`cli/adp.ps1`)
+2. Auto-detection: walks up from `cli/mcp/server.py` to find the project root that contains the internal CLI implementation (`cli/adp.ps1`). User-facing shell commands should still use `adpos`.
 3. Platform-specific well-known paths (`D:/Dev/ai-dev-platform`, `~/ai-dev-platform`, `/mnt/d/Dev/ai-dev-platform`)
 
 If you get `FileNotFoundError: Cannot locate ADP-OS installation`, set `ADP_HOME` explicitly.
@@ -244,7 +244,7 @@ class ReadOnlyHandler(PermissionHandler):
 ADP-OS is designed for **single-user, trusted-workstation** environments. The MCP server inherits this model:
 
 - VMs run locally with a default `adp:adp` credential for automated sudo provisioning.
-- The MCP server executes ADP-OS CLI commands — it has the same access as running `adp.ps1` directly.
+- The MCP server executes ADP-OS CLI commands — it has the same access as running `adpos` from that installation.
 - Do not expose the MCP server to untrusted networks or multi-tenant environments without credential rotation and SSH hardening (see [Security](../SECURITY.md)).
 
 ## See Also

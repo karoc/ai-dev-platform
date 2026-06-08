@@ -26,10 +26,10 @@ Recommended but optional for local validation:
 ```powershell
 git clone git@github.com:karoc/ai-dev-platform.git
 cd ai-dev-platform
-.\install.ps1          # Registers the `adp` CLI wrapper
+.\setup.cmd            # Guided setup; registers the global `adpos` command
 ```
 
-After install, `adp.cmd` is available — use `adp` instead of `.\cli\adp.ps1`.
+After setup, use `adpos` from any directory. If the current shell has not refreshed `PATH`, use `.\adpos.cmd` from the repository root. `adp` and `.\adp.cmd` remain compatibility aliases for existing scripts.
 
 ### Validation Flow
 
@@ -116,8 +116,8 @@ Keep commits focused — one logical change per commit. Write messages in Englis
 
 ### Questions?
 
-- **Discord**: Join the [ADP-OS Community](docs/discord-setup.md) for real-time help
-- **GitHub Discussions**: Ask questions and share ideas at [github.com/karoc/ai-dev-platform/discussions](https://github.com/karoc/ai-dev-platform/discussions)
+- **GitHub Issues**: Use the templates for [installation help, usage questions, bugs, or feature requests](https://github.com/karoc/ai-dev-platform/issues/new/choose).
+- **Discord**: The [Discord setup plan](docs/discord-setup.md) is available for maintainers, but Discord is not an active support channel until an invite link is published.
 
 ---
 
@@ -143,10 +143,10 @@ ADP-OS 是一个 Windows-first PowerShell 7 项目，使用 WSL 作为构建工�
 ```powershell
 git clone git@github.com:karoc/ai-dev-platform.git
 cd ai-dev-platform
-.\install.ps1          # 注册 `adp` CLI 包装器
+.\setup.cmd            # 引导式设置；注册全局 `adpos` 命令
 ```
 
-安装后，`adp.cmd` 可用——使用 `adp` 代替 `.\cli\adp.ps1`。
+设置完成后，在任意目录使用 `adpos`。如果当前 shell 尚未刷新 `PATH`，可在仓库根目录使用 `.\adpos.cmd`。`adp` 和 `.\adp.cmd` 作为已有脚本的兼容别名继续保留。
 
 ### 验证流程
 
@@ -233,5 +233,5 @@ community: add Discord badge + issue templates
 
 ### 有问题？
 
-- **Discord**：加入 [ADP-OS 社区](docs/discord-setup.md) 获取实时帮助
-- **GitHub Discussions**：在 [github.com/karoc/ai-dev-platform/discussions](https://github.com/karoc/ai-dev-platform/discussions) 提问和分享想法
+- **GitHub Issues**：使用模板提交[安装帮助、使用问题、bug 或功能请求](https://github.com/karoc/ai-dev-platform/issues/new/choose)。
+- **Discord**：[Discord 搭建计划](docs/discord-setup.md) 供维护者准备社区入口；发布真实邀请链接前，Discord 不是当前可用的支持渠道。

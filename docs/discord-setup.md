@@ -1,20 +1,18 @@
-# Discord Community Setup Guide
+# Discord Community Setup Plan
 
-> **Status**: Ready-to-launch. All prerequisites are in place — issue templates, CONTRIBUTING.md, and README references are complete.
+> **Status**: Planned, not launched. GitHub Issues are the current public support and feedback channel.
 
 ## Server Invite Link (update after server is created)
 
 <!-- When the Discord server is created, replace this section with the actual invite link. -->
 
 > [!IMPORTANT]
-> The Discord server has **not been created yet**. The README badge currently links to this setup guide.
+> The Discord server has **not been created yet**. Do not present Discord as an active support channel until a real invite link is published.
 >
 > **After creating the server:**
 > 1. Replace this section with the invite link: `https://discord.gg/YOUR_INVITE_CODE`
-> 2. Update the badge link in [README.md](../README.md) (line 7) and [简体中文 README.zh-CN.md](../README.zh-CN.md) (line 7):
->    - Change `(docs/discord-setup.md)` → `(https://discord.gg/YOUR_INVITE_CODE)`
->    - Remove the HTML comment about replacing the link
-> 3. Update the Community section Discord link in both READMEs
+> 2. Update the Community section Discord entry in both READMEs from setup plan to active invite.
+> 3. If GitHub Discussions is enabled, update support docs to point users to the correct async channel.
 
 ## Why Discord?
 
@@ -181,7 +179,7 @@ The Discord server should be created when:
 
 - [x] All issue templates are in place (Bug Report, Feature Request, Installation Help, Usage Question)
 - [x] CONTRIBUTING.md is complete with dev environment setup
-- [x] README and docs reference the Discord server
+- [x] README and docs reference Discord only as a setup plan, not an active support channel
 - [ ] GitHub Discussions is enabled (recommended — enable in repo Settings → General → Features)
 
 **Recommended launch timing**: Together with the first public release announcement. GitHub Discussions should be enabled before launch to provide a lightweight async discussion space alongside Discord.

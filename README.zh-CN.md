@@ -4,8 +4,7 @@
 
 [![CI](https://github.com/karoc/ai-dev-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/karoc/ai-dev-platform/actions/workflows/ci.yml)
 [![MCP](https://img.shields.io/badge/MCP_SDK-26_tools-4B8BBE?logo=python)](cli/mcp/server.py)
-[![Discord](https://img.shields.io/badge/Discord-社区-5865F2?logo=discord&logoColor=white)](docs/zh-CN/discord-setup.md)
-<!-- 创建 Discord 服务器后，请将上述 badge 链接替换为 https://discord.gg/YOUR_INVITE_CODE -->
+[![Support](https://img.shields.io/badge/Support-GitHub_Issues-2ea44f?logo=github)](https://github.com/karoc/ai-dev-platform/issues/new/choose)
 
 ADP-OS 是一个让 AI 辅助开发变得可审计的平台。它生成可验证的**证据链** —— 快照签名、操作日志和可导出的证据包 —— 让你能够证明：构建了什么、如何构建、由谁（或哪个 AI）编写了每一段代码。每一次开发操作都有记录，每个工作区状态都可以通过快照寻址，每个发布都附带完整的审计轨迹。
 
@@ -420,11 +419,11 @@ adpos workspace declare -AiAssisted [-Reviewer <name>] [-Notes "..."] [-Manifest
 
 ## 社区
 
-- **[Discord](docs/zh-CN/discord-setup.md)** — 加入 ADP-OS 社区，获取实时帮助、开发讨论和发布公告。
-- **[GitHub Discussions](https://github.com/karoc/ai-dev-platform/discussions)** — 异步提问、分享想法和项目讨论。
+- **[GitHub Issues](https://github.com/karoc/ai-dev-platform/issues/new/choose)** — 使用模板提交安装帮助、使用问题、可复现 bug 和功能请求。
 - **[贡献指南](CONTRIBUTING.zh-CN.md)** — 开发环境搭建、编码规范和 PR 流程。
 - **[演示](docs/demo.cast)** — 快速终端导览：clone → doctor → plan → status → MCP（30 秒，用 `asciinema play` 播放）。[10 分钟演示脚本 →](docs/zh-CN/demo-script.md)
 - **[生存验证](docs/zh-CN/survival-validation.md)** — 面向首批用户的验证流程，记录 10 分钟 demo、rollback 结果、evidence export 和反馈。
+- **[Discord 搭建计划](docs/zh-CN/discord-setup.md)** — 计划中的社区聊天入口。发布真实邀请链接前，它不是当前可用的支持渠道。
 
 ## 安全
 

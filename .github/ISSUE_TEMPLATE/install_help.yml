@@ -22,10 +22,10 @@ body:
       description: Where in the setup process did you encounter the problem?
       options:
         - prereq-check — dependency installation (PowerShell, WSL, VMware, Mutagen, OpenSSH, xorriso)
-        - first-run — `adp doctor -FirstRun` or initial setup
+        - first-run — `adpos doctor -FirstRun` or initial setup
         - iso — Ubuntu ISO download or remastering
         - network — VMware NAT, static IP, or subnet configuration
-        - vm-create — first VM creation (`adp up`)
+        - vm-create — first VM creation (`adpos up`)
         - bootstrap — SSH bootstrap or package installation
         - sync — Mutagen sync setup
         - other
@@ -43,10 +43,10 @@ body:
     id: prereqs
     attributes:
       label: Prerequisites status
-      description: Which of the required dependencies are installed? Run `adp doctor` and paste the output.
+      description: Which of the required dependencies are installed? Run `adpos doctor` and paste the output. If your shell has not refreshed `PATH`, run `.\adpos.cmd doctor` from the repository root.
       render: text
       placeholder: |
-        .\cli\adp.ps1 doctor
+        adpos doctor
     validations:
       required: true
   - type: textarea
@@ -57,9 +57,9 @@ body:
       placeholder: |
         1. Cloned the repo
         2. Installed WSL and xorriso
-        3. Ran `.\cli\adp.ps1 doctor -FirstRun`
-        4. Ran `.\cli\adp.ps1 network configure-local -Plan`
-        5. Ran `.\cli\adp.ps1 up agent -IsoPath D:\path\to\ubuntu.iso`
+        3. Ran `adpos doctor -FirstRun`
+        4. Ran `adpos network configure-local -Plan`
+        5. Ran `adpos up agent -IsoPath D:\path\to\ubuntu.iso`
         6. Got error: ...
     validations:
       required: true
@@ -78,7 +78,7 @@ body:
       description: Output from other diagnostic commands if relevant.
       render: text
       placeholder: |
-        .\cli\adp.ps1 status
+        adpos status
         .\tests\validate.ps1 -Quick
   - type: checkboxes
     id: safety

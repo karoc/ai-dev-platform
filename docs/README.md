@@ -29,7 +29,8 @@ This documentation covers how to install, operate, configure, and understand ADP
 
 ## Community
 
-- [Discord Setup Guide](discord-setup.md) ([简体中文](zh-CN/discord-setup.md)): channel structure, roles, setup instructions, and community guidelines for the ADP-OS Discord server.
+- [GitHub Issues](https://github.com/karoc/ai-dev-platform/issues/new/choose): installation help, usage questions, reproducible bugs, and feature requests.
+- [Discord Setup Plan](discord-setup.md) ([简体中文](zh-CN/discord-setup.md)): planned channel structure, roles, setup instructions, and community guidelines. Discord is not an active support channel until an invite link is published.
 - [10-Minute Survival Value Demo](demo-script.md): presenter script with pre-demo checklist, 6-phase flow, and troubleshooting guide.
 
 ## Architecture

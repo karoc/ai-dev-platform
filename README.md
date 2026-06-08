@@ -4,8 +4,7 @@
 
 [![CI](https://github.com/karoc/ai-dev-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/karoc/ai-dev-platform/actions/workflows/ci.yml)
 [![MCP](https://img.shields.io/badge/MCP_SDK-26_tools-4B8BBE?logo=python)](cli/mcp/server.py)
-[![Discord](https://img.shields.io/badge/Discord-Community-5865F2?logo=discord&logoColor=white)](docs/discord-setup.md)
-<!-- Replace Discord badge link with https://discord.gg/YOUR_INVITE_CODE after creating the server -->
+[![Support](https://img.shields.io/badge/Support-GitHub_Issues-2ea44f?logo=github)](https://github.com/karoc/ai-dev-platform/issues/new/choose)
 
 ADP-OS is a platform that makes AI-assisted development auditable. It produces a verifiable **evidence chain** — snapshot signatures, operation logs, and exportable evidence packages — so you can prove what was built, how it was built, and who (or what AI) wrote each piece. Every development action is recorded, every workspace state is snapshot-addressable, and every release ships with an audit trail.
 
@@ -489,11 +488,11 @@ agent     watching  %USERPROFILE%\adp-workspaces\agent   /home/adp/workspace
 
 ## Community
 
-- **[Discord](docs/discord-setup.md)** — Join the ADP-OS community for real-time help, development discussion, and release announcements.
-- **[GitHub Discussions](https://github.com/karoc/ai-dev-platform/discussions)** — Ask questions, share ideas, and discuss the project asynchronously.
+- **[GitHub Issues](https://github.com/karoc/ai-dev-platform/issues/new/choose)** — Use the templates for installation help, usage questions, reproducible bugs, and feature requests.
 - **[Contributing](CONTRIBUTING.md)** — Development environment setup, coding guidelines, and PR process.
 - **[Demo](docs/demo.cast)** — Quick terminal orientation: clone → doctor → plan → status → MCP (30s, play with `asciinema play`). [10-minute presenter script →](docs/demo-script.md)
 - **[Survival Validation](docs/survival-validation.md)** — First-users validation process for the 10-minute demo, rollback result, evidence export, and feedback capture.
+- **[Discord setup plan](docs/discord-setup.md)** — Planned community chat setup. It is not an active support channel until an invite link is published.
 
 ## Security
 

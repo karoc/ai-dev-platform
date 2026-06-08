@@ -8,7 +8,7 @@
 
 - **环境**：Windows 11 + PowerShell 7 + WSL + Git
 - **克隆**：`git clone git@github.com:karoc/ai-dev-platform.git`
-- **安装**：`.\\install.ps1`
+- **安装**：`.\\setup.cmd`，完成后使用全局 `adpos` 命令；当前 shell 尚未刷新 `PATH` 时可用 `.\\adpos.cmd`
 - **验证**：`bash scripts/test.sh quick`
 - **提交规范**：遵循 [约定式提交](https://www.conventionalcommits.org/zh-hans) — `type(scope): 描述`
 
@@ -29,4 +29,4 @@
 
 完整的中英双语贡献指南（开发环境搭建、提交规范详解、完整 PR 流程、文档规范）请参见 [Contributing Guide (English)](CONTRIBUTING.md)。
 
-有问题？加入 [Discord 社区](docs/zh-CN/discord-setup.md) 或在 [GitHub Discussions](https://github.com/karoc/ai-dev-platform/discussions) 提问。
+有问题？请使用 [GitHub Issues 模板](https://github.com/karoc/ai-dev-platform/issues/new/choose) 提交安装帮助、使用问题、bug 或功能请求。Discord 仍是[搭建计划](docs/zh-CN/discord-setup.md)，发布真实邀请链接前不是当前可用的支持渠道。

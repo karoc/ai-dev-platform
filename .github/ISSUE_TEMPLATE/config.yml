@@ -2,14 +2,8 @@ blank_issues_enabled: false
 
 contact_links:
   - name: Support guide
-    url: SUPPORT.md
+    url: https://github.com/karoc/ai-dev-platform/blob/main/SUPPORT.md
     about: Read the support guide before opening an issue
   - name: Security policy
-    url: SECURITY.md
+    url: https://github.com/karoc/ai-dev-platform/blob/main/SECURITY.md
     about: Report security vulnerabilities responsibly
-  - name: Discord Community
-    url: https://discord.gg/YOUR_INVITE_CODE
-    about: Ask questions and chat with the community / 在社区中提问和交流
-  - name: GitHub Discussions
-    url: https://github.com/karoc/ai-dev-platform/discussions
-    about: Ask questions and share ideas asynchronously / 异步提问和分享想法

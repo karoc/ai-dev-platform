@@ -27,7 +27,8 @@
 
 ## 社区
 
-- [Discord 搭建指南](discord-setup.md)：ADP-OS Discord 服务器的频道结构、角色、设置说明和社区准则。
+- [GitHub Issues](https://github.com/karoc/ai-dev-platform/issues/new/choose)：安装帮助、使用问题、可复现 bug 和功能请求。
+- [Discord 搭建计划](discord-setup.md)：计划中的频道结构、角色、设置说明和社区准则。发布真实邀请链接前，Discord 不是当前可用的支持渠道。
 - [10 分钟生存价值演示](demo-script.md)：演示脚本，包含前置准备清单、6 阶段流程和故障排除指南。
 
 ## 架构

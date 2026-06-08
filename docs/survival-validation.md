@@ -205,7 +205,7 @@ Consider stopping, shrinking, or pivoting when:
 - Do not fake stars, issues, testimonials, reviews, or user identities.
 - Do not publicly name a participant without explicit permission.
 - Be honest that ADP-OS is early and under validation.
-- Submit feedback through GitHub Discussions or the feedback channel provided by the maintainer for the validation session. Do not present Discord as an active official channel until the server exists.
+- Submit feedback through GitHub Issues or the feedback channel provided by the maintainer for the validation session. Do not present Discord or GitHub Discussions as active official channels until they are actually enabled.
 
 ## Scope Guardrails
 

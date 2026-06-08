@@ -9,12 +9,14 @@ AI Dev Platform OS 当前是早期本地开发 MVP。支持以 best-effort 为�
 创建 issue 前，先运行与问题相关的非破坏性检查：
 
 ```powershell
-.\cli\adp.ps1 doctor
-.\cli\adp.ps1 doctor -FirstRun
-.\cli\adp.ps1 status
-.\cli\adp.ps1 sync status
+adpos doctor
+adpos doctor -FirstRun
+adpos status
+adpos sync status
 .\tests\validate.ps1 -Quick
 ```
+
+运行 `.\setup.cmd` 后，`adpos` 可在任意目录使用。如果当前 shell 尚未刷新 `PATH`，请在仓库根目录使用 wrapper，例如 `.\adpos.cmd doctor`。
 
 可从这些文档入口开始：
 

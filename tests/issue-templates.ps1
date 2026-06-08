@@ -34,6 +34,18 @@ function Assert-Contains {
     }
 }
 
+function Assert-NotContains {
+    param(
+        [string]$Name,
+        [string]$Text,
+        [string]$Pattern
+    )
+
+    if ($Text -match $Pattern) {
+        throw "$Name contains disallowed pattern: $Pattern"
+    }
+}
+
 function Assert-TemplateHasSafetyPrompt {
     param(
         [string]$Name,
@@ -59,12 +71,16 @@ Assert-Contains -Name "config.yml" -Text $config -Pattern "Support guide"
 Assert-Contains -Name "config.yml" -Text $config -Pattern "SUPPORT\.md"
 Assert-Contains -Name "config.yml" -Text $config -Pattern "Security policy"
 Assert-Contains -Name "config.yml" -Text $config -Pattern "SECURITY\.md"
+Assert-NotContains -Name "config.yml" -Text $config -Pattern "discord\.gg"
+Assert-NotContains -Name "config.yml" -Text $config -Pattern "discussions"
 
 Assert-Contains -Name "bug_report.yml" -Text $bug -Pattern "name:\s*Bug report"
 Assert-Contains -Name "bug_report.yml" -Text $bug -Pattern "title:\s*`"\[Bug\]: "
 Assert-Contains -Name "bug_report.yml" -Text $bug -Pattern "id:\s*steps"
 Assert-Contains -Name "bug_report.yml" -Text $bug -Pattern "id:\s*diagnostics"
 Assert-Contains -Name "bug_report.yml" -Text $bug -Pattern "tests\\validate\.ps1 -Quick"
+Assert-Contains -Name "bug_report.yml" -Text $bug -Pattern "adpos doctor"
+Assert-Contains -Name "bug_report.yml" -Text $bug -Pattern "adpos status"
 Assert-Contains -Name "bug_report.yml" -Text $bug -Pattern "id:\s*safety"
 Assert-Contains -Name "bug_report.yml" -Text $bug -Pattern "required:\s*true"
 Assert-TemplateHasSafetyPrompt -Name "bug_report.yml" -Text $bug
@@ -82,6 +98,8 @@ Assert-Contains -Name "usage_question.yml" -Text $question -Pattern "labels:\s*\
 Assert-Contains -Name "usage_question.yml" -Text $question -Pattern "id:\s*goal"
 Assert-Contains -Name "usage_question.yml" -Text $question -Pattern "id:\s*runtime"
 Assert-Contains -Name "usage_question.yml" -Text $question -Pattern "id:\s*commands"
+Assert-Contains -Name "usage_question.yml" -Text $question -Pattern "adpos doctor"
+Assert-Contains -Name "usage_question.yml" -Text $question -Pattern "adpos status"
 Assert-Contains -Name "usage_question.yml" -Text $question -Pattern "workspace-planning"
 Assert-Contains -Name "usage_question.yml" -Text $question -Pattern "release-readiness"
 Assert-Contains -Name "usage_question.yml" -Text $question -Pattern "id:\s*safety"
