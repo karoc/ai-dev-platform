@@ -105,6 +105,7 @@ curl -X POST http://localhost:8000/v1/auth/refresh \
 
 Shares the same `_run_adp()` subprocess wrapper as the MCP server (`cli/mcp/server.py`).
 The REST API exposes the same command surface as `adpos`; the PowerShell control plane remains an internal implementation detail.
+`cli/api/server.py` remains the ASGI app entrypoint, with focused route registration helpers such as `cli/api/admin_routes.py`.
 
 ```
 Agent / Client
