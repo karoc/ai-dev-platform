@@ -50,7 +50,7 @@ Do not publish secrets, tokens, private keys, VM disks, ISO files, downloaded ar
 | `status` reports `key-missing` | run any `adpos up` or SSH operation | SSH key pair not yet created | [Operations](operations.md#troubleshooting-ssh-keys) |
 | SSH key was accidentally deleted | regenerate by running any SSH operation | `%USERPROFILE%\\.ssh\\adp-os\\` key pair missing | [Operations](operations.md#troubleshooting-ssh-keys) |
 | `up` stops with VMware NAT mismatch | `adpos network configure-local -Plan` | host VMnet8 versus local config | [Networking](networking.md#prerequisites), [Configuration](configuration.md#local-overrides) |
-| `status`, `up`, or `sync start` reports `duplicate VM` | `adpos doctor` and `adpos status <runtime>` | same runtime name running from another checkout or stale VM store | [Operations](operations.md#runtime-status), [Configuration](configuration.md#local-overrides) |
+| `status`, `up`, or `sync start` reports `duplicate VM` | `adpos doctor` and `adpos status <runtime>` | same runtime resource name running from another checkout or stale VM store | [Operations](operations.md#runtime-status), [Configuration](configuration.md#local-overrides) |
 | `status` reports SSH alias mismatch | `adpos sync status` and `adpos status <runtime>` | user SSH config alias points to another host, port, user, or key | [Operations](operations.md#runtime-status) |
 | `status` reports network drift | `adpos doctor` and `adpos network apply <runtime> -Plan` | existing VM seed network versus current config; rebuild, guest netplan fix, or host-route workaround | [Operations](operations.md#runtime-status), [Networking](networking.md#static-networking-for-new-vms) |
 | VMware IP differs from configured static IP | `adpos status <runtime>` | static networking, local NAT overrides | [Networking](networking.md#prerequisites) |
@@ -86,16 +86,16 @@ Before using the second checkout for runtime work, set distinct `workspace_root`
 .\adpos.cmd up agent -Plan
 ```
 
-If another same-name VM is already running, ADP-OS treats that as a blocking conflict. `status` reports SSH as `ambiguous-duplicate`; `up` and `sync start` stop before changing runtime state or Mutagen sessions. The diagnostic output includes the current checkout, global `adpos` binding, workspace root, VM store, static IP, SSH alias, SSH key, Mutagen session, expected VMX, and all running same-name VMX paths.
+If another VM with the same runtime resource name is already running, ADP-OS treats that as a blocking conflict. `status` reports SSH as `ambiguous-duplicate`; `up` and `sync start` stop before changing runtime state or Mutagen sessions. The diagnostic output includes the current checkout, global `adpos` binding, workspace root, VM store, static IP, SSH alias, SSH key, Mutagen session, expected VMX, and all running matching-resource VMX paths.
 
-ADP-OS has a `platform.runtime_namespace` resource identity foundation for names such as VM `adp-v2-agent`, SSH alias `adp-os-adp-v2-agent`, and Mutagen session `adp-v2-agent`. `status`, `doctor`, `sync`, and `up -Plan` use that namespaced profile when configured. First creation of namespaced VMs is still a VM factory migration stage, so `up` intentionally stops instead of silently creating the default `adp-<runtime>` VM while a namespace is configured.
+ADP-OS uses `platform.runtime_namespace` for names such as resource `v2-agent`, VM `adp-v2-agent`, SSH alias `adp-os-adp-v2-agent`, and Mutagen session `adp-v2-agent`. `status`, `doctor`, `sync`, `up -Plan`, and `up` first VM creation use that namespaced profile when configured. If you created legacy `adp-agent` first and later set `runtime_namespace` to `v2`, `adpos up agent` now targets a separate `adp-v2-agent`; clear the namespace to manage the legacy VM.
 
 SSH aliases and Mutagen session names are also user-global resources. `status` now reads the user SSH config entry for aliases such as `adp-os-adp-agent` and reports whether it matches the current checkout's expected host, port, user, and identity file. `sync status` reports the same alias mismatch alongside the Mutagen endpoint summary. A Mutagen session whose local and remote endpoint strings look compatible is still only compatible with current expectations; without persistent owner metadata, ADP-OS does not claim it can prove the original checkout owner.
 
 Choose one recovery path:
 
 - If the other VM is stale, stop it from its owning checkout or VMware UI, then rerun `adpos status <runtime>`.
-- If the other checkout must remain active, keep it running and isolate this checkout first by changing `workspace_root`, `vm_store`, and `topology.<runtime>.static_ip`. If you also set `platform.runtime_namespace`, use `up -Plan`, `status`, and `doctor` to inspect the namespaced resource profile; do not expect first creation of a namespaced VM until the VM factory migration lands.
+- If the other checkout must remain active, keep it running and isolate this checkout first by changing `workspace_root`, `vm_store`, and `topology.<runtime>.static_ip`. If you also set a distinct `platform.runtime_namespace`, use `up -Plan`, `status`, and `doctor` to confirm that the resource profile points to names such as `v2-agent` and `adp-v2-agent` before creating or syncing.
 - If global `adpos` points to another checkout, use `.\adpos.cmd` in the current repository until you intentionally replace the global binding.
 - If a stale Mutagen session or stale SSH alias belongs to a checkout you no longer use, stop and recreate the session from the checkout that should own it. Stopping a Mutagen session removes the session definition; it does not delete workspace files on either side.
 
@@ -298,7 +298,7 @@ Do this before creating VMs. If a VM already exists, changing `configs\local.jso
 - Use `network apply <runtime> -Plan` when the seed-era guest address is reachable and you want an in-place guest netplan fix.
 - Use an administrator-only temporary host-route workaround only to regain SSH to the seed-era address. ADP will not apply host routes automatically.
 
-If `status` or `doctor` reports a duplicate running ADP runtime, handle that before changing local networking. A same-name VM from another checkout can make detected IP and SSH diagnostics point at the wrong VM.
+If `status` or `doctor` reports a duplicate running ADP runtime, handle that before changing local networking. A same-resource VM from another checkout can make detected IP and SSH diagnostics point at the wrong VM.
 
 Do not paste private local paths or credentials into public issues. If an issue depends on local config, list only the supported top-level sections, for example `platform` and `topology`.
 

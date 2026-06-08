@@ -107,7 +107,7 @@ cd ai-dev-platform
 .\adpos.cmd up agent -Plan
 ```
 
-当前公开 runtime gate 仍会阻止两个同名 runtime VM 同时运行。如果 `status` 报告 `duplicate VM`，请先从其所属 checkout 或 VMware UI 停止 stale VM，再从当前 checkout 运行 `up` 或 `sync start`。Namespaced runtime resource names 正在引入，但 namespaced VM 的首次创建仍属于单独的 VM factory 迁移阶段。
+runtime gate 会阻止相同 runtime resource name 的重复运行 VM。如果 `status` 报告 `duplicate VM`，请先从其所属 checkout 或 VMware UI 停止 stale VM，再从当前 checkout 运行 `up` 或 `sync start`。Namespaced runtime resource names 已支持首次 VM 创建：当 `platform.runtime_namespace` 设置为 `v2` 时，`adpos up agent` 会指向资源 `v2-agent` 和 VM `adp-v2-agent`。这不会自动隔离 IP 或路径，因此仍要保留上面独立的 `workspace_root`、`vm_store` 和 `static_ip` 配置。
 
 ### 第 2 步：运行引导式设置
 

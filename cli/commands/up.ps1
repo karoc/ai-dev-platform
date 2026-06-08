@@ -37,6 +37,12 @@ $resourceProfile = Get-ADPRuntimeResourceProfile -TargetRuntime $RuntimeName
 $vmName = $resourceProfile.VmName
 $vmxPath = $resourceProfile.VmxPath
 Initialize-VmFactory -ProjectRoot (Get-ProjectRoot) -IsoCachePath $isoCache -VmStorePath $vmStore
+$factoryLayout = Get-ADPVMwareRuntimeLayout `
+    -RuntimeName $RuntimeName `
+    -VmStorePath $vmStore `
+    -SeedRootPath (Join-Path $vmStore "seeds") `
+    -Namespace $resourceProfile.RuntimeNamespace `
+    -RuntimeResourceName $resourceProfile.RuntimeResourceName
 
 # Initialize VM provider
 . (Join-Path $script:ProjectRoot "core\provider\provider-discovery.ps1")
@@ -361,7 +367,7 @@ function Invoke-BootstrapIfReady {
         return
     }
 
-    $ready = Test-AutoinstallReady -RuntimeName $TargetRuntime
+    $ready = Test-AutoinstallReady -RuntimeName $TargetRuntime -VmxPath $TargetVmxPath
     if (-not $ready) {
         $sshMarker = Test-RuntimeConnectionProvisionMarkerViaSSH -TargetRuntime $TargetRuntime -TargetVmxPath $TargetVmxPath
         if ($sshMarker.Ready) {
@@ -504,10 +510,9 @@ if ($vmExists) {
 Write-UIHost -English "VM does not exist. Phase 2: Auto-provisioning from ISO..." -Chinese "VM 不存在。阶段 2：将从 ISO 自动 provisioning..." -ForegroundColor Yellow
 Write-Host ""
 if ($resourceProfile.RuntimeNamespace) {
-    Write-ErrorLog -Message (Get-UIText -English "runtime_namespace '$($resourceProfile.RuntimeNamespace)' is configured, but first VM creation has not been migrated to namespaced VM factory yet." -Chinese "已配置 runtime_namespace '$($resourceProfile.RuntimeNamespace)'，但首次 VM 创建尚未迁移到 namespaced VM factory。") -Component "cli.up"
-    Write-UIHost -English "  This checkout will not create the default '$RuntimeName' VM while a namespace is configured." -Chinese "  配置 namespace 后，当前 checkout 不会创建默认 '$RuntimeName' VM。" -ForegroundColor Yellow
-    Write-UIHost -English "  For now, clear platform.runtime_namespace to create the default VM, or wait for the VM factory migration stage before creating a namespaced runtime." -Chinese "  当前阶段请先清空 platform.runtime_namespace 来创建默认 VM，或等待 VM factory 迁移阶段后再创建 namespaced runtime。" -ForegroundColor DarkGray
-    exit 1
+    Write-UIHost -English "  Namespace: $($resourceProfile.RuntimeNamespace) (resource: $($resourceProfile.RuntimeResourceName))" -Chinese "  Namespace: $($resourceProfile.RuntimeNamespace) (资源: $($resourceProfile.RuntimeResourceName))" -ForegroundColor Cyan
+    Write-UIHost -English "  VMX:       $($factoryLayout.VmxPath)" -Chinese "  VMX:       $($factoryLayout.VmxPath)" -ForegroundColor DarkGray
+    Write-UIHost -English "  Ensure this checkout uses distinct vm_store, workspace_root, and static IP values before running another version at the same time." -Chinese "  同时运行另一个版本前，请确保当前 checkout 使用独立的 vm_store、workspace_root 和 static IP。" -ForegroundColor Yellow
 }
 Assert-VMwareNatReadyForRuntimeCreate -TargetRuntime $RuntimeName
 
@@ -531,7 +536,7 @@ if (-not (Test-Path $isoPath)) {
 
 # Create the VM with full autoinstall
 try {
-    $vmxPath = New-RuntimeVM -RuntimeName $RuntimeName -IsoPath $IsoPath -StartAfterCreate:(!$NoProvision) -SkipProvision:$NoProvision
+    $vmxPath = New-RuntimeVM -RuntimeName $RuntimeName -IsoPath $IsoPath -Layout $factoryLayout -StartAfterCreate:(!$NoProvision) -SkipProvision:$NoProvision
 } catch {
     Write-ErrorLog -Message "VM creation failed: $_" -Component "cli.up"
     exit 1

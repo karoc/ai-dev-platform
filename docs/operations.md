@@ -43,7 +43,7 @@ For first-run guidance, include the checklist:
 adpos doctor -FirstRun
 ```
 
-`doctor` checks platform prerequisites, configuration shape, local override status, VMware tooling, VMware NAT host match when detectable, Mutagen version, ISO cache, runtime topology, static IP uniqueness, static IP ranges, duplicate running ADP runtime names across VMX paths, existing-runtime seed network drift, VM status, SSH reachability for running VMs, and Mutagen sessions.
+`doctor` checks platform prerequisites, configuration shape, local override status, VMware tooling, VMware NAT host match when detectable, Mutagen version, ISO cache, runtime topology, static IP uniqueness, static IP ranges, duplicate running ADP runtime resource names across VMX paths, existing-runtime seed network drift, VM status, SSH reachability for running VMs, and Mutagen sessions.
 
 Preview local Mutagen remediation:
 
@@ -210,7 +210,7 @@ adpos status frontend
 - Each runtime's VM status.
 - The configured static IP from the merged topology.
 - The VMware-detected IP when available.
-- Duplicate running ADP runtime names when VMware has another `adp-<runtime>.vmx` running outside the current checkout.
+- Duplicate running ADP runtime resource names when VMware has another matching `adp-<resource>.vmx` running outside the current checkout.
 - Network drift when an existing autoinstall seed still contains an older static IP than the current merged configuration.
 - SSH state for running VMs: `reachable`, `auth-pending`, `ssh-timeout`, `unreachable`, `ambiguous-duplicate`, or a local prerequisite state such as `key-missing`.
 - The user SSH config target for the runtime alias, including whether `HostName`, `User`, `Port`, and `IdentityFile` match the current checkout's expected runtime target.
@@ -219,13 +219,13 @@ adpos status frontend
 
 If the VMware-detected IP differs from the configured static IP, ADP still shows the configured static IP as the connection target. This is intentional for static networking and makes local NAT subnet overrides visible after editing `configs\local.json`.
 
-If `status` reports `duplicate VM`, another VMX with the same runtime name is running from another checkout or a stale VM store. Stop or rename the stale duplicate before diagnosing SSH, detected IP, or network drift, because VMware may report IP information for the wrong same-name runtime while the current checkout expects a different VMX path.
+If `status` reports `duplicate VM`, another VMX with the same runtime resource name is running from another checkout or a stale VM store. Stop or rename the stale duplicate before diagnosing SSH, detected IP, or network drift, because VMware may report IP information for the wrong matching-resource runtime while the current checkout expects a different VMX path.
 
 When a duplicate is present, `status` reports SSH as `ambiguous-duplicate` because a successful connection to the configured IP does not prove that the current checkout's VMX is the guest that answered.
 
 The same duplicate-running-VM check is a preflight gate for `adpos up <runtime>` and `adpos sync start <runtime>`. Plan mode shows the conflict without changing state; non-plan runtime start/create and sync start stop before changing VMs, SSH aliases, or Mutagen sessions. For multi-checkout setup details, see [Troubleshooting](troubleshooting.md#multiple-checkouts-and-resource-conflicts) and [Configuration](configuration.md#local-overrides).
 
-If `status` reports an SSH alias mismatch, the global user SSH config entry for an alias such as `adp-os-adp-agent` points to a different host, port, user, or identity file than the current checkout expects. This can happen after switching checkouts, recreating runtimes, or preserving a second installed version. Run `adpos sync status` to inspect the sync session, then run `adpos sync start <runtime>` from the checkout that should own the alias. If another checkout still owns that same runtime name, isolate the checkout first instead of silently reusing the alias.
+If `status` reports an SSH alias mismatch, the global user SSH config entry for an alias such as `adp-os-adp-agent` points to a different host, port, user, or identity file than the current checkout expects. This can happen after switching checkouts, recreating runtimes, or preserving a second installed version. Run `adpos sync status` to inspect the sync session, then run `adpos sync start <runtime>` from the checkout that should own the alias. If another checkout still owns that same runtime resource name, isolate the checkout first instead of silently reusing the alias.
 
 If `status` reports `network drift`, the VM was created with an older seed network than the current configuration. Editing `configs\local.json` after VM creation does not rewrite guest networking. Use the remediation path that matches the situation:
 

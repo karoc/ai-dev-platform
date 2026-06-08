@@ -47,7 +47,7 @@ Assert-Contains `
 Assert-Contains `
     -Name "up checks VMware Tools marker before entering autoinstall monitor" `
     -Text $up `
-    -Pattern 'Test-AutoinstallReady -RuntimeName \$TargetRuntime[\s\S]*Test-RuntimeConnectionProvisionMarkerViaSSH -TargetRuntime \$TargetRuntime -TargetVmxPath \$TargetVmxPath[\s\S]*Test-GuestProvisionMarkerViaVmwareTools -TargetRuntime \$TargetRuntime -TargetVmxPath \$TargetVmxPath[\s\S]*if\s*\(\$provisionMarker\.Provisioned\)[\s\S]*Write-ProvisionedNetworkNotReadyGuidance[\s\S]*return[\s\S]*Wait-AutoinstallComplete -VmxPath \$TargetVmxPath -RuntimeName \$TargetRuntime -TimeoutMinutes 60'
+    -Pattern 'Test-AutoinstallReady -RuntimeName \$TargetRuntime -VmxPath \$TargetVmxPath[\s\S]*Test-RuntimeConnectionProvisionMarkerViaSSH -TargetRuntime \$TargetRuntime -TargetVmxPath \$TargetVmxPath[\s\S]*Test-GuestProvisionMarkerViaVmwareTools -TargetRuntime \$TargetRuntime -TargetVmxPath \$TargetVmxPath[\s\S]*if\s*\(\$provisionMarker\.Provisioned\)[\s\S]*Write-ProvisionedNetworkNotReadyGuidance[\s\S]*return[\s\S]*Wait-AutoinstallComplete -VmxPath \$TargetVmxPath -RuntimeName \$TargetRuntime -TimeoutMinutes 60'
 
 Assert-Contains `
     -Name "validate runs up provision marker contract" `

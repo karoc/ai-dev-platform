@@ -175,9 +175,17 @@ function Get-ADPRuntimeDuplicateConflict {
         [string[]]$RunningVmxPaths = @()
     )
 
+    $targetResourceName = $TargetRuntime
+    if (Get-Command Get-ADPRuntimeNameFromVmxPath -ErrorAction SilentlyContinue) {
+        $resourceFromManagedPath = Get-ADPRuntimeNameFromVmxPath -VmxPath $ManagedVmxPath
+        if (-not [string]::IsNullOrWhiteSpace($resourceFromManagedPath)) {
+            $targetResourceName = $resourceFromManagedPath
+        }
+    }
+
     $running = @()
     if (Get-Command Get-ADPRunningRuntimeVMs -ErrorAction SilentlyContinue) {
-        $running = @(Get-ADPRunningRuntimeVMs -RunningVmxPaths $RunningVmxPaths -RuntimeName $TargetRuntime -ManagedVmxPath $ManagedVmxPath)
+        $running = @(Get-ADPRunningRuntimeVMs -RunningVmxPaths $RunningVmxPaths -RuntimeName $targetResourceName -ManagedVmxPath $ManagedVmxPath)
     }
 
     $duplicates = @($running | Where-Object { -not $_.IsManagedByCurrentCheckout })
@@ -185,6 +193,7 @@ function Get-ADPRuntimeDuplicateConflict {
 
     return [pscustomobject]@{
         Runtime                  = $TargetRuntime
+        RuntimeResourceName      = $targetResourceName
         ManagedVmxPath           = Normalize-ADPResourcePath -Path $ManagedVmxPath
         RunningVms               = $running
         DuplicateVms             = $duplicates
@@ -255,6 +264,6 @@ function Write-ADPRuntimeResourceConflictGuidance {
 
     Write-UIHost -English "  next:" -Chinese "  下一步:" -ForegroundColor Yellow
     Write-UIHost -English "    - If the other VM is stale, stop it from its owning checkout or VMware UI, then rerun: $statusCommand" -Chinese "    - 如果另一个 VM 已 stale，请从其所属 checkout 或 VMware UI 停止它，然后重新运行: $statusCommand" -ForegroundColor Yellow
-    Write-UIHost -English "    - If both checkouts must stay active, isolate workspace_root, vm_store, and topology.$($Profile.Runtime).static_ip first. platform.runtime_namespace can preview namespaced resource identities; first namespaced VM creation still requires the VM factory migration." -Chinese "    - 如果两个 checkout 都要保留运行，请先隔离 workspace_root、vm_store 和 topology.$($Profile.Runtime).static_ip。platform.runtime_namespace 可预览 namespaced resource identity；namespaced VM 首次创建仍需等待 VM factory 迁移。" -ForegroundColor Yellow
+    Write-UIHost -English "    - If both checkouts must stay active, isolate workspace_root, vm_store, and topology.$($Profile.Runtime).static_ip first. Set a distinct platform.runtime_namespace before first creation so up targets a separate runtime resource." -Chinese "    - 如果两个 checkout 都要保留运行，请先隔离 workspace_root、vm_store 和 topology.$($Profile.Runtime).static_ip。首次创建前设置不同的 platform.runtime_namespace，让 up 指向独立的 runtime resource。" -ForegroundColor Yellow
     Write-UIHost -English "    - Recheck with: $doctorCommand; $syncStatusCommand; $upPlanCommand" -Chinese "    - 重新检查: $doctorCommand; $syncStatusCommand; $upPlanCommand" -ForegroundColor DarkGray
 }

@@ -55,13 +55,16 @@ $currentVmx = "C:\adp-current\vms\adp-agent\adp-agent.vmx"
 $otherVmx = "D:\adp-old\vms\adp-agent\adp-agent.vmx"
 $otherRuntimeVmx = "D:\adp-old\vms\adp-backend\adp-backend.vmx"
 $nonAdpVmx = "D:\other\vms\ubuntu\ubuntu.vmx"
+$namespacedCurrentVmx = "C:\adp-current\vms\adp-v2-agent\adp-v2-agent.vmx"
+$namespacedOtherVmx = "D:\adp-v2-old\vms\adp-v2-agent\adp-v2-agent.vmx"
 
 $conflict = Get-ADPRuntimeDuplicateConflict `
     -TargetRuntime "agent" `
     -ManagedVmxPath $currentVmx `
     -RunningVmxPaths @($currentVmx, $otherVmx, $otherRuntimeVmx, $nonAdpVmx)
 
-Assert-True -Name "duplicate same-name runtime blocks mutation" -Condition $conflict.BlocksRuntimeMutation
+Assert-True -Name "duplicate runtime resource blocks mutation" -Condition $conflict.BlocksRuntimeMutation
+Assert-Equal -Name "default duplicate runtime resource name" -Actual $conflict.RuntimeResourceName -Expected "agent"
 Assert-Equal -Name "same-name ADP running VM count" -Actual @($conflict.RunningVms).Count -Expected 2
 Assert-Equal -Name "other-checkout running VM count" -Actual @($conflict.DuplicateVms).Count -Expected 1
 Assert-Equal -Name "other-checkout running VM path" -Actual $conflict.OtherRunningVmxPaths[0] -Expected (Normalize-ADPResourcePath -Path $otherVmx)
@@ -71,8 +74,26 @@ $noConflict = Get-ADPRuntimeDuplicateConflict `
     -ManagedVmxPath $currentVmx `
     -RunningVmxPaths @($currentVmx, $otherRuntimeVmx, $nonAdpVmx)
 
-Assert-True -Name "only current same-name VM does not block" -Condition (-not $noConflict.BlocksRuntimeMutation)
+Assert-True -Name "only current runtime resource VM does not block" -Condition (-not $noConflict.BlocksRuntimeMutation)
 Assert-Equal -Name "no duplicate other-checkout VM count" -Actual @($noConflict.DuplicateVms).Count -Expected 0
+
+$namespacedNoConflict = Get-ADPRuntimeDuplicateConflict `
+    -TargetRuntime "agent" `
+    -ManagedVmxPath $namespacedCurrentVmx `
+    -RunningVmxPaths @($namespacedCurrentVmx, $currentVmx, $otherRuntimeVmx, $nonAdpVmx)
+
+Assert-Equal -Name "namespaced duplicate runtime resource name" -Actual $namespacedNoConflict.RuntimeResourceName -Expected "v2-agent"
+Assert-True -Name "legacy runtime does not block namespaced runtime resource" -Condition (-not $namespacedNoConflict.BlocksRuntimeMutation)
+Assert-Equal -Name "namespaced no-conflict running VM count" -Actual @($namespacedNoConflict.RunningVms).Count -Expected 1
+
+$namespacedConflict = Get-ADPRuntimeDuplicateConflict `
+    -TargetRuntime "agent" `
+    -ManagedVmxPath $namespacedCurrentVmx `
+    -RunningVmxPaths @($namespacedCurrentVmx, $currentVmx, $namespacedOtherVmx, $otherRuntimeVmx, $nonAdpVmx)
+
+Assert-True -Name "duplicate namespaced runtime resource blocks mutation" -Condition $namespacedConflict.BlocksRuntimeMutation
+Assert-Equal -Name "duplicate namespaced running VM count" -Actual @($namespacedConflict.RunningVms).Count -Expected 2
+Assert-Equal -Name "duplicate namespaced other-checkout VM path" -Actual $namespacedConflict.OtherRunningVmxPaths[0] -Expected (Normalize-ADPResourcePath -Path $namespacedOtherVmx)
 
 $profile = Get-ADPRuntimeResourceProfile -TargetRuntime "agent" -VmxPath $currentVmx
 Assert-Equal -Name "resource profile runtime" -Actual $profile.Runtime -Expected "agent"

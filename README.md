@@ -134,7 +134,7 @@ Setup also registers the global `adpos` command for your user account, so after 
 
 Multiple ADP-OS checkouts can coexist. The global `adpos` command can point to only one checkout at a time; if setup detects an existing global binding to another checkout, it asks whether to replace it. If you keep the existing binding, use `.\adpos.cmd` from the new checkout.
 
-Before using a second checkout, configure distinct local paths and network settings in its ignored `configs\local.json`: at minimum `platform.paths.workspace_root`, `platform.paths.vm_store`, and each relevant `topology.<runtime>.static_ip`. The current public runtime gate still blocks two same-name runtime VMs from running concurrently; this prevents accidental SSH/Mutagen ownership collisions until namespaced first-VM creation is fully migrated. Then check the new checkout locally:
+Before using a second checkout, configure distinct local paths and network settings in its ignored `configs\local.json`: at minimum `platform.paths.workspace_root`, `platform.paths.vm_store`, and each relevant `topology.<runtime>.static_ip`. If you also set `platform.runtime_namespace` such as `v2`, `adpos up agent` targets resource `v2-agent` and VM `adp-v2-agent` for first creation instead of the legacy `adp-agent`. Then check the new checkout locally:
 
 ```powershell
 .\adpos.cmd doctor
@@ -143,7 +143,7 @@ Before using a second checkout, configure distinct local paths and network setti
 .\adpos.cmd up agent -Plan
 ```
 
-If another same-name VM is already running, ADP-OS reports `duplicate VM`; `up` and `sync start` stop before changing runtime state until you stop the stale VM or complete the VM factory migration for a fully isolated namespaced runtime path.
+If another VM with the same runtime resource name is already running, ADP-OS reports `duplicate VM`; `up` and `sync start` stop before changing runtime state until you stop the stale VM or isolate the checkout with a distinct namespace, VM store, workspace root, and static IP.
 
 **Options:**
 

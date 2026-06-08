@@ -315,7 +315,7 @@ function Write-StatusRuntime {
         Write-UIHost -English "  note:          SSH probe timed out before ADP could classify the guest as reachable. This can happen after restore while the VM is running but the guest control plane is not ready." -Chinese "  说明:          SSH 探测在 ADP 确认 guest 可达前超时。restore 后 VM 已运行但 guest 控制面尚未就绪时可能出现。" -ForegroundColor Yellow
     }
     if ($hasDuplicateRunningVm) {
-        Write-UIHost -English "  duplicate VM:  running ADP runtime name also found outside this checkout" -Chinese "  重复 VM:       当前 checkout 外也发现同名 ADP runtime 正在运行" -ForegroundColor Red
+        Write-UIHost -English "  duplicate VM:  running ADP runtime resource name also found outside this checkout" -Chinese "  重复 VM:       当前 checkout 外也发现相同 ADP runtime resource name 正在运行" -ForegroundColor Red
         Write-UIHost -English "  current VMX:   $($state.VmxPath)" -Chinese "  当前 VMX:      $($state.VmxPath)" -ForegroundColor DarkGray
         foreach ($vm in $adpRunningVms) {
             $owner = if ($vm.IsManagedByCurrentCheckout) { Get-UIText -English "current checkout" -Chinese "当前 checkout" } else { Get-UIText -English "other checkout or stale VM" -Chinese "其他 checkout 或 stale VM" }

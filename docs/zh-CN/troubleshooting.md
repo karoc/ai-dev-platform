@@ -49,7 +49,7 @@ adpos sync status
 | `status` 报告 `key-missing` | 运行任意 `adpos up` 或 SSH 操作 | SSH 密钥对尚未创建 | [操作指南](operations.md#ssh-密钥故障排除) |
 | SSH 密钥被意外删除 | 运行任意 SSH 操作后会重新生成 | `%USERPROFILE%\\.ssh\\adp-os\\` 密钥对缺失 | [操作指南](operations.md#ssh-密钥故障排除) |
 | `up` 因 VMware NAT mismatch 停止 | `adpos network configure-local -Plan` | host VMnet8 与 local config 不一致 | [网络说明](networking.md#前置条件)、[配置说明](configuration.md#本地覆盖) |
-| `status`、`up` 或 `sync start` 报告 `duplicate VM` | `adpos doctor` 和 `adpos status <runtime>` | 另一个 checkout 或 stale VM store 中有同名 runtime 正在运行 | [操作指南](operations.md#运行时状态)、[配置说明](configuration.md#本地覆盖) |
+| `status`、`up` 或 `sync start` 报告 `duplicate VM` | `adpos doctor` 和 `adpos status <runtime>` | 另一个 checkout 或 stale VM store 中有相同 runtime resource name 正在运行 | [操作指南](operations.md#运行时状态)、[配置说明](configuration.md#本地覆盖) |
 | `status` 报告 SSH alias mismatch | `adpos sync status` 和 `adpos status <runtime>` | 用户 SSH config alias 指向了另一个 host、port、user 或 key | [操作指南](operations.md#运行时状态) |
 | `status` 报告 network drift | `adpos doctor` 和 `adpos network apply <runtime> -Plan` | 已有 VM seed 网络与当前配置不一致；rebuild、guest netplan fix 或 host-route workaround | [操作指南](operations.md#运行时状态)、[网络说明](networking.md#新-vm-的静态网络) |
 | VMware IP 与配置的 static IP 不同 | `adpos status <runtime>` | static networking、local NAT overrides | [网络说明](networking.md#前置条件) |
@@ -84,16 +84,16 @@ Runtime 不会按版本号自动隔离。可能冲突的资源包括：
 .\adpos.cmd up agent -Plan
 ```
 
-如果已有另一个同名 VM 正在运行，ADP-OS 会把它视为阻塞性冲突。`status` 会把 SSH 报告为 `ambiguous-duplicate`；`up` 和 `sync start` 会在修改 runtime state 或 Mutagen session 前停止。诊断输出会列出当前 checkout、全局 `adpos` 绑定、workspace root、VM store、static IP、SSH alias、SSH key、Mutagen session、预期 VMX，以及所有正在运行的同名 VMX 路径。
+如果已有另一个相同 runtime resource name 的 VM 正在运行，ADP-OS 会把它视为阻塞性冲突。`status` 会把 SSH 报告为 `ambiguous-duplicate`；`up` 和 `sync start` 会在修改 runtime state 或 Mutagen session 前停止。诊断输出会列出当前 checkout、全局 `adpos` 绑定、workspace root、VM store、static IP、SSH alias、SSH key、Mutagen session、预期 VMX，以及所有正在运行的匹配资源 VMX 路径。
 
-ADP-OS 已经加入 `platform.runtime_namespace` 资源身份基础，可生成 VM `adp-v2-agent`、SSH alias `adp-os-adp-v2-agent`、Mutagen session `adp-v2-agent` 这样的名称。配置后，`status`、`doctor`、`sync` 和 `up -Plan` 会使用 namespaced profile。Namespaced VM 的首次创建仍是 VM factory 迁移阶段，因此在配置 namespace 时，`up` 会主动停止，而不是静默创建默认 `adp-<runtime>` VM。
+ADP-OS 使用 `platform.runtime_namespace` 生成资源 `v2-agent`、VM `adp-v2-agent`、SSH alias `adp-os-adp-v2-agent`、Mutagen session `adp-v2-agent` 这样的名称。配置后，`status`、`doctor`、`sync`、`up -Plan` 和 `up` 首次 VM 创建都会使用 namespaced profile。如果你先创建了 legacy `adp-agent`，之后再设置 `runtime_namespace` 为 `v2`，`adpos up agent` 会指向独立的 `adp-v2-agent`；要管理旧 VM，请清空 namespace。
 
 SSH alias 和 Mutagen session 名称也是用户级全局资源。`status` 现在会读取类似 `adp-os-adp-agent` 的用户 SSH config 条目，并报告它是否符合当前 checkout 期望的 host、port、user 和 identity file。`sync status` 会在 Mutagen endpoint 摘要旁边报告同样的 alias mismatch。即使某个 Mutagen session 的本地和远端 endpoint 字符串与当前期望兼容，也只能说明它“符合当前期望”；在没有持久 owner metadata 的前提下，ADP-OS 不会声称能证明原始 checkout owner。
 
 选择一种恢复路径：
 
 - 如果另一个 VM 已 stale，请从其所属 checkout 或 VMware UI 停止它，然后重新运行 `adpos status <runtime>`。
-- 如果另一个 checkout 必须继续活跃，请先保留它，并在当前 checkout 中修改 `workspace_root`、`vm_store` 和 `topology.<runtime>.static_ip` 完成隔离。如果同时设置了 `platform.runtime_namespace`，请用 `up -Plan`、`status` 和 `doctor` 检查 namespaced resource profile；在 VM factory 迁移完成前，不要期待 namespaced VM 能完成首次创建。
+- 如果另一个 checkout 必须继续活跃，请先保留它，并在当前 checkout 中修改 `workspace_root`、`vm_store` 和 `topology.<runtime>.static_ip` 完成隔离。如果同时设置了不同的 `platform.runtime_namespace`，请用 `up -Plan`、`status` 和 `doctor` 确认 resource profile 指向 `v2-agent`、`adp-v2-agent` 这类名称，再创建或同步。
 - 如果全局 `adpos` 指向另一个 checkout，在你有意替换全局绑定前，请在当前仓库中使用 `.\adpos.cmd`。
 - 如果 stale Mutagen session 或 stale SSH alias 属于你不再使用的 checkout，请从应该拥有它的 checkout 停止并重建 session。停止 Mutagen session 只删除 session 定义，不会删除任一侧的 workspace 文件。
 
@@ -295,7 +295,7 @@ adpos status
 - seed-era guest address 可达且希望原地修复 guest netplan 时，先运行 `network apply <runtime> -Plan`。
 - 只有为了先恢复到 seed-era address 的 SSH 时，才使用 administrator-only temporary host-route workaround。ADP 不会自动应用 host routes。
 
-如果 `status` 或 `doctor` 报告 duplicate running ADP runtime，请先处理它，再修改本地网络。来自另一个 checkout 的同名 VM 可能让 detected IP 和 SSH diagnostics 指向错误的 VM。
+如果 `status` 或 `doctor` 报告 duplicate running ADP runtime，请先处理它，再修改本地网络。来自另一个 checkout 的相同资源 VM 可能让 detected IP 和 SSH diagnostics 指向错误的 VM。
 
 不要把 private local paths 或 credentials 粘贴到公开 issue。如果 issue 与 local config 有关，只列出受支持的 top-level sections，例如 `platform` 和 `topology`。
 

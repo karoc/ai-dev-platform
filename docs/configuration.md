@@ -132,9 +132,9 @@ For a second checkout or a parallel local version, configure isolation before cr
 }
 ```
 
-`platform.runtime_namespace` is optional and defaults to `null`, which preserves the legacy resource names: VM `adp-agent`, SSH alias `adp-os-adp-agent`, and Mutagen session `adp-agent`. When set to a value such as `v2`, the runtime resource profile expects names such as VM `adp-v2-agent`, SSH alias `adp-os-adp-v2-agent`, and Mutagen session `adp-v2-agent`.
+`platform.runtime_namespace` is optional and defaults to `null`, which preserves the legacy resource names: resource `agent`, VM `adp-agent`, SSH alias `adp-os-adp-agent`, and Mutagen session `adp-agent`. When set to a value such as `v2`, the runtime resource profile uses resource `v2-agent`, VM `adp-v2-agent`, SSH alias `adp-os-adp-v2-agent`, and Mutagen session `adp-v2-agent`.
 
-The namespace is currently a resource identity foundation, not a complete first-VM creation path. `status`, `doctor`, `sync`, and `up -Plan` use the namespaced profile, and `sync start`/`sync stop` use the namespaced Mutagen session. If a namespaced VM already exists, `up` can inspect/start it through the namespaced provider name. If it does not exist yet, `up` stops instead of silently creating the default `adp-<runtime>` VM while a namespace is configured; first creation of namespaced VMs is the next VM factory migration stage.
+The namespace applies to `status`, `doctor`, `sync`, `up -Plan`, and `up` first VM creation. With `platform.runtime_namespace` set to `v2`, `adpos up agent` creates or starts VM `adp-v2-agent` instead of the legacy `adp-agent`. It does not migrate existing legacy VMs, assign static IPs automatically, rewrite guest networking, fix NAT mismatches, or let the global `adpos` command bind to multiple checkouts at once. For parallel versions, keep `workspace_root`, `vm_store`, and each active runtime's `static_ip` distinct.
 
 The global `adpos` command can point to only one checkout. If another checkout owns it, run local diagnostics from the second checkout with `.\adpos.cmd doctor`, `.\adpos.cmd status agent`, and `.\adpos.cmd up agent -Plan`.
 

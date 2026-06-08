@@ -107,7 +107,7 @@ Then check the local checkout before creating or syncing VMs:
 .\adpos.cmd up agent -Plan
 ```
 
-The current public runtime gate still blocks two same-name runtime VMs from running concurrently. If `status` reports `duplicate VM`, stop the stale VM from its owning checkout or VMware UI before running `up` or `sync start` from this checkout. Namespaced runtime resource names are being introduced, but first creation of namespaced VMs is still a separate VM factory migration stage.
+The runtime gate blocks duplicate running VMs with the same runtime resource name. If `status` reports `duplicate VM`, stop the stale VM from its owning checkout or VMware UI before running `up` or `sync start` from this checkout. Namespaced runtime resource names are supported for first VM creation: with `platform.runtime_namespace` set to `v2`, `adpos up agent` targets resource `v2-agent` and VM `adp-v2-agent`. This does not automatically isolate IPs or paths, so keep the distinct `workspace_root`, `vm_store`, and `static_ip` settings above.
 
 ### Step 2: Run the Guided Setup
 

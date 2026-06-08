@@ -291,6 +291,7 @@ function New-RuntimeVM {
     param(
         [string]$RuntimeName,
         [string]$IsoPath,
+        [object]$Layout,
         [switch]$SkipProvision,
         [switch]$StartAfterCreate
     )
@@ -303,7 +304,14 @@ function New-RuntimeVM {
 
     $rt = Get-RuntimeConfig $RuntimeName
     $config = Get-PlatformConfig
-    $layout = Get-ADPVMwareRuntimeLayout -RuntimeName $RuntimeName -VmStorePath $script:VmFactoryState.VmStore -SeedRootPath $script:VmFactoryState.SeedDir -Namespace ""
+    $layout = if ($Layout) {
+        $Layout
+    } else {
+        Get-ADPVMwareRuntimeLayout -RuntimeName $RuntimeName -VmStorePath $script:VmFactoryState.VmStore -SeedRootPath $script:VmFactoryState.SeedDir -Namespace ""
+    }
+    if (-not $layout.VmPath -or -not $layout.VmxPath -or -not $layout.SeedSourceDir) {
+        throw "New-RuntimeVM: invalid VMware runtime layout for '$RuntimeName'"
+    }
     $vmName = $layout.VmName
     $vmPath = $layout.VmPath
 
@@ -597,17 +605,21 @@ function Wait-AutoinstallComplete {
 
 function Test-AutoinstallReady {
     param(
-        [string]$RuntimeName
+        [string]$RuntimeName,
+        [string]$VmxPath
     )
 
-    $layout = Get-ADPVMwareRuntimeLayout -RuntimeName $RuntimeName -VmStorePath $script:VmFactoryState.VmStore -SeedRootPath $script:VmFactoryState.SeedDir -Namespace ""
-    $vmxPath = $layout.VmxPath
+    $resolvedVmxPath = $VmxPath
+    if (-not $resolvedVmxPath) {
+        $layout = Get-ADPVMwareRuntimeLayout -RuntimeName $RuntimeName -VmStorePath $script:VmFactoryState.VmStore -SeedRootPath $script:VmFactoryState.SeedDir -Namespace ""
+        $resolvedVmxPath = $layout.VmxPath
+    }
 
-    if (-not (Test-Path $vmxPath)) {
+    if (-not (Test-Path $resolvedVmxPath)) {
         return $false
     }
 
-    $status = Get-VMStatus $vmxPath
+    $status = Get-VMStatus $resolvedVmxPath
     if ($status -notmatch "running") {
         return $false
     }
@@ -616,7 +628,7 @@ function Test-AutoinstallReady {
         $configuredIp = Get-RuntimeStaticIP $RuntimeName
         $detectedIp = $null
         try {
-            $detectedIp = Get-VMIP $vmxPath
+            $detectedIp = Get-VMIP $resolvedVmxPath
         } catch {}
 
         $candidateIps = @($configuredIp, $detectedIp) | Where-Object { $_ -and $_ -ne "0.0.0.0" -and $_ -notmatch "unknown" } | Select-Object -Unique

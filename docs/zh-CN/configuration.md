@@ -132,9 +132,9 @@ Sync profiles 配置 Mutagen 行为和忽略列表。
 }
 ```
 
-`platform.runtime_namespace` 是可选字段，默认 `null` 会保留旧资源名：VM `adp-agent`、SSH alias `adp-os-adp-agent`、Mutagen session `adp-agent`。设置为 `v2` 这类值后，runtime resource profile 会期望 VM `adp-v2-agent`、SSH alias `adp-os-adp-v2-agent`、Mutagen session `adp-v2-agent`。
+`platform.runtime_namespace` 是可选字段，默认 `null` 会保留旧资源名：资源 `agent`、VM `adp-agent`、SSH alias `adp-os-adp-agent`、Mutagen session `adp-agent`。设置为 `v2` 这类值后，runtime resource profile 会使用资源 `v2-agent`、VM `adp-v2-agent`、SSH alias `adp-os-adp-v2-agent`、Mutagen session `adp-v2-agent`。
 
-这个 namespace 目前是资源身份基础，不是完整的首次 VM 创建路径。`status`、`doctor`、`sync` 和 `up -Plan` 会使用 namespaced profile，`sync start`/`sync stop` 会使用 namespaced Mutagen session。如果 namespaced VM 已存在，`up` 可以通过 namespaced provider name 检查/启动它；如果它还不存在，`up` 会停止，而不是在已配置 namespace 时静默创建默认 `adp-<runtime>` VM。namespaced VM 的首次创建属于下一阶段 VM factory 迁移。
+这个 namespace 会影响 `status`、`doctor`、`sync`、`up -Plan`，以及 `up` 的首次 VM 创建。设置 `platform.runtime_namespace` 为 `v2` 后，`adpos up agent` 会创建或启动 VM `adp-v2-agent`，而不是旧的 `adp-agent`。它不会迁移已有 legacy VM，不会自动分配 static IP，不会重写 guest networking，不会修复 NAT mismatch，也不会让全局 `adpos` 同时绑定多个 checkout。并行版本仍要保持 `workspace_root`、`vm_store` 和每个活跃 runtime 的 `static_ip` 互不相同。
 
 全局 `adpos` 命令同一时间只能指向一个 checkout。如果它归属于另一个 checkout，请在第二个 checkout 中使用 `.\adpos.cmd doctor`、`.\adpos.cmd status agent` 和 `.\adpos.cmd up agent -Plan` 运行本地诊断。
 
