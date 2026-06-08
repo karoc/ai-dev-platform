@@ -113,7 +113,13 @@ Sync profiles 配置 Mutagen 行为和忽略列表。
 
 `configs\local.json` 是已被忽略的本机覆盖文件。它适合存放主机路径、ISO cache 中使用的 ISO 文件名、本机 VM 规格、静态 IP、本地 bootstrap 凭据、Mutagen archive mirror 等本机工具获取设置、runtime resource namespace 实验，以及不应该提交的同步忽略规则调整。
 
-对于第二个 checkout 或并行的本地版本，请在创建或启动 runtime 前先完成隔离配置。至少要为当前 checkout 计划检查或运行的 runtime 配置不同的 `workspace_root`、`vm_store` 和 `topology.<runtime>.static_ip`：
+对于第二个 checkout 或并行的本地版本，请在创建或启动 runtime 前先完成隔离配置。先预览一份可操作的本机覆盖片段：
+
+```powershell
+.\adpos.cmd isolate -Plan -Namespace v2
+```
+
+至少要为当前 checkout 计划检查或运行的 runtime 配置不同的 `runtime_namespace`、`workspace_root`、`vm_store`、provider `vm_store` 和 `topology.<runtime>.static_ip`：
 
 ```json
 {
@@ -122,6 +128,11 @@ Sync profiles 配置 Mutagen 行为和忽略列表。
     "paths": {
       "workspace_root": "D:\\ADP-v2\\workspaces",
       "vm_store": "D:\\ADP-v2\\vms"
+    },
+    "provider": {
+      "config": {
+        "vm_store": "D:\\ADP-v2\\vms"
+      }
     }
   },
   "topology": {

@@ -17,6 +17,7 @@ Initial public release.
 - Added `adpos` as the only user-facing shell command. `setup.cmd` / `setup.ps1` now register a user-level `adpos` shim by default under `%LOCALAPPDATA%\ADP-OS\bin` and add only that bin directory to the user `PATH`.
 - Added one-click safe uninstall through `adpos uninstall` and the repository-root `uninstall.cmd` wrapper. The default uninstall removes only the global `adpos` command registration and does not delete VMs, workspaces, ISO cache, local tools, logs, or repository files.
 - Improved one-click bootstrap behavior for stock Windows shells. `setup.cmd`, `setup.ps1`, and `install.ps1` now attempt to install PowerShell 7 with `winget` when `pwsh.exe` is missing, then continue setup with PowerShell 7. `uninstall.cmd` can remove the command registration through Windows PowerShell 5.1 when PowerShell 7 is unavailable.
+- Added `adpos isolate -Plan [-Namespace <name>]` to preview multi-checkout local isolation overrides without changing `configs\local.json`, VMs, SSH aliases, sync sessions, `PATH`, or the global `adpos` binding.
 
 ### Changed
 

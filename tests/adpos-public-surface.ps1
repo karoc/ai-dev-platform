@@ -57,7 +57,7 @@ function Test-AllowedInternalCliReference {
 }
 
 $violations = New-Object System.Collections.Generic.List[string]
-$knownCommands = "setup|uninstall|iso|quickstart|init|up|status|capabilities|stop|sync|workspace|network|snapshot|restore|logs|doctor|destroy|precheck|help|version|validate|completion|serve|run|sandbox"
+$knownCommands = "setup|uninstall|iso|quickstart|init|up|status|capabilities|isolate|stop|sync|workspace|network|snapshot|restore|logs|doctor|destroy|precheck|help|version|validate|completion|serve|run|sandbox"
 $legacyAdpCmdPattern = '(^|[^A-Za-z0-9_.-])(\.\\|\./)?adp\.cmd(?=\s|`|''|"|$)'
 $legacyAdpSubcommandPattern = "(^|[^A-Za-z0-9_.-])(\.\\|\./)?adp\s+($knownCommands)\b"
 $legacyAdpScriptCommandPattern = "(^|[^A-Za-z0-9_.-])(\.\\|\./)?(cli[\\/]+)?adp\.ps1\s+($knownCommands)\b"

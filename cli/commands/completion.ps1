@@ -13,7 +13,7 @@ if (-not $Shell -or $Shell -notin @("powershell", "bash")) {
     exit 1
 }
 
-$validCommands = @("setup", "init", "up", "run", "status", "stop", "sync", "snapshot", "restore", "logs", "doctor", "destroy", "network", "workspace", "capabilities", "validate", "help", "completion", "version", "iso", "quickstart", "precheck", "sandbox", "serve", "uninstall")
+$validCommands = @("setup", "init", "up", "run", "status", "stop", "sync", "snapshot", "restore", "logs", "doctor", "destroy", "network", "workspace", "capabilities", "isolate", "validate", "help", "completion", "version", "iso", "quickstart", "precheck", "sandbox", "serve", "uninstall")
 
 if ($Shell -eq "powershell") {
     # PowerShell Register-ArgumentCompleter script
@@ -29,7 +29,7 @@ Register-ArgumentCompleter -CommandName adpos,adpos.cmd -ParameterName Command -
     $commands = @(
         "setup", "init", "up", "run", "status", "stop", "sync",
         "snapshot", "restore", "logs", "doctor", "destroy",
-        "network", "workspace", "capabilities", "validate",
+        "network", "workspace", "capabilities", "isolate", "validate",
         "help", "completion", "version", "iso", "quickstart",
         "precheck", "sandbox", "serve", "uninstall"
     )
@@ -50,7 +50,7 @@ Register-ArgumentCompleter -CommandName adpos,adpos.cmd -ParameterName Command -
 
 _adpos_completion() {
     local cur="${COMP_WORDS[COMP_CWORD]}"
-    local commands="setup init up run status stop sync snapshot restore logs doctor destroy network workspace capabilities validate help completion version iso quickstart precheck sandbox serve uninstall"
+    local commands="setup init up run status stop sync snapshot restore logs doctor destroy network workspace capabilities isolate validate help completion version iso quickstart precheck sandbox serve uninstall"
 
     if [ "$COMP_CWORD" -eq 1 ]; then
         COMPREPLY=($(compgen -W "$commands" -- "$cur"))

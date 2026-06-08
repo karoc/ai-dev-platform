@@ -399,6 +399,12 @@ try {
             AllowedExitCodes = @(0, 1)
         }
         [pscustomobject]@{
+            Name = "isolate plan"
+            Script = $cliScript
+            Arguments = @("isolate", "-Plan", "-Namespace", "v2")
+            AllowedExitCodes = @(0)
+        }
+        [pscustomobject]@{
             Name = "network apply plan without VM"
             Script = $cliScript
             Arguments = @("network", "apply", "agent", "-Plan")
@@ -407,12 +413,17 @@ try {
     )
 
     foreach ($command in $commands) {
-        $null = Assert-CommandDoesNotMutateLocalConfig `
+        $result = Assert-CommandDoesNotMutateLocalConfig `
             -Name $command.Name `
             -SandboxRoot $sandboxRoot `
             -ScriptPath $command.Script `
             -Arguments $command.Arguments `
             -AllowedExitCodes $command.AllowedExitCodes
+
+        if ($command.Name -eq "isolate plan") {
+            Assert-TextContains -Name "isolate plan no host mutation boundary" -Text $result.Output -Pattern 'No files, VMs, SSH aliases, sync sessions, PATH entries, or global adpos bindings were changed'
+            Assert-NoRuntimeVmDirectories -Name "isolate plan" -SandboxRoot $sandboxRoot
+        }
     }
 } finally {
     $tempRoot = [System.IO.Path]::GetTempPath()

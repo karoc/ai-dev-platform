@@ -77,7 +77,13 @@ Runtimes are not isolated by version number. The resource names that can collide
 - The SSH alias, for example `adp-os-adp-agent`.
 - The Mutagen session name, for example `adp-agent`.
 
-Before using the second checkout for runtime work, set distinct `workspace_root`, `vm_store`, and `static_ip` values in the second checkout's ignored `configs\local.json`, then run:
+Before using the second checkout for runtime work, preview the local isolation snippet from that checkout:
+
+```powershell
+.\adpos.cmd isolate -Plan -Namespace v2
+```
+
+Copy and adapt the suggested ignored `configs\local.json` overrides. Keep `runtime_namespace`, `workspace_root`, `vm_store`, provider `vm_store`, and each active runtime's `static_ip` distinct, then run:
 
 ```powershell
 .\adpos.cmd doctor

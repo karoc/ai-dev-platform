@@ -17,6 +17,7 @@
 - 新增 `adpos` 作为唯一面向用户的 shell 命令。`setup.cmd` / `setup.ps1` 现在默认会在 `%LOCALAPPDATA%\ADP-OS\bin` 下注册用户级 `adpos` shim，并且只把该 bin 目录加入用户 `PATH`。
 - 新增一键安全卸载入口：`adpos uninstall` 以及仓库根目录的 `uninstall.cmd` wrapper。默认卸载只移除全局 `adpos` 命令注册，不删除 VM、workspace、ISO 缓存、本地工具、日志或仓库文件。
 - 改进 stock Windows shell 的一键 bootstrap 行为。缺少 `pwsh.exe` 时，`setup.cmd`、`setup.ps1` 和 `install.ps1` 现在会尝试用 `winget` 安装 PowerShell 7，然后继续用 PowerShell 7 执行 setup。PowerShell 7 不可用时，`uninstall.cmd` 也可以通过 Windows PowerShell 5.1 移除命令注册。
+- 新增 `adpos isolate -Plan [-Namespace <name>]`，用于预览多 checkout 的本机隔离覆盖配置，并且不会修改 `configs\local.json`、VM、SSH alias、sync session、`PATH` 或全局 `adpos` 绑定。
 
 ### 变更
 

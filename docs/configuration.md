@@ -113,7 +113,13 @@ Supported sync modes depend on the installed Mutagen version. The project has be
 
 `configs\local.json` is an ignored, machine-local override file. Use it for host paths, the ISO filename used inside the ISO cache, local VM sizing, static IPs, credentials for local bootstrap, local tool acquisition settings such as Mutagen archive mirrors, runtime resource namespace experiments, and sync ignore changes that should not be committed.
 
-For a second checkout or a parallel local version, configure isolation before creating or starting a runtime. At minimum, use a different `workspace_root`, `vm_store`, and `topology.<runtime>.static_ip` for the runtime you plan to inspect or run from that checkout:
+For a second checkout or a parallel local version, configure isolation before creating or starting a runtime. Preview an actionable local override first:
+
+```powershell
+.\adpos.cmd isolate -Plan -Namespace v2
+```
+
+At minimum, use a different `runtime_namespace`, `workspace_root`, `vm_store`, provider `vm_store`, and `topology.<runtime>.static_ip` for the runtime you plan to inspect or run from that checkout:
 
 ```json
 {
@@ -122,6 +128,11 @@ For a second checkout or a parallel local version, configure isolation before cr
     "paths": {
       "workspace_root": "D:\\ADP-v2\\workspaces",
       "vm_store": "D:\\ADP-v2\\vms"
+    },
+    "provider": {
+      "config": {
+        "vm_store": "D:\\ADP-v2\\vms"
+      }
     }
   },
   "topology": {

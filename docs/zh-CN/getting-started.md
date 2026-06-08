@@ -92,10 +92,18 @@ cd ai-dev-platform
 
 如果这是同一 Windows 用户账户下的第二个本地 checkout，或另一个 ADP-OS 版本，setup 可能会检测到全局 `adpos` 已经指向另一个 checkout。你可以替换该绑定，也可以保留它，并在当前 checkout 中使用 `.\adpos.cmd`。
 
-在第二个 checkout 中创建、启动或同步 runtime 前，请先在当前 checkout 的 `configs\local.json` 中完成隔离：
+在第二个 checkout 中创建、启动或同步 runtime 前，请先预览本机隔离计划：
 
+```powershell
+.\adpos.cmd isolate -Plan -Namespace v2
+```
+
+复制或调整输出的 `configs\local.json` 片段，让当前 checkout 完成隔离：
+
+- 使用不同的 `platform.runtime_namespace`。
 - 使用不同的 `platform.paths.workspace_root`。
 - 使用不同的 `platform.paths.vm_store`。
+- 使用匹配的 `platform.provider.config.vm_store`。
 - 为可能从不同 checkout 激活的 runtime 使用不同的 `topology.<runtime>.static_ip`。
 
 创建或同步 VM 前，先在当前 checkout 本地检查：

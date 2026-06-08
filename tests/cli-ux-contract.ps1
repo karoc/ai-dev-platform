@@ -46,6 +46,7 @@ $help = Invoke-AdposCli -Arguments @("help")
 Assert-ExitCode -Name "adpos help" -Actual $help.ExitCode -Expected 0
 Assert-Contains -Name "adpos help shows command overview" -Text $help.Output -Pattern "Commands:"
 Assert-Contains -Name "adpos help includes setup" -Text $help.Output -Pattern "adpos setup"
+Assert-Contains -Name "adpos help includes isolate" -Text $help.Output -Pattern "adpos isolate"
 Assert-Contains -Name "adpos help includes uninstall" -Text $help.Output -Pattern "adpos uninstall"
 
 $topLevelTypo = Invoke-AdposCli -Arguments @("hepl")

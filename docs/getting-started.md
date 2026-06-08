@@ -92,10 +92,18 @@ cd ai-dev-platform
 
 If this is a second local checkout or a different ADP-OS version on the same Windows user account, setup may detect that global `adpos` already points to another checkout. You can replace that binding, or keep it and use `.\adpos.cmd` inside this checkout.
 
-Before creating, starting, or syncing runtimes from the second checkout, isolate the new checkout in `configs\local.json`:
+Before creating, starting, or syncing runtimes from the second checkout, preview the local isolation plan:
 
+```powershell
+.\adpos.cmd isolate -Plan -Namespace v2
+```
+
+Copy or adapt the suggested `configs\local.json` snippet so the new checkout is isolated:
+
+- Use a different `platform.runtime_namespace`.
 - Use a different `platform.paths.workspace_root`.
 - Use a different `platform.paths.vm_store`.
+- Use a matching `platform.provider.config.vm_store`.
 - Use different `topology.<runtime>.static_ip` values for runtimes that may be active from different checkouts.
 
 Then check the local checkout before creating or syncing VMs:

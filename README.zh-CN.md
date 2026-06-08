@@ -118,7 +118,13 @@ cd ai-dev-platform
 
 设置流程还会为当前用户注册全局 `adpos` 命令。安装完成后，可以在任意目录运行 `adpos` 操作 ADP-OS；ADP-OS 对外只暴露 `adpos` 这一个用户 shell 命令。如果当前 shell 还没有刷新用户 `PATH`，请打开一个新终端；在仓库根目录下使用 `.\adpos.cmd` 作为本地 wrapper。
 
-多个 ADP-OS checkout 可以共存，但全局 `adpos` 同一时间只能指向其中一个。setup 如果检测到已有全局绑定指向其他 checkout，会询问是否替换；如果保留现有绑定，请在新 checkout 根目录使用 `.\adpos.cmd`。如果要同时运行多个 VM 环境，请先在新 checkout 被忽略的 `configs\local.json` 中配置不同的本机路径和网络设置：至少包括 `platform.paths.workspace_root`、`platform.paths.vm_store`，以及每个会同时运行的 `topology.<runtime>.static_ip`。如果同时设置 `platform.runtime_namespace`，例如 `v2`，`adpos up agent` 首次创建会指向资源 `v2-agent` 和 VM `adp-v2-agent`，而不是旧的 `adp-agent`。然后在新 checkout 本地检查：
+多个 ADP-OS checkout 可以共存，但全局 `adpos` 同一时间只能指向其中一个。setup 如果检测到已有全局绑定指向其他 checkout，会询问是否替换；如果保留现有绑定，请在新 checkout 根目录使用 `.\adpos.cmd`。使用第二个 checkout 前，先在该 checkout 中预览本地隔离计划：
+
+```powershell
+.\adpos.cmd isolate -Plan -Namespace v2
+```
+
+复制或调整输出的 `configs\local.json` 片段，让该 checkout 使用不同的本机路径和网络设置：至少包括 `platform.runtime_namespace`、`platform.paths.workspace_root`、`platform.paths.vm_store`、`platform.provider.config.vm_store`，以及每个会同时运行的 `topology.<runtime>.static_ip`。设置 `platform.runtime_namespace` 为 `v2` 后，`adpos up agent` 首次创建会指向资源 `v2-agent` 和 VM `adp-v2-agent`，而不是旧的 `adp-agent`。然后在新 checkout 本地检查：
 
 ```powershell
 .\adpos.cmd doctor

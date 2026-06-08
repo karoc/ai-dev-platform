@@ -1,5 +1,5 @@
 # ADP-OS CLI Entry Point
-# Subcommand routing: init, up, status, stop, sync, snapshot, logs, doctor, destroy, capabilities, run, completion, iso, quickstart
+# Subcommand routing: init, up, status, stop, sync, snapshot, logs, doctor, destroy, capabilities, isolate, run, completion, iso, quickstart
 # .SYNOPSIS
 #   adp.ps1 <command> [args...] [-Json]
 
@@ -59,7 +59,7 @@ if ($script:ProviderMode -eq "vmware-provider") {
 }
 
 # --- Command Router ---
-$validCommands = @("setup", "init", "up", "status", "stop", "sync", "snapshot", "restore", "logs", "doctor", "destroy", "network", "workspace", "capabilities", "validate", "help", "run", "completion", "version", "iso", "quickstart", "precheck", "sandbox", "serve", "uninstall")
+$validCommands = @("setup", "init", "up", "status", "stop", "sync", "snapshot", "restore", "logs", "doctor", "destroy", "network", "workspace", "capabilities", "isolate", "validate", "help", "run", "completion", "version", "iso", "quickstart", "precheck", "sandbox", "serve", "uninstall")
 
 function Quote-PowerShellArgument {
     param([string]$Value)
