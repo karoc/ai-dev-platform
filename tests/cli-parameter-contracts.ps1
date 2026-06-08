@@ -47,6 +47,11 @@ $adposCmd = Read-Text "adpos.cmd"
 $registration = Read-Text "scripts\adpos-registration.ps1"
 $agentBootstrap = Read-Text "bootstrap\agent\setup-agent.sh"
 $factory = Read-Text "runtimes\vmware\vm-factory.ps1"
+$factoryLayout = Read-Text "runtimes\vmware\vm-factory-layout.ps1"
+$factoryIso = Read-Text "runtimes\vmware\vm-factory-iso.ps1"
+$factoryVmx = Read-Text "runtimes\vmware\vm-factory-vmx.ps1"
+$vmwareProvider = Read-Text "adapters\windows\vmware\vmware-provider.ps1"
+$vmwarePaths = Read-Text "adapters\windows\vmware\vmware-paths.ps1"
 $cli = Read-Text "cli\adp.ps1"
 $cliHelp = Read-Text "cli\lib\help.ps1"
 $suggestions = Read-Text "cli\lib\suggestions.ps1"
@@ -107,6 +112,7 @@ Assert-Contains -Name "shared validation checks local config mutation boundaries
 Assert-Contains -Name "shared validation checks Mutagen remediation behavior" -Text $validate -Pattern '\.\\tests\\mutagen-remediation\.ps1'
 Assert-Contains -Name "shared validation checks adpos registration contract" -Text $validate -Pattern '\.\\tests\\adpos-registration-contract\.ps1'
 Assert-Contains -Name "shared validation checks resource conflict contracts" -Text $validate -Pattern '\.\\tests\\resource-conflicts-contract\.ps1'
+Assert-Contains -Name "shared validation checks VMware runtime layout contracts" -Text $validate -Pattern '\.\\tests\\vmware-runtime-layout-contract\.ps1'
 Assert-Contains -Name "shared validation checks SSH alias ownership contracts" -Text $validate -Pattern '\.\\tests\\ssh-alias-contract\.ps1'
 Assert-Contains -Name "shared validation checks bounded SSH probe handling" -Text $validate -Pattern '\.\\tests\\ssh-timeout\.ps1'
 Assert-Contains -Name "documentation language checks enforce translated doc pairs" -Text (Read-Text "tests\docs-language-links.ps1") -Pattern 'Assert-TranslatedDocPair[\s\S]*README[\s\S]*CHANGELOG[\s\S]*build[\s\S]*docs/zh-CN'
@@ -213,6 +219,15 @@ Assert-Contains -Name "Chinese roadmap separates current agent-native surface fr
 Assert-Contains -Name "up -IsoPath propagation" -Text $up -Pattern 'New-RuntimeVM[\s\S]*-IsoPath\s+\$IsoPath'
 Assert-Contains -Name "vm factory IsoPath parameter" -Text $factory -Pattern 'function\s+New-RuntimeVM[\s\S]*\[string\]\$IsoPath'
 Assert-Contains -Name "vm factory IsoPath resolution" -Text $factory -Pattern '\$resolvedIsoPath\s*=\s*if\s*\(\$IsoPath\)'
+Assert-Contains -Name "vm factory loads split helper modules" -Text $factory -Pattern 'vm-factory-layout\.ps1[\s\S]*vm-factory-iso\.ps1[\s\S]*vm-factory-vmx\.ps1'
+Assert-Contains -Name "vm factory layout defines resource paths" -Text $factoryLayout -Pattern 'function\s+Get-ADPVMwareRuntimeLayout[\s\S]*RuntimeResourceName[\s\S]*VmPath[\s\S]*VmxPath[\s\S]*SeedSourceDir[\s\S]*AutoinstallIsoPath[\s\S]*CloudInitInstanceId[\s\S]*InstallIsoLabel'
+Assert-Contains -Name "vm factory runtime creation uses layout paths" -Text $factory -Pattern 'function\s+New-RuntimeVM[\s\S]*Get-ADPVMwareRuntimeLayout[\s\S]*\$layout\.VmPath[\s\S]*\$layout\.VmxPath[\s\S]*\$layout\.Hostname[\s\S]*\$layout\.SeedSourceDir'
+Assert-Contains -Name "vm factory creation stays legacy until namespace migration" -Text $factory -Pattern 'function\s+New-RuntimeVM[\s\S]*Get-ADPVMwareRuntimeLayout[\s\S]*-Namespace\s+""'
+Assert-Contains -Name "vm factory seed creation uses layout paths" -Text $factory -Pattern 'function\s+New-SeedISO[\s\S]*\[object\]\$Layout[\s\S]*\$Layout\.SeedSourceDir[\s\S]*\$Layout\.CloudInitInstanceId[\s\S]*\$Layout\.SeedIsoPath'
+Assert-Contains -Name "vm factory autoinstall ISO uses layout paths" -Text $factoryIso -Pattern 'function\s+New-AutoinstallISO[\s\S]*\[object\]\$Layout[\s\S]*\$Layout\.AutoinstallIsoPath[\s\S]*\$Layout\.AutoinstallWorkDir[\s\S]*\$Layout\.InstallIsoLabel'
+Assert-Contains -Name "vm factory VMX creation uses layout paths" -Text $factoryVmx -Pattern 'function\s+New-VMX[\s\S]*\[object\]\$Layout[\s\S]*\$Layout\.VmName[\s\S]*\$Layout\.VmxPath[\s\S]*\$Layout\.VmdkFileName'
+Assert-Contains -Name "VMware provider path helper defines resource path resolver" -Text $vmwarePaths -Pattern 'function\s+Get-ADPVMwareProviderRuntimePath[\s\S]*RuntimeResourceName[\s\S]*VmName[\s\S]*VmxPath'
+Assert-Contains -Name "VMware provider consumes path helper" -Text $vmwareProvider -Pattern 'vmware-paths\.ps1[\s\S]*function\s+Resolve-ProviderVmxPath[\s\S]*Get-ADPVMwareProviderRuntimePath[\s\S]*function\s+Get-InternalVMXPath[\s\S]*Get-ADPVMwareProviderRuntimePath'
 Assert-Contains -Name "up prints connection summary" -Text $up -Pattern 'function\s+Write-RuntimeConnectionSummary[\s\S]*Connection details:[\s\S]*adpos status \$TargetRuntime'
 Assert-Contains -Name "up provisioning wait passes runtime" -Text $up -Pattern 'Wait-AutoinstallComplete\s+-VmxPath\s+\$TargetVmxPath\s+-RuntimeName\s+\$TargetRuntime'
 Assert-Contains -Name "vm factory provisioning prefers configured static IP" -Text $factory -Pattern 'function\s+Wait-AutoinstallComplete[\s\S]*Get-RuntimeStaticIP\s+\$RuntimeName[\s\S]*configured.*\$ip'
@@ -223,7 +238,7 @@ Assert-Contains -Name "vm factory explains probes as readiness signals" -Text $f
 Assert-Contains -Name "vm factory tells users when action is needed" -Text $factory -Pattern 'Normal during install: the same signal can repeat[\s\S]*安装期间的正常现象[\s\S]*\[install monitor\] INSTALLING Ubuntu in VM - heartbeat active, repeated signal is normal[\s\S]*\[安装监视器\] 正在 VM 中安装 Ubuntu - 心跳正常，重复信号可能是正常现象[\s\S]*normal=yes[\s\S]*就绪信号（readiness signals）不变化可能是正常现象[\s\S]*same signal has repeated for about \$\{sameMinutes\}min[\s\S]*同一信号已重复约 \$\{sameMinutes\}min'
 Assert-Contains -Name "vm factory reports auth-pending as install readiness state" -Text $factory -Pattern 'auth-pending; SSH is up but installed-system user/key or provision marker is not ready'
 Assert-Contains -Name "vm factory avoids long blocking IP probes during autoinstall monitor" -Text $factory -Pattern 'Get-VMIPQuick\s+-VmxPath\s+\$VmxPath\s+-TimeoutSeconds\s+5'
-Assert-Contains -Name "vm factory captures xorriso output during autoinstall ISO remaster" -Text $factory -Pattern 'function\s+Invoke-CapturedNativeCommand[\s\S]*& \$FilePath @Arguments 2>&1[\s\S]*function\s+New-AutoinstallISO[\s\S]*Invoke-CapturedNativeCommand -FilePath \$tool\.Path -Arguments @\("bash", "-lc", \$command\)[\s\S]*xorriso failed with exit code'
+Assert-Contains -Name "vm factory captures xorriso output during autoinstall ISO remaster" -Text $factoryIso -Pattern 'function\s+Invoke-CapturedNativeCommand[\s\S]*& \$FilePath @Arguments 2>&1[\s\S]*function\s+New-AutoinstallISO[\s\S]*Invoke-CapturedNativeCommand -FilePath \$tool\.Path -Arguments @\("bash", "-lc", \$command\)[\s\S]*xorriso failed with exit code'
 Assert-Contains -Name "vm factory readiness checks configured static IP" -Text $factory -Pattern 'function\s+Test-AutoinstallReady[\s\S]*Get-RuntimeStaticIP\s+\$RuntimeName[\s\S]*candidateIps'
 Assert-Contains -Name "init -NoProvision propagation" -Text $init -Pattern 'NoProvision\s*=\s*\$NoProvision'
 Assert-Contains -Name "init invokes up in shared script scope" -Text $init -Pattern '\.\s+\$upCommand\s+@upArgs'

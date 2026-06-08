@@ -4,6 +4,10 @@
 
 $script:VmFactoryState = @{}
 
+. (Join-Path $PSScriptRoot "vm-factory-layout.ps1")
+. (Join-Path $PSScriptRoot "vm-factory-iso.ps1")
+. (Join-Path $PSScriptRoot "vm-factory-vmx.ps1")
+
 function Initialize-VmFactory {
     param(
         [string]$ProjectRoot,
@@ -21,128 +25,6 @@ function Initialize-VmFactory {
     }
 
     Write-InfoLog -Message "VM Factory initialized" -Component "vm-factory"
-}
-
-function ConvertTo-VMXPath {
-    param([string]$Path)
-
-    return $Path -replace '\\', '/'
-}
-
-function Find-VmwareDiskManager {
-    $knownPaths = @(
-        "C:\Program Files (x86)\VMware\VMware Workstation\vmware-vdiskmanager.exe",
-        "C:\Program Files\VMware\VMware Workstation\vmware-vdiskmanager.exe"
-    )
-
-    foreach ($path in $knownPaths) {
-        if (Test-Path $path) { return $path }
-    }
-
-    $fromPath = (Get-Command vmware-vdiskmanager.exe -ErrorAction SilentlyContinue).Source
-    if ($fromPath) { return $fromPath }
-
-    return $null
-}
-
-function Find-ISOCreator {
-    $nativeTools = @("mkisofs", "genisoimage", "xorriso", "oscdimg")
-    foreach ($tool in $nativeTools) {
-        $cmd = Get-Command $tool -ErrorAction SilentlyContinue
-        if ($cmd) {
-            return @{
-                Type = $tool
-                Path = $cmd.Source
-            }
-        }
-    }
-
-    $wsl = Get-Command wsl.exe -ErrorAction SilentlyContinue
-    if ($wsl) {
-        foreach ($tool in @("genisoimage", "mkisofs", "xorriso")) {
-            $null = & $wsl.Source bash -lc "command -v $tool >/dev/null 2>&1" 2>$null
-            if ($LASTEXITCODE -eq 0) {
-                return @{
-                    Type = "wsl-$tool"
-                    Path = $wsl.Source
-                }
-            }
-        }
-    }
-
-    try {
-        $fsi = New-Object -ComObject IMAPI2FS.MsftFileSystemImage
-        [System.Runtime.InteropServices.Marshal]::ReleaseComObject($fsi) | Out-Null
-        return @{
-            Type = "imapi2"
-            Path = "Windows IMAPI2FS"
-        }
-    } catch {}
-
-    return $null
-}
-
-function Find-ISORemasterTool {
-    $xorriso = Get-Command xorriso -ErrorAction SilentlyContinue
-    if ($xorriso) {
-        return @{
-            Type = "xorriso"
-            Path = $xorriso.Source
-        }
-    }
-
-    $wsl = Get-Command wsl.exe -ErrorAction SilentlyContinue
-    if ($wsl) {
-        $null = & $wsl.Source bash -lc "command -v xorriso >/dev/null 2>&1" 2>$null
-        if ($LASTEXITCODE -eq 0) {
-            return @{
-                Type = "wsl-xorriso"
-                Path = $wsl.Source
-            }
-        }
-    }
-
-    return $null
-}
-
-function New-VirtualDisk {
-    param(
-        [string]$VmdkPath,
-        [int]$DiskGB
-    )
-
-    if (Test-Path $VmdkPath) {
-        Write-InfoLog -Message "VMDK already exists: $VmdkPath" -Component "vm-factory"
-        return $VmdkPath
-    }
-
-    $diskManager = Find-VmwareDiskManager
-    if (-not $diskManager) {
-        throw "vmware-vdiskmanager.exe not found. Install VMware Workstation or add vmware-vdiskmanager.exe to PATH."
-    }
-
-    $parent = Split-Path $VmdkPath -Parent
-    if (-not (Test-Path $parent)) {
-        New-Item -ItemType Directory -Path $parent -Force | Out-Null
-    }
-
-    $args = @(
-        "-c",
-        "-s", "${DiskGB}GB",
-        "-a", "lsilogic",
-        "-t", "0",
-        $VmdkPath
-    )
-
-    $proc = Start-Process -FilePath $diskManager -ArgumentList $args `
-        -WindowStyle Hidden -Wait -PassThru -ErrorAction Stop
-
-    if ($proc.ExitCode -ne 0 -or -not (Test-Path $VmdkPath)) {
-        throw "Failed to create VMDK at $VmdkPath (vmware-vdiskmanager exit code: $($proc.ExitCode))"
-    }
-
-    Write-InfoLog -Message "VMDK created: $VmdkPath (${DiskGB}GB)" -Component "vm-factory"
-    return $VmdkPath
 }
 
 function Test-RuntimeProvisioningPlan {
@@ -263,14 +145,22 @@ function New-SeedISO {
         [string]$RuntimeName,
         [string]$Hostname,
         [string]$Username,
-        [string]$SshPubKey
+        [string]$SshPubKey,
+        [object]$Layout = $null
     )
 
     $rt = Get-RuntimeConfig $RuntimeName
     $profile = Get-OSProfile -OSName $rt.os
     $seedType = $profile.seedType
 
-    $seedDir = Join-Path $script:VmFactoryState.SeedDir $RuntimeName
+    if (-not $Layout) {
+        $Layout = Get-ADPVMwareRuntimeLayout -RuntimeName $RuntimeName -VmStorePath $script:VmFactoryState.VmStore -SeedRootPath $script:VmFactoryState.SeedDir -Namespace ""
+    }
+    if ([string]::IsNullOrWhiteSpace($Hostname)) {
+        $Hostname = $Layout.Hostname
+    }
+
+    $seedDir = $Layout.SeedSourceDir
     if (Test-Path $seedDir) { Remove-Item $seedDir -Recurse -Force }
     New-Item -ItemType Directory -Path $seedDir -Force | Out-Null
 
@@ -316,7 +206,7 @@ $cloudInitPackageLines
   shutdown: reboot
 "@
             $metaData = @"
-instance-id: adp-${RuntimeName}-001
+instance-id: $($Layout.CloudInitInstanceId)
 local-hostname: $Hostname
 "@
             Set-Content -Path (Join-Path $seedDir "user-data") -Value $userData -NoNewline
@@ -386,7 +276,7 @@ d-i cdrom-detect/eject boolean false
         }
     }
 
-    $seedIso = Join-Path $script:VmFactoryState.SeedDir "${RuntimeName}-seed.iso"
+    $seedIso = $Layout.SeedIsoPath
     $result = New-ISO -SourceDir $seedDir -OutputPath $seedIso
 
     if (-not $result) {
@@ -395,409 +285,6 @@ d-i cdrom-detect/eject boolean false
 
     Write-InfoLog -Message "Seed ISO created ($seedType): $seedIso" -Component "vm-factory"
     return $seedIso
-}
-
-function ConvertTo-GrubKernelArgs {
-    param([string]$BootArgs)
-
-    return $BootArgs -replace ';', '\;'
-}
-
-function New-AutoinstallGrubConfig {
-    param([string]$BootArgs)
-
-    $grubArgs = ConvertTo-GrubKernelArgs -BootArgs $BootArgs
-
-    return @"
-set timeout=1
-set default=0
-
-loadfont unicode
-
-set menu_color_normal=white/black
-set menu_color_highlight=black/light-gray
-
-menuentry "ADP-OS Autoinstall" {
-    set gfxpayload=keep
-    linux  /casper/vmlinuz  $grubArgs --- 
-    initrd /casper/initrd
-}
-grub_platform
-if [ "`$grub_platform" = "efi" ]; then
-menuentry 'Boot from next volume' {
-    exit 1
-}
-menuentry 'UEFI Firmware Settings' {
-    fwsetup
-}
-fi
-"@
-}
-
-function Invoke-CapturedNativeCommand {
-    param(
-        [string]$FilePath,
-        [string[]]$Arguments
-    )
-
-    $output = & $FilePath @Arguments 2>&1
-    $exitCode = $LASTEXITCODE
-    $detail = ($output | Out-String).Trim()
-    if ([string]::IsNullOrWhiteSpace($detail)) {
-        $detail = "no command output captured"
-    }
-
-    return [pscustomobject]@{
-        ExitCode = $exitCode
-        Detail   = $detail
-    }
-}
-
-function New-AutoinstallISO {
-    param(
-        [string]$RuntimeName,
-        [string]$SourceIsoPath,
-        [string]$SeedSourceDir,
-        [string]$BootArgs
-    )
-
-    $tool = Find-ISORemasterTool
-    if (-not $tool) {
-        throw "xorriso is required to remaster Ubuntu autoinstall ISOs. Install xorriso natively or in WSL."
-    }
-
-    $outputIso = Join-Path $script:VmFactoryState.SeedDir "${RuntimeName}-autoinstall.iso"
-    $workDir = Join-Path $script:VmFactoryState.SeedDir "${RuntimeName}-autoinstall-work"
-    if (Test-Path $workDir) { Remove-Item $workDir -Recurse -Force }
-    New-Item -ItemType Directory -Path $workDir -Force | Out-Null
-
-    $grubCfgPath = Join-Path $workDir "grub.cfg"
-    $grubCfg = New-AutoinstallGrubConfig -BootArgs $BootArgs
-    Set-Content -Path $grubCfgPath -Value $grubCfg -NoNewline -Encoding UTF8
-
-    $userDataPath = Join-Path $SeedSourceDir "user-data"
-    $metaDataPath = Join-Path $SeedSourceDir "meta-data"
-    if (-not (Test-Path $userDataPath) -or -not (Test-Path $metaDataPath)) {
-        throw "Cloud-init seed files are missing in $SeedSourceDir"
-    }
-
-    if (Test-Path $outputIso) {
-        Remove-Item $outputIso -Force
-    }
-
-    try {
-        switch ($tool.Type) {
-            "wsl-xorriso" {
-                $sourceWsl = ConvertTo-WSLPath $SourceIsoPath
-                $outputWsl = ConvertTo-WSLPath $outputIso
-                $grubWsl = ConvertTo-WSLPath $grubCfgPath
-                $userDataWsl = ConvertTo-WSLPath $userDataPath
-                $metaDataWsl = ConvertTo-WSLPath $metaDataPath
-                $label = "ADP_$($RuntimeName.ToUpperInvariant())"
-
-                $commandParts = @(
-                    "xorriso",
-                    "-indev $(Quote-BashArg $sourceWsl)",
-                    "-outdev $(Quote-BashArg $outputWsl)",
-                    "-map $(Quote-BashArg $grubWsl) /boot/grub/grub.cfg",
-                    "-map $(Quote-BashArg $userDataWsl) /user-data",
-                    "-map $(Quote-BashArg $metaDataWsl) /meta-data",
-                    "-boot_image any replay",
-                    "-volid $(Quote-BashArg $label)"
-                )
-                $command = $commandParts -join " "
-                $result = Invoke-CapturedNativeCommand -FilePath $tool.Path -Arguments @("bash", "-lc", $command)
-                if ($result.ExitCode -ne 0) {
-                    throw "xorriso failed with exit code $($result.ExitCode): $($result.Detail)"
-                }
-            }
-            "xorriso" {
-                $args = @(
-                    "-indev", $SourceIsoPath,
-                    "-outdev", $outputIso,
-                    "-map", $grubCfgPath, "/boot/grub/grub.cfg",
-                    "-map", $userDataPath, "/user-data",
-                    "-map", $metaDataPath, "/meta-data",
-                    "-boot_image", "any", "replay",
-                    "-volid", "ADP_$($RuntimeName.ToUpperInvariant())"
-                )
-                $result = Invoke-CapturedNativeCommand -FilePath $tool.Path -Arguments $args
-                if ($result.ExitCode -ne 0) {
-                    throw "xorriso failed with exit code $($result.ExitCode): $($result.Detail)"
-                }
-            }
-            default {
-                throw "Unsupported ISO remaster tool: $($tool.Type)"
-            }
-        }
-    } finally {
-        Remove-Item $workDir -Recurse -Force -ErrorAction SilentlyContinue
-    }
-
-    if (-not (Test-Path $outputIso)) {
-        throw "Autoinstall ISO was not created: $outputIso"
-    }
-
-    Write-InfoLog -Message "Autoinstall ISO created: $outputIso" -Component "vm-factory"
-    return $outputIso
-}
-
-function New-VMX {
-    param(
-        [string]$RuntimeName,
-        [hashtable]$RuntimeConfig,
-        [string]$VmPath,
-        [string]$UbuntuIsoPath,
-        [string]$SeedIsoPath
-    )
-
-    $vmName = "adp-$RuntimeName"
-    $vmxPath = Join-Path $VmPath "$vmName.vmx"
-    $vmdkPath = Join-Path $VmPath "$vmName.vmdk"
-
-    if (-not (Test-Path $VmPath)) {
-        New-Item -ItemType Directory -Path $VmPath -Force | Out-Null
-    }
-
-    $rt = Get-RuntimeConfig $RuntimeName
-    $profile = Get-OSProfile -OSName $rt.os
-    $guestOSType = $profile.guestOS
-
-    $diskGB = $RuntimeConfig.disk
-    $memoryMB = $RuntimeConfig.memory
-    $numCpus = $RuntimeConfig.cpu
-    $bootArgs = $profile.bootArgs
-    $nocloudSeed = "ds=nocloud;s=/cdrom/"
-
-    New-VirtualDisk -VmdkPath $vmdkPath -DiskGB $diskGB | Out-Null
-
-    $installIsoVmxPath = ConvertTo-VMXPath $UbuntuIsoPath
-    $seedIsoVmxPath = ConvertTo-VMXPath $SeedIsoPath
-
-    $vmxContent = @"
-.encoding = "UTF-8"
-config.version = "8"
-virtualHW.version = "18"
-displayName = "$vmName"
-guestOS = "$guestOSType"
-memsize = "$memoryMB"
-numvcpus = "$numCpus"
-cpuid.coresPerSocket = "$numCpus"
-firmware = "efi"
-pciBridge0.present = "TRUE"
-pciBridge4.present = "TRUE"
-pciBridge4.virtualDev = "pcieRootPort"
-pciBridge4.functions = "8"
-pciBridge5.present = "TRUE"
-pciBridge5.virtualDev = "pcieRootPort"
-pciBridge5.functions = "8"
-pciBridge6.present = "TRUE"
-pciBridge6.virtualDev = "pcieRootPort"
-pciBridge6.functions = "8"
-pciBridge7.present = "TRUE"
-pciBridge7.virtualDev = "pcieRootPort"
-pciBridge7.functions = "8"
-scsi0.virtualDev = "lsilogic"
-scsi0.present = "TRUE"
-sata0.present = "TRUE"
-ide0:0.present = "TRUE"
-ide0:0.fileName = "$installIsoVmxPath"
-ide0:0.deviceType = "cdrom-image"
-ide0:1.present = "TRUE"
-ide0:1.fileName = "$seedIsoVmxPath"
-ide0:1.deviceType = "cdrom-image"
-scsi0:0.present = "TRUE"
-scsi0:0.fileName = "$vmName.vmdk"
-scsi0:0.deviceType = "disk"
-ethernet0.present = "TRUE"
-ethernet0.connectionType = "nat"
-ethernet0.addressType = "generated"
-ethernet0.virtualDev = "e1000"
-ethernet0.wakeOnPcktRcv = "FALSE"
-floppy0.present = "FALSE"
-sound.present = "FALSE"
-tools.syncTime = "TRUE"
-bios.bootDelay = "5000"
-guestinfo.adp.runtime = "$RuntimeName"
-guestinfo.adp.bootArgs = "$bootArgs"
-guestinfo.adp.nocloudSeed = "$nocloudSeed"
-uuid.action = "create"
-annotation = "ADP-OS Runtime: $RuntimeName | Boot args: $bootArgs | Auto-provisioned $(Get-Date -Format 'yyyy-MM-dd')"
-"@
-
-    Set-Content -Path $vmxPath -Value $vmxContent -Encoding UTF8
-    Write-InfoLog -Message "VMX created: $vmxPath" -Component "vm-factory"
-    return $vmxPath
-}
-
-function New-ISO {
-    param(
-        [string]$SourceDir,
-        [string]$OutputPath
-    )
-
-    $creator = Find-ISOCreator
-    if ($creator -and $creator.Type -eq "imapi2") {
-        return New-ISOFallback -SourceDir $SourceDir -OutputPath $OutputPath
-    }
-
-    if ($creator) {
-        $label = "CIDATA"
-        $cmd = $creator.Path
-        $args = @()
-
-        switch -Regex ($creator.Type) {
-            "^xorriso$" {
-                $args = @("-as", "mkisofs", "-output", $OutputPath, "-volid", $label, "-joliet", "-rock", $SourceDir)
-            }
-            "^oscdimg$" {
-                $args = @("-l$label", "-j2", $SourceDir, $OutputPath)
-            }
-            "^wsl-" {
-                $tool = $creator.Type -replace "^wsl-", ""
-                $sourceWsl = ConvertTo-WSLPath $SourceDir
-                $outputWsl = ConvertTo-WSLPath $OutputPath
-                $mkisofsArgs = "-output $(Quote-BashArg $outputWsl) -volid $(Quote-BashArg $label) -joliet -rock $(Quote-BashArg $sourceWsl)"
-                if ($tool -eq "xorriso") {
-                    $mkisofsArgs = "-as mkisofs $mkisofsArgs"
-                }
-                $command = "$tool $mkisofsArgs"
-                & $cmd bash -lc $command
-                if ($LASTEXITCODE -eq 0 -and (Test-Path $OutputPath)) {
-                    return $true
-                }
-                Write-WarnLog -Message "ISO creator $($creator.Type) failed with exit code $LASTEXITCODE, trying fallback..." -Component "vm-factory"
-                return New-ISOFallback -SourceDir $SourceDir -OutputPath $OutputPath
-            }
-            default {
-                $args = @("-output", $OutputPath, "-volid", $label, "-joliet", "-rock", $SourceDir)
-            }
-        }
-
-        $proc = Start-Process -FilePath $cmd -ArgumentList $args -Wait -NoNewWindow -PassThru
-        if ($proc.ExitCode -eq 0 -and (Test-Path $OutputPath)) {
-            return $true
-        }
-        Write-WarnLog -Message "ISO creator $($creator.Type) failed with exit code $($proc.ExitCode), trying fallback..." -Component "vm-factory"
-    }
-
-    # Fallback: Create a minimal ISO using raw binary (works for cloud-init seed)
-    # cloud-init reads CIDATA volumes - we can create a simple ISO9660
-    return New-ISOFallback -SourceDir $SourceDir -OutputPath $OutputPath
-}
-
-function ConvertTo-WSLPath {
-    param([string]$Path)
-
-    $fullPath = [System.IO.Path]::GetFullPath($Path)
-    $drive = $fullPath.Substring(0, 1).ToLowerInvariant()
-    $rest = $fullPath.Substring(2) -replace '\\', '/'
-    return "/mnt/$drive$rest"
-}
-
-function Quote-BashArg {
-    param([string]$Value)
-
-    return "'" + ($Value -replace "'", "'\''") + "'"
-}
-
-function New-ISOFallback {
-    param(
-        [string]$SourceDir,
-        [string]$OutputPath
-    )
-
-    # Use PowerShell + COM (IMAPI2) to create ISO
-    try {
-        $fsi = New-Object -ComObject IMAPI2FS.MsftFileSystemImage
-        $fsi.FileSystemsToCreate = 7  # ISO9660 + Joliet
-        $fsi.VolumeName = "CIDATA"
-        $fsi.FreeMediaBlocks = 0
-
-        $dir = $fsi.Root
-        Get-ChildItem $SourceDir | ForEach-Object {
-            if (-not $_.PSIsContainer) {
-                $stream = New-Object -ComObject ADODB.Stream
-                $stream.Type = 1
-                $stream.Open()
-                $bytes = [System.IO.File]::ReadAllBytes($_.FullName)
-                $stream.Write($bytes)
-                $stream.Position = 0
-                $dir.AddFile($_.Name, $stream)
-                [System.Runtime.InteropServices.Marshal]::ReleaseComObject($stream) | Out-Null
-            }
-        }
-
-        $resultImage = $fsi.CreateResultImage()
-        $imgStream = [System.Runtime.InteropServices.ComTypes.IStream]$resultImage.ImageStream
-        $fileStream = [System.IO.File]::Open($OutputPath, [System.IO.FileMode]::Create, [System.IO.FileAccess]::Write)
-        $buffer = New-Object byte[] 32768
-        $bytesReadPtr = [System.Runtime.InteropServices.Marshal]::AllocHGlobal(4)
-
-        try {
-            while ($true) {
-                [System.Runtime.InteropServices.Marshal]::WriteInt32($bytesReadPtr, 0)
-                $imgStream.Read($buffer, $buffer.Length, $bytesReadPtr)
-                $bytesRead = [System.Runtime.InteropServices.Marshal]::ReadInt32($bytesReadPtr)
-                if ($bytesRead -le 0) { break }
-                $fileStream.Write($buffer, 0, $bytesRead)
-            }
-        } finally {
-            [System.Runtime.InteropServices.Marshal]::FreeHGlobal($bytesReadPtr)
-            $fileStream.Close()
-        }
-
-        [System.Runtime.InteropServices.Marshal]::ReleaseComObject($fsi) | Out-Null
-
-        if (Test-Path $OutputPath) {
-            Write-InfoLog -Message "ISO created via COM fallback: $OutputPath" -Component "vm-factory"
-            return $true
-        }
-    } catch {
-        Write-WarnLog -Message "COM fallback failed: $_" -Component "vm-factory"
-    }
-
-    # Last resort: Write a small helper script
-    Write-ErrorLog -Message "Cannot create ISO. Please install mkisofs or genisoimage." -Component "vm-factory"
-    Write-Host "  Option 1: winget install ezwinports.genisoimage" -ForegroundColor DarkGray
-    Write-Host "  Option 2: Use WSL: wsl sudo apt install genisoimage" -ForegroundColor DarkGray
-    return $false
-}
-
-function Generate-PasswordHash {
-    param([string]$Password)
-
-    $salt = "adposrounds"
-
-    $openssl = Get-Command openssl -ErrorAction SilentlyContinue
-    if ($openssl) {
-        $hash = & $openssl.Source passwd -6 -salt $salt $Password 2>$null
-        if ($LASTEXITCODE -eq 0 -and $hash) { return $hash.Trim() }
-    }
-
-    $wsl = Get-Command wsl.exe -ErrorAction SilentlyContinue
-    if ($wsl) {
-        $command = "openssl passwd -6 -salt $(Quote-BashArg $salt) $(Quote-BashArg $Password)"
-        $hash = & $wsl.Source bash -lc $command 2>$null
-        if ($LASTEXITCODE -eq 0 -and $hash) { return $hash.Trim() }
-    }
-
-    try {
-        $python = Get-Command python3 -ErrorAction SilentlyContinue
-        if (-not $python) { $python = Get-Command python -ErrorAction SilentlyContinue }
-        if ($python) {
-            $script = "import crypt; print(crypt.crypt('$Password', crypt.mksalt(crypt.METHOD_SHA512)))"
-            $hash = & $python.Source -c $script 2>$null
-            if ($hash) { return $hash.Trim() }
-        }
-    } catch {}
-
-    if ($Password -ne "adp") {
-        throw "Unable to generate SHA-512 password hash. Install openssl in Windows or WSL."
-    }
-
-    # Pre-computed SHA-512 hash for "adp" (salt: adposrounds), verified with openssl passwd -6.
-    return '$6$adposrounds$vawoWnCOhM3XqOHrMwZjzZPhAPMVpTQ4D8TiYVPbg5XWJYGmjntjsoRHB.J5VZgyMC6pek.grY5IOtqvTuDwU1'
 }
 
 function New-RuntimeVM {
@@ -816,11 +303,12 @@ function New-RuntimeVM {
 
     $rt = Get-RuntimeConfig $RuntimeName
     $config = Get-PlatformConfig
-    $vmName = "adp-$RuntimeName"
-    $vmPath = Join-Path $script:VmFactoryState.VmStore $vmName
+    $layout = Get-ADPVMwareRuntimeLayout -RuntimeName $RuntimeName -VmStorePath $script:VmFactoryState.VmStore -SeedRootPath $script:VmFactoryState.SeedDir -Namespace ""
+    $vmName = $layout.VmName
+    $vmPath = $layout.VmPath
 
     # Check if VM already exists
-    $vmxPath = Join-Path $vmPath "$vmName.vmx"
+    $vmxPath = $layout.VmxPath
     if (Test-Path $vmxPath) {
         Write-UIHost -English "VM already exists at: $vmxPath" -Chinese "VM 已存在: $vmxPath" -ForegroundColor Yellow
         $status = Get-VMStatus $vmxPath
@@ -851,18 +339,18 @@ function New-RuntimeVM {
     # Create seed ISO
     Write-Host ""
     Write-UIHost -English "[1/5] Creating seed ISO..." -Chinese "[1/5] 正在创建 seed ISO..." -ForegroundColor Yellow
-    $hostname = "adp-$RuntimeName"
+    $hostname = $layout.Hostname
     $seedIso = New-SeedISO -RuntimeName $RuntimeName -Hostname $hostname `
-        -Username $config.defaults.admin_user -SshPubKey $sshPubKey.Trim()
+        -Username $config.defaults.admin_user -SshPubKey $sshPubKey.Trim() -Layout $layout
     Write-Host "  Seed ISO: $seedIso" -ForegroundColor Green
 
-    $seedSourceDir = Join-Path $script:VmFactoryState.SeedDir $RuntimeName
+    $seedSourceDir = $layout.SeedSourceDir
     $profile = Get-OSProfile -OSName $rt.os
     $installIsoPath = $resolvedIsoPath
     if ($profile.seedType -eq "cloud-init") {
         Write-UIHost -English "  Creating autoinstall ISO..." -Chinese "  正在创建 autoinstall ISO..." -ForegroundColor Yellow
         $installIsoPath = New-AutoinstallISO -RuntimeName $RuntimeName `
-            -SourceIsoPath $resolvedIsoPath -SeedSourceDir $seedSourceDir -BootArgs $profile.bootArgs
+            -SourceIsoPath $resolvedIsoPath -SeedSourceDir $seedSourceDir -BootArgs $profile.bootArgs -Layout $layout
         Write-Host "  Install ISO: $installIsoPath" -ForegroundColor Green
     }
 
@@ -873,7 +361,7 @@ function New-RuntimeVM {
         memory = $rt.memory
         disk = $rt.disk
         ssh_port = $rt.ssh_port
-    } -VmPath $vmPath -UbuntuIsoPath $installIsoPath -SeedIsoPath $seedIso
+    } -VmPath $vmPath -UbuntuIsoPath $installIsoPath -SeedIsoPath $seedIso -Layout $layout
 
     Write-Host "  VMX: $vmxPath" -ForegroundColor Green
     Write-Host "  CPU: $($rt.cpu) cores | RAM: $($rt.memory) MB | Disk: $($rt.disk) GB" -ForegroundColor DarkGray
@@ -934,7 +422,7 @@ function New-RuntimeVM {
             Write-Host "  SSH: ssh -i $sshKeyPath $($config.defaults.admin_user)@$ip" -ForegroundColor DarkGray
             Write-Host "  Status: adpos status $RuntimeName" -ForegroundColor DarkGray
             Write-Host "  Sync:   adpos sync start $RuntimeName" -ForegroundColor DarkGray
-            $script:VmFactoryState."${RuntimeName}_ip" = $ip
+            $script:VmFactoryState."$($layout.RuntimeResourceName)_ip" = $ip
         } else {
             Write-UIHost -English "  IP will be available after first reboot." -Chinese "  IP 将在首次重启后可用。" -ForegroundColor Yellow
             Write-UIHost -English "  Check: adpos status $RuntimeName" -Chinese "  检查: adpos status $RuntimeName" -ForegroundColor DarkGray
@@ -1112,9 +600,8 @@ function Test-AutoinstallReady {
         [string]$RuntimeName
     )
 
-    $vmStore = $script:VmFactoryState.VmStore
-    $vmName = "adp-$RuntimeName"
-    $vmxPath = Join-Path $vmStore "$vmName\$vmName.vmx"
+    $layout = Get-ADPVMwareRuntimeLayout -RuntimeName $RuntimeName -VmStorePath $script:VmFactoryState.VmStore -SeedRootPath $script:VmFactoryState.SeedDir -Namespace ""
+    $vmxPath = $layout.VmxPath
 
     if (-not (Test-Path $vmxPath)) {
         return $false

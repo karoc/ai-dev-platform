@@ -112,6 +112,10 @@ Invoke-ValidationStep -Name "Check resource conflict contracts" -ScriptBlock {
     & ".\tests\resource-conflicts-contract.ps1"
 }
 
+Invoke-ValidationStep -Name "Check VMware runtime layout contracts" -ScriptBlock {
+    & ".\tests\vmware-runtime-layout-contract.ps1"
+}
+
 Invoke-ValidationStep -Name "Check SSH alias ownership contracts" -ScriptBlock {
     & ".\tests\ssh-alias-contract.ps1"
 }

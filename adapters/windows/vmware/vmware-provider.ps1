@@ -39,6 +39,9 @@
 # Load the standard ProviderResult factory functions
 . (Join-Path $PSScriptRoot ".." ".." ".." "core" "provider" "provider-result.ps1")
 
+# Load provider path helpers
+. (Join-Path $PSScriptRoot "vmware-paths.ps1")
+
 
 # ============================================================================
 # Provider state
@@ -128,11 +131,6 @@ function Initialize-VMwareProvider {
 # ============================================================================
 
 function Resolve-ProviderVmxPath {
-    <#
-    .SYNOPSIS
-    Convert a runtime name to a .vmx file path using the configured VM store.
-    VM naming convention: adp-vms/adp-<Name>/adp-<Name>.vmx
-    #>
     param([string]$Name)
 
     if (-not $script:ProviderState.Initialized) {
@@ -143,25 +141,16 @@ function Resolve-ProviderVmxPath {
         throw "Resolve-ProviderVmxPath: Name is required"
     }
 
-    $vmDir  = "adp-$Name"
-    $vmxFile = "$vmDir.vmx"
-    return Join-Path $script:ProviderState.VmStorePath "$vmDir\$vmxFile"
+    return (Get-ADPVMwareProviderRuntimePath -VmStorePath $script:ProviderState.VmStorePath -RuntimeResourceName $Name).VmxPath
 }
 
 function Get-InternalVMXPath {
-    <#
-    .SYNOPSIS
-    Same as Resolve-ProviderVmxPath but returns $null instead of throwing
-    when Name is blank, for use in Get-VMStatus type queries.
-    #>
     param([string]$Name)
 
     if ([string]::IsNullOrWhiteSpace($Name)) {
         return $null
     }
-    $vmDir  = "adp-$Name"
-    $vmxFile = "$vmDir.vmx"
-    return Join-Path $script:ProviderState.VmStorePath "$vmDir\$vmxFile"
+    return (Get-ADPVMwareProviderRuntimePath -VmStorePath $script:ProviderState.VmStorePath -RuntimeResourceName $Name).VmxPath
 }
 
 
@@ -208,6 +197,7 @@ function New-VM {
 
     $name    = $Manifest.Name
     $vmxPath = Resolve-ProviderVmxPath -Name $name
+    $providerLayout = Get-ADPVMwareProviderRuntimePath -VmStorePath $script:ProviderState.VmStorePath -RuntimeResourceName $name
 
     # If the VM directory already has a .vmx, just register it
     if (Test-Path $vmxPath -PathType Leaf) {
@@ -223,7 +213,7 @@ function New-VM {
     }
 
     # VM directory does not exist — create it and delegate to vm-factory
-    $vmDir = Split-Path $vmxPath -Parent
+    $vmDir = $providerLayout.VmPath
     try {
         New-Item -ItemType Directory -Path $vmDir -Force -ErrorAction Stop | Out-Null
     } catch {
@@ -263,7 +253,7 @@ function New-VM {
 .encoding = "windows-1252"
 config.version = "8"
 virtualHW.version = "18"
-displayName = "adp-$name"
+displayName = "$($providerLayout.VmName)"
 guestOS = "ubuntu-64"
 "@
         Set-Content -Path $vmxPath -Value $emptyVmx -Encoding ASCII -ErrorAction Stop
