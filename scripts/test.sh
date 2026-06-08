@@ -29,11 +29,11 @@ case "$MODE" in
   cli)
     shift
     echo "=== ADP-OS CLI: $@ ==="
-    pwsh.exe -ExecutionPolicy Bypass -File "$WIN_PATH\\cli\\adp.ps1" "$@"
+    pwsh.exe -ExecutionPolicy Bypass -Command "& '$WIN_PATH\\adpos.cmd' @args" "$@"
     ;;
   doctor)
     echo "=== ADP-OS doctor ==="
-    pwsh.exe -ExecutionPolicy Bypass -File "$WIN_PATH\\cli\\adp.ps1" doctor
+    pwsh.exe -ExecutionPolicy Bypass -Command "& '$WIN_PATH\\adpos.cmd' doctor"
     ;;
   deploy)
     echo "=== Deploy check ==="

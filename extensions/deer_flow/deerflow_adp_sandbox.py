@@ -10,9 +10,9 @@ Architecture:
     Deer-Flow Agent
         │
     DeerFlowADPSandboxProvider      ← this module
-        ├── acquire(thread_id) → sandbox_id   (adp.ps1 up + status)
+        ├── acquire(thread_id) → sandbox_id   (adpos up + status)
         ├── get(sandbox_id)   → ADPSSHSandbox (SSH to VM)
-        └── release(sandbox_id)                (adp.ps1 stop/down)
+        └── release(sandbox_id)                (adpos stop/destroy)
 
     ADPSSHSandbox                   ← SSH-backed Sandbox
         ├── execute_command()       ssh <vm> <cmd>
@@ -22,7 +22,7 @@ Architecture:
 
 Dependencies:
     - paramiko (SSH) or subprocess ssh fallback
-    - ADP-OS CLI installed (adp.ps1 + PowerShell 7+)
+    - ADP-OS CLI installed (adpos or repo-local adpos.cmd + PowerShell 7+)
     - ADP-OS VMs accessible via SSH (port 22 on VMware NAT subnet)
 
 Thread→Runtime Mapping:
@@ -317,15 +317,15 @@ class SSHConnection:
 
 
 # ---------------------------------------------------------------------------
-# ADP-OS CLI wrapper (subprocess → adp.ps1 via pwsh)
+# ADP-OS CLI wrapper (subprocess via pwsh)
 # ---------------------------------------------------------------------------
 
 
 class ADPCLI:
     """Minimal wrapper around the ADP-OS PowerShell CLI.
 
-    Uses subprocess to invoke ``pwsh.exe -File adp.ps1 <args...>``, the same
-    mechanism as the ADP-OS MCP server.
+    Uses subprocess to invoke the ADP-OS PowerShell control plane with
+    adpos-style arguments, the same mechanism as the ADP-OS MCP server.
     """
 
     def __init__(self, adp_home: str | Path, ssh_user: str = "adp", ssh_password: str = "adp") -> None:
@@ -375,7 +375,7 @@ class ADPCLI:
     # -- command execution ---------------------------------------------------
 
     def _run(self, args: list[str], timeout: int = 300) -> dict:
-        """Run ``adp.ps1 <args>`` and return {stdout, stderr, exit_code, success}."""
+        """Run adpos-style CLI arguments and return stdout/stderr/exit status."""
         adp_script = self.adp_home / "cli" / "adp.ps1"
         cmd = [
             self.pwsh, "-NoProfile", "-ExecutionPolicy", "Bypass",
@@ -420,7 +420,7 @@ class ADPCLI:
         return self._run(["stop", runtime], timeout=120)
 
     def down(self, runtime: str, plan_only: bool = False, force: bool = False) -> dict:
-        """Run ``adp destroy <runtime>``."""
+        """Run ``adpos destroy <runtime>``."""
         args = ["destroy", runtime]
         if plan_only:
             args.append("-Plan")
