@@ -14,12 +14,12 @@
 Run these before the session. Do NOT include in the 10-minute window.
 
 - [ ] 1. **Verify VMware** — `adp doctor` shows VMware reachable. If "VMware: unavailable", stop — demo cannot proceed.
-- [ ] 2. **Verify agent runtime** — `adp status agent` shows "running, SSH reachable, sync watching".
-- [ ] 3. **Pre-create snapshot** — `adp snapshot create agent before-broad-agent-refactor` (VMware snapshot; takes 30–120s). If it already exists, the command reports "Snapshot already exists" and exits fast.
+- [ ] 2. **Verify agent runtime** — `adp status agent` shows the VM running, SSH reachable, and sync healthy.
+- [ ] 3. **Pre-create snapshot** — `adp snapshot create agent before-broad-agent-refactor` (VMware snapshot; takes 30–120s). If it already exists, confirm it was created from the exact workspace baseline for this recording. If the baseline changed, replace it during pre-demo setup with VMware Workstation/`vmrun`, or choose a fresh snapshot name before rehearsing.
 - [ ] 4. **Note agent IP** — `adp status agent -Json | ConvertFrom-Json | Select-Object -ExpandProperty Runtimes | Where-Object {$_.Runtime -eq 'agent'} | Select-Object -ExpandProperty DetectedIp`. Or use SSH alias: `ssh adp-os-adp-agent`.
-- [ ] 5. **Clean terminal** — close other windows, disable notifications. Use Windows Terminal with PowerShell 7, clean profile.
-- [ ] 6. **Prepare agent workspace** — SSH into agent VM and ensure `/home/adp/workspace/agent-workspace/` has a git repo with README.md, src/main.ts, and a clean working tree. If the runtime was restored or sync was previously stopped, reconcile host and VM workspace state before starting the demo.
-- [ ] 7. **Plan the sync fence** — start the demo with sync watching, then stop `agent` sync before mutating the VM. Do not restart sync after restore until you have chosen the host or VM workspace as the source of truth and reconciled the other side.
+- [ ] 5. **Clean terminal** — close other windows and disable notifications. Use Windows Terminal with a clean profile. From stock Windows shells, run ADP-OS through `.\adp.cmd`; if it reports missing PowerShell 7, run `.\setup.cmd` and install PowerShell 7 before recording.
+- [ ] 6. **Prepare agent workspace** — SSH into agent VM and ensure `/home/adp/workspace/agent-workspace/` has a `.git` directory, README.md, src/main.ts, and a clean working tree. Mutagen sync does not copy `.git`; if sync recreated the files without git metadata, initialize the VM workspace and commit the clean demo baseline inside the VM before creating the snapshot.
+- [ ] 7. **Plan the sync fence** — start the demo with sync healthy, then stop `agent` sync before mutating the VM. Do not restart sync after restore until you have chosen the host or VM workspace as the source of truth and reconciled the other side.
 - [ ] 8. **Verify evidence chain** — `adp workspace evidence -Snapshot -ManifestPath configs\workspace.recipes.example.json` should succeed.
 
 > **Hard constraint**: If VMware is unavailable, the demo CANNOT be run. Do not fake snapshot, restore, or evidence output.
@@ -37,7 +37,7 @@ Run these before the session. Do NOT include in the 10-minute window.
 adp precheck
 ```
 
-Expected: 7/7 green (VMware, WSL, Mutagen, SSH, ISO, config, network).
+Expected: all precheck rows OK, for example `6 OK, 0 WARN, 0 MISSING` on a fully prepared host.
 
 > Narrator: "ADP-OS runs on your Windows machine. Every prerequisite is checked. No hidden surprises."
 
@@ -46,7 +46,7 @@ Expected: 7/7 green (VMware, WSL, Mutagen, SSH, ISO, config, network).
 adp status agent
 ```
 
-Expected: `agent: running, SSH reachable, sync watching`.
+Expected: `agent` is running, SSH is reachable, and sync is healthy.
 
 > Narrator: "The agent runtime is already provisioned — a full Ubuntu VM, isolated from your host, with bidirectional file sync."
 
@@ -147,6 +147,13 @@ Expected: prints `FAIL: missing README.md` and exits non-zero.
 # Step C6 — Record operation (existing command)
 adp workspace evidence -Log -Operation "validate" -Details "task=broad-agent-refactor;agent=claude-code;files_changed=2;warnings=1;result=failed" -ManifestPath configs\workspace.recipes.example.json
 ```
+
+```powershell
+# Step C7 — Record failed validation in task lifecycle
+adp workspace task mark broad-agent-refactor validation_failed -ManifestPath configs\workspace.recipes.example.json
+```
+
+Expected: ADP records the external validation result as failed.
 
 > Narrator: "Every operation is recorded. The evidence chain now has: snapshot → sync fence → failed validation. Irreversible. Immutable."
 
@@ -253,7 +260,8 @@ Expected: "Evidence Export Complete" and `Output      : ...\evidence-demo-export
 ```powershell
 # Step F2 — Show ZIP contents (PowerShell)
 Add-Type -AssemblyName System.IO.Compression.FileSystem
-$zip = [System.IO.Compression.ZipFile]::OpenRead("evidence-demo-export.zip")
+$zipPath = (Resolve-Path "evidence-demo-export.zip").Path
+$zip = [System.IO.Compression.ZipFile]::OpenRead($zipPath)
 try {
     $entries = $zip.Entries | Select-Object FullName, Length
     $entries
@@ -303,7 +311,7 @@ The demo must honestly disclose:
 |---------|-------------|-----|
 | `adp precheck` shows red checks | Missing prerequisite | Follow remediation printed by precheck |
 | `adp status agent` shows "VMware: unavailable" | VMware Workstation not running or vmrun not in PATH | Start VMware, verify `vmrun list` |
-| `adp snapshot create` hangs | VMware snapshot taking longer than expected | Wait up to 120s; large VM disks take time |
+| `adp snapshot create` reaches the command timeout but the snapshot exists | VMware snapshot creation crossed ADP's 120s command boundary | Treat this as pre-demo setup friction: confirm the snapshot exists before recording, and do not start the timed flow until the baseline snapshot is ready |
 | SSH connection refused | Agent VM IP changed or SSH service down | `adp status agent -Json` to get current IP; `adp up agent` to restart |
 | Restore succeeds but readiness does not settle | Restore left the VM stopped or guest SSH/control plane is still settling | Run `adp status agent`; if stopped, run `adp up agent -NoBootstrap`; continue only after status is running and SSH reachable |
 | `status` reports `ssh-timeout` after restore | ADP bounded probe could not classify SSH readiness in time | Stop the recording, wait briefly, rerun `adp status agent`, and record this as rehearsal/product-readiness evidence if it persists |
@@ -317,7 +325,7 @@ The demo must honestly disclose:
 ## Recording Setup (for video production)
 
 - **Screen recording**: OBS Studio (free, Windows)
-- **Terminal**: Windows Terminal + PowerShell 7, clean profile. From the repository root, `.\adp.cmd ...` is the stock Windows shell entry point; PowerShell 7 is still required by the control plane.
+- **Terminal**: Windows Terminal, clean profile. From the repository root, `.\adp.cmd ...` is the stock Windows shell entry point; if PowerShell 7 is missing, run `.\setup.cmd` and install it before recording because the ADP-OS control plane requires PowerShell 7.
 - **Font**: Cascadia Code or Consolas, 14pt
 - **Resolution**: 1920×1080
 - **Style**: Clean white-on-black terminal. No face cam. Text overlays for key concepts.
