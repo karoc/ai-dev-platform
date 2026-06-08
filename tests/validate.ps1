@@ -112,6 +112,10 @@ Invoke-ValidationStep -Name "Check adpos registration decisions" -ScriptBlock {
     & ".\tests\adpos-registration-decision.ps1"
 }
 
+Invoke-ValidationStep -Name "Check providerless entry routing" -ScriptBlock {
+    & ".\tests\providerless-routing-contract.ps1"
+}
+
 Invoke-ValidationStep -Name "Check checkout isolation plan" -ScriptBlock {
     & ".\tests\isolate-plan-contract.ps1"
 }

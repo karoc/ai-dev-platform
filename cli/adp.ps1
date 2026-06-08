@@ -28,38 +28,114 @@ if ($Json) {
 . "$script:ProjectRoot\adapters\windows\filesystem\filesystem.ps1"
 . "$script:ProjectRoot\core\provider\provider-result.ps1"
 . "$script:ProjectRoot\core\provider\provider-discovery.ps1"
+. "$script:ProjectRoot\cli\lib\workspace-probes.ps1"
 
 Initialize-Config -ProjectRoot $script:ProjectRoot
 Initialize-Logging -LogDirectory (Join-Path $script:ProjectRoot "logs")
 
-# Phase 4: Provider initialization — feature-flagged via provider.mode
-# vmware-provider (default): use IVMProvider contract via vmware-provider.ps1
-# vmware-classic:             use legacy vmware.ps1 adapter directly
-#
-# Initialization is best-effort at entry-point level: on real systems with
-# VMware it succeeds; on CI / test runners it logs a warning so basic
-# commands (help, version, validate) remain usable without a hypervisor.
-$script:ProviderMode = Get-ProviderMode
-if ($script:ProviderMode -eq "vmware-provider") {
-    . "$script:ProjectRoot\adapters\windows\vmware\vmware-provider.ps1"
-    try {
-        $vmStore = Resolve-Path "vm_store"
-        Initialize-Provider -ProviderType "vmware-workstation" -ProjectRoot $script:ProjectRoot -InitArgs @{VmStorePath = $vmStore} | Out-Null
-    } catch {
-        Write-WarnLog -Message "Provider init skipped (VMware not available): $_" -Component "cli"
-    }
-} else {
-    # Legacy path — kept as emergency fallback
-    . "$script:ProjectRoot\adapters\windows\vmware\vmware.ps1"
-    try {
-        Initialize-VMware | Out-Null
-    } catch {
-        Write-WarnLog -Message "VMware adapter init skipped (vmware not available): $_" -Component "cli"
-    }
-}
-
 # --- Command Router ---
 $validCommands = @("setup", "init", "up", "status", "stop", "sync", "snapshot", "restore", "logs", "doctor", "destroy", "network", "workspace", "capabilities", "isolate", "validate", "help", "run", "completion", "version", "iso", "quickstart", "precheck", "sandbox", "serve", "uninstall")
+
+function Get-ADPArgumentValue {
+    param(
+        [string[]]$RawArguments,
+        [int]$Index
+    )
+
+    if ($null -eq $RawArguments -or $RawArguments.Count -le $Index) {
+        return ""
+    }
+
+    return [string]$RawArguments[$Index]
+}
+
+function Test-ADPArgumentSwitchPresent {
+    param(
+        [string[]]$RawArguments,
+        [string]$Name
+    )
+
+    $shortName = "-$Name".ToLowerInvariant()
+    $longName = "--$Name".ToLowerInvariant()
+    foreach ($argument in @($RawArguments)) {
+        $normalizedArgument = ([string]$argument).ToLowerInvariant()
+        if ($normalizedArgument -eq $shortName -or $normalizedArgument -eq $longName) {
+            return $true
+        }
+    }
+
+    return $false
+}
+
+function Test-ADPWorkspaceCommandRequiresEntryProvider {
+    param([string[]]$RawArguments)
+
+    $workspaceCommand = (Get-ADPArgumentValue -RawArguments $RawArguments -Index 0).ToLowerInvariant()
+    if ([string]::IsNullOrWhiteSpace($workspaceCommand) -or $workspaceCommand -eq "help") {
+        return $false
+    }
+
+    $providerlessWorkspaceCommands = @(
+        "show", "plan", "status", "dashboard", "report", "recipes",
+        "init", "create", "open", "sync", "project", "declare"
+    )
+    if ($workspaceCommand -in $providerlessWorkspaceCommands) {
+        return $false
+    }
+
+    if ($workspaceCommand -eq "evidence") {
+        return (Test-ADPArgumentSwitchPresent -RawArguments $RawArguments -Name "Snapshot")
+    }
+
+    if ($workspaceCommand -eq "task") {
+        $taskCommand = (Get-ADPArgumentValue -RawArguments $RawArguments -Index 1).ToLowerInvariant()
+        if ($taskCommand -eq "validate") {
+            $executeValidation = Test-ADPArgumentSwitchPresent -RawArguments $RawArguments -Name "Execute"
+            $localExecution = Test-ADPArgumentSwitchPresent -RawArguments $RawArguments -Name "Local"
+            return (Test-ADPWorkspaceExternalProbeCommand -SubCommand $workspaceCommand -TaskCommand $taskCommand -ExecuteValidation:$executeValidation -LocalExecution:$localExecution)
+        }
+
+        if ($taskCommand -in @("prepare", "snapshot", "run", "review", "rollback", "commit", "mark")) {
+            return $false
+        }
+    }
+
+    return $true
+}
+
+function Test-ADPCommandRequiresEntryProvider {
+    param(
+        [string]$CommandName,
+        [string[]]$RawArguments
+    )
+
+    if ([string]::IsNullOrWhiteSpace($CommandName)) {
+        return $false
+    }
+
+    $normalizedCommand = $CommandName.ToLowerInvariant()
+    if ($normalizedCommand -eq "workspace") {
+        return Test-ADPWorkspaceCommandRequiresEntryProvider -RawArguments $RawArguments
+    }
+
+    $providerlessCommands = @(
+        "setup", "logs", "capabilities", "isolate", "validate",
+        "help", "completion", "version", "iso", "uninstall"
+    )
+    if ($normalizedCommand -in $providerlessCommands) {
+        return $false
+    }
+
+    if ($normalizedCommand -eq "run") {
+        return (-not (Test-ADPArgumentSwitchPresent -RawArguments $RawArguments -Name "Plan"))
+    }
+
+    if ($normalizedCommand -in @("precheck", "quickstart")) {
+        return (-not (Test-ADPArgumentSwitchPresent -RawArguments $RawArguments -Name "HelpPrereqs"))
+    }
+
+    return $true
+}
 
 function Quote-PowerShellArgument {
     param([string]$Value)
@@ -145,6 +221,27 @@ if (-not (Test-Path $commandFile)) {
         Write-Host "  Command '$Command' is reserved for a future phase." -ForegroundColor DarkGray
     }
     exit 1
+}
+
+if (Test-ADPCommandRequiresEntryProvider -CommandName $Command -RawArguments $Arguments) {
+    # Keep provider dot-sourcing at script scope so command files can see the provider functions.
+    $script:ProviderMode = Get-ProviderMode
+    if ($script:ProviderMode -eq "vmware-provider") {
+        try {
+            . "$script:ProjectRoot\adapters\windows\vmware\vmware-provider.ps1"
+            $vmStore = Resolve-Path "vm_store"
+            Initialize-Provider -ProviderType "vmware-workstation" -ProjectRoot $script:ProjectRoot -InitArgs @{VmStorePath = $vmStore} | Out-Null
+        } catch {
+            Write-WarnLog -Message "Provider init skipped (VMware not available): $_" -Component "cli"
+        }
+    } else {
+        try {
+            . "$script:ProjectRoot\adapters\windows\vmware\vmware.ps1"
+            Initialize-VMware | Out-Null
+        } catch {
+            Write-WarnLog -Message "VMware adapter init skipped (vmware not available): $_" -Component "cli"
+        }
+    }
 }
 
 Write-DebugLog -Message "Executing command: $Command with args: $Arguments" -Component "cli"

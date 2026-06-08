@@ -114,6 +114,7 @@ Assert-Contains -Name "shared validation checks local config mutation boundaries
 Assert-Contains -Name "shared validation checks Mutagen remediation behavior" -Text $validate -Pattern '\.\\tests\\mutagen-remediation\.ps1'
 Assert-Contains -Name "shared validation checks adpos registration contract" -Text $validate -Pattern '\.\\tests\\adpos-registration-contract\.ps1'
 Assert-Contains -Name "shared validation checks adpos registration decisions" -Text $validate -Pattern '\.\\tests\\adpos-registration-decision\.ps1'
+Assert-Contains -Name "shared validation checks providerless entry routing" -Text $validate -Pattern '\.\\tests\\providerless-routing-contract\.ps1'
 Assert-Contains -Name "shared validation checks checkout isolation plan" -Text $validate -Pattern '\.\\tests\\isolate-plan-contract\.ps1'
 Assert-Contains -Name "shared validation checks checkout isolation apply" -Text $validate -Pattern '\.\\tests\\isolate-apply-contract\.ps1'
 Assert-Contains -Name "shared validation checks resource conflict contracts" -Text $validate -Pattern '\.\\tests\\resource-conflicts-contract\.ps1'
