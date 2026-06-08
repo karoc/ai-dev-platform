@@ -21,7 +21,7 @@
 ### 变更
 
 - 移除仓库根目录的 `adp.cmd` 兼容 wrapper，并停止在 shell completion 中暴露 `adp` / `adp.cmd`。公开文档、PR 模板、部署提示和扩展文档现在统一使用 `adpos` 或仓库本地 `.\adpos.cmd`。
-- setup 现在会通过 `ADPOS_HOME`、用户/系统 `PATH` 和生成的 shim 检测已有全局 `adpos` 绑定。交互模式发现其他 checkout 时会询问是否替换；非交互模式会保留现有绑定，除非使用 `-Force`，并提示当前 checkout 使用 `.\adpos.cmd`。
+- setup 现在会通过 `ADPOS_HOME`、用户/系统 `PATH` 和生成的 shim 检测已有全局 `adpos` 绑定。交互模式发现其他 checkout 时会询问是否替换；非交互模式会保留现有绑定，除非使用 `-Force`，并提示当前 checkout 使用 `.\adpos.cmd`，同时列出在该 checkout 运行 VM 前需要配置的本地隔离项和验收命令。
 
 ### 修复
 

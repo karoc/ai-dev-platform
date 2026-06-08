@@ -21,7 +21,7 @@ Initial public release.
 ### Changed
 
 - Removed the repo-root `adp.cmd` compatibility wrapper and stopped advertising `adp` / `adp.cmd` shell completions. Public docs, PR templates, deploy guidance, and extension docs now use `adpos` or repo-local `.\adpos.cmd`.
-- Setup now detects an existing global `adpos` binding through `ADPOS_HOME`, the user/system `PATH`, and the generated shim. Interactive setup asks before replacing a binding to another checkout; non-interactive setup keeps the existing binding unless `-Force` is used, and prints `.\adpos.cmd` guidance for the current checkout.
+- Setup now detects an existing global `adpos` binding through `ADPOS_HOME`, the user/system `PATH`, and the generated shim. Interactive setup asks before replacing a binding to another checkout; non-interactive setup keeps the existing binding unless `-Force` is used, and prints `.\adpos.cmd` guidance for the current checkout, including the local isolation settings and validation commands needed before running VMs from that checkout.
 
 ### Fixed
 

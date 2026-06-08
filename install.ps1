@@ -152,6 +152,7 @@ function Write-InstallRegistrationResult {
         Write-InstallHost -English "${Indent}Global command kept: adpos" -Chinese "${Indent}已保留全局命令: adpos" -ForegroundColor Yellow
         Write-InstallHost -English "${Indent}Existing binding: $($Registration.PreviousHome)" -Chinese "${Indent}现有绑定: $($Registration.PreviousHome)" -ForegroundColor DarkGray
         Write-InstallHost -English "${Indent}Use this checkout locally: .\adpos.cmd" -Chinese "${Indent}使用当前版本请在本仓库运行: .\adpos.cmd" -ForegroundColor DarkGray
+        Write-InstallMultiCheckoutGuidance -Indent $Indent
         return
     }
 
@@ -159,6 +160,21 @@ function Write-InstallRegistrationResult {
     $messageChinese = if ($Registration.Replaced) { "${Indent}已替换全局命令: adpos" } else { "${Indent}已注册全局命令: adpos" }
     Write-InstallHost -English $messageEnglish -Chinese $messageChinese -ForegroundColor Green
     Write-Host "$Indent$($Registration.ShimPath)" -ForegroundColor DarkGray
+}
+
+function Write-InstallMultiCheckoutGuidance {
+    param([string]$Indent = "  ")
+
+    $guidance = Get-ADPOSMultiCheckoutGuidance -LocalCommand ".\adpos.cmd"
+    Write-InstallHost -English "${Indent}Multi-checkout isolation before running VMs here:" -Chinese "${Indent}在当前版本运行 VM 前，请先完成多版本隔离:" -ForegroundColor Cyan
+    Write-InstallHost -English "${Indent}  Configure ignored $($guidance.ConfigPath) with unique values for:" -Chinese "${Indent}  在已忽略的 $($guidance.ConfigPath) 中配置唯一值:" -ForegroundColor DarkGray
+    foreach ($key in $guidance.ConfigKeys) {
+        Write-Host "${Indent}    - $key" -ForegroundColor DarkGray
+    }
+    Write-InstallHost -English "${Indent}  Validate this checkout:" -Chinese "${Indent}  验收当前版本:" -ForegroundColor DarkGray
+    foreach ($command in $guidance.ValidationCommands) {
+        Write-Host "${Indent}    - $command" -ForegroundColor DarkGray
+    }
 }
 
 function Get-InstallCommandPrefix {

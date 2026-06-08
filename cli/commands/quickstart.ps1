@@ -37,6 +37,7 @@ function Write-QuickstartRegistrationResult {
         Write-UIHost -English "Step 2b: Global command kept: adpos" -Chinese "步骤 2b：已保留全局命令: adpos" -ForegroundColor Yellow
         Write-UIHost -English "  Existing binding: $($Registration.PreviousHome)" -Chinese "  现有绑定: $($Registration.PreviousHome)" -ForegroundColor DarkGray
         Write-UIHost -English "  Use this checkout locally: .\adpos.cmd" -Chinese "  使用当前版本请在本仓库运行: .\adpos.cmd" -ForegroundColor DarkGray
+        Write-QuickstartMultiCheckoutGuidance
         Write-Host ""
         return
     }
@@ -47,6 +48,19 @@ function Write-QuickstartRegistrationResult {
         Write-UIHost -English $english -Chinese $chinese -ForegroundColor Green
         Write-Host "  $($Registration.ShimPath)" -ForegroundColor DarkGray
         Write-Host ""
+    }
+}
+
+function Write-QuickstartMultiCheckoutGuidance {
+    $guidance = Get-ADPOSMultiCheckoutGuidance -LocalCommand ".\adpos.cmd"
+    Write-UIHost -English "  Multi-checkout isolation before running VMs here:" -Chinese "  在当前版本运行 VM 前，请先完成多版本隔离:" -ForegroundColor Cyan
+    Write-UIHost -English "    Configure ignored $($guidance.ConfigPath) with unique values for:" -Chinese "    在已忽略的 $($guidance.ConfigPath) 中配置唯一值:" -ForegroundColor DarkGray
+    foreach ($key in $guidance.ConfigKeys) {
+        Write-Host "      - $key" -ForegroundColor DarkGray
+    }
+    Write-UIHost -English "    Validate this checkout:" -Chinese "    验收当前版本:" -ForegroundColor DarkGray
+    foreach ($command in $guidance.ValidationCommands) {
+        Write-Host "      - $command" -ForegroundColor DarkGray
     }
 }
 
@@ -287,6 +301,7 @@ if (-not $NonInteractive) {
     Write-UIHost -English "  $nextCommand help           See all commands" -Chinese "  $nextCommand help           查看所有命令" -ForegroundColor DarkGray
     if ($currentRegistration.IsDifferentHome) {
         Write-UIHost -English "  Global adpos is unchanged; uninstall it from its owning checkout if needed." -Chinese "  全局 adpos 未改变；如需卸载，请在其所属 checkout 中执行。" -ForegroundColor DarkGray
+        Write-QuickstartMultiCheckoutGuidance
     } elseif (-not $NoRegisterCommand) {
         Write-UIHost -English "  adpos uninstall      Remove the global command registration" -Chinese "  adpos uninstall      移除全局命令注册" -ForegroundColor DarkGray
     }

@@ -148,6 +148,26 @@ function Confirm-ADPOSRegistrationReplacement {
     return ($answer -match '^(y|yes)$')
 }
 
+function Get-ADPOSMultiCheckoutGuidance {
+    param([string]$LocalCommand = ".\adpos.cmd")
+
+    return [pscustomobject]@{
+        ConfigPath         = "configs\local.json"
+        ConfigKeys         = @(
+            "platform.runtime_namespace",
+            "platform.paths.workspace_root",
+            "platform.paths.vm_store",
+            "topology.<runtime>.static_ip"
+        )
+        ValidationCommands = @(
+            "$LocalCommand doctor",
+            "$LocalCommand status agent",
+            "$LocalCommand sync status",
+            "$LocalCommand up agent -Plan"
+        )
+    }
+}
+
 function Add-ADPOSPathEntry {
     param([string]$Path)
 
