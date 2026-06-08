@@ -7,7 +7,7 @@ param(
     [switch]$Plan
 )
 
-Write-InfoLog -Message (Get-UIText -English "Running: adp doctor" -Chinese "正在运行: adp doctor") -Component "cli.doctor"
+Write-InfoLog -Message (Get-UIText -English "Running: adpos doctor" -Chinese "正在运行: adpos doctor") -Component "cli.doctor"
 
 . (Join-Path (Get-ProjectRoot) "runtimes\vmware\os-profiles.ps1")
 . (Join-Path (Get-ProjectRoot) "runtimes\vmware\vm-factory.ps1")
@@ -165,8 +165,8 @@ function Write-NetworkDriftRemediation {
     )
 
     Write-UIHost -English "  [INFO]  Remediation options for $TargetRuntime network drift:" -Chinese "  [INFO]  $TargetRuntime 网络漂移修复选项:" -ForegroundColor DarkGray
-    Write-UIHost -English "          1. Rebuild when the VM can be recreated: adp destroy $TargetRuntime -Plan, then adp up $TargetRuntime." -Chinese "          1. 如果 VM 可以重建：先运行 adp destroy $TargetRuntime -Plan，再用 adp up $TargetRuntime 重建。" -ForegroundColor DarkGray
-    Write-UIHost -English "          2. In-place guest fix when the seed-era address is reachable: adp network apply $TargetRuntime -Plan." -Chinese "          2. 如果 seed-era 地址可连接：运行 adp network apply $TargetRuntime -Plan 预览 guest 内修复。" -ForegroundColor DarkGray
+    Write-UIHost -English "          1. Rebuild when the VM can be recreated: adpos destroy $TargetRuntime -Plan, then adpos up $TargetRuntime." -Chinese "          1. 如果 VM 可以重建：先运行 adpos destroy $TargetRuntime -Plan，再用 adpos up $TargetRuntime 重建。" -ForegroundColor DarkGray
+    Write-UIHost -English "          2. In-place guest fix when the seed-era address is reachable: adpos network apply $TargetRuntime -Plan." -Chinese "          2. 如果 seed-era 地址可连接：运行 adpos network apply $TargetRuntime -Plan 预览 guest 内修复。" -ForegroundColor DarkGray
     Write-UIHost -English "          3. Admin-only temporary host-route workaround only to regain SSH to $($SeedNetwork.Address); ADP will not apply host routes automatically." -Chinese "          3. 仅管理员可用的临时 host-route workaround 用于恢复到 $($SeedNetwork.Address) 的 SSH；ADP 不会自动应用 host routes。" -ForegroundColor DarkGray
     Write-UIHost -English "          Seed-era network: $($SeedNetwork.Address)/$($SeedNetwork.Prefix)$(if ($SeedNetwork.Gateway) { ', gateway ' + $SeedNetwork.Gateway } else { '' }); target: $ConfiguredIp." -Chinese "          Seed-era 网络: $($SeedNetwork.Address)/$($SeedNetwork.Prefix)$(if ($SeedNetwork.Gateway) { ', gateway ' + $SeedNetwork.Gateway } else { '' }); 目标: $ConfiguredIp。" -ForegroundColor DarkGray
 }
@@ -244,7 +244,7 @@ if ($config.network.vmware_nat) {
         Test-Check -Name "VMware NAT gateway host range" -Condition $hostNat.GatewayInHostCidr -Detail "($($nat.gateway) in host $($hostNat.HostCidr))"
         if (-not $hostNat.Matches) {
             Write-UIHost -English "  [INFO]  ADP configuration and host VMware NAT disagree; choose one remediation before creating VMs." -Chinese "  [INFO]  ADP 配置与主机 VMware NAT 不一致；创建 VM 前需要先选择一种修复方式。" -ForegroundColor DarkGray
-            Write-UIHost -English "  [INFO]  Option A: align ADP local overrides: .\cli\adp.ps1 network configure-local -Plan, then .\cli\adp.ps1 network configure-local -Apply" -Chinese "  [INFO]  方案 A：将 ADP 本机覆盖对齐到当前主机：.\cli\adp.ps1 network configure-local -Plan，然后 .\cli\adp.ps1 network configure-local -Apply" -ForegroundColor DarkGray
+            Write-UIHost -English "  [INFO]  Option A: align ADP local overrides: adpos network configure-local -Plan, then adpos network configure-local -Apply" -Chinese "  [INFO]  方案 A：将 ADP 本机覆盖对齐到当前主机：adpos network configure-local -Plan，然后 adpos network configure-local -Apply" -ForegroundColor DarkGray
             Write-UIHost -English "  [INFO]  Option B: keep ADP's configured subnet and change VMware VMnet8 to $($hostNat.ConfiguredCidr) in Virtual Network Editor." -Chinese "  [INFO]  方案 B：保留 ADP 配置的网段，并在 VMware Virtual Network Editor 中把 VMnet8 改为 $($hostNat.ConfiguredCidr)。" -ForegroundColor DarkGray
         }
     } else {
@@ -311,7 +311,7 @@ $hasMutagen = $null -ne $mutagenPath
 Test-Check -Name "mutagen" -Condition $hasMutagen
 if (-not $hasMutagen) {
     Write-UIHost -English "  [INFO]  Install by placing mutagen.exe at .tools\mutagen\mutagen.exe or adding it to PATH." -Chinese "  [INFO]  安装方式：将 mutagen.exe 放到 .tools\mutagen\mutagen.exe，或加入 PATH。" -ForegroundColor DarkGray
-    Write-UIHost -English "  [INFO]  Or run: .\cli\adp.ps1 doctor -FixMutagen -Plan" -Chinese "  [INFO]  或运行：.\cli\adp.ps1 doctor -FixMutagen -Plan" -ForegroundColor DarkGray
+    Write-UIHost -English "  [INFO]  Or run: adpos doctor -FixMutagen -Plan" -Chinese "  [INFO]  或运行：adpos doctor -FixMutagen -Plan" -ForegroundColor DarkGray
 }
 
 if ($hasMutagen) {
@@ -321,7 +321,7 @@ if ($hasMutagen) {
     Test-Check -Name "mutagen version" -Condition $mutagenVersionOk -Detail "($mutagenVersion, $mutagenPath)"
     if (-not $mutagenVersionOk) {
         Write-UIHost -English "  [INFO]  ADP-OS is tested with Mutagen 0.18.x." -Chinese "  [INFO]  ADP-OS 已测试 Mutagen 0.18.x。" -ForegroundColor DarkGray
-        Write-UIHost -English "  [INFO]  To install the tested local version, run: .\cli\adp.ps1 doctor -FixMutagen -Plan" -Chinese "  [INFO]  安装测试版本，请运行：.\cli\adp.ps1 doctor -FixMutagen -Plan" -ForegroundColor DarkGray
+        Write-UIHost -English "  [INFO]  To install the tested local version, run: adpos doctor -FixMutagen -Plan" -Chinese "  [INFO]  安装测试版本，请运行：adpos doctor -FixMutagen -Plan" -ForegroundColor DarkGray
     }
 }
 
@@ -344,7 +344,7 @@ if ($FixMutagen) {
         Write-UIHost -English "  SHA256:   $(if ($remediation.Sha256) { $remediation.Sha256 } else { 'not configured; archive hash verification will be skipped' })" -Chinese "  SHA256:   $(if ($remediation.Sha256) { $remediation.Sha256 } else { '未配置；将跳过归档哈希校验' })" -ForegroundColor DarkGray
         Write-UIHost -English "  Timeout:  connection=$($remediation.ConnectionTimeoutSeconds)s hard=$($remediation.DownloadTimeoutSeconds)s" -Chinese "  超时:  连接=$($remediation.ConnectionTimeoutSeconds)s 硬性=$($remediation.DownloadTimeoutSeconds)s" -ForegroundColor DarkGray
         Write-UIHost -English "  Local overrides: platform.tools.mutagen.download_url, archive_path, sha256, connection_timeout_seconds, download_timeout_seconds" -Chinese "  本机覆盖: platform.tools.mutagen.download_url, archive_path, sha256, connection_timeout_seconds, download_timeout_seconds" -ForegroundColor DarkGray
-        Write-UIHost -English "  To install: .\cli\adp.ps1 doctor -FixMutagen" -Chinese "  安装: .\cli\adp.ps1 doctor -FixMutagen" -ForegroundColor DarkGray
+        Write-UIHost -English "  To install: adpos doctor -FixMutagen" -Chinese "  安装: adpos doctor -FixMutagen" -ForegroundColor DarkGray
     } else {
         try {
             $remediation = Install-LocalMutagen -ProjectRoot (Get-ProjectRoot)
@@ -353,7 +353,7 @@ if ($FixMutagen) {
             Write-ErrorLog -Message "Mutagen remediation failed: $reason" -Component "cli.doctor"
             Write-UIHost -English "  Mutagen remediation failed." -Chinese "  Mutagen 修复失败。" -ForegroundColor Red
             Write-UIHost -English "  Reason: $reason" -Chinese "  原因: $reason" -ForegroundColor Red
-            Write-UIHost -English "  Retry:  .\cli\adp.ps1 doctor -FixMutagen" -Chinese "  重试:  .\cli\adp.ps1 doctor -FixMutagen" -ForegroundColor DarkGray
+            Write-UIHost -English "  Retry:  adpos doctor -FixMutagen" -Chinese "  重试:  adpos doctor -FixMutagen" -ForegroundColor DarkGray
             Write-UIHost -English "  Manual: download $($remediationPlan.Url)" -Chinese "  手动: 下载 $($remediationPlan.Url)" -ForegroundColor DarkGray
             Write-UIHost -English "          place it at $($remediationPlan.ZipPath), then rerun the command." -Chinese "          放到 $($remediationPlan.ZipPath)，然后重新运行该命令。" -ForegroundColor DarkGray
             if ($remediationPlan.ConfiguredArchivePath) {
@@ -505,7 +505,7 @@ foreach ($name in (Get-AllRuntimeNames)) {
                 if ($hasCurrentRuntimeVm) {
                     Test-Check -Name "$name Mutagen session" -Condition $syncOk -Detail "($sessionName, $($recovery.Health), $($recovery.Detail))"
                     if (-not $syncOk) {
-                        Write-UIHost -English "  [INFO]  Remediation: .\\cli\\adp.ps1 sync stop $name; .\\cli\\adp.ps1 sync start $name" -Chinese "  [INFO]  修复: .\\cli\\adp.ps1 sync stop $name; .\\cli\\adp.ps1 sync start $name" -ForegroundColor DarkGray
+                        Write-UIHost -English "  [INFO]  Remediation: adpos sync stop $name; adpos sync start $name" -Chinese "  [INFO]  修复: adpos sync stop $name; adpos sync start $name" -ForegroundColor DarkGray
                         Write-UIHost -English "  [INFO]  Current local: $($recovery.AlphaUrl); expected: $expectedLocalPath" -Chinese "  [INFO]  当前 local: $($recovery.AlphaUrl); 期望: $expectedLocalPath" -ForegroundColor DarkGray
                         Write-UIHost -English "  [INFO]  Current remote: $($recovery.BetaUrl); expected: $expectedRemoteUrl" -Chinese "  [INFO]  当前 remote: $($recovery.BetaUrl); 期望: $expectedRemoteUrl" -ForegroundColor DarkGray
                     }
@@ -559,7 +559,7 @@ if ($FirstRun) {
     Write-UIHost -English "  Estimated total time: 3-5 minutes (setup) + 20-30 minutes (first VM build)" -Chinese "  预计总耗时: 3-5 分钟（设置）+ 20-30 分钟（首次 VM 构建）" -ForegroundColor DarkGray
 
     Write-Host ""
-    Write-UIHost -English "Tip: Run 'adp quickstart' for a one-command guided setup that chains these steps." -Chinese "提示: 运行 'adp quickstart' 可一键引导完成以下步骤。" -ForegroundColor Green
+    Write-UIHost -English "Tip: Run 'adpos quickstart' for a one-command guided setup that chains these steps." -Chinese "提示: 运行 'adpos quickstart' 可一键引导完成以下步骤。" -ForegroundColor Green
 
     Write-Host ""
     Write-UIHost -English "Platform Setup (~3-5 min)" -Chinese "平台设置 (~3-5 分钟)" -ForegroundColor Yellow
@@ -567,30 +567,30 @@ if ($FirstRun) {
 
     Write-UIHost -English "  1. Align VMware NAT with ADP config (~30s):" -Chinese "  1. 对齐 VMware NAT 与 ADP 配置 (~30s):" -ForegroundColor White
     Write-UIHost -English "     Preview changes:" -Chinese "     预览变更:" -ForegroundColor DarkGray
-    Write-Host "     .\\cli\\adp.ps1 network configure-local -Plan" -ForegroundColor DarkGray
+    Write-Host "     adpos network configure-local -Plan" -ForegroundColor DarkGray
     Write-UIHost -English "     Apply if alignment is needed:" -Chinese "     如需对齐则应用:" -ForegroundColor DarkGray
-    Write-Host "     .\\cli\\adp.ps1 network configure-local -Apply" -ForegroundColor DarkGray
+    Write-Host "     adpos network configure-local -Apply" -ForegroundColor DarkGray
     Write-UIHost -English "     Or keep ADP's subnet and change VMware VMnet8 in Virtual Network Editor." -Chinese "     或者保留 ADP 配置的网段，并在 VMware Virtual Network Editor 中修改 VMnet8。" -ForegroundColor DarkGray
 
     Write-Host ""
     Write-UIHost -English "  2. Confirm ISO is available (~10s):" -Chinese "  2. 确认 ISO 可用 (~10s):" -ForegroundColor White
-    Write-Host "     .\\cli\\adp.ps1 iso download                                         # Download Ubuntu ISO (~2.6 GB, 10-30 min)" -ForegroundColor DarkGray
+    Write-Host "     adpos iso download                                         # Download Ubuntu ISO (~2.6 GB, 10-30 min)" -ForegroundColor DarkGray
     Write-Host "     .\\install.ps1 -IsoPath C:\\path\\to\\ubuntu-26.04-live-server-amd64.iso  # Or provide your own" -ForegroundColor DarkGray
 
     Write-Host ""
     Write-UIHost -English "  3. Initialize platform (~30s):" -Chinese "  3. 初始化平台 (~30s):" -ForegroundColor White
     Write-Host "     .\\install.ps1     # Or .\\install.ps1 -Quick if already initialized" -ForegroundColor DarkGray
-    Write-Host "     .\\cli\\adp.ps1 init [-Quick] [-IsoPath <path>]" -ForegroundColor DarkGray
+    Write-Host "     adpos init [-Quick] [-IsoPath <path>]" -ForegroundColor DarkGray
 
     Write-Host ""
     Write-UIHost -English "First Runtime (~20-30 min for initial VM build)" -Chinese "首次运行时（初始 VM 构建 ~20-30 分钟）" -ForegroundColor Yellow
     Write-Host "----------------------------------------" -ForegroundColor DarkGray
 
     Write-UIHost -English "  4. Preview before running (~5s):" -Chinese "  4. 运行前预览 (~5s):" -ForegroundColor White
-    Write-Host "     .\\cli\\adp.ps1 up agent -Plan            # See what will be created" -ForegroundColor DarkGray
+    Write-Host "     adpos up agent -Plan            # See what will be created" -ForegroundColor DarkGray
 
     Write-UIHost -English "  5. Start first runtime (~20-30 min):" -Chinese "  5. 启动第一个运行时 (~20-30 分钟):" -ForegroundColor White
-    Write-Host "     .\\cli\\adp.ps1 up agent                  # Creates VM from ISO, installs Ubuntu, bootstraps" -ForegroundColor DarkGray
+    Write-Host "     adpos up agent                  # Creates VM from ISO, installs Ubuntu, bootstraps" -ForegroundColor DarkGray
     Write-UIHost -English "     The first VM build takes 20-30 minutes. ADP-OS shows install-monitor heartbeats." -Chinese "     首次 VM 构建需要 20-30 分钟。ADP-OS 会显示 install-monitor 心跳。" -ForegroundColor DarkGray
 
     Write-Host ""
@@ -598,16 +598,16 @@ if ($FirstRun) {
     Write-Host "----------------------------------------" -ForegroundColor DarkGray
 
     Write-UIHost -English "  6. Check runtime status (~5s):" -Chinese "  6. 检查运行时状态 (~5s):" -ForegroundColor White
-    Write-Host "     .\\cli\\adp.ps1 status agent" -ForegroundColor DarkGray
+    Write-Host "     adpos status agent" -ForegroundColor DarkGray
 
     Write-UIHost -English "  7. Start file sync (~10s):" -Chinese "  7. 启动文件同步 (~10s):" -ForegroundColor White
-    Write-Host "     .\\cli\\adp.ps1 sync start agent" -ForegroundColor DarkGray
+    Write-Host "     adpos sync start agent" -ForegroundColor DarkGray
 
     Write-UIHost -English "  8. Place target project under workspace:" -Chinese "  8. 放置目标项目到工作区:" -ForegroundColor White
     Write-Host "     $workspaceRoot\\agent\\your-project" -ForegroundColor DarkGray
 
     Write-UIHost -English "  9. Create a VM snapshot before risky work (~30s):" -Chinese "  9. 高风险操作前创建 VM 快照 (~30s):" -ForegroundColor White
-    Write-Host "     .\\cli\\adp.ps1 snapshot create agent before-risky-task" -ForegroundColor DarkGray
+    Write-Host "     adpos snapshot create agent before-risky-task" -ForegroundColor DarkGray
 
     Write-Host ""
     Write-UIHost -English "  For more: https://github.com/karoc/ai-dev-platform" -Chinese "  更多信息: https://github.com/karoc/ai-dev-platform" -ForegroundColor DarkGray

@@ -25,7 +25,7 @@ git clone <project-url> my-project
 启动同步后：
 
 ```powershell
-.\cli\adp.ps1 sync start agent
+adpos sync start agent
 ```
 
 VM 中会看到：
@@ -43,7 +43,7 @@ VM 中会看到：
 `agent` 运行时有意配置得更大，IO 更高。执行破坏性、大范围或不确定的 agent 任务前，建议先创建快照：
 
 ```powershell
-.\cli\adp.ps1 snapshot create agent before-large-agent-task
+adpos snapshot create agent before-large-agent-task
 ```
 
 ## 工作区 Manifest
@@ -53,7 +53,7 @@ ADP-OS 可以用一个轻量的 workspace manifest 记录目标项目。这个 m
 从公开示例创建 manifest：
 
 ```powershell
-.\cli\adp.ps1 workspace init
+adpos workspace init
 ```
 
 如果当前平台 checkout 中还没有 `adp-workspace.json`，该命令会创建一个。平台仓库会忽略这个生成文件，避免本地实验内容被误提交。如果你在自己的应用仓库中使用类似 manifest，是否提交应由该应用仓库自己决定。
@@ -61,13 +61,13 @@ ADP-OS 可以用一个轻量的 workspace manifest 记录目标项目。这个 m
 查看 manifest：
 
 ```powershell
-.\cli\adp.ps1 workspace show
+adpos workspace show
 ```
 
 预览建议的运行时、同步、快照和验证流程：
 
 ```powershell
-.\cli\adp.ps1 workspace plan
+adpos workspace plan
 ```
 
 `workspace plan` 有意保持非破坏性：它不会 clone 项目、启动或停止 VM、修改 Mutagen session、创建快照，也不会运行验证命令。它只会把 manifest 转换成操作计划。
@@ -75,7 +75,7 @@ ADP-OS 可以用一个轻量的 workspace manifest 记录目标项目。这个 m
 检查 workspace readiness：
 
 ```powershell
-.\cli\adp.ps1 workspace status
+adpos workspace status
 ```
 
 `workspace status` 同样保持非破坏性。它会报告 manifest 是否已加载、项目路径是否存在、配置的运行时是否已知且已创建、预期 sync session 是否存在、常见生成目录是否已被 runtime sync profile 覆盖、milestone checkpoint 是否已规划、任务快照是已存在还是建议创建，以及 validation 命令是否已声明。它不会创建目录、启动同步、修改 sync profiles、删除生成目录、创建快照，也不会运行验证命令。
@@ -84,14 +84,14 @@ ADP-OS 可以用一个轻量的 workspace manifest 记录目标项目。这个 m
 
 Snapshot 名称应该绑定 task 或 milestone 意图。推荐的 task checkpoint 格式是 `before-<task-name>`，例如 `before-broad-agent-refactor`。如果某个 checkpoint 保护的是更大的 milestone，而不是单个 task，则使用 `milestone-<name>`。`workspace status`、`workspace dashboard`、`workspace report` 和 `workspace task snapshot` 会把 snapshot naming 作为非阻塞约定检查显示出来：真正阻塞高风险工作的仍然是 snapshot-first gate，但 reviewer 可以看到 checkpoint 名称是否不如推荐的 task 或 milestone 格式清晰。
 
-Milestone 是可选的 manifest-level planning record。`milestones[]` 可以把相关 task 分组，命名保护这一组任务的 runtime checkpoint，并让该 checkpoint 出现在 `workspace show`、`workspace plan`、`workspace status`、`workspace dashboard`、`workspace project` 和 `workspace report` 中。Milestone reporting 仍然是非破坏性的：ADP-OS 只打印 checkpoint status 和显式的 `adp snapshot create <runtime> <snapshot>` 命令，不会创建快照。可以从 `milestones[].tasks` 链接 task，也可以从 `tasks[].milestone` 链接 milestone；两者同时使用也可以，ADP-OS 会去重。
+Milestone 是可选的 manifest-level planning record。`milestones[]` 可以把相关 task 分组，命名保护这一组任务的 runtime checkpoint，并让该 checkpoint 出现在 `workspace show`、`workspace plan`、`workspace status`、`workspace dashboard`、`workspace project` 和 `workspace report` 中。Milestone reporting 仍然是非破坏性的：ADP-OS 只打印 checkpoint status 和显式的 `adpos snapshot create <runtime> <snapshot>` 命令，不会创建快照。可以从 `milestones[].tasks` 链接 task，也可以从 `tasks[].milestone` 链接 milestone；两者同时使用也可以，ADP-OS 会去重。
 
 Evaluation 是可选的 manifest-level planning record，用于 agent-native evidence。`evaluations[]` 可以把相关 task 关联到 evaluation metrics 和 commands，并让这套计划出现在 `workspace show`、`workspace status`、`workspace dashboard`、`workspace report` 和 Markdown release evidence 中。当前 release 中 evaluation hooks 是非破坏性的：ADP-OS 会报告 evaluation readiness、metrics、linked tasks 和声明的 commands，但不会执行 evaluation commands。可以从 `evaluations[].tasks` 链接 task，也可以从 `tasks[].evaluation` 链接 evaluation；两者同时使用也可以，ADP-OS 会去重。Evaluation hooks 用于在 broad agent work 前显式表达 review criteria，不替代 validation、source review、rollback 或 commit gates。
 
 查看 workspace dashboard：
 
 ```powershell
-.\cli\adp.ps1 workspace dashboard
+adpos workspace dashboard
 ```
 
 `workspace dashboard` 是非破坏性的汇总视图。它会在一个位置汇总 project readiness、milestone checkpoint status、evaluation hooks 和 task lifecycle state，包括路径、运行时、同步、sync hygiene、检查点、执行、验证、evaluation、review、回滚和提交 gate。它不会运行 Git 命令、验证命令、evaluation commands、同步命令、快照命令或运行时命令。
@@ -101,8 +101,8 @@ Evaluation 是可选的 manifest-level planning record，用于 agent-native evi
 创建 manifest 声明的本地项目目录：
 
 ```powershell
-.\cli\adp.ps1 workspace create -Plan
-.\cli\adp.ps1 workspace create
+adpos workspace create -Plan
+adpos workspace create
 ```
 
 `workspace create -Plan` 会预览将为 `projects[]` 创建的本地目录。`workspace create` 只会创建从 `projects[].path` 解析出的缺失本地项目目录；它不会 clone repository、启动 runtime、启动或停止 sync、打开 SSH、创建快照、运行 validation、运行 evaluation commands、运行 Git，也不会修改已有项目文件。如果目标路径已经是目录，会报告为 already present。如果目标路径已经是文件，或者解析成 filesystem root，创建会在任何目录被创建前阻塞。建议先查看 `workspace plan` 或 `workspace recipes`，再使用该命令；之后用 `workspace open`、`workspace sync` 或 `workspace project` 进入下一步显式操作。
@@ -110,8 +110,8 @@ Evaluation 是可选的 manifest-level planning record，用于 agent-native evi
 从 manifest 打开项目指南：
 
 ```powershell
-.\cli\adp.ps1 workspace open app
-.\cli\adp.ps1 workspace open frontend-app -ManifestPath configs\workspace.recipes.example.json
+adpos workspace open app
+adpos workspace open frontend-app -ManifestPath configs\workspace.recipes.example.json
 ```
 
 `workspace open` 是非破坏性的 open guide。它会解析一个 `projects[]` 条目，打印 local workspace path、remote runtime path、runtime readiness、sync state、sync hygiene、dev container metadata，以及可复制的本地、编辑器、SSH、sync 和 status 命令。它不会创建目录、打开编辑器、启动 shell、通过 SSH 连接、启动 sync、启动 runtime 或修改文件。如果 manifest 只有一个 project，可以省略 project name；如果有多个 project，需要传入 project name，避免 ADP 猜错。
@@ -119,17 +119,17 @@ Evaluation 是可选的 manifest-level planning record，用于 agent-native evi
 从 manifest 查看项目 sync 指南：
 
 ```powershell
-.\cli\adp.ps1 workspace sync app
-.\cli\adp.ps1 workspace sync frontend-app -ManifestPath configs\workspace.recipes.example.json
+adpos workspace sync app
+adpos workspace sync frontend-app -ManifestPath configs\workspace.recipes.example.json
 ```
 
-`workspace sync` 是非破坏性的 project-aware sync guide。它会解析一个 `projects[]` 条目，显示是否请求 sync，把 project 映射回 runtime-level Mutagen session，报告 runtime readiness、sync session status 和 sync hygiene，然后打印需要用户显式执行的 `adp sync status`、`adp sync start <runtime>` 和 `adp sync stop <runtime>` 命令。它不会启动或停止 Mutagen、创建目录、启动 runtime、通过 SSH 连接或修改文件。如果 manifest 只有一个 project，可以省略 project name；如果有多个 project，需要传入 project name。
+`workspace sync` 是非破坏性的 project-aware sync guide。它会解析一个 `projects[]` 条目，显示是否请求 sync，把 project 映射回 runtime-level Mutagen session，报告 runtime readiness、sync session status 和 sync hygiene，然后打印需要用户显式执行的 `adpos sync status`、`adpos sync start <runtime>` 和 `adpos sync stop <runtime>` 命令。它不会启动或停止 Mutagen、创建目录、启动 runtime、通过 SSH 连接或修改文件。如果 manifest 只有一个 project，可以省略 project name；如果有多个 project，需要传入 project name。
 
 查看单个 project 的 operational lifecycle：
 
 ```powershell
-.\cli\adp.ps1 workspace project app
-.\cli\adp.ps1 workspace project frontend-app -ManifestPath configs\workspace.recipes.example.json
+adpos workspace project app
+adpos workspace project frontend-app -ManifestPath configs\workspace.recipes.example.json
 ```
 
 `workspace project` 是针对一个 manifest project 的非破坏性 lifecycle view。它会把 project path、runtime readiness、sync session、sync hygiene、dev container metadata、project validation commands、linked tasks、snapshot gates、recorded validation state 和 commit readiness 汇总成一个 operating flow。它不会打开项目、启动 runtime、启动或停止 sync、创建快照、运行验证、运行 Git、通过 SSH 连接或修改文件。当你想在进入 task-specific commands 或 release evidence 前先看清某个 project 的下一步安全操作时，用这个命令。
@@ -137,8 +137,8 @@ Evaluation 是可选的 manifest-level planning record，用于 agent-native evi
 查看 task delivery report：
 
 ```powershell
-.\cli\adp.ps1 workspace report
-.\cli\adp.ps1 workspace report -Markdown
+adpos workspace report
+adpos workspace report -Markdown
 ```
 
 `workspace report` 同样是非破坏性的。它会读取 manifest 和被忽略的本地 state 文件，先打印 release handoff summary、governance loop、decision queues、milestone checkpoint status、milestone review rollup、validation execution queue、evaluation queue、release decision policy 和 stale-task remediation guidance，再按 task 打印 sync hygiene、validation result、evaluation links、review decision、rollback context、commit readiness、review bundle fields、source-review checklist，以及 review、rollback、commit 和 source inspection 的 handoff commands。Summary 会统计通过、失败和缺失的 validation result，突出 sync hygiene、snapshot 或 validation blocker，列出 ready for review 或 ready to commit 的 task，打印当前 release gate，并暴露 owner、review cadence 和 due date 的 task governance 覆盖情况。Governance loop 会按 owner 分组、按 review cadence 分组，并打印 blocked、未 review、overdue 或近期到期工作的 attention queue。Decision queues 会把 task 分到 review sync ignore、create snapshot、validate now、review now、rollback or revise、ready to commit 等下一步动作，以及 validation required、review required、release blocked、release candidate 等 release-readiness 状态，还会按 milestone 分组显示 task。Milestone review rollup 会汇总每个 milestone 的 task 数量、action 组合、release state 组合、blocked tasks、validation-required tasks、review-required tasks、ready-to-commit tasks、owners 和 due attention，让维护者不用手动扫描所有 task row 就能评审一个 milestone。Validation execution queue 会汇总每个 task 的 recorded validation state、command count、readiness、blockers、plan command、`-Execute -Plan` preview command 和显式 `-Execute` command，但不会运行 validation。Evaluation queue 会汇总每个 evaluation hook 的 readiness、runtime、project、cadence、metrics、command count、linked tasks、blockers 和 evidence command，但不会运行 evaluation commands。Release decision policy 会把这些队列汇总成整体 release decision，并列出 blockers、validation work、review work、release candidates 和 governance gaps。如果 task 对应 project 的 sync hygiene 报告 `review ignore`，即使 validation 和 review 已 ready，该 task 也会被视为 release-blocked，直到 sync profile 已经 review。Stale-task remediation 会列出需要关注 task 的 owner、cadence、timing、action 和 release state。添加 `-Markdown` 可以用同一套 decision state 输出可复制到 PR 或 release 的 evidence，其中包含 `Validation Execution Queue`、`Evaluation Queue`、`Milestone Checkpoints` 和 `Milestone Review Rollup` 表。Markdown evidence 会尽量显示仓库相对的 manifest 和 state path；仓库外路径会缩减成 `outside repository: <file>` 标记，避免把本机目录复制到公开 review surface。Dashboard 用于快速扫描整体健康状态；report 用于在不重新运行 lifecycle 命令的情况下，检查已记录的 task state 是否可以进入 review、rollback 或 commit。维护者 checklist 和贡献者预期见 [Release Readiness](release-readiness.md)。
@@ -148,13 +148,13 @@ Evaluation 是可选的 manifest-level planning record，用于 agent-native evi
 Workspace task 是 ADP-OS 的第一个 agent-native workflow 入口。它会把 manifest 里的 task 条目转换成明确的准备、检查点、执行、验证、review、回滚和提交边界：
 
 ```powershell
-.\cli\adp.ps1 workspace task prepare before-large-agent-task
-.\cli\adp.ps1 workspace task snapshot before-large-agent-task
-.\cli\adp.ps1 workspace task run before-large-agent-task
-.\cli\adp.ps1 workspace task validate before-large-agent-task
-.\cli\adp.ps1 workspace task review before-large-agent-task
-.\cli\adp.ps1 workspace task rollback before-large-agent-task
-.\cli\adp.ps1 workspace task commit before-large-agent-task
+adpos workspace task prepare before-large-agent-task
+adpos workspace task snapshot before-large-agent-task
+adpos workspace task run before-large-agent-task
+adpos workspace task validate before-large-agent-task
+adpos workspace task review before-large-agent-task
+adpos workspace task rollback before-large-agent-task
+adpos workspace task commit before-large-agent-task
 ```
 
 这些 task lifecycle 命令都是 plan-only。它们不会启动运行时、修改 sync session、创建快照、运行 Git 命令，也不会运行验证命令。它们只会打印人类或 agent 下一步应该显式执行的命令和 review checklist。
@@ -170,8 +170,8 @@ Workspace task 是 ADP-OS 的第一个 agent-native workflow 入口。它会把 
 Validation execution 有意保持很窄：
 
 ```powershell
-.\cli\adp.ps1 workspace task validate frontend-browser-acceptance -Execute -Plan -ManifestPath configs\workspace.recipes.example.json
-.\cli\adp.ps1 workspace task validate frontend-browser-acceptance -Execute -ManifestPath configs\workspace.recipes.example.json
+adpos workspace task validate frontend-browser-acceptance -Execute -Plan -ManifestPath configs\workspace.recipes.example.json
+adpos workspace task validate frontend-browser-acceptance -Execute -ManifestPath configs\workspace.recipes.example.json
 ```
 
 `-Execute -Plan` 会打印 readiness gate 和将要运行的 SSH 命令。`-Execute` 会连接到 task runtime，进入 `/home/adp/workspace/<project-path>`，并按顺序运行每条 `tasks[].validation` 命令。执行前，ADP-OS 会显示 runtime、sync、snapshot gate、project path 和 SSH target readiness。ADP-OS 不会创建快照、启动同步、安装隐藏依赖、下载浏览器 binary（除非你声明的命令自己这么做）、stage 文件或 commit 文件。Review 仍然是单独的显式步骤。
@@ -189,7 +189,7 @@ adp-workspace.state.json
 记录本地 lifecycle decision：
 
 ```powershell
-.\cli\adp.ps1 workspace task mark before-large-agent-task prepared
+adpos workspace task mark before-large-agent-task prepared
 ```
 
 `task mark` 只记录本地 task state。它会写入 `adp-workspace.state.json`，平台仓库默认忽略这个文件。state 文件让 `workspace status`、`workspace dashboard`、`workspace project`、`workspace report` 和 task lifecycle 命令可以显示人类或 agent 已将任务标记为 `prepared`、`checkpointed`、`checkpoint-waived`、`running`、`validated`、`reviewed`、`rollback` 或 `committed`。执行过的 validation 也会把 validation result 详情写到同一个被忽略的 state 文件。标记状态不会运行任务、创建快照、运行验证、恢复快照、stage 文件或 commit 改动。
@@ -218,16 +218,16 @@ configs/workspace.recipes.example.json
 用非破坏性的方式查看 recipes，不会修改运行时、sync session、快照、文件或验证状态：
 
 ```powershell
-.\cli\adp.ps1 workspace show -ManifestPath configs\workspace.recipes.example.json
-.\cli\adp.ps1 workspace plan -ManifestPath configs\workspace.recipes.example.json
-.\cli\adp.ps1 workspace recipes -ManifestPath configs\workspace.recipes.example.json
-.\cli\adp.ps1 workspace create -Plan -ManifestPath configs\workspace.recipes.example.json
-.\cli\adp.ps1 workspace open frontend-app -ManifestPath configs\workspace.recipes.example.json
-.\cli\adp.ps1 workspace sync frontend-app -ManifestPath configs\workspace.recipes.example.json
-.\cli\adp.ps1 workspace project frontend-app -ManifestPath configs\workspace.recipes.example.json
-.\cli\adp.ps1 workspace dashboard -ManifestPath configs\workspace.recipes.example.json
-.\cli\adp.ps1 workspace report -ManifestPath configs\workspace.recipes.example.json
-.\cli\adp.ps1 workspace report -Markdown -ManifestPath configs\workspace.recipes.example.json
+adpos workspace show -ManifestPath configs\workspace.recipes.example.json
+adpos workspace plan -ManifestPath configs\workspace.recipes.example.json
+adpos workspace recipes -ManifestPath configs\workspace.recipes.example.json
+adpos workspace create -Plan -ManifestPath configs\workspace.recipes.example.json
+adpos workspace open frontend-app -ManifestPath configs\workspace.recipes.example.json
+adpos workspace sync frontend-app -ManifestPath configs\workspace.recipes.example.json
+adpos workspace project frontend-app -ManifestPath configs\workspace.recipes.example.json
+adpos workspace dashboard -ManifestPath configs\workspace.recipes.example.json
+adpos workspace report -ManifestPath configs\workspace.recipes.example.json
+adpos workspace report -Markdown -ManifestPath configs\workspace.recipes.example.json
 ```
 
 `workspace recipes` 是 manifest discovery view。它会汇总 project recipes、task recipes、milestone checkpoints、evaluation hooks 和 evidence commands，但不会 clone project、打开 SSH、启动 sync、创建快照、运行 validation、运行 evaluation commands、运行 Git 或修改文件。当你想先看清 manifest 里有哪些 workflow recipes，再选择 project-specific 或 task-specific command 时，使用这个命令。
@@ -235,9 +235,9 @@ configs/workspace.recipes.example.json
 使用 task-specific planning commands，让操作边界更明确：
 
 ```powershell
-.\cli\adp.ps1 workspace task validate frontend-browser-acceptance -ManifestPath configs\workspace.recipes.example.json
-.\cli\adp.ps1 workspace task validate frontend-browser-acceptance -Execute -Plan -ManifestPath configs\workspace.recipes.example.json
-.\cli\adp.ps1 workspace task run broad-agent-refactor -ManifestPath configs\workspace.recipes.example.json
+adpos workspace task validate frontend-browser-acceptance -ManifestPath configs\workspace.recipes.example.json
+adpos workspace task validate frontend-browser-acceptance -Execute -Plan -ManifestPath configs\workspace.recipes.example.json
+adpos workspace task run broad-agent-refactor -ManifestPath configs\workspace.recipes.example.json
 ```
 
 这些 recipes 只是示例。默认情况下，ADP-OS 会从 manifest 打印验证命令，但 workspace planning commands 不会安装 packages、下载浏览器 binary、运行 Playwright、运行 Python 工具、创建快照、恢复快照、stage 文件或 commit 改动。只有显式调用 `workspace task validate -Execute` 时，validation 才会执行。

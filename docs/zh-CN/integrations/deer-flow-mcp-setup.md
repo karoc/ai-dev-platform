@@ -25,15 +25,15 @@
 
 | 条件 | 验证方式 | 说明 |
 |------|---------|------|
-| ADP-OS 已安装 | `pwsh -File cli/adp.ps1 doctor` | Windows 主机上的 VMware Workstation |
-| SSH 可达的 VM | `pwsh -File cli/adp.ps1 status` | 至少一个运行时已配置 |
+| ADP-OS 已安装 | `adpos doctor` | Windows 主机上的 VMware Workstation |
+| SSH 可达的 VM | `adpos status` | 至少一个运行时已配置 |
 | Python 3.10+ | `python3 --version` | MCP 服务器所需 |
 | deer-flow 已安装 | 项目根目录包含 `extensions_config.json` | deer-flow MCP 扩展支持 |
 | （可选）`paramiko` | `pip install paramiko` | 更好的 SSH 性能 |
 
 ```bash
 # 快速前置检查
-pwsh -File cli/adp.ps1 doctor   # 应返回 "healthy"
+adpos doctor   # 应返回 "healthy"
 python3 --version                # 应为 ≥3.10
 ```
 
@@ -297,7 +297,7 @@ kill %1
 
 **检查项**：
 1. VMware Workstation 在 Windows 主机上运行
-2. `pwsh -File cli/adp.ps1 status` 显示 VM 状态
+2. `adpos status` 显示 VM 状态
 3. 首次 Ubuntu 自动安装可能需要 15-45 分钟——多等一会儿
 4. ISO 存在于 `configs/topology.json` 中配置的路径
 
@@ -351,8 +351,8 @@ adp_file_upload agent "/tmp/data.bin" "SGVsbG8=" plan_only=False
 
 ## 验证清单
 
-- [ ] ADP-OS CLI 健康：`pwsh -File cli/adp.ps1 doctor`
-- [ ] 至少一个 VM 运行时已配置：`pwsh -File cli/adp.ps1 status`
+- [ ] ADP-OS CLI 健康：`adpos doctor`
+- [ ] 至少一个 VM 运行时已配置：`adpos status`
 - [ ] MCP 服务器模块可加载：`python3 -c "from cli.mcp.server import mcp; print(len(mcp._tool_manager._tools))"` → `26`
 - [ ] MCP 服务器测试通过：`python3 -m pytest tests/test-mcp-server.py -q` → `45 passed`
 - [ ] Deer-flow 适配器测试通过：`python3 -m pytest tests/test_deerflow_adp_sandbox.py -q` → `46 passed`

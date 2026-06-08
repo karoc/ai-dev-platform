@@ -7,7 +7,7 @@ This page describes the current ADP-OS capability boundary. It is deliberately e
 Use this command to see the same boundary from the CLI:
 
 ```powershell
-.\cli\adp.ps1 capabilities
+adpos capabilities
 ```
 
 The command is non-destructive. It does not create, start, stop, inspect, or destroy VMs; it does not change sync sessions, snapshots, guest files, workspace files, downloads, or host networking.

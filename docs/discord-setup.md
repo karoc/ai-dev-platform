@@ -76,7 +76,7 @@ ADP-OS is a developer tool for Windows-first AI agent development. Discord is wh
 **Guidelines**:
 - Search before asking — check the [troubleshooting guide](troubleshooting.md) and pinned FAQs.
 - Include your environment: Windows version, PowerShell version, VMware edition.
-- Paste `adp doctor` output for installation issues.
+- Paste `adpos doctor` output for installation issues.
 - Use the [Installation Help issue template](https://github.com/karoc/ai-dev-platform/issues/new?template=install_help.yml) for persistent problems.
 
 #### #ideas

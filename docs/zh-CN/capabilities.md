@@ -7,7 +7,7 @@
 可以用这个命令在 CLI 中查看同一份边界：
 
 ```powershell
-.\cli\adp.ps1 capabilities
+adpos capabilities
 ```
 
 该命令是非破坏性的。它不会创建、启动、停止、检查或销毁 VM；不会修改 sync sessions、snapshots、guest files、workspace files、downloads 或 host networking。

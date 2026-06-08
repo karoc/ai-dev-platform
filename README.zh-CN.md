@@ -22,9 +22,9 @@ AI 每天在写越来越多的代码。但当 AI 生成一个 commit 时，你�
 ADP-OS 用一条可验证的**证据链**来回答这些问题：
 
 - **快照签名** — 每个 VM 状态检查点都会被哈希并加盖时间戳，你可以证明代码是在哪个确切环境中构建的。
-- **操作日志** — 每次 `adp up`、`adp sync`、`adp snapshot` 和验证运行都会记录操作类型、时间戳和结果。
-- **证据导出** — `adp workspace evidence -Export` 将所有日志、签名、任务状态和 AI 声明打包为一个 ZIP 归档，用于合规、审查或发布。
-- **AI 开发声明** — `adp workspace declare -AiAssisted` 记录谁审查了 AI 生成的代码，创建从 prompt 到生产的溯源轨迹。
+- **操作日志** — 每次 `adpos up`、`adpos sync`、`adpos snapshot` 和验证运行都会记录操作类型、时间戳和结果。
+- **证据导出** — `adpos workspace evidence -Export` 将所有日志、签名、任务状态和 AI 声明打包为一个 ZIP 归档，用于合规、审查或发布。
+- **AI 开发声明** — `adpos workspace declare -AiAssisted` 记录谁审查了 AI 生成的代码，创建从 prompt 到生产的溯源轨迹。
 
 ```
 以前：ADP-OS 是一个管理 AI 开发 VM 的工具。
@@ -34,7 +34,7 @@ ADP-OS 用一条可验证的**证据链**来回答这些问题：
 
 ## 提供能力
 
-- **证据链 / Evidence chain** — 快照签名 (`adp workspace evidence -Snapshot`)、操作日志 (`adp workspace evidence -Log`)、证据包导出 (`adp workspace evidence -Export`)、AI 辅助开发声明 (`adp workspace declare -AiAssisted`)。每次构建都可审计，每次 AI 贡献都有记录。
+- **证据链 / Evidence chain** — 快照签名 (`adpos workspace evidence -Snapshot`)、操作日志 (`adpos workspace evidence -Log`)、证据包导出 (`adpos workspace evidence -Export`)、AI 辅助开发声明 (`adpos workspace declare -AiAssisted`)。每次构建都可审计，每次 AI 贡献都有记录。
 - **Windows 优先的 VM 沙箱** — 本地优先的面向 AI Agent 和 Computer-Use Agent 的硬件级隔离可编程代码执行沙箱基础设施。使用 PowerShell 7 实现的 Windows 控制平面。
 - 面向 Ubuntu Server 26.04 的 VMware Workstation VM 工厂。
 - 基于 cloud-init seed data 的 Ubuntu autoinstall ISO 重制。
@@ -86,7 +86,7 @@ ADP-OS 兼容 [Claude Managed Agents](https://docs.anthropic.com/en/docs/agents-
 
 - Windows 11。
 - Git，用于克隆仓库。
-- PowerShell 7 或更高版本。`setup.cmd` 是面向普通 Windows shell 的引导入口；系统内置 Windows PowerShell 5.1 只能把 `setup.ps1` / `install.ps1` 切换到 `pwsh.exe`，或显示安装命令。ADP-OS 控制平面运行在 PowerShell 7 上。
+- PowerShell 7 或更高版本。`setup.cmd` 是面向普通 Windows shell 的引导入口；如果缺少 PowerShell 7，它会先尝试用 `winget` 自动安装并继续 setup。若自动安装不可用，才会打印手动 `winget` / MSI 安装路径。ADP-OS 控制平面运行在 PowerShell 7 上。
 - VMware Workstation Pro，包含 `vmrun.exe` 和 `vmware-vdiskmanager.exe`。
 - Ubuntu Server 26.04 live server ISO。
 - WSL，以及 `xorriso` 或其他兼容的 ISO 重制路径。
@@ -115,7 +115,9 @@ cd ai-dev-platform
 .\setup.cmd
 ```
 
-`.\setup.cmd` 是克隆后面向普通 Windows shell 的推荐入口。它将引导您一次性完成全部设置：前提条件扫描、ISO 下载（~2.6 GB）、平台引导、初始化和系统诊断。如果缺少 PowerShell 7，`setup.cmd` 会先打印安装命令并退出，不会让 Windows PowerShell 5.1 误跑 ADP-OS 控制平面。已经打开 PowerShell 7 时，也可以直接运行 `.\setup.ps1`。
+`.\setup.cmd` 是克隆后面向普通 Windows shell 的推荐入口。它将引导您一次性完成全部设置：前提条件扫描、ISO 下载（~2.6 GB）、平台引导、初始化和系统诊断。如果缺少 PowerShell 7，`setup.cmd` / `setup.ps1` 会先尝试用 `winget` 自动安装；如果仍无法获得可用的 `pwsh.exe`，才会打印手动安装路径并退出，不会让 Windows PowerShell 5.1 误跑 ADP-OS 控制平面。已经打开 PowerShell 7 时，也可以直接运行 `.\setup.ps1`。
+
+设置流程还会为当前用户注册全局 `adpos` 命令。安装完成后，可以在任意目录运行 `adpos` 操作 ADP-OS；如果当前 shell 还没有刷新用户 `PATH`，请打开一个新终端。仓库根目录下优先使用 `.\adpos.cmd` 作为本地 wrapper；`adp` 和 `.\adp.cmd` 保留为兼容别名，供已有用户和脚本继续使用。
 
 **选项：**
 
@@ -129,10 +131,10 @@ cd ai-dev-platform
 **开始前，检查前提条件：**
 
 ```powershell
-.\adp.cmd precheck
+.\adpos.cmd precheck
 ```
 
-`adp precheck` 扫描全部 6 项前提条件（Windows 11、PowerShell 7+、VMware Workstation Pro、WSL+xorriso、Mutagen 0.18.x、OpenSSH），以状态表格显示每项的修复命令。在运行 `setup.cmd` 或 `install.ps1` 之前使用它以查看需要什么。使用 `.\adp.cmd precheck --help-prereqs` 查看带安装命令的完整需求列表。
+`adpos precheck` 扫描全部 6 项前提条件（Windows 11、PowerShell 7+、VMware Workstation Pro、WSL+xorriso、Mutagen 0.18.x、OpenSSH），以状态表格显示每项的修复命令。在运行 `setup.cmd` 或 `install.ps1` 之前使用它以查看需要什么。使用 `.\adpos.cmd precheck --help-prereqs` 查看带安装命令的完整需求列表。
 
 **或者，手动分步：**
 
@@ -147,17 +149,17 @@ pwsh.exe -ExecutionPolicy Bypass -File .\install.ps1
 下载 Ubuntu Server ISO（使用 BITS 传输，支持断点续传）：
 
 ```powershell
-.\adp.cmd iso
+adpos iso
 ```
 
 > [!TIP]
-> 在仓库根目录中，请使用 `.\adp.cmd`，不要直接运行 `.\cli\adp.ps1`。如果你把仓库根目录加入了 `PATH`，才可以使用裸 `adp`。
+> 安装后请使用正式入口 `adpos`。如果当前 shell 尚未刷新 `PATH`，可在仓库根目录使用 `.\adpos.cmd`；`adp` 和 `.\adp.cmd` 仅作为兼容入口保留。
 
 如果您在中国，使用镜像下载更快：
 
 ```powershell
-.\adp.cmd iso -Url "https://mirrors.aliyun.com/ubuntu-releases/26.04/ubuntu-26.04-live-server-amd64.iso"
-.\adp.cmd iso -Url "https://mirrors.ustc.edu.cn/ubuntu-releases/26.04/ubuntu-26.04-live-server-amd64.iso"
+adpos iso -Url "https://mirrors.aliyun.com/ubuntu-releases/26.04/ubuntu-26.04-live-server-amd64.iso"
+adpos iso -Url "https://mirrors.ustc.edu.cn/ubuntu-releases/26.04/ubuntu-26.04-live-server-amd64.iso"
 ```
 
 如需设置本机路径、VM 规格、静态 IP 或本地 bootstrap 凭据，可以复制已被忽略的本地覆盖示例：
@@ -171,30 +173,30 @@ Copy-Item configs\\local.example.json configs\\local.json
 初始化运行时：
 
 ```powershell
-.\adp.cmd init
+adpos init
 ```
 
 创建并启动运行时：
 
 ```powershell
-.\adp.cmd up frontend
-.\adp.cmd up backend
-.\adp.cmd up agent
+adpos up frontend
+adpos up backend
+adpos up agent
 ```
 
 查看运行时状态和连接信息：
 
 ```powershell
-.\adp.cmd status
-.\adp.cmd status agent
+adpos status
+adpos status agent
 ```
 
 启动工作区同步：
 
 ```powershell
-.\adp.cmd sync start frontend
-.\adp.cmd sync start backend
-.\adp.cmd sync start agent
+adpos sync start frontend
+adpos sync start backend
+adpos sync start agent
 ```
 
 需要时准备 frontend 浏览器验收测试：
@@ -208,10 +210,10 @@ adp-frontend-browser-install chromium
 检查健康状态：
 
 ```powershell
-.\adp.cmd doctor
-.\adp.cmd doctor -FirstRun
-.\adp.cmd doctor -FixMutagen -Plan
-.\adp.cmd sync status
+adpos doctor
+adpos doctor -FirstRun
+adpos doctor -FixMutagen -Plan
+adpos sync status
 ```
 
 `install.ps1` 和 `doctor` 会检查 VMware 工具、`vmware-vdiskmanager.exe`、WSL、WSL `xorriso`、Mutagen 0.18.x、OpenSSH、ISO 是否存在以及 ISO 基本形态。它们会输出修复命令或放置路径提示，但默认不会下载大型二进制文件。如需安装经过测试的本地 Mutagen binary，先运行 `doctor -FixMutagen -Plan` 预览，再运行 `doctor -FixMutagen`；archive 和解压后的 binary 会保留在已忽略的 `.tools\mutagen` 下。如果 GitHub release 下载很慢或不可达，可以把 `mutagen_windows_amd64_v0.18.1.zip` 放到 `.tools\mutagen`，或在 `configs\local.json` 中设置 `platform.tools.mutagen.archive_path`；设置 `platform.tools.mutagen.sha256` 后会强制校验 archive hash。
@@ -240,17 +242,31 @@ adp-frontend-browser-install chromium
 创建干净快照：
 
 ```powershell
-.\adp.cmd snapshot create frontend clean
-.\adp.cmd snapshot create backend clean
-.\adp.cmd snapshot create agent clean
+adpos snapshot create frontend clean
+adpos snapshot create backend clean
+adpos snapshot create agent clean
 ```
 
 签署快照并导出证据链：
 
 ```powershell
-.\adp.cmd workspace evidence -Snapshot
-.\adp.cmd workspace evidence -Export
-.\adp.cmd workspace declare -AiAssisted -Reviewer "your-name"
+adpos workspace evidence -Snapshot
+adpos workspace evidence -Export
+adpos workspace declare -AiAssisted -Reviewer "your-name"
+```
+
+一键卸载当前用户的命令注册：
+
+```powershell
+adpos uninstall
+```
+
+这只会移除当前用户级别的 `adpos` PATH shim，不会删除 VM、workspace 文件、ISO cache、本地工具、日志或仓库文件。
+
+如果当前 shell 中还无法使用 `adpos`，也可以在仓库根目录运行：
+
+```powershell
+.\uninstall.cmd
 ```
 
 ## 默认运行时
@@ -266,7 +282,7 @@ adp-frontend-browser-install chromium
 对已有 VM 应用配置的网络：
 
 ```powershell
-.\adp.cmd network apply all
+adpos network apply all
 ```
 
 ## 工作区路径
@@ -303,74 +319,78 @@ git clone <project-url> my-project
 ADP-OS 还提供一个多场景、Spec 驱动的 workspace recipes manifest，用于常见 agent-native workflow。把 manifest 当作 Spec：声明要构建什么、如何验证、哪些里程碑把关进度，然后由平台执行并产出可审计的发布证据：
 
 ```powershell
-.\adp.cmd workspace show -ManifestPath configs\workspace.recipes.example.json
-.\adp.cmd workspace plan -ManifestPath configs\workspace.recipes.example.json
-.\adp.cmd workspace recipes -ManifestPath configs\workspace.recipes.example.json
-.\adp.cmd workspace create -Plan -ManifestPath configs\workspace.recipes.example.json
-.\adp.cmd workspace open frontend-app -ManifestPath configs\workspace.recipes.example.json
-.\adp.cmd workspace sync frontend-app -ManifestPath configs\workspace.recipes.example.json
-.\adp.cmd workspace project frontend-app -ManifestPath configs\workspace.recipes.example.json
-.\adp.cmd workspace dashboard -ManifestPath configs\workspace.recipes.example.json
-.\adp.cmd workspace report -ManifestPath configs\workspace.recipes.example.json
-.\adp.cmd workspace report -Markdown -ManifestPath configs\workspace.recipes.example.json
+adpos workspace show -ManifestPath configs\workspace.recipes.example.json
+adpos workspace plan -ManifestPath configs\workspace.recipes.example.json
+adpos workspace recipes -ManifestPath configs\workspace.recipes.example.json
+adpos workspace create -Plan -ManifestPath configs\workspace.recipes.example.json
+adpos workspace open frontend-app -ManifestPath configs\workspace.recipes.example.json
+adpos workspace sync frontend-app -ManifestPath configs\workspace.recipes.example.json
+adpos workspace project frontend-app -ManifestPath configs\workspace.recipes.example.json
+adpos workspace dashboard -ManifestPath configs\workspace.recipes.example.json
+adpos workspace report -ManifestPath configs\workspace.recipes.example.json
+adpos workspace report -Markdown -ManifestPath configs\workspace.recipes.example.json
 ```
 
-这些 recipes 覆盖低风险维护、frontend 浏览器验收、backend 验证，以及带 snapshot-first gate 的高风险 agent 工作。它们也演示了可选的 `milestones[]` planning，让相关 task 可以共享一个可见的 milestone checkpoint，例如 `milestone-agent-refactor-safety`；还演示了 plan-only `evaluations[]` hooks，让 agent-native review criteria、metrics 和声明式 evaluation commands 可以进入 release evidence，但不会被执行。`workspace recipes` 是这些示例的 discovery view：它会汇总 project recipes、task recipes、milestone checkpoints、evaluation hooks 和 evidence commands，但不会 clone project、打开 SSH、创建快照、运行 validation、运行 evaluation commands、启动 sync 或运行 Git。`workspace create -Plan` 会预览 manifest 声明的本地项目目录；`workspace create` 只会创建这些本地目录，仍然不会 clone project、启动 sync、启动 runtime、打开 SSH、创建快照、运行 validation、运行 evaluation commands 或运行 Git。`workspace open` 会为单个项目打印非破坏性的 open guide：local path、remote path、readiness，以及可复制的本地、编辑器、SSH、sync 和 status 命令。`workspace sync` 会打印非破坏性的 project-aware sync guide：它会把 manifest project 映射回 runtime sync session，显示 sync readiness 和 sync hygiene，并打印需要显式执行的 runtime `adp sync` 命令。`workspace project` 会在一个位置打印 project operational lifecycle：open、runtime、sync、validation、linked tasks 和 evidence handoff。`workspace report` 还会打印 release handoff summary，用于统计 validation result、列出 blockers、显示 ready for review 或 ready to commit 的 task、标明当前 release gate，暴露 milestone checkpoint status、evaluation queue status，并暴露 owner、review cadence、due date 等 task governance 字段。它还会按 owner queue、review cadence queue、milestone queue、milestone review rollup、validation execution queue、evaluation queue、attention queue 和 decision queues 聚合 task，用于周期性 review，并给出 validate、review、revise、snapshot 或 commit 等下一步动作分类，同时输出 release decision policy 和 stale-task remediation guidance。添加 `-Markdown` 可以生成可复制到 PR 或 release 的 evidence，并保持同一套 decision state，其中包含 Validation Execution Queue、Evaluation Queue、Milestone Checkpoints 和 Milestone Review Rollup tables。这些 recipes 只是 planning examples；workspace 命令不会安装 packages、下载浏览器、创建快照、运行验证、运行 evaluation commands、打开编辑器、SSH 进入 runtime、启动 sync、停止 sync 或 commit 文件。
+这些 recipes 覆盖低风险维护、frontend 浏览器验收、backend 验证，以及带 snapshot-first gate 的高风险 agent 工作。它们也演示了可选的 `milestones[]` planning，让相关 task 可以共享一个可见的 milestone checkpoint，例如 `milestone-agent-refactor-safety`；还演示了 plan-only `evaluations[]` hooks，让 agent-native review criteria、metrics 和声明式 evaluation commands 可以进入 release evidence，但不会被执行。`workspace recipes` 是这些示例的 discovery view：它会汇总 project recipes、task recipes、milestone checkpoints、evaluation hooks 和 evidence commands，但不会 clone project、打开 SSH、创建快照、运行 validation、运行 evaluation commands、启动 sync 或运行 Git。`workspace create -Plan` 会预览 manifest 声明的本地项目目录；`workspace create` 只会创建这些本地目录，仍然不会 clone project、启动 sync、启动 runtime、打开 SSH、创建快照、运行 validation、运行 evaluation commands 或运行 Git。`workspace open` 会为单个项目打印非破坏性的 open guide：local path、remote path、readiness，以及可复制的本地、编辑器、SSH、sync 和 status 命令。`workspace sync` 会打印非破坏性的 project-aware sync guide：它会把 manifest project 映射回 runtime sync session，显示 sync readiness 和 sync hygiene，并打印需要显式执行的 runtime `adpos sync` 命令。`workspace project` 会在一个位置打印 project operational lifecycle：open、runtime、sync、validation、linked tasks 和 evidence handoff。`workspace report` 还会打印 release handoff summary，用于统计 validation result、列出 blockers、显示 ready for review 或 ready to commit 的 task、标明当前 release gate，暴露 milestone checkpoint status、evaluation queue status，并暴露 owner、review cadence、due date 等 task governance 字段。它还会按 owner queue、review cadence queue、milestone queue、milestone review rollup、validation execution queue、evaluation queue、attention queue 和 decision queues 聚合 task，用于周期性 review，并给出 validate、review、revise、snapshot 或 commit 等下一步动作分类，同时输出 release decision policy 和 stale-task remediation guidance。添加 `-Markdown` 可以生成可复制到 PR 或 release 的 evidence，并保持同一套 decision state，其中包含 Validation Execution Queue、Evaluation Queue、Milestone Checkpoints 和 Milestone Review Rollup tables。这些 recipes 只是 planning examples；workspace 命令不会安装 packages、下载浏览器、创建快照、运行验证、运行 evaluation commands、打开编辑器、SSH 进入 runtime、启动 sync、停止 sync 或 commit 文件。
 
 Validation 可以从 task recipe 中显式执行：
 
 ```powershell
-.\adp.cmd workspace task validate frontend-browser-acceptance -Execute -Plan -ManifestPath configs\workspace.recipes.example.json
-.\adp.cmd workspace task validate frontend-browser-acceptance -Execute -ManifestPath configs\workspace.recipes.example.json
+adpos workspace task validate frontend-browser-acceptance -Execute -Plan -ManifestPath configs\workspace.recipes.example.json
+adpos workspace task validate frontend-browser-acceptance -Execute -ManifestPath configs\workspace.recipes.example.json
 ```
 
 `-Execute -Plan` 会预览 readiness gate 和远端 SSH 命令。`-Execute` 只会在目标项目目录中运行已声明的 `tasks[].validation` 命令，并把结果记录到已忽略的本地 workspace state。Review、rollback 和 commit 命令会读取这个记录并显示 decision gate，但 stage、restore 和真正执行 commit 仍然是独立的显式步骤。
 
 ## 命令参考
 
-本节用 `adp` 表示命令名。从仓库根目录运行时，请使用 `.\adp.cmd ...`；只有把仓库根目录加入 `PATH` 后，才使用裸 `adp ...`。
+本节使用 `adpos`，也就是 `.\setup.cmd` 安装后注册的正式命令。若当前 shell 尚未刷新 `PATH`，可在仓库根目录使用 `.\adpos.cmd ...`。`adp` 和 `.\adp.cmd` 仍作为兼容别名保留；MCP 工具名（例如 `adp_status`）是稳定协议标识，保持不变。
+
+`adpos uninstall` 只移除全局命令注册。Runtime 数据、workspace 数据、缓存、工具、日志和仓库文件都会保留。
 
 ```powershell
-adp iso [ubuntu|almalinux|rocky|debian] [-Url <url>] [-Force] [-NonInteractive]
-adp quickstart [-Distro <name>] [-IsoPath <path>] [-SkipIsoDownload] [-SkipDoctor] [-Force] [-NonInteractive]
-adp init
-adp init <frontend|backend|agent> [-IsoPath <path>] [-NoProvision] [-Quick] [-NonInteractive]
-adp up <frontend|backend|agent> [-IsoPath <path>] [-Plan] [-NoProvision] [-NoBootstrap]
-adp status [frontend|backend|agent]
-adp capabilities
-adp stop <frontend|backend|agent>
-adp sync status
-adp workspace init
-adp workspace show
-adp workspace plan
-adp workspace status
-adp workspace dashboard
-adp workspace recipes
-adp workspace create [-Plan]
-adp workspace open [project-name]
-adp workspace sync [project-name]
-adp workspace project [project-name]
-adp workspace report
-adp workspace report [-Markdown]
-adp workspace evidence -Snapshot [-Json]                        签署当前快照元数据 (SHA-256 链)
-adp workspace evidence -Log -Operation <op> [-Details <text>] [-Json]  记录操作日志条目
-adp workspace evidence -Export [-Path <path>]                   导出所有证据为 ZIP
-adp workspace declare -AiAssisted [-Reviewer <name>] [-Notes "..."] [-Json]  声明 AI 辅助开发
-adp workspace task <prepare|snapshot|run|validate|review|rollback|commit> <task-name>
-adp workspace task validate <task-name> [-Execute] [-Plan]
-adp workspace task mark <task-name> <prepared|checkpointed|checkpoint-waived|running|validated|reviewed|rollback|committed>
-adp sync start <frontend|backend|agent>
-adp sync stop <frontend|backend|agent>
-adp network apply <frontend|backend|agent|all> [-Plan]
-adp snapshot create <runtime> <name>
-adp restore <runtime> <name>
-adp logs <runtime>
-adp doctor [-FirstRun] [-FixMutagen] [-Plan]
-adp destroy <runtime> [-Plan]
-adp workspace evidence -Snapshot [-ManifestPath <path>]
-adp workspace evidence -Log -Operation <op> [-Details <text>] [-ManifestPath <path>]
-adp workspace evidence -Export [-Path <path>] [-ManifestPath <path>]
-adp workspace declare -AiAssisted [-Reviewer <name>] [-Notes "..."] [-ManifestPath <path>]
+adpos setup [-IsoPath <path>] [-SkipIsoDownload] [-NonInteractive] [-Force]
+adpos uninstall
+adpos iso [ubuntu|almalinux|rocky|debian] [-Url <url>] [-Force] [-NonInteractive]
+adpos quickstart [-Distro <name>] [-IsoPath <path>] [-SkipIsoDownload] [-SkipDoctor] [-Force] [-NonInteractive]
+adpos init
+adpos init <frontend|backend|agent> [-IsoPath <path>] [-NoProvision] [-Quick] [-NonInteractive]
+adpos up <frontend|backend|agent> [-IsoPath <path>] [-Plan] [-NoProvision] [-NoBootstrap]
+adpos status [frontend|backend|agent]
+adpos capabilities
+adpos stop <frontend|backend|agent>
+adpos sync status
+adpos workspace init
+adpos workspace show
+adpos workspace plan
+adpos workspace status
+adpos workspace dashboard
+adpos workspace recipes
+adpos workspace create [-Plan]
+adpos workspace open [project-name]
+adpos workspace sync [project-name]
+adpos workspace project [project-name]
+adpos workspace report
+adpos workspace report [-Markdown]
+adpos workspace evidence -Snapshot [-Json]                        签署当前快照元数据 (SHA-256 链)
+adpos workspace evidence -Log -Operation <op> [-Details <text>] [-Json]  记录操作日志条目
+adpos workspace evidence -Export [-Path <path>]                   导出所有证据为 ZIP
+adpos workspace declare -AiAssisted [-Reviewer <name>] [-Notes "..."] [-Json]  声明 AI 辅助开发
+adpos workspace task <prepare|snapshot|run|validate|review|rollback|commit> <task-name>
+adpos workspace task validate <task-name> [-Execute] [-Plan]
+adpos workspace task mark <task-name> <prepared|checkpointed|checkpoint-waived|running|validated|reviewed|rollback|committed>
+adpos sync start <frontend|backend|agent>
+adpos sync stop <frontend|backend|agent>
+adpos network apply <frontend|backend|agent|all> [-Plan]
+adpos snapshot create <runtime> <name>
+adpos restore <runtime> <name>
+adpos logs <runtime>
+adpos doctor [-FirstRun] [-FixMutagen] [-Plan]
+adpos destroy <runtime> [-Plan]
+adpos workspace evidence -Snapshot [-ManifestPath <path>]
+adpos workspace evidence -Log -Operation <op> [-Details <text>] [-ManifestPath <path>]
+adpos workspace evidence -Export [-Path <path>] [-ManifestPath <path>]
+adpos workspace declare -AiAssisted [-Reviewer <name>] [-Notes "..."] [-ManifestPath <path>]
 ```
 
 ## 文档

@@ -1,5 +1,6 @@
 @echo off
-REM ADP-OS compatibility CLI wrapper. Prefer adpos.cmd or the globally registered adpos command.
+REM ADP-OS CLI Wrapper
+REM Preferred user-facing command. Run from the project root before setup registers global adpos.
 
 setlocal
 

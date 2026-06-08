@@ -2,7 +2,7 @@
 
 [简体中文](zh-CN/getting-started.md) | English
 
-Welcome to ADP-OS. This guide walks you through your first setup — from nothing to a running development VM — in about 30 minutes.
+Welcome to ADP-OS. This guide walks you through your first setup — from nothing to a running development VM — in about 30-70 minutes, depending mostly on ISO download speed and first VM creation time.
 
 ## What is ADP-OS?
 
@@ -14,8 +14,8 @@ ADP-OS (AI Dev Platform OS) is a local AI development runtime platform. It provi
 │                                                             │
 │   ADP-OS Control Plane (PowerShell 7)                       │
 │   ┌──────────┐  ┌──────────┐  ┌──────────┐                 │
-│   │  install  │  │   adp    │  │  doctor  │                 │
-│   │   .ps1    │  │  .ps1    │  │  checks  │                 │
+│   │  setup   │  │  adpos   │  │  doctor  │                 │
+│   │  .cmd    │  │ command  │  │  checks  │                 │
 │   └──────────┘  └──────────┘  └──────────┘                 │
 │         │              │             │                       │
 │         ▼              ▼             ▼                       │
@@ -51,11 +51,11 @@ Before you start, make sure you have:
 | # | Prerequisite | How to Get It |
 |---|-------------|---------------|
 | 1 | **Windows 11** | Check via Settings → System → About. Windows 10 is not supported. |
-| 2 | **PowerShell 7+** | Install with `winget install --id Microsoft.PowerShell --source winget`, or download from GitHub. Built-in PowerShell 5.1 can launch the bootstrap wrapper, but it cannot run the ADP-OS control plane. |
+| 2 | **PowerShell 7+** | `.\setup.cmd` attempts to install it automatically with `winget` if it is missing. Manual fallback: `winget install --id Microsoft.PowerShell --source winget`, or download from GitHub. Built-in PowerShell 5.1 can launch the bootstrap wrapper, but it cannot run the ADP-OS control plane. |
 | 3 | **VMware Workstation Pro** | [Download](https://www.vmware.com/products/workstation-pro.html) (free for personal use, or paid license). Verify with `vmrun.exe` on your PATH. |
 | 4 | **WSL** (Windows Subsystem for Linux) | Run `wsl --install` in an admin PowerShell. Required for ISO remastering. |
 | 5 | **OpenSSH Client** | Already included in Windows 11. Verify with `ssh -V`. |
-| 6 | **Mutagen 0.18.x** | ADP-OS can install it for you via `.\adp.cmd doctor -FixMutagen`. Or [download manually](https://github.com/mutagen-io/mutagen/releases) if GitHub is slow. |
+| 6 | **Mutagen 0.18.x** | ADP-OS can install it for you via `adpos doctor -FixMutagen` after setup, or `.\adpos.cmd doctor -FixMutagen` from the repo root before your shell refreshes `PATH`. Or [download manually](https://github.com/mutagen-io/mutagen/releases) if GitHub is slow. |
 | 7 | **~10 GB free disk space** | For ISOs, VM disks, and tool binaries. |
 
 **Note:** Items 1–5 are pre-requisites you install yourself. Item 6 (Mutagen) can be installed by ADP-OS's built-in doctor. Item 7 is just space.
@@ -66,10 +66,11 @@ Before you start, make sure you have:
 |------|------|-------------|
 | Clone the repo | < 1 min | `git clone` — a few megabytes |
 | Download Ubuntu ISO | 5–15 min | ~2.6 GB download. Speed depends on your connection and [Ubuntu mirror](https://releases.ubuntu.com/26.04/) reachability |
-| `setup.cmd` (install + init) | 5–10 min | Installs platform, remasters ISO, creates VM templates |
-| `.\adp.cmd up frontend` | 5–10 min | Provisions and boots your first VM, runs bootstrap scripts |
-| Verify with `.\adp.cmd status` | < 1 min | Confirms everything is running |
-| **Total** | **~30 minutes** | From zero to working development VM |
+| `setup.cmd` (install + init) | 5–10 min | Installs platform, registers the global `adpos` command, remasters ISO, creates VM templates |
+| `adpos up frontend` (first VM) | 15–45 min | Provisions and boots your first VM, runs bootstrap scripts |
+| Later warm start | ~30s | Starts an existing VM after it has already been provisioned |
+| Verify with `adpos status` | < 1 min | Confirms everything is running |
+| **Total** | **~30–70 minutes** | From zero to working development VM |
 
 Times assume a typical broadband connection and a reasonably fast machine. ISO download is usually the slowest step.
 
@@ -85,7 +86,7 @@ cd ai-dev-platform
 ```
 
 > [!TIP]
-> After the platform is installed, you can run `adp` as a bare command. The Quick Start examples use `.\adp.cmd` so they also work from stock Windows shells.
+> After setup, use `adpos` from any directory. If the current shell has not picked up the updated user `PATH` yet, open a new terminal or use `.\adpos.cmd` from the repository root. `adp` and `.\adp.cmd` remain compatibility aliases.
 
 ### Step 2: Run the Guided Setup
 
@@ -99,9 +100,9 @@ This single command handles ISO download, platform installation, initialization,
 
 1. **Prerequisite Scan** — Checks all 6 prerequisites and shows remediation for any missing items.  
 2. **ISO Download** — Downloads Ubuntu Server 26.04 (~2.6 GB). Progress shown with percentage and speed.
-3. **Install** — Runs `install.ps1` which sets up directories, generates seed ISO, and creates VM templates.
-4. **Init** — Runs `adp init -Quick` through the setup chain to finalize platform configuration.
-5. **Doctor** — Runs `adp doctor` through the setup chain to verify all prerequisites are in place.
+3. **Install** — Runs `install.ps1` which sets up directories, registers `adpos`, generates seed ISO, and creates VM templates.
+4. **Init** — Runs `adpos init -Quick` through the setup chain to finalize platform configuration.
+5. **Doctor** — Runs `adpos doctor` through the setup chain to verify all prerequisites are in place.
 
 You'll see progress indicators like `[1/6]`, `[2/6]` as each phase completes.
 
@@ -112,7 +113,7 @@ You'll see progress indicators like `[1/6]`, `[2/6]` as each phase completes.
 > [!NOTE]
 > If you already have the Ubuntu ISO downloaded, you can skip the download:
 > ```powershell
-> .\adp.cmd quickstart -IsoPath C:\path\to\ubuntu-26.04-live-server-amd64.iso
+> .\setup.cmd -IsoPath C:\path\to\ubuntu-26.04-live-server-amd64.iso
 > ```
 
 ### Step 3: Start Your First Runtime
@@ -120,7 +121,7 @@ You'll see progress indicators like `[1/6]`, `[2/6]` as each phase completes.
 Provision and boot the frontend VM:
 
 ```powershell
-.\adp.cmd up frontend
+adpos up frontend
 ```
 
 This command:
@@ -131,12 +132,12 @@ This command:
 4. Runs SSH bootstrap scripts (Docker, Node.js, etc.)
 5. Confirms the VM is ready
 
-You'll see output as each stage completes. The first boot takes 5–10 minutes — subsequent boots are much faster.
+You'll see output as each stage completes. The first VM creation usually takes 15–45 minutes because Ubuntu autoinstall and bootstrap are running for the first time. Later warm starts of an already provisioned VM are usually about 30 seconds.
 
 > [!TIP]
 > Want to preview what `up` will do without making changes? Use `-Plan`:
 > ```powershell
-> .\adp.cmd up frontend -Plan
+> adpos up frontend -Plan
 > ```
 
 ### Step 4: Check Everything is Working
@@ -144,7 +145,7 @@ You'll see output as each stage completes. The first boot takes 5–10 minutes �
 #### Check Runtime Status
 
 ```powershell
-.\adp.cmd status
+adpos status
 ```
 
 Healthy output looks like:
@@ -159,7 +160,7 @@ frontend  running   192.168.242.131  adp-os-adp-frontend
 #### Run Diagnostics
 
 ```powershell
-.\adp.cmd doctor
+adpos doctor
 ```
 
 Healthy output looks like:
@@ -176,20 +177,20 @@ Healthy output looks like:
 Doctor complete: 7/7 checks passed.
 ```
 
-All 7 checks should show `[PASS]`. If any show `[FAIL]`, the output includes remediation instructions — follow them and re-run `.\adp.cmd doctor`.
+All 7 checks should show `[PASS]`. If any show `[FAIL]`, the output includes remediation instructions — follow them and re-run `adpos doctor`.
 
 ### Step 5: Start Workspace Sync (Optional but Recommended)
 
 Synchronize your local project files into the VM:
 
 ```powershell
-.\adp.cmd sync start frontend
+adpos sync start frontend
 ```
 
 Check sync status:
 
 ```powershell
-.\adp.cmd sync status
+adpos sync status
 ```
 
 Expected output:
@@ -224,7 +225,7 @@ All three should print version numbers — these were installed during bootstrap
 
 ### "vmrun.exe not found"
 
-**Symptom:** `adp doctor` shows `[FAIL] VMware Workstation`.
+**Symptom:** `adpos doctor` shows `[FAIL] VMware Workstation`.
 
 **Fix:** Install VMware Workstation Pro. After installation, open a new PowerShell window so the PATH updates. Verify with:
 
@@ -239,14 +240,14 @@ vmrun.exe list
 **Fix:** Download the ISO manually through a browser (which may handle resuming better), then pass the path:
 
 ```powershell
-.\adp.cmd quickstart -IsoPath C:\Users\YOURNAME\Downloads\ubuntu-26.04-live-server-amd64.iso
+.\setup.cmd -IsoPath C:\Users\YOURNAME\Downloads\ubuntu-26.04-live-server-amd64.iso
 ```
 
 The ISO goes to `%USERPROFILE%\adp-iso\`. Manual download URL: https://releases.ubuntu.com/26.04/ubuntu-26.04-live-server-amd64.iso
 
 ### "WSL not detected" or "xorriso not found"
 
-**Symptom:** `adp doctor` shows `[FAIL] WSL` or `[FAIL] WSL xorriso`.
+**Symptom:** `adpos doctor` shows `[FAIL] WSL` or `[FAIL] WSL xorriso`.
 
 **Fix:** Install WSL and xorriso:
 
@@ -260,14 +261,14 @@ wsl -u root bash -lc "apt-get update && DEBIAN_FRONTEND=noninteractive apt-get i
 
 ### VM starts but "provisioning timed out"
 
-**Symptom:** `adp up frontend` runs for a while then shows a timeout error about cloud-init provisioning.
+**Symptom:** `adpos up frontend` runs for a while then shows a timeout error about cloud-init provisioning.
 
 **Fix:** This usually means VMware networking isn't set up correctly. Check:
 
 1. Open VMware Workstation, go to Edit → Virtual Network Editor
 2. Verify the NAT network (default `vmnet8`) is enabled
 3. Check that the subnet matches `configs\platform.json`
-4. Run `.\adp.cmd doctor` — it checks NAT host matching when detectable
+4. Run `adpos doctor` — it checks NAT host matching when detectable
 
 ### "Permission denied" when running .ps1 files
 
@@ -279,7 +280,7 @@ wsl -u root bash -lc "apt-get update && DEBIAN_FRONTEND=noninteractive apt-get i
 pwsh.exe -ExecutionPolicy Bypass -File .\install.ps1
 ```
 
-If `pwsh.exe` is missing, install PowerShell 7 first:
+If `pwsh.exe` is missing, the normal path is to run `.\setup.cmd`; it attempts the PowerShell 7 install automatically. Manual fallback:
 
 ```powershell
 winget install --id Microsoft.PowerShell --source winget
@@ -289,17 +290,17 @@ Or use the `.cmd` wrappers; they also check for PowerShell 7 before running ADP-
 
 ```powershell
 .\setup.cmd
-.\adp.cmd quickstart
+.\adpos.cmd quickstart
 ```
 
 ### "Mutagen 0.18.x not found"
 
-**Symptom:** `adp doctor` shows `[FAIL] Mutagen`.
+**Symptom:** `adpos doctor` shows `[FAIL] Mutagen`.
 
 **Fix:** Let ADP-OS install it for you:
 
 ```powershell
-.\adp.cmd doctor -FixMutagen
+adpos doctor -FixMutagen
 ```
 
 This downloads and installs Mutagen into `.tools\mutagen\mutagen.exe`. If GitHub is slow, see the [Operations](operations.md) guide for offline installation.
@@ -318,8 +319,20 @@ Now that your first runtime is running:
 Want all three runtimes? After `frontend` is running:
 
 ```powershell
-.\adp.cmd up backend
-.\adp.cmd up agent
+adpos up backend
+adpos up agent
 ```
 
-Happy building!
+To remove the global command registration later, run:
+
+```powershell
+adpos uninstall
+```
+
+This only removes the user-level `adpos` PATH shim. It does not delete VMs, workspace files, ISO cache, local tools, logs, or repository files.
+
+If `adpos` is not available in the current shell, use the repository-root wrapper:
+
+```powershell
+.\uninstall.cmd
+```

@@ -482,7 +482,7 @@ function Get-SyncSessionInfo {
             ExpectedLocal  = $ExpectedLocalPath
             ExpectedRemote = $ExpectedRemoteUrl
             Health         = "not-started"
-            Detail         = "Run: adp sync start $($SessionName -replace '^adp-', '')"
+            Detail         = "Run: adpos sync start $($SessionName -replace '^adp-', '')"
         }
     }
 
@@ -640,7 +640,7 @@ function New-SyncSession {
         Write-Host "  Current remote: $($existingSession.BetaUrl)" -ForegroundColor DarkGray
         Write-Host "  Expected remote: $sshUrl" -ForegroundColor DarkGray
         Write-Host "  Stopping a stale session is safe — workspace files on both sides are not deleted." -ForegroundColor Green
-        Write-Host "  To fix: adp sync stop $runtimePart, then adp sync start $runtimePart" -ForegroundColor Yellow
+        Write-Host "  To fix: adpos sync stop $runtimePart, then adpos sync start $runtimePart" -ForegroundColor Yellow
         exit 1
     }
 
@@ -705,8 +705,8 @@ function Get-SyncSessionRecoveryInfo {
         return $result
     }
 
-    $result.StopCommand = "adp sync stop $RuntimeName"
-    $result.StartCommand = "adp sync start $RuntimeName"
+    $result.StopCommand = "adpos sync stop $RuntimeName"
+    $result.StartCommand = "adpos sync start $RuntimeName"
 
     # Detect root-emptying protection
     if ($session.Health -eq "unhealthy" -and $session.Status -match '(?i)(root.?empty|empty.?root|safeguard|one.?side)') {
@@ -717,7 +717,7 @@ function Get-SyncSessionRecoveryInfo {
             "Repopulate one side from the source of truth, or recreate the project tree if you intentionally started over.",
             $result.StopCommand,
             $result.StartCommand,
-            "adp sync status"
+            "adpos sync status"
         )
         $result.SafeCleanup = $true
         return $result
@@ -730,7 +730,7 @@ function Get-SyncSessionRecoveryInfo {
         $result.RecoveryDetail = "A Mutagen session '$SessionName' exists, but the runtime VM has not been created in the current checkout. The session may belong to a previous checkout, a deleted VM, or a different clone."
         $result.RecoverySteps = @(
             "If the runtime was intentionally deleted or moved, stop the stale session: $($result.StopCommand)",
-            "Create the runtime: adp up $RuntimeName",
+            "Create the runtime: adpos up $RuntimeName",
             "Start a fresh sync session: $($result.StartCommand)",
             "If the session belongs to another active clone, leave it alone."
         )
@@ -747,7 +747,7 @@ function Get-SyncSessionRecoveryInfo {
             "This session was likely created from a different clone of this repository.",
             "If the other clone is still active, consider which checkout should own the session.",
             "To reclaim for the current checkout: $($result.StopCommand), then $($result.StartCommand)",
-            "To verify before stopping: adp sync status"
+            "To verify before stopping: adpos sync status"
         )
         $result.SafeCleanup = $true
         return $result
@@ -773,7 +773,7 @@ function Get-SyncSessionRecoveryInfo {
         $result.RecoveryDetail = "The Mutagen session '$SessionName' is in an unhealthy state: $($session.Status)."
         $result.RecoverySteps = @(
             "Stop and recreate: $($result.StopCommand), then $($result.StartCommand)",
-            "Check sync status: adp sync status"
+            "Check sync status: adpos sync status"
         )
         $result.SafeCleanup = $true
         return $result

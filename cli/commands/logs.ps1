@@ -6,7 +6,7 @@ param(
 )
 
 if (-not $RuntimeName) {
-    Write-ErrorLog -Message (Get-UIText -English "Usage: adp logs <runtime> (frontend|backend|agent)" -Chinese "用法: adp logs <runtime> (frontend|backend|agent)") -Component "cli.logs"
+    Write-ErrorLog -Message (Get-UIText -English "Usage: adpos logs <runtime> (frontend|backend|agent)" -Chinese "用法: adpos logs <runtime> (frontend|backend|agent)") -Component "cli.logs"
     exit 1
 }
 

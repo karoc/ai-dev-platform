@@ -8,12 +8,12 @@ param(
 )
 
 if (-not $SubCommand -or $SubCommand -ne "create") {
-    Write-ErrorLog -Message (Get-UIText -English "Usage: adp snapshot create <runtime> <snapshot-name>" -Chinese "用法: adp snapshot create <runtime> <snapshot-name>") -Component "cli.snapshot"
+    Write-ErrorLog -Message (Get-UIText -English "Usage: adpos snapshot create <runtime> <snapshot-name>" -Chinese "用法: adpos snapshot create <runtime> <snapshot-name>") -Component "cli.snapshot"
     exit 1
 }
 
 if (-not $RuntimeName -or -not $SnapshotName) {
-    Write-ErrorLog -Message (Get-UIText -English "Usage: adp snapshot create <runtime> <snapshot-name>" -Chinese "用法: adp snapshot create <runtime> <snapshot-name>") -Component "cli.snapshot"
+    Write-ErrorLog -Message (Get-UIText -English "Usage: adpos snapshot create <runtime> <snapshot-name>" -Chinese "用法: adpos snapshot create <runtime> <snapshot-name>") -Component "cli.snapshot"
     exit 1
 }
 

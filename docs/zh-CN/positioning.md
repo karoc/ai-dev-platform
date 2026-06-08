@@ -85,8 +85,8 @@ Docker 可以重建 containers 和 images，但 AI 开发环境经常包含单�
 ADP-OS 暴露 VM 级回滚：
 
 ```powershell
-.\cli\adp.ps1 snapshot create agent clean
-.\cli\adp.ps1 restore agent clean
+adpos snapshot create agent clean
+adpos restore agent clean
 ```
 
 这恢复的是作为机器的 runtime，而不只是某个进程或 container。
@@ -104,10 +104,10 @@ agent: 更高资源规格、IO 调优、agent sandbox 准备
 同一组 ADP 命令管理每个运行时：
 
 ```powershell
-.\cli\adp.ps1 up frontend
-.\cli\adp.ps1 sync start frontend
-.\cli\adp.ps1 snapshot create frontend clean
-.\cli\adp.ps1 doctor
+adpos up frontend
+adpos sync start frontend
+adpos snapshot create frontend clean
+adpos doctor
 ```
 
 ### Agent 原生开发

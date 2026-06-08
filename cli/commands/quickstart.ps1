@@ -1,5 +1,5 @@
 # ADP-OS Quickstart Wizard
-# Guided first-run experience — chains precheck, ISO download, init, and doctor
+# Guided first-run experience — chains precheck, ISO download, install, init, and doctor
 # Designed to reduce the ~15 manual steps to one guided flow
 
 param(
@@ -9,12 +9,14 @@ param(
     [switch]$SkipDoctor,
     [switch]$NonInteractive,
     [switch]$Force,
+    [switch]$NoRegisterCommand,
     [switch]$HelpPrereqs
 )
 
 . (Join-Path (Get-ProjectRoot) "runtimes\vmware\os-profiles.ps1")
+. (Join-Path (Get-ProjectRoot) "scripts\adpos-registration.ps1")
 
-Write-InfoLog -Message (Get-UIText -English "adp quickstart" -Chinese "adp 快速启动") -Component "cli.quickstart"
+Write-InfoLog -Message (Get-UIText -English "adpos quickstart" -Chinese "adpos 快速启动") -Component "cli.quickstart"
 
 # --- --help-prereqs: delegate to precheck ---
 if ($HelpPrereqs) {
@@ -48,14 +50,14 @@ if (-not $Force) {
             Write-Host "检测到 $issuesCount 个前提条件问题。" -ForegroundColor Yellow
             Write-Host ""
             Write-Host "要继续并忽略警告？" -ForegroundColor Cyan
-            Write-Host "  adp quickstart -Force   跳过前提条件检查" -ForegroundColor DarkGray
-            Write-Host "  adp precheck --help-prereqs   查看完整要求和安装说明" -ForegroundColor DarkGray
+            Write-Host "  adpos quickstart -Force   跳过前提条件检查" -ForegroundColor DarkGray
+            Write-Host "  adpos precheck --help-prereqs   查看完整要求和安装说明" -ForegroundColor DarkGray
         } else {
             Write-Host "$issuesCount prerequisite issue(s) detected." -ForegroundColor Yellow
             Write-Host ""
             Write-Host "Want to continue anyway?" -ForegroundColor Cyan
-            Write-Host "  adp quickstart -Force   Skip prerequisite checks" -ForegroundColor DarkGray
-            Write-Host "  adp precheck --help-prereqs   View full requirements and install instructions" -ForegroundColor DarkGray
+            Write-Host "  adpos quickstart -Force   Skip prerequisite checks" -ForegroundColor DarkGray
+            Write-Host "  adpos precheck --help-prereqs   View full requirements and install instructions" -ForegroundColor DarkGray
         }
         Write-Host ""
         exit 1
@@ -79,7 +81,8 @@ if (-not $Force) {
 if (-not $NonInteractive) {
     Write-UIHost -English "This wizard will guide you through:" -Chinese "本向导将引导您完成：" -ForegroundColor Yellow
     Write-UIHost -English "  1. Download Linux ISO (if needed, ~2.6 GB, 10-30 min)" -Chinese "  1. 下载 Linux ISO（如需要，~2.6 GB, 10-30 分钟）" -ForegroundColor DarkGray
-    Write-UIHost -English "  2. Platform initialization (~1 min)" -Chinese "  2. 平台初始化 (~1 分钟)" -ForegroundColor DarkGray
+    Write-UIHost -English "  2. Platform bootstrap and global adpos registration (~30s)" -Chinese "  2. 平台引导并注册全局 adpos 命令 (~30s)" -ForegroundColor DarkGray
+    Write-UIHost -English "  3. Platform initialization and diagnostics (~1 min)" -Chinese "  3. 平台初始化和系统诊断 (~1 分钟)" -ForegroundColor DarkGray
     Write-Host ""
 }
 
@@ -151,6 +154,9 @@ if (-not $alreadyInstalled) {
     if ($IsoPath) {
         $installArgs += "-IsoPath", $IsoPath
     }
+    if ($NoRegisterCommand) {
+        $installArgs += "-NoRegisterCommand"
+    }
 
     & $installScript @installArgs
 
@@ -164,10 +170,18 @@ if (-not $alreadyInstalled) {
         Write-UIHost -English "Step 2: Platform already bootstrapped — skipping install.ps1" -Chinese "步骤 2：平台已引导 — 跳过 install.ps1" -ForegroundColor DarkGray
         Write-Host ""
     }
+    if (-not $NoRegisterCommand) {
+        $registration = Install-ADPOSCommandRegistration -ProjectRoot $projectRoot
+        if (-not $NonInteractive) {
+            Write-UIHost -English "Step 2b: Global command registered: adpos" -Chinese "步骤 2b：已注册全局命令: adpos" -ForegroundColor Green
+            Write-Host "  $($registration.ShimPath)" -ForegroundColor DarkGray
+            Write-Host ""
+        }
+    }
 }
 
 # =============================================
-# Step 3: adp init -Quick
+# Step 3: adpos init -Quick
 # =============================================
 if (-not $NonInteractive) {
     Write-UIHost -English "Step 3: Initializing platform... (~30s)" -Chinese "步骤 3：初始化平台... (~30s)" -ForegroundColor Cyan
@@ -183,13 +197,13 @@ if ($IsoPath) {
 . $initCommand @initArgs
 
 if ($LASTEXITCODE -ne 0) {
-    Write-ErrorLog -Message "adp init failed with exit code $LASTEXITCODE" -Component "cli.quickstart"
-    Write-UIHost -English "  Platform init failed. Try running 'adp init' directly to see detailed errors." -Chinese "  平台初始化失败。尝试直接运行 'adp init' 查看详细错误。" -ForegroundColor Red
+    Write-ErrorLog -Message "adpos init failed with exit code $LASTEXITCODE" -Component "cli.quickstart"
+    Write-UIHost -English "  Platform init failed. Try running 'adpos init' directly to see detailed errors." -Chinese "  平台初始化失败。尝试直接运行 'adpos init' 查看详细错误。" -ForegroundColor Red
     exit 1
 }
 
 # =============================================
-# Step 4: adp doctor
+# Step 4: adpos doctor
 # =============================================
 if (-not $SkipDoctor) {
     if (-not $NonInteractive) {
@@ -201,7 +215,7 @@ if (-not $SkipDoctor) {
     . $doctorCommand
 
     if ($LASTEXITCODE -ne 0) {
-        Write-WarnLog -Message "adp doctor reported issues (exit code $LASTEXITCODE)" -Component "cli.quickstart"
+        Write-WarnLog -Message "adpos doctor reported issues (exit code $LASTEXITCODE)" -Component "cli.quickstart"
         Write-UIHost -English "  Doctor found issues. Review the output above for remediation steps." -Chinese "  Doctor 发现问题。请查看上方输出了解修复步骤。" -ForegroundColor Yellow
     }
 } else {
@@ -223,12 +237,16 @@ if (-not $NonInteractive) {
     Write-UIHost -English "  Platform initialized successfully." -Chinese "  平台已成功初始化。" -ForegroundColor Green
     Write-Host ""
     Write-UIHost -English "Next steps:" -Chinese "下一步:" -ForegroundColor Cyan
-    Write-UIHost -English "  adp up frontend    Start your first runtime (creates VM from ISO, ~20-30 min first time)" -Chinese "  adp up frontend    启动第一个运行时（从 ISO 创建 VM，首次约 20-30 分钟）" -ForegroundColor DarkGray
-    Write-UIHost -English "  adp doctor         Check platform health" -Chinese "  adp doctor         检查平台健康状态" -ForegroundColor DarkGray
-    Write-UIHost -English "  adp help           See all commands" -Chinese "  adp help           查看所有命令" -ForegroundColor DarkGray
+    Write-UIHost -English "  adpos up frontend    Start your first runtime (creates VM from ISO, ~15-45 min first time)" -Chinese "  adpos up frontend    启动第一个运行时（从 ISO 创建 VM，首次约 15-45 分钟）" -ForegroundColor DarkGray
+    Write-UIHost -English "  adpos doctor         Check platform health" -Chinese "  adpos doctor         检查平台健康状态" -ForegroundColor DarkGray
+    Write-UIHost -English "  adpos help           See all commands" -Chinese "  adpos help           查看所有命令" -ForegroundColor DarkGray
+    Write-UIHost -English "  adpos uninstall      Remove the global command registration" -Chinese "  adpos uninstall      移除全局命令注册" -ForegroundColor DarkGray
+    Write-UIHost -English "  If this terminal cannot find adpos yet, open a new terminal or use .\adpos.cmd from this repository." -Chinese "  如果当前终端暂时找不到 adpos，请打开新终端，或在本仓库中使用 .\adpos.cmd。" -ForegroundColor DarkGray
     Write-Host ""
     Write-UIHost -English "  For more info: https://github.com/karoc/ai-dev-platform" -Chinese "  更多信息：https://github.com/karoc/ai-dev-platform" -ForegroundColor DarkGray
     Write-Host ""
 } else {
     Write-InfoLog -Message "Quickstart completed successfully (non-interactive)" -Component "cli.quickstart"
 }
+
+exit 0

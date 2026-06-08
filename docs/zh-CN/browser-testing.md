@@ -11,8 +11,8 @@ Frontend 运行时默认保持轻量。它会安装 Node.js、pnpm、前端工�
 启动并同步 frontend 运行时：
 
 ```powershell
-.\cli\adp.ps1 up frontend
-.\cli\adp.ps1 sync start frontend
+adpos up frontend
+adpos sync start frontend
 ```
 
 进入运行时：

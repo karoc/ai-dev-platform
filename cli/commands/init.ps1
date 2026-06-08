@@ -10,7 +10,7 @@ param(
     [switch]$NonInteractive
 )
 
-Write-InfoLog -Message (Get-UIText -English "adp init (Phase 2)" -Chinese "adp init（阶段 2）") -Component "cli.init"
+Write-InfoLog -Message (Get-UIText -English "adpos init (Phase 2)" -Chinese "adpos init（阶段 2）") -Component "cli.init"
 
 # In NonInteractive mode, skip all banners and confirmation prompts
 if ($NonInteractive) {
@@ -84,7 +84,7 @@ if (-not $Quick) {
             Write-UIHost -English "  ISO found: $isoPath ($sizeGB GB) [OK]" -Chinese "  找到 ISO: $isoPath ($sizeGB GB) [OK]" -ForegroundColor Green
         } else {
             Write-UIHost -English "  ISO not found at: $isoPath" -Chinese "  未在此处找到 ISO: $isoPath" -ForegroundColor Red
-            Write-UIHost -English "  Run: adp init -IsoPath <path-to-linux-iso>" -Chinese "  运行: adp init -IsoPath <path-to-linux-iso>" -ForegroundColor Yellow
+            Write-UIHost -English "  Run: adpos init -IsoPath <path-to-linux-iso>" -Chinese "  运行: adpos init -IsoPath <path-to-linux-iso>" -ForegroundColor Yellow
             Write-UIHost -English "  Or place ISO at: $isoPath" -Chinese "  或将 ISO 放到: $isoPath" -ForegroundColor Yellow
         }
     }
@@ -109,7 +109,7 @@ if (-not $Quick) {
             $sizeGB = [math]::Round((Get-Item $isoPath).Length / 1GB, 1)
             Write-UIHost -English "  ISO found in cache: $isoPath ($sizeGB GB)" -Chinese "  在缓存中找到 ISO: $isoPath ($sizeGB GB)" -ForegroundColor DarkGray
         } else {
-            Write-UIHost -English "  [WARN] ISO not found in cache. Use 'adp iso download' or place ISO manually." -Chinese "  [WARN] 缓存中未找到 ISO。使用 'adp iso download' 或手动放置 ISO。" -ForegroundColor Yellow
+            Write-UIHost -English "  [WARN] ISO not found in cache. Use 'adpos iso download' or place ISO manually." -Chinese "  [WARN] 缓存中未找到 ISO。使用 'adpos iso download' 或手动放置 ISO。" -ForegroundColor Yellow
         }
     }
 }
@@ -205,7 +205,7 @@ if (-not $NonInteractive) {
     Write-UIHost -English "  ADP-OS Phase 2 Init Complete" -Chinese "  ADP-OS 阶段 2 初始化完成" -ForegroundColor Green
     Write-Host "========================================" -ForegroundColor Green
     Write-Host ""
-    Write-UIHost -English "Next: adp up <runtime>     Start/auto-create a runtime" -Chinese "下一步: adp up <runtime>     启动/自动创建运行时" -ForegroundColor Cyan
-    Write-UIHost -English "      adp doctor            Check platform health" -Chinese "      adp doctor            检查平台健康状态" -ForegroundColor Cyan
+    Write-UIHost -English "Next: adpos up <runtime>     Start/auto-create a runtime" -Chinese "下一步: adpos up <runtime>     启动/自动创建运行时" -ForegroundColor Cyan
+    Write-UIHost -English "      adpos doctor            Check platform health" -Chinese "      adpos doctor            检查平台健康状态" -ForegroundColor Cyan
     Write-Host ""
 }

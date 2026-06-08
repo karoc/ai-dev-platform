@@ -28,7 +28,7 @@
 运行：
 
 ```powershell
-.\cli\adp.ps1 doctor
+adpos doctor
 ```
 
 期望结果：
@@ -40,7 +40,7 @@ All checks passed. Platform is healthy.
 首次使用时可以附加检查清单：
 
 ```powershell
-.\cli\adp.ps1 doctor -FirstRun
+adpos doctor -FirstRun
 ```
 
 `doctor` 会检查平台前置条件、配置结构、本地覆盖状态、VMware 工具、可探测时的 VMware NAT host match、Mutagen 版本、ISO cache、运行时拓扑、静态 IP 唯一性、静态 IP 网段、跨 VMX path 的 duplicate running ADP runtime 名称、已有 runtime 的 seed network drift、VM 状态、运行中 VM 的 SSH 可达性，以及 Mutagen sessions。
@@ -48,13 +48,13 @@ All checks passed. Platform is healthy.
 预览本地 Mutagen 修复：
 
 ```powershell
-.\cli\adp.ps1 doctor -FixMutagen -Plan
+adpos doctor -FixMutagen -Plan
 ```
 
 确认计划后，再安装经过测试的本地 Mutagen binary：
 
 ```powershell
-.\cli\adp.ps1 doctor -FixMutagen
+adpos doctor -FixMutagen
 ```
 
 `-FixMutagen` 会把 Mutagen 0.18.x 安装到 `.tools\mutagen\mutagen.exe`，并验证安装后的版本。安装路径会打印明确阶段、下载 source/target、offline archive path、连接和 hard timeout、可选 SHA256 状态、干净的失败输出，以及下载失败时的手动恢复路径。`.tools` 目录已被 Git 忽略，因此下载的 archive 和本地 binary 不会被提交。
@@ -67,7 +67,7 @@ New-Item -ItemType Directory -Path .tools\mutagen -Force
 # https://github.com/mutagen-io/mutagen/releases/download/v0.18.1/mutagen_windows_amd64_v0.18.1.zip
 # 保存为：
 # .tools\mutagen\mutagen_windows_amd64_v0.18.1.zip
-.\cli\adp.ps1 doctor -FixMutagen
+adpos doctor -FixMutagen
 ```
 
 如果需要自定义本地 archive、mirror 或 timeout policy，可以在被忽略的 `configs\local.json` 中设置 `platform.tools.mutagen`：
@@ -136,16 +136,16 @@ Installer 排障开关：
 ## 启动运行时
 
 ```powershell
-.\cli\adp.ps1 up frontend
-.\cli\adp.ps1 up backend
-.\cli\adp.ps1 up agent
+adpos up frontend
+adpos up backend
+adpos up agent
 ```
 
 如果 VM 已存在且正在运行，ADP 会报告当前 IP 并跳过创建。
 
 启动后，ADP 会打印配置中的连接目标、SSH 命令、SSH alias、workspace path、sync 命令和 status 命令。连接目标来自合并后的配置；如果存在 `configs\\local.json`，也会包含其中的覆盖值。
 
-在创建或启动 VM 之前，`adp up` 会检查是否存在属于其他 clone 或已删除 VM 的 stale Mutagen session。如果存在同名的 stale session，ADP 会显示同步提示和安全的清理指引。停止 stale session 是安全的 — 它只移除 Mutagen session 定义，不会删除任何一侧的 workspace 文件。
+在创建或启动 VM 之前，`adpos up` 会检查是否存在属于其他 clone 或已删除 VM 的 stale Mutagen session。如果存在同名的 stale session，ADP 会显示同步提示和安全的清理指引。停止 stale session 是安全的 — 它只移除 Mutagen session 定义，不会删除任何一侧的 workspace 文件。
 
 `agent` 运行时可能会打印 high-IO profile 提示。
 
@@ -156,51 +156,51 @@ ADP 在这个阶段也会使用 PowerShell `Write-Progress` 显示不确定进�
 不创建、不启动、不 provisioning、不 bootstrap VM，只预览启动计划：
 
 ```powershell
-.\cli\adp.ps1 up agent -Plan
+adpos up agent -Plan
 ```
 
 只创建 VM 定义，不启动 OS provisioning 或 bootstrap：
 
 ```powershell
-.\cli\adp.ps1 up agent -NoProvision
+adpos up agent -NoProvision
 ```
 
 初始化平台状态，并创建运行时 VM 定义，但不启动 OS provisioning：
 
 ```powershell
-.\cli\adp.ps1 init agent -NoProvision
+adpos init agent -NoProvision
 ```
 
 首次创建运行时时，可以从任意位置传入 ISO：
 
 ```powershell
-.\cli\adp.ps1 up agent -IsoPath D:\Share\ubuntu-26.04-live-server-amd64.iso
+adpos up agent -IsoPath D:\Share\ubuntu-26.04-live-server-amd64.iso
 ```
 
 `-IsoPath` 会直接用于 VM 创建，不需要位于配置的 ISO cache 中。
 
-首次创建新 VM 前，`adp up <runtime>` 会在 host 暴露相关信息时，比对配置的 VMware NAT CIDR 和 host `VMnet8` 网络。如果二者不一致，ADP 会在创建 VM 前退出，并给出两条修复路径：用 `.\cli\adp.ps1 network configure-local -Plan` 和 `.\cli\adp.ps1 network configure-local -Apply` 将 ADP 本机 override 对齐到 host `VMnet8`，或保留 ADP 配置的 subnet 并在 VMware Virtual Network Editor 中修改 `VMnet8`。这可以避免新 VM 被安装到 host 无法访问的静态 IP 上。
+首次创建新 VM 前，`adpos up <runtime>` 会在 host 暴露相关信息时，比对配置的 VMware NAT CIDR 和 host `VMnet8` 网络。如果二者不一致，ADP 会在创建 VM 前退出，并给出两条修复路径：用 `adpos network configure-local -Plan` 和 `adpos network configure-local -Apply` 将 ADP 本机 override 对齐到 host `VMnet8`，或保留 ADP 配置的 subnet 并在 VMware Virtual Network Editor 中修改 `VMnet8`。这可以避免新 VM 被安装到 host 无法访问的静态 IP 上。
 
 ## 停止运行时
 
 ```powershell
-.\cli\adp.ps1 stop frontend
+adpos stop frontend
 ```
 
-该命令会先尝试 soft stop，必要时再 hard stop。VMware 控制操作是有界的：soft stop 使用较短 timeout，hard fallback 也有 timeout，因此 `adp stop` 应返回明确结果，而不是在 half-ready guest 上无限等待。
+该命令会先尝试 soft stop，必要时再 hard stop。VMware 控制操作是有界的：soft stop 使用较短 timeout，hard fallback 也有 timeout，因此 `adpos stop` 应返回明确结果，而不是在 half-ready guest 上无限等待。
 
 ## 运行时状态
 
 查看所有运行时状态和连接信息：
 
 ```powershell
-.\cli\adp.ps1 status
+adpos status
 ```
 
 查看单个运行时：
 
 ```powershell
-.\cli\adp.ps1 status frontend
+adpos status frontend
 ```
 
 `status` 是非破坏性的。它不会创建、启动、停止、同步、创建快照，也不会编辑 guest 文件。它会报告：
@@ -224,13 +224,13 @@ ADP 在这个阶段也会使用 PowerShell `Write-Progress` 显示不确定进�
 
 如果 `status` 报告 `network drift`，说明该 VM 是用比当前配置更旧的 seed 网络创建的。VM 创建完成后再编辑 `configs\local.json` 不会自动重写 guest 内部网络。根据实际情况选择 remediation path：
 
-- VM 可以重建时走 rebuild path。先用 `.\cli\adp.ps1 destroy <runtime> -Plan` 预览，再用 `.\cli\adp.ps1 up <runtime>` 重建。
-- seed-era address 仍可达时走 in-place guest netplan fix。先用 `.\cli\adp.ps1 network apply <runtime> -Plan` 预览；确认会 SSH 到预期 guest 后，再去掉 `-Plan` 执行。
+- VM 可以重建时走 rebuild path。先用 `adpos destroy <runtime> -Plan` 预览，再用 `adpos up <runtime>` 重建。
+- seed-era address 仍可达时走 in-place guest netplan fix。先用 `adpos network apply <runtime> -Plan` 预览；确认会 SSH 到预期 guest 后，再去掉 `-Plan` 执行。
 - 只有必须先恢复到 seed-era address 的 SSH 时，才考虑 administrator-only temporary host-route workaround。ADP 不会自动添加、修改或删除 host routes。
 
 如果 `status` 报告 `auth-pending`，说明 SSH 端口已经打开，但 ADP key 还没有被接受。首次 autoinstall 期间这通常表示 installer 或 first boot 仍在准备目标用户。请等待到 timeout，或者在该状态长时间不变化时检查 VMware console。
 
-如果 `status` 报告 `ssh-timeout`，说明 ADP 已执行有界 SSH 探测，但在 hard timeout 前无法把 guest 分类为 reachable。snapshot restore 后 VMware 已显示 VM running、但 guest SSH/control plane 尚未稳定时可能出现这种状态。请稍等后重新运行 `.\cli\adp.ps1 status <runtime>`；如果 restore 后 VM 处于 stopped，先运行 `.\cli\adp.ps1 up <runtime> -NoBootstrap`。只要 post-restore readiness 仍停在 `ssh-timeout`，就不要把 survival demo 计为成功。
+如果 `status` 报告 `ssh-timeout`，说明 ADP 已执行有界 SSH 探测，但在 hard timeout 前无法把 guest 分类为 reachable。snapshot restore 后 VMware 已显示 VM running、但 guest SSH/control plane 尚未稳定时可能出现这种状态。请稍等后重新运行 `adpos status <runtime>`；如果 restore 后 VM 处于 stopped，先运行 `adpos up <runtime> -NoBootstrap`。只要 post-restore readiness 仍停在 `ssh-timeout`，就不要把 survival demo 计为成功。
 
 ## SSH 访问
 
@@ -255,11 +255,11 @@ ADP 使用自己管理的 SSH 密钥对进行运行时通信。密钥自动创�
 
 ### 密钥生命周期
 
-**首次创建** — ADP 在首次需要 SSH 访问时自动创建密钥。在 `adp up`、`adp status`、`adp doctor` 或任何连接运行时的命令中触发。如果密钥目录不存在，ADP 会创建 `%USERPROFILE%\.ssh\adp-os\` 并生成新的 ed25519 密钥对。公钥在 bootstrap 阶段注入运行时 VM，因此在密钥存在之前创建的 VM 不会包含该公钥。
+**首次创建** — ADP 在首次需要 SSH 访问时自动创建密钥。在 `adpos up`、`adpos status`、`adpos doctor` 或任何连接运行时的命令中触发。如果密钥目录不存在，ADP 会创建 `%USERPROFILE%\.ssh\adp-os\` 并生成新的 ed25519 密钥对。公钥在 bootstrap 阶段注入运行时 VM，因此在密钥存在之前创建的 VM 不会包含该公钥。
 
 **密钥已存在** — 如果密钥对已存在，ADP 直接使用，不做修改。同一个密钥会被同一主机用户配置文件创建的所有 ADP 运行时共享。不支持将同一密钥移动或复制到另一台机器；如需迁移，必须重建受影响的 VM。
 
-**检查密钥状态** — 运行 `adp status <runtime>` 查看 SSH 状态。`key-missing` 状态表示密钥对尚未创建。在首次 `adp up` 或 SSH 操作之前，这在全新安装中是正常的。
+**检查密钥状态** — 运行 `adpos status <runtime>` 查看 SSH 状态。`key-missing` 状态表示密钥对尚未创建。在首次 `adpos up` 或 SSH 操作之前，这在全新安装中是正常的。
 
 **重新生成密钥** — ADP 不会自动重新生成密钥。如果需要新的密钥对：
 
@@ -273,7 +273,7 @@ ADP 使用自己管理的 SSH 密钥对进行运行时通信。密钥自动创�
    ```
 3. ADP 将在下次 SSH 操作时自动生成新密钥。
 
-**⚠️ 重要**：重新生成密钥会使所有现有运行时的 SSH 访问失效。旧公钥不再被接受，你必须用 `adp destroy <runtime>` 和 `adp up <runtime>` 重建受影响的 VM。
+**⚠️ 重要**：重新生成密钥会使所有现有运行时的 SSH 访问失效。旧公钥不再被接受，你必须用 `adpos destroy <runtime>` 和 `adpos up <runtime>` 重建受影响的 VM。
 
 ### 密钥安全
 
@@ -290,7 +290,7 @@ ADP 使用自己管理的 SSH 密钥对进行运行时通信。密钥自动创�
 ssh -i $env:USERPROFILE\.ssh\adp-os\adp-os adp@192.168.242.131
 ```
 
-默认地址见[网络说明](networking.md)。如果你用 `configs\local.json` 覆盖了 `topology.<runtime>.static_ip`，启动后运行 `.\cli\adp.ps1 status <runtime>`，然后连接输出中显示的地址。
+默认地址见[网络说明](networking.md)。如果你用 `configs\local.json` 覆盖了 `topology.<runtime>.static_ip`，启动后运行 `adpos status <runtime>`，然后连接输出中显示的地址。
 
 用 `scp` 拷贝文件到运行时：
 
@@ -304,18 +304,18 @@ scp -i $env:USERPROFILE\.ssh\adp-os\adp-os .\some-file adp@192.168.242.131:/home
 ssh -i $env:USERPROFILE\.ssh\adp-os\adp-os adp@192.168.242.131 "ls /home/adp/workspace"
 ```
 
-snapshot restore 或 VM 重建后，runtime 可能向 direct OpenSSH 展示不同的 SSH host key。ADP 管理的 readiness probes 会对配置的 runtime target 使用有界、非交互 SSH 检查，但手动 `ssh` 命令仍可能读取常规 `%USERPROFILE%\.ssh\known_hosts` 并报告旧 host-key 条目。如果出现这种情况，只刷新 ADP runtime alias 或 IP 对应的条目，然后重新运行 `.\cli\adp.ps1 status <runtime>` 再继续。
+snapshot restore 或 VM 重建后，runtime 可能向 direct OpenSSH 展示不同的 SSH host key。ADP 管理的 readiness probes 会对配置的 runtime target 使用有界、非交互 SSH 检查，但手动 `ssh` 命令仍可能读取常规 `%USERPROFILE%\.ssh\known_hosts` 并报告旧 host-key 条目。如果出现这种情况，只刷新 ADP runtime alias 或 IP 对应的条目，然后重新运行 `adpos status <runtime>` 再继续。
 
 ### SSH 密钥故障排除
 
 | 症状 | 可能原因 | 操作 |
 |---|---|---|
-| `status` 报告 `key-missing` | 密钥尚未创建 | 运行 `adp up <runtime>` 或任何 SSH 操作；ADP 会自动创建密钥。 |
+| `status` 报告 `key-missing` | 密钥尚未创建 | 运行 `adpos up <runtime>` 或任何 SSH 操作；ADP 会自动创建密钥。 |
 | `status` 报告 `auth-pending` | 密钥存在但 guest 尚未 ready | 等待 VM bootstrap 完成。首次 autoinstall 期间这是正常的。 |
 | `status` 报告 `ssh-timeout` | guest SSH/control plane 未在有界探测时间内稳定 | 稍等后重新运行 `status`；如果 restore 让 VM stopped，先运行 `up <runtime> -NoBootstrap`。 |
 | `status` 报告 `unreachable` | SSH 端口未开放或 IP 错误 | 检查 VM 是否运行，确认 static IP 与 host `VMnet8` 子网匹配。 |
 | `ssh` 命令失败，提示 `Permission denied` | 密钥与 guest authorized_keys 不匹配 | VM 是用不同密钥创建的。请重建 VM。 |
-| `ssh` 报告 `REMOTE HOST IDENTIFICATION HAS CHANGED` | restore 或 VM 重建后，direct OpenSSH 中有 stale `known_hosts` 条目 | 只刷新 ADP runtime alias/IP 对应条目，然后重新运行 `adp status <runtime>`。 |
+| `ssh` 报告 `REMOTE HOST IDENTIFICATION HAS CHANGED` | restore 或 VM 重建后，direct OpenSSH 中有 stale `known_hosts` 条目 | 只刷新 ADP runtime alias/IP 对应条目，然后重新运行 `adpos status <runtime>`。 |
 | `ssh` 命令失败，提示 `bad permissions` | 密钥文件权限过宽 | Windows OpenSSH 可能拒绝继承的宽泛权限。参见 [Microsoft OpenSSH 密钥权限](https://learn.microsoft.com/zh-cn/windows-server/administration/openssh/openssh_keymanagement)。 |
 | 密钥被意外删除 | `adp-os` 私钥丢失 | 同时删除 `adp-os.pub`，重建受影响的 VM。ADP 会重新生成密钥对。 |
 | 同一台机器上有多个用户 | 每个 Windows profile 拥有独立密钥 | ADP 密钥按用户配置文件隔离。每个用户的 `%USERPROFILE%\.ssh\adp-os\` 是独立的。 |
@@ -327,28 +327,28 @@ snapshot restore 或 VM 重建后，runtime 可能向 direct OpenSSH 展示不�
 启动同步：
 
 ```powershell
-.\cli\adp.ps1 sync start frontend
+adpos sync start frontend
 ```
 
 检查同步：
 
 ```powershell
-.\cli\adp.ps1 sync status
+adpos sync status
 ```
 
 `sync status` 会先打印 ADP runtime summary，然后再显示原始 Mutagen session 列表。summary 会把每个 `adp-<runtime>` session 与当前 checkout 期望的本地 workspace path 和 SSH alias 对比。某个 session 即使存在，也可能对当前 checkout 不可用，例如它指向旧 workspace、不同 remote alias，或 Mutagen 报告 halted/error 状态。对于当前 checkout 中已经创建的 runtime，ADP 会显示 `wrong-local`、`wrong-remote` 或 `unhealthy`，并打印显式恢复命令：
 
 ```powershell
-.\cli\adp.ps1 sync stop agent
-.\cli\adp.ps1 sync start agent
+adpos sync stop agent
+adpos sync start agent
 ```
 
 如果对应 runtime 尚未在当前 checkout 创建，ADP 会把同名 stale session 显示为 cleanup guidance，而不是当前平台健康失败。先停止旧 session，再创建 runtime，然后启动 sync：
 
 ```powershell
-.\cli\adp.ps1 sync stop frontend
-.\cli\adp.ps1 up frontend
-.\cli\adp.ps1 sync start frontend
+adpos sync stop frontend
+adpos up frontend
+adpos sync start frontend
 ```
 
 `sync start <runtime>` 不会把不可用的同名 session 当作成功。它会打印冷静、可操作的提示，说明为什么 session 不匹配当前 checkout，确认停止 stale session 是安全的（不会删除 workspace 文件），并要求你显式 stop 后重新创建 session。
@@ -356,7 +356,7 @@ snapshot restore 或 VM 重建后，runtime 可能向 direct OpenSSH 展示不�
 停止同步：
 
 ```powershell
-.\cli\adp.ps1 sync stop frontend
+adpos sync stop frontend
 ```
 
 Mutagen sessions 名称：
@@ -399,13 +399,13 @@ pnpm exec playwright test
 创建 baseline 快照：
 
 ```powershell
-.\cli\adp.ps1 snapshot create frontend clean
+adpos snapshot create frontend clean
 ```
 
 恢复：
 
 ```powershell
-.\cli\adp.ps1 restore frontend clean
+adpos restore frontend clean
 ```
 
 快照是 VMware snapshots，在运行中的 VM 上可能需要几分钟。ADP 会在超时后验证快照是否存在，以避免误报失败。
@@ -413,7 +413,7 @@ pnpm exec playwright test
 ## 销毁运行时
 
 ```powershell
-.\cli\adp.ps1 destroy frontend
+adpos destroy frontend
 ```
 
 销毁运行时会删除该运行时的 VM 文件。`%USERPROFILE%\adp-workspaces` 下的工作区数据是独立的。
@@ -421,13 +421,13 @@ pnpm exec playwright test
 先预览删除计划：
 
 ```powershell
-.\cli\adp.ps1 destroy frontend -Plan
+adpos destroy frontend -Plan
 ```
 
 ## 重新应用网络
 
 ```powershell
-.\cli\adp.ps1 network apply all
+adpos network apply all
 ```
 
 编辑 `configs\platform.json`、`configs\topology.json`，或 `configs\local.json` 中受支持的 `platform`/`topology` 字段后使用此命令。
@@ -435,8 +435,8 @@ pnpm exec playwright test
 在任何 VM 存在之前，可以用下面的命令把本机 NAT 设置对齐到 host `VMnet8`，且不会触碰 VM：
 
 ```powershell
-.\cli\adp.ps1 network configure-local -Plan
-.\cli\adp.ps1 network configure-local -Apply
+adpos network configure-local -Plan
+adpos network configure-local -Apply
 ```
 
 `configure-local -Plan` 会预览探测到的 host NAT subnet、目标 gateway/DNS、推导出的 runtime static IP，以及字段级 local config 变更。裸 `configure-local` 同样不会修改文件。只有在审阅 plan 后才使用 `-Apply`；它只会更新 `configs\local.json`，并把已有文件备份为 `configs\local.json.bak.<timestamp>`。如果你想保留 ADP 配置的 subnet，请改为在 VMware Virtual Network Editor 中修改 `VMnet8`，不要应用本机 override。
@@ -444,7 +444,7 @@ pnpm exec playwright test
 可以先预览 guest 网络改动：
 
 ```powershell
-.\cli\adp.ps1 network apply all -Plan
+adpos network apply all -Plan
 ```
 
 当 `network apply -Plan` 检测到 seed-network drift 时，会打印同一套 remediation 划分：rebuild path、in-place guest netplan path 和 administrator-only host-route workaround。该命令只通过 SSH 管理 guest netplan 文件；不会重建 VM，也不会修改 host routes。

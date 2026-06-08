@@ -7,7 +7,7 @@ $projectRoot = Split-Path $PSScriptRoot -Parent
 
 function Read-Text {
     param([string]$RelativePath)
-    return Get-Content -LiteralPath (Join-Path $projectRoot $RelativePath) -Raw
+    return Get-Content -LiteralPath (Join-Path $projectRoot $RelativePath) -Raw -Encoding UTF8
 }
 
 function Assert-Contains {
@@ -37,9 +37,18 @@ function Assert-NotContains {
 $up = Read-Text "cli\commands\up.ps1"
 $init = Read-Text "cli\commands\init.ps1"
 $install = Read-Text "install.ps1"
+$setupScript = Read-Text "setup.ps1"
+$quickstart = Read-Text "cli\commands\quickstart.ps1"
+$setupCommand = Read-Text "cli\commands\setup.ps1"
+$uninstallCommand = Read-Text "cli\commands\uninstall.ps1"
+$setupCmd = Read-Text "setup.cmd"
+$uninstallCmd = Read-Text "uninstall.cmd"
+$adposCmd = Read-Text "adpos.cmd"
+$registration = Read-Text "scripts\adpos-registration.ps1"
 $agentBootstrap = Read-Text "bootstrap\agent\setup-agent.sh"
 $factory = Read-Text "runtimes\vmware\vm-factory.ps1"
 $cli = Read-Text "cli\adp.ps1"
+$cliHelp = Read-Text "cli\lib\help.ps1"
 $configModule = Read-Text "core\config\config.ps1"
 $logger = Read-Text "core\logging\logger.ps1"
 $logs = Read-Text "cli\commands\logs.ps1"
@@ -56,6 +65,7 @@ $snapshot = Read-Text "cli\commands\snapshot.ps1"
 $restore = Read-Text "cli\commands\restore.ps1"
 $capabilities = Read-Text "cli\commands\capabilities.ps1"
 $validateCmd = Read-Text "cli\commands\validate.ps1"
+$completion = Read-Text "cli\commands\completion.ps1"
 $ci = Read-Text ".github\workflows\ci.yml"
 $validate = Read-Text "tests\validate.ps1"
 $networkingDocs = Read-Text "docs\networking.md"
@@ -78,7 +88,8 @@ $contributorWorkflowDocs = Read-Text "docs\contributor-workflows.md"
 $contributorWorkflowDocsZh = Read-Text "docs\zh-CN\contributor-workflows.md"
 $pullRequestTemplate = Read-Text ".github\pull_request_template.md"
 
-Assert-Contains -Name "CLI help defined before use" -Text $cli -Pattern 'function\s+Show-Help[\s\S]*if\s*\(-not\s+\$Command\s+-or\s+\$Command\s+-eq\s+"help"\)'
+Assert-Contains -Name "CLI loads help module before use" -Text $cli -Pattern 'cli\\lib\\help\.ps1[\s\S]*if\s*\(-not\s+\$Command\s+-or\s+\$Command\s+-eq\s+"help"\)'
+Assert-Contains -Name "CLI help module defines Show-Help" -Text $cliHelp -Pattern 'function\s+Show-Help[\s\S]*function\s+Show-CommandHelp[\s\S]*function\s+Show-Version'
 Assert-Contains -Name "CLI propagates command exit codes" -Text $cli -Pattern 'Invoke-CommandFile[\s\S]*if\s*\(\$LASTEXITCODE\s+-gt\s+0\)\s*\{[\s\S]*exit\s+\$LASTEXITCODE'
 Assert-Contains -Name "CI runs shared validation entry" -Text $ci -Pattern '\.\\tests\\validate\.ps1'
 Assert-Contains -Name "shared validation runs installer smoke tests" -Text $validate -Pattern '\.\\tests\\install-smoke\.ps1'
@@ -88,6 +99,7 @@ Assert-Contains -Name "shared validation runs configuration schema checks" -Text
 Assert-Contains -Name "shared validation runs artifact hygiene checks" -Text $validate -Pattern '\.\\tests\\artifact-hygiene\.ps1'
 Assert-Contains -Name "shared validation checks local config mutation boundaries" -Text $validate -Pattern '\.\\tests\\local-config-boundary\.ps1'
 Assert-Contains -Name "shared validation checks Mutagen remediation behavior" -Text $validate -Pattern '\.\\tests\\mutagen-remediation\.ps1'
+Assert-Contains -Name "shared validation checks adpos registration contract" -Text $validate -Pattern '\.\\tests\\adpos-registration-contract\.ps1'
 Assert-Contains -Name "shared validation checks bounded SSH probe handling" -Text $validate -Pattern '\.\\tests\\ssh-timeout\.ps1'
 Assert-Contains -Name "documentation language checks enforce translated doc pairs" -Text (Read-Text "tests\docs-language-links.ps1") -Pattern 'Assert-TranslatedDocPair[\s\S]*README[\s\S]*CHANGELOG[\s\S]*build[\s\S]*docs/zh-CN'
 Assert-Contains -Name "shared validation parses workspace recipes example" -Text $validate -Pattern 'configs\\workspace\.recipes\.example\.json'
@@ -101,20 +113,28 @@ Assert-Contains -Name "troubleshooting validation scope includes artifact hygien
 Assert-Contains -Name "Chinese troubleshooting validation scope includes artifact hygiene" -Text $troubleshootingDocsZh -Pattern '仓库验证失败[\s\S]*artifact hygiene'
 Assert-Contains -Name "shared validation supports quick local validation" -Text $validate -Pattern '\[switch\]\$Quick[\s\S]*if\s*\(\$Quick\)[\s\S]*\$SkipCliSmoke\s*=\s*\$true[\s\S]*\$SkipInstallerSmoke\s*=\s*\$true'
 Assert-Contains -Name "shared validation supports local skip switches" -Text $validate -Pattern '\[switch\]\$SkipCliSmoke[\s\S]*\[switch\]\$SkipInstallerSmoke[\s\S]*\[switch\]\$SkipShellSyntax'
+Assert-Contains -Name "CLI registers setup command" -Text $cli -Pattern '\$validCommands\s*=\s*@\([\s\S]*"setup"'
 Assert-Contains -Name "CLI registers workspace command" -Text $cli -Pattern '\$validCommands\s*=\s*@\([\s\S]*"workspace"'
 Assert-Contains -Name "CLI registers status command" -Text $cli -Pattern '\$validCommands\s*=\s*@\([\s\S]*"status"'
 Assert-Contains -Name "CLI registers capabilities command" -Text $cli -Pattern '\$validCommands\s*=\s*@\([\s\S]*"capabilities"'
 Assert-Contains -Name "CLI registers validate command" -Text $cli -Pattern '\$validCommands\s*=\s*@\([\s\S]*"validate"'
+Assert-Contains -Name "CLI registers uninstall command" -Text $cli -Pattern '\$validCommands\s*=\s*@\([\s\S]*"uninstall"'
 Assert-Contains -Name "validate command delegates to shared validation" -Text $validateCmd -Pattern 'tests\\validate\.ps1'
 Assert-Contains -Name "validate command supports bilingual UI output" -Text $validateCmd -Pattern 'Write-UIHost[\s\S]*ADP-OS Repository Validation[\s\S]*ADP-OS 仓库验证'
 Assert-Contains -Name "validate command propagates Quick flag" -Text $validateCmd -Pattern '\[switch\]\$Quick[\s\S]*-Quick'
-Assert-Contains -Name "CLI help includes validate command in English" -Text $cli -Pattern 'adp validate \[-Quick\] \[-SkipCliSmoke\] \[-SkipInstallerSmoke\] \[-SkipShellSyntax\]  Run repository validation tests'
-Assert-Contains -Name "CLI help includes validate command in Chinese" -Text $cli -Pattern 'adp validate \[-Quick\] \[-SkipCliSmoke\] \[-SkipInstallerSmoke\] \[-SkipShellSyntax\]  运行仓库验证测试'
-Assert-Contains -Name "CLI help includes status command" -Text $cli -Pattern 'adp status \[runtime\]'
-Assert-Contains -Name "CLI help includes workspace command" -Text $cli -Pattern 'adp workspace <command> \[-ManifestPath <path>\] \[-Plan\] \[-Markdown\]'
-Assert-Contains -Name "CLI help includes sandbox command" -Text $cli -Pattern 'adp sandbox <command\.\.\.> \[-Distro <name>\] \[-IsoPath <path>\]'
-Assert-Contains -Name "CLI help includes capabilities command" -Text $cli -Pattern 'adp capabilities \[-Json\]\s+Show supported and planned runtime capabilities'
-Assert-Contains -Name "CLI help includes local network configuration command" -Text $cli -Pattern 'adp network configure-local \[-Plan\|-Apply\]\s+Plan/apply local VMnet8 overrides'
+Assert-Contains -Name "CLI help includes setup command in English" -Text $cliHelp -Pattern 'adpos setup"; Summary = "One-click install and register the global adpos command'
+Assert-Contains -Name "CLI help includes setup command in Chinese" -Text $cliHelp -Pattern 'adpos setup"; Summary = "一键安装并注册全局 adpos 命令'
+Assert-Contains -Name "CLI help includes validate command in English" -Text $cliHelp -Pattern 'adpos validate \[-Quick\] \[-SkipCliSmoke\] \[-SkipInstallerSmoke\] \[-SkipShellSyntax\]"; Summary = "Run repository validation tests'
+Assert-Contains -Name "CLI help includes validate command in Chinese" -Text $cliHelp -Pattern 'adpos validate \[-Quick\] \[-SkipCliSmoke\] \[-SkipInstallerSmoke\] \[-SkipShellSyntax\]"; Summary = "运行仓库验证测试'
+Assert-Contains -Name "CLI help includes status command" -Text $cliHelp -Pattern 'adpos status \[runtime\]'
+Assert-Contains -Name "CLI help includes workspace command" -Text $cliHelp -Pattern 'adpos workspace <command> \[-ManifestPath <path>\] \[-Plan\] \[-Markdown\]'
+Assert-Contains -Name "CLI help includes sandbox command" -Text $cliHelp -Pattern 'adpos sandbox <command\.\.\.> \[-Distro <name>\] \[-IsoPath <path>\]'
+Assert-Contains -Name "CLI help includes capabilities command" -Text $cliHelp -Pattern 'adpos capabilities \[-Json\]"; Summary = "Show supported and planned runtime capabilities'
+Assert-Contains -Name "CLI help includes local network configuration command" -Text $cliHelp -Pattern 'adpos network configure-local \[-Plan\|-Apply\]"; Summary = "Plan or apply local VMnet8 overrides'
+Assert-Contains -Name "CLI help includes uninstall command in English" -Text $cliHelp -Pattern 'adpos uninstall"; Summary = "One-click uninstall of global adpos registration; VMs/workspaces stay untouched'
+Assert-Contains -Name "CLI help includes uninstall command in Chinese" -Text $cliHelp -Pattern 'adpos uninstall"; Summary = "一键卸载全局 adpos 命令注册，不删除 VM 或 workspace'
+Assert-Contains -Name "completion registers adpos primary command" -Text $completion -Pattern 'Register-ArgumentCompleter -CommandName adpos,adpos\.cmd,adp,adp\.cmd,adp\.ps1'
+Assert-Contains -Name "completion includes setup and uninstall commands" -Text $completion -Pattern '"setup"[\s\S]*"uninstall"[\s\S]*complete -F _adpos_completion adpos adpos\.cmd adp adp\.cmd'
 Assert-Contains -Name "configuration supports UI language preference" -Text $configModule -Pattern 'function\s+Get-UILanguage[\s\S]*ADP_LANG[\s\S]*config\.ui\.language[\s\S]*return "en"'
 Assert-Contains -Name "configuration normalizes Simplified Chinese language aliases" -Text $configModule -Pattern 'function\s+Normalize-UILanguage[\s\S]*"zh"\s*\{\s*return "zh-CN"[\s\S]*"zh-cn"\s*\{\s*return "zh-CN"[\s\S]*"zh_cn"\s*\{\s*return "zh-CN"'
 Assert-Contains -Name "configuration exposes shared localized UI helpers" -Text $configModule -Pattern 'function\s+Get-UIText[\s\S]*Get-UILanguage[\s\S]*zh-CN[\s\S]*function\s+Write-UIHost[\s\S]*Get-UIText'
@@ -128,11 +148,30 @@ Assert-NotContains -Name "up no longer branches on retired danger field for user
 Assert-NotContains -Name "agent bootstrap no longer leaves retired danger-mode marker" -Text $agentBootstrap -Pattern 'dangerous mode|AGENT_DANGER_MODE\.txt|DANGER MODE'
 Assert-Contains -Name "installer uses UI language preference after config initialization" -Text $install -Pattern 'Initialize-Config -ProjectRoot \$script:ProjectRoot[\s\S]*function\s+Get-InstallText[\s\S]*Get-UILanguage[\s\S]*function\s+Write-InstallBanner[\s\S]*阶段 1'
 $installerSmoke = Read-Text "tests\install-smoke.ps1"
+Assert-Contains -Name "installer smoke defaults to NoRegisterCommand" -Text $installerSmoke -Pattern 'if\s*\(\$effectiveArguments\s+-notcontains\s+"-NoRegisterCommand"\)[\s\S]*@\("-NoRegisterCommand"\)\s*\+\s*\$effectiveArguments'
+Assert-Contains -Name "installer smoke isolates LOCALAPPDATA" -Text $installerSmoke -Pattern '\$localAppData\s*=\s*Join-Path \$userProfile "AppData\\Local"[\s\S]*LOCALAPPDATA\s*=\s*\$localAppData'
 Assert-Contains -Name "installer smoke has Simplified Chinese case" -Text $installerSmoke -Pattern 'install zh-CN skip checks missing ISO guidance'
 Assert-Contains -Name "installer smoke sets Simplified Chinese environment" -Text $installerSmoke -Pattern 'ADP_LANG\s*=\s*"zh-CN"'
 Assert-Contains -Name "installer smoke expects Simplified Chinese completion" -Text $installerSmoke -Pattern 'ADP-OS 阶段 1 平台引导完成'
-Assert-Contains -Name "CLI help supports Simplified Chinese" -Text $cli -Pattern 'Get-UILanguage[\s\S]*"zh-CN"[\s\S]*命令:[\s\S]*初始化平台[\s\S]*显示运行时状态[\s\S]*显示已支持和计划中的运行时能力'
+Assert-Contains -Name "install supports NoRegisterCommand parameter" -Text $install -Pattern 'param\([\s\S]*\[switch\]\$NoRegisterCommand'
+Assert-Contains -Name "install skips command registration when requested" -Text $install -Pattern 'if\s*\(-not\s+\$NoRegisterCommand\)[\s\S]*else\s*\{[\s\S]*Global command registration skipped by -NoRegisterCommand'
+Assert-Contains -Name "quickstart supports NoRegisterCommand parameter" -Text $quickstart -Pattern 'param\([\s\S]*\[switch\]\$NoRegisterCommand'
+Assert-Contains -Name "quickstart passes NoRegisterCommand to install" -Text $quickstart -Pattern 'if\s*\(\$NoRegisterCommand\)\s*\{[\s\S]*\$installArgs\s*\+=\s*"-NoRegisterCommand"'
+Assert-Contains -Name "setup supports NoRegisterCommand parameter" -Text $setupScript -Pattern 'param\([\s\S]*\[switch\]\$NoRegisterCommand'
+Assert-Contains -Name "setup forwards NoRegisterCommand to quickstart" -Text $setupScript -Pattern 'if\s*\(\$NoRegisterCommand\)\s*\{[\s\S]*\$quickstartArgs\.NoRegisterCommand\s*=\s*\$true'
+Assert-Contains -Name "setup command supports NoRegisterCommand parameter" -Text $setupCommand -Pattern 'param\([\s\S]*\[switch\]\$NoRegisterCommand'
+Assert-Contains -Name "setup command forwards NoRegisterCommand to setup script" -Text $setupCommand -Pattern 'if\s*\(\$NoRegisterCommand\)\s*\{[\s\S]*\$setupArgs\s*\+=\s*"-NoRegisterCommand"'
+Assert-Contains -Name "uninstall command delegates to uninstall script" -Text $uninstallCommand -Pattern 'uninstall\.ps1[\s\S]*-NonInteractive'
+Assert-Contains -Name "setup cmd bootstraps missing PowerShell 7 with winget" -Text $setupCmd -Pattern ':InstallPowerShell7WithWinget[\s\S]*winget install --id Microsoft\.PowerShell --source winget --accept-package-agreements --accept-source-agreements --silent'
+Assert-Contains -Name "uninstall cmd falls back to Windows PowerShell 5.1" -Text $uninstallCmd -Pattern 'UseWindowsPowerShell[\s\S]*WindowsPowerShell\\v1\.0\\powershell\.exe[\s\S]*uninstall\.ps1'
+Assert-Contains -Name "adpos cmd allows uninstall without PowerShell 7" -Text $adposCmd -Pattern 'if /i "%~1"=="uninstall"[\s\S]*uninstall\.cmd'
+Assert-Contains -Name "global shim delegates through ADPOS_HOME" -Text $registration -Pattern 'call ""%ADPOS_HOME%\\adpos\.cmd"" %\*'
+Assert-Contains -Name "global registration stores project path in ADPOS_HOME environment variable" -Text $registration -Pattern 'SetEnvironmentVariable\(\$homeVariableName, \$resolvedProjectRoot, "User"\)'
+Assert-Contains -Name "CLI help supports Simplified Chinese command rows" -Text $cliHelp -Pattern 'Get-ADPTopLevelCommandRows[\s\S]*"zh-CN"[\s\S]*初始化平台[\s\S]*显示运行时状态[\s\S]*显示已支持和计划中的运行时能力'
+Assert-Contains -Name "CLI help supports Simplified Chinese command header" -Text $cliHelp -Pattern 'function\s+Show-Help[\s\S]*Get-UILanguage[\s\S]*"zh-CN"[\s\S]*命令:'
 Assert-Contains -Name "CLI unknown command supports Simplified Chinese" -Text $cli -Pattern '未知命令: \$Command[\s\S]*可用命令:'
+Assert-Contains -Name "CLI suggests similar unknown commands in English" -Text $cli -Pattern 'function\s+Get-ADPCommandSuggestion[\s\S]*Did you mean: adpos \$suggestion'
+Assert-Contains -Name "CLI suggests similar unknown commands in Chinese" -Text $cli -Pattern 'function\s+Get-ADPCommandSuggestion[\s\S]*你是不是想运行: adpos \$suggestion'
 Assert-Contains -Name "fresh deployment init supports Simplified Chinese" -Text $init -Pattern 'Write-UIHost[\s\S]*ADP-OS 初始化[\s\S]*SSH 密钥[\s\S]*运行时拓扑[\s\S]*ADP-OS 阶段 2 初始化完成'
 Assert-Contains -Name "fresh deployment doctor supports Simplified Chinese" -Text $doctor -Pattern 'Write-UIHost[\s\S]*ADP-OS Doctor — 系统诊断[\s\S]*所有检查通过。平台状态健康。[\s\S]*首次使用检查清单[\s\S]*预计总耗时[\s\S]*平台设置'
 Assert-Contains -Name "fresh deployment up plan supports Simplified Chinese" -Text $up -Pattern 'Write-UIHost[\s\S]*ADP-OS: 正在启动 \$RuntimeName[\s\S]*仅预览：不会创建、启动、provision 或 bootstrap 任何 VM[\s\S]*运行时:[\s\S]*工作区:'
@@ -159,7 +198,7 @@ Assert-Contains -Name "Chinese roadmap separates current agent-native surface fr
 Assert-Contains -Name "up -IsoPath propagation" -Text $up -Pattern 'New-RuntimeVM[\s\S]*-IsoPath\s+\$IsoPath'
 Assert-Contains -Name "vm factory IsoPath parameter" -Text $factory -Pattern 'function\s+New-RuntimeVM[\s\S]*\[string\]\$IsoPath'
 Assert-Contains -Name "vm factory IsoPath resolution" -Text $factory -Pattern '\$resolvedIsoPath\s*=\s*if\s*\(\$IsoPath\)'
-Assert-Contains -Name "up prints connection summary" -Text $up -Pattern 'function\s+Write-RuntimeConnectionSummary[\s\S]*Connection details:[\s\S]*adp status \$TargetRuntime'
+Assert-Contains -Name "up prints connection summary" -Text $up -Pattern 'function\s+Write-RuntimeConnectionSummary[\s\S]*Connection details:[\s\S]*adpos status \$TargetRuntime'
 Assert-Contains -Name "up provisioning wait passes runtime" -Text $up -Pattern 'Wait-AutoinstallComplete\s+-VmxPath\s+\$TargetVmxPath\s+-RuntimeName\s+\$TargetRuntime'
 Assert-Contains -Name "vm factory provisioning prefers configured static IP" -Text $factory -Pattern 'function\s+Wait-AutoinstallComplete[\s\S]*Get-RuntimeStaticIP\s+\$RuntimeName[\s\S]*configured.*\$ip'
 Assert-Contains -Name "vm factory explains long autoinstall wait" -Text $factory -Pattern 'real guest OS installation[\s\S]*真实的 guest OS 安装[\s\S]*Typical duration: 15-45 minutes[\s\S]*通常需要 15-45 分钟[\s\S]*Installing Ubuntu inside VM \(watched wait, not stuck; repeated signals can be normal\)[\s\S]*正在 VM 内安装 Ubuntu（受监控等待，不是卡住；重复信号可能正常）[\s\S]*Install monitor active: INSTALLING Ubuntu in the VM[\s\S]*安装监视器已启动：正在 VM 内安装 Ubuntu[\s\S]*Watch path: installer boot -> OS install -> reboot -> SSH auth-pending -> provision marker -> bootstrap'
@@ -186,8 +225,8 @@ Assert-Contains -Name "sync start validates runtime" -Text $sync -Pattern '"star
 Assert-Contains -Name "sync stop validates runtime" -Text $sync -Pattern '"stop"[\s\S]*Test-RuntimeExists\s+\$RuntimeName'
 Assert-Contains -Name "sync validates subcommand before mutagen" -Text $sync -Pattern '\$validSubCommands[\s\S]*Unknown sync command[\s\S]*Initialize-Mutagen'
 Assert-Contains -Name "sync status reports ADP runtime summary before raw Mutagen list" -Text $sync -Pattern 'ADP runtime sync summary:[\s\S]*Write-SyncRuntimeSummary[\s\S]*Sync status:[\s\S]*sync", "list"'
-Assert-Contains -Name "sync summary gives stale session remediation" -Text $sync -Pattern 'fix:\s+adp sync stop \$TargetRuntime; adp sync start \$TargetRuntime'
-Assert-Contains -Name "sync summary treats uncreated runtime stale sessions as cleanup guidance" -Text $sync -Pattern 'Get-VMStatus[\s\S]*stale-session[\s\S]*cleanup:\s+adp sync stop \$TargetRuntime[\s\S]*next:\s+adp up \$TargetRuntime; adp sync start \$TargetRuntime'
+Assert-Contains -Name "sync summary gives stale session remediation" -Text $sync -Pattern 'fix:\s+adpos sync stop \$TargetRuntime; adpos sync start \$TargetRuntime'
+Assert-Contains -Name "sync summary treats uncreated runtime stale sessions as cleanup guidance" -Text $sync -Pattern 'Get-VMStatus[\s\S]*stale-session[\s\S]*cleanup:\s+adpos sync stop \$TargetRuntime[\s\S]*next:\s+adpos up \$TargetRuntime; adpos sync start \$TargetRuntime'
 
 # Localization coverage: extended runtime commands use bilingual Write-UIHost
 Assert-Contains -Name "destroy uses bilingual UI output" -Text $destroy -Pattern 'Write-UIHost[\s\S]*?-English[\s\S]*?-Chinese[\s\S]*?DESTROY[\s\S]*?Plan only[\s\S]*?PERMANENTLY DELETE'
@@ -218,7 +257,7 @@ Assert-Contains -Name "doctor explains stale networking remediation paths" -Text
 Assert-Contains -Name "doctor reports duplicate running runtime VMs" -Text $doctor -Pattern 'duplicate running VM[\s\S]*Stop or rename stale duplicate ADP VMs before diagnosing SSH or network issues'
 Assert-Contains -Name "doctor reports unhealthy Mutagen sessions" -Text $doctor -Pattern 'Get-SyncSessionRecoveryInfo[\s\S]*\[SYNC\]'
 Assert-Contains -Name "doctor treats uncreated runtime stale sync as info cleanup" -Text $doctor -Pattern '\[SYNC\][\s\S]*stale before runtime creation'
-Assert-Contains -Name "network apply plan guides stale networking remediation" -Text $network -Pattern 'Network drift detected:[\s\S]*in-place guest netplan fix path only[\s\S]*adp destroy \$TargetRuntime -Plan[\s\S]*ADP will not add, change, or remove host routes automatically'
+Assert-Contains -Name "network apply plan guides stale networking remediation" -Text $network -Pattern 'Network drift detected:[\s\S]*in-place guest netplan fix path only[\s\S]*adpos destroy \$TargetRuntime -Plan[\s\S]*ADP will not add, change, or remove host routes automatically'
 Assert-Contains -Name "network apply prefers seed-era SSH target during drift" -Text $network -Pattern 'if\s*\(-not\s+\$currentIp\s+-and\s+\$seedNetwork[\s\S]*\$currentIp\s*=\s*\$seedNetwork\.Address[\s\S]*if\s*\(-not\s+\$currentIp\)\s*\{[\s\S]*\$currentIp\s*=\s*\$network\.Address'
 Assert-Contains -Name "network configure-local requires explicit apply for local overrides" -Text $network -Pattern '\[switch\]\$Apply[\s\S]*Use either -Plan or -Apply, not both[\s\S]*Get-VMwareLocalNetworkPlan[\s\S]*Proposed local config changes:[\s\S]*Plan only: configs\\local\.json will not be changed[\s\S]*No files changed[\s\S]*network configure-local -Apply[\s\S]*Set-LocalNetworkConfig[\s\S]*Updated configs\\local\.json with host VMnet8 NAT settings'
 Assert-Contains -Name "network configure-local backs up existing local config" -Text $network -Pattern 'function\s+Backup-LocalNetworkConfig[\s\S]*\$backupPath\s*=\s*"\$LocalConfigPath\.bak\.\$timestamp"[\s\S]*Copy-Item[\s\S]*Backup:'
@@ -288,10 +327,10 @@ Assert-Contains -Name "Chinese README links release process" -Text (Read-Text "R
 Assert-Contains -Name "README links contributor workflows" -Text (Read-Text "README.md") -Pattern 'Contributor Workflows\]\(docs/contributor-workflows\.md\)'
 Assert-Contains -Name "Chinese README links contributor workflows" -Text (Read-Text "README.zh-CN.md") -Pattern '贡献者工作流\]\(docs/zh-CN/contributor-workflows\.md\)'
 Assert-Contains -Name "release readiness docs define decision policy" -Text $releaseReadinessDocs -Pattern '## Release Decision Policy[\s\S]*release candidate[\s\S]*sync hygiene is not blocking[\s\S]*release blocked[\s\S]*sync hygiene, a snapshot gate, or failed validation[\s\S]*validation required[\s\S]*review required[\s\S]*governance incomplete'
-Assert-Contains -Name "release readiness docs define maintainer checklist" -Text $releaseReadinessDocs -Pattern '## Maintainer Checklist[\s\S]*adp workspace dashboard[\s\S]*adp workspace report[\s\S]*review sync ignore[\s\S]*release candidate[\s\S]*sync hygiene reviewed'
+Assert-Contains -Name "release readiness docs define maintainer checklist" -Text $releaseReadinessDocs -Pattern '## Maintainer Checklist[\s\S]*adpos workspace dashboard[\s\S]*adpos workspace report[\s\S]*review sync ignore[\s\S]*release candidate[\s\S]*sync hygiene reviewed'
 Assert-Contains -Name "release readiness docs include snapshot naming convention" -Text $releaseReadinessDocs -Pattern 'Snapshot naming is reviewed as part of rollback clarity[\s\S]*before-<task-name>[\s\S]*milestone-<name>[\s\S]*Naming convention warnings are non-blocking'
 Assert-Contains -Name "Chinese release readiness docs define decision policy" -Text $releaseReadinessDocsZh -Pattern '## 发布决策策略[\s\S]*release candidate[\s\S]*sync hygiene 未阻塞[\s\S]*release blocked[\s\S]*sync hygiene、snapshot gate 或失败 validation[\s\S]*validation required[\s\S]*review required[\s\S]*governance incomplete'
-Assert-Contains -Name "Chinese release readiness docs define maintainer checklist" -Text $releaseReadinessDocsZh -Pattern '## 维护者检查清单[\s\S]*adp workspace dashboard[\s\S]*adp workspace report[\s\S]*review sync ignore[\s\S]*release candidate[\s\S]*sync hygiene 已 review'
+Assert-Contains -Name "Chinese release readiness docs define maintainer checklist" -Text $releaseReadinessDocsZh -Pattern '## 维护者检查清单[\s\S]*adpos workspace dashboard[\s\S]*adpos workspace report[\s\S]*review sync ignore[\s\S]*release candidate[\s\S]*sync hygiene 已 review'
 Assert-Contains -Name "Chinese release readiness docs include snapshot naming convention" -Text $releaseReadinessDocsZh -Pattern 'Snapshot naming 也是 rollback clarity 的 review 内容[\s\S]*before-<task-name>[\s\S]*milestone-<name>[\s\S]*不阻塞 release'
 Assert-Contains -Name "release process docs define maintainer flow" -Text $releaseProcessDocs -Pattern '## Maintainer Flow[\s\S]*\.\\tests\\validate\.ps1 -Quick[\s\S]*\.\\tests\\validate\.ps1[\s\S]*workspace report -Markdown[\s\S]*owner has authorized publication'
 Assert-Contains -Name "release process docs include sync hygiene evidence" -Text $releaseProcessDocs -Pattern '## Evidence Expectations[\s\S]*Sync hygiene status[\s\S]*review sync ignore[\s\S]*reviewed before release'
@@ -300,11 +339,11 @@ Assert-Contains -Name "Chinese release process docs define maintainer flow" -Tex
 Assert-Contains -Name "Chinese release process docs include sync hygiene evidence" -Text $releaseProcessDocsZh -Pattern 'Evidence 应显示：[\s\S]*Sync hygiene status[\s\S]*发布前必须 review[\s\S]*review sync ignore'
 Assert-Contains -Name "Chinese release process docs define safety checks" -Text $releaseProcessDocsZh -Pattern '## 安全检查[\s\S]*Secrets[\s\S]*adp-workspace\.state\.json[\s\S]*Private maintainer'
 Assert-Contains -Name "contributor workflow docs include templates" -Text $contributorWorkflowDocs -Pattern '## Workflow Templates[\s\S]*Documentation or Small Maintenance[\s\S]*Frontend Browser Acceptance[\s\S]*Backend Validation[\s\S]*Broad Agent Refactor'
-Assert-Contains -Name "contributor workflow docs include maintainer ritual" -Text $contributorWorkflowDocs -Pattern '## Maintainer Review Ritual[\s\S]*adp workspace dashboard[\s\S]*adp workspace report[\s\S]*review sync ignore[\s\S]*release candidate'
+Assert-Contains -Name "contributor workflow docs include maintainer ritual" -Text $contributorWorkflowDocs -Pattern '## Maintainer Review Ritual[\s\S]*adpos workspace dashboard[\s\S]*adpos workspace report[\s\S]*review sync ignore[\s\S]*release candidate'
 Assert-Contains -Name "contributor workflow docs include sync hygiene PR expectation" -Text $contributorWorkflowDocs -Pattern '## Pull Request Expectations[\s\S]*Sync hygiene status[\s\S]*review sync ignore'
 Assert-Contains -Name "contributor workflow docs include snapshot naming expectation" -Text $contributorWorkflowDocs -Pattern 'before-<task-name>[\s\S]*milestone-<name>[\s\S]*snapshot name communicates task or milestone rollback intent'
 Assert-Contains -Name "Chinese contributor workflow docs include templates" -Text $contributorWorkflowDocsZh -Pattern '## 工作流模板[\s\S]*文档或小型维护[\s\S]*前端浏览器验收[\s\S]*后端验证[\s\S]*大范围 Agent 重构'
-Assert-Contains -Name "Chinese contributor workflow docs include maintainer ritual" -Text $contributorWorkflowDocsZh -Pattern '## 维护者评审流程[\s\S]*adp workspace dashboard[\s\S]*adp workspace report[\s\S]*review sync ignore[\s\S]*release candidate'
+Assert-Contains -Name "Chinese contributor workflow docs include maintainer ritual" -Text $contributorWorkflowDocsZh -Pattern '## 维护者评审流程[\s\S]*adpos workspace dashboard[\s\S]*adpos workspace report[\s\S]*review sync ignore[\s\S]*release candidate'
 Assert-Contains -Name "Chinese contributor workflow docs include sync hygiene PR expectation" -Text $contributorWorkflowDocsZh -Pattern '## Pull Request 预期[\s\S]*Sync hygiene status[\s\S]*review sync ignore'
 Assert-Contains -Name "Chinese contributor workflow docs include snapshot naming expectation" -Text $contributorWorkflowDocsZh -Pattern 'before-<task-name>[\s\S]*milestone-<name>[\s\S]*snapshot 名称是否表达 task 或 milestone rollback 意图'
 Assert-Contains -Name "PR template asks for shared validation" -Text $pullRequestTemplate -Pattern '## Validation[\s\S]*\.\\tests\\validate\.ps1[\s\S]*\.\\tests\\validate\.ps1 -Quick'
@@ -323,14 +362,14 @@ Assert-Contains -Name "mutagen adapter supports configurable acquisition" -Text 
 Assert-Contains -Name "mutagen adapter verifies configured archive hashes" -Text (Read-Text "adapters\windows\mutagen\mutagen.ps1") -Pattern 'function\s+Assert-MutagenArchiveHash[\s\S]*Get-FileHash[\s\S]*SHA256 mismatch[\s\S]*sha256: verified'
 Assert-Contains -Name "mutagen adapter supports offline archive copy" -Text (Read-Text "adapters\windows\mutagen\mutagen.ps1") -Pattern 'function\s+Copy-MutagenArchive[\s\S]*Copying configured Mutagen archive[\s\S]*Configured Mutagen archive was not found'
 Assert-Contains -Name "mutagen adapter classifies sync session health" -Text (Read-Text "adapters\windows\mutagen\mutagen.ps1") -Pattern 'function\s+Get-SyncSessionInfo[\s\S]*wrong-local[\s\S]*wrong-remote[\s\S]*unhealthy[\s\S]*healthy'
-Assert-Contains -Name "mutagen sync start blocks stale session before rewriting SSH alias" -Text (Read-Text "adapters\windows\mutagen\mutagen.ps1") -Pattern 'Get-SyncSessionInfo[\s\S]*exists but points to a different environment[\s\S]*To fix: adp sync stop[\s\S]*Set-MutagenSSHHostConfig'
+Assert-Contains -Name "mutagen sync start blocks stale session before rewriting SSH alias" -Text (Read-Text "adapters\windows\mutagen\mutagen.ps1") -Pattern 'Get-SyncSessionInfo[\s\S]*exists but points to a different environment[\s\S]*To fix: adpos sync stop[\s\S]*Set-MutagenSSHHostConfig'
 Assert-Contains -Name "mutagen configured archive overrides cached archive" -Text (Read-Text "adapters\windows\mutagen\mutagen.ps1") -Pattern '\$useConfiguredArchive[\s\S]*GetFullPath\(\$settings\.ArchivePath\)[\s\S]*GetFullPath\(\$zipPath\)[\s\S]*Copy-MutagenArchive'
 Assert-Contains -Name "mutagen default archive cache falls back to download when missing" -Text (Read-Text "adapters\windows\mutagen\mutagen.ps1") -Pattern 'if\s*\(\$useConfiguredArchive\)[\s\S]*elseif\s*\(Test-Path -LiteralPath \$zipPath\)[\s\S]*else\s*\{[\s\S]*Invoke-MutagenArchiveDownload'
 Assert-Contains -Name "mutagen install has watched progress and hard timeout guidance" -Text (Read-Text "adapters\windows\mutagen\mutagen.ps1") -Pattern 'function\s+Invoke-MutagenArchiveDownload[\s\S]*DownloadTimeoutSeconds = 300[\s\S]*Downloading Mutagen archive[\s\S]*ADP will stop the download process if the hard timeout is reached[\s\S]*Start-Process[\s\S]*WaitForExit\(\$DownloadTimeoutSeconds \* 1000\)[\s\S]*Kill\(\$true\)[\s\S]*manually download[\s\S]*Installing Mutagen locally[\s\S]*\[1/5\] Preparing local tool directory[\s\S]*\[5/5\] Verifying Mutagen version'
 Assert-Contains -Name "workspace init uses public example manifest" -Text $workspace -Pattern 'configs\\workspace\.example\.json'
 Assert-Contains -Name "workspace plan is non-destructive" -Text $workspace -Pattern 'Plan only: no projects will be cloned, no sync sessions will be changed, and no snapshots will be created'
-Assert-Contains -Name "workspace plan suggests previewed runtime startup" -Text $workspace -Pattern 'adp up \$\(\$project\.runtime\) -Plan'
-Assert-Contains -Name "workspace plan suggests milestone checkpoints" -Text $workspace -Pattern 'Get-WorkspaceMilestones[\s\S]*Milestone checkpoint.*adp snapshot create \$\(\$milestoneStatus\.RuntimeName\) \$\(\$milestoneStatus\.SnapshotName\)'
+Assert-Contains -Name "workspace plan suggests previewed runtime startup" -Text $workspace -Pattern 'adpos up \$\(\$project\.runtime\) -Plan'
+Assert-Contains -Name "workspace plan suggests milestone checkpoints" -Text $workspace -Pattern 'Get-WorkspaceMilestones[\s\S]*Milestone checkpoint.*adpos snapshot create \$\(\$milestoneStatus\.RuntimeName\) \$\(\$milestoneStatus\.SnapshotName\)'
 Assert-Contains -Name "workspace recipes is non-destructive" -Text $workspace -Pattern 'function\s+Write-WorkspaceRecipes[\s\S]*Recipes only: no projects will be cloned, no sync sessions will be changed, no snapshots will be created, no validation or evaluation commands will be run, no SSH connection will be opened, and no Git commands will be run'
 Assert-Contains -Name "workspace recipes summarizes projects tasks evaluations and evidence" -Text $workspace -Pattern 'function\s+Write-WorkspaceRecipes[\s\S]*Project recipes:[\s\S]*Task recipes:[\s\S]*Milestone recipes:[\s\S]*Evaluation recipes:[\s\S]*Evidence commands:'
 Assert-Contains -Name "workspace recipes command route" -Text $workspace -Pattern '"recipes"\s*\{[\s\S]*Write-WorkspaceRecipes\s+-Manifest\s+\$manifest\s+-ManifestPath\s+\$ManifestPath\s+-StatePath\s+\$StatePath'
@@ -340,7 +379,7 @@ Assert-Contains -Name "workspace create command route" -Text $workspace -Pattern
 Assert-Contains -Name "workspace open is non-destructive" -Text $workspace -Pattern 'function\s+Write-WorkspaceOpen[\s\S]*Open guide only: no shell, editor, SSH connection, sync session, runtime, or file will be changed[\s\S]*Local commands:[\s\S]*Runtime commands:[\s\S]*Next:'
 Assert-Contains -Name "workspace open resolves project names" -Text $workspace -Pattern 'function\s+Find-WorkspaceProject[\s\S]*Project name required because the workspace has multiple projects[\s\S]*Workspace project not found'
 Assert-Contains -Name "workspace open command route" -Text $workspace -Pattern '"open"\s*\{[\s\S]*Write-WorkspaceOpen\s+-Manifest\s+\$manifest\s+-ProjectName\s+\$TaskCommand\s+-ManifestPath\s+\$ManifestPath'
-Assert-Contains -Name "workspace sync is non-destructive" -Text $workspace -Pattern 'function\s+Write-WorkspaceSyncGuide[\s\S]*Sync guide only: no Mutagen session, runtime, SSH connection, directory, or file will be changed[\s\S]*Runtime sync commands:[\s\S]*adp sync start \$runtimeName[\s\S]*adp sync stop \$runtimeName'
+Assert-Contains -Name "workspace sync is non-destructive" -Text $workspace -Pattern 'function\s+Write-WorkspaceSyncGuide[\s\S]*Sync guide only: no Mutagen session, runtime, SSH connection, directory, or file will be changed[\s\S]*Runtime sync commands:[\s\S]*adpos sync start \$runtimeName[\s\S]*adpos sync stop \$runtimeName'
 Assert-Contains -Name "workspace sync command route" -Text $workspace -Pattern '"sync"\s*\{[\s\S]*Write-WorkspaceSyncGuide\s+-Manifest\s+\$manifest\s+-ProjectName\s+\$TaskCommand\s+-ManifestPath\s+\$ManifestPath'
 Assert-Contains -Name "workspace project is non-destructive" -Text $workspace -Pattern 'function\s+Write-WorkspaceProjectLifecycle[\s\S]*Lifecycle view only: no project, runtime, sync session, snapshot, validation command, Git command, or file will be changed[\s\S]*Lifecycle gates:[\s\S]*Operational flow:[\s\S]*Linked tasks:'
 Assert-Contains -Name "workspace project links tasks" -Text $workspace -Pattern 'function\s+Get-WorkspaceTasksForProject[\s\S]*\$taskProject[\s\S]*\$matched\.Add\(\$task\)[\s\S]*function\s+Write-WorkspaceProjectLifecycle[\s\S]*Get-WorkspaceTasksForProject[\s\S]*Get-WorkspaceCommitDecision'
@@ -394,9 +433,9 @@ Assert-Contains -Name "workspace report has release policy" -Text $workspace -Pa
 Assert-Contains -Name "workspace report has stale remediation" -Text $workspace -Pattern 'function\s+Write-WorkspaceStaleTaskRemediation[\s\S]*Stale-task remediation:[\s\S]*owner=.*cadence=.*timing=.*action=.*release='
 Assert-Contains -Name "workspace run prints snapshot-first gate" -Text $workspace -Pattern 'Snapshot-first gate before broad agent work'
 Assert-Contains -Name "workspace task snapshot prints snapshot naming convention" -Text $workspace -Pattern 'function\s+Write-WorkspaceTaskSnapshot[\s\S]*snapshot naming[\s\S]*Explicit command to create the checkpoint'
-Assert-Contains -Name "workspace task snapshot prints waiver command" -Text $workspace -Pattern 'function\s+Write-WorkspaceTaskSnapshot[\s\S]*If the human reviewer intentionally accepts missing snapshot protection[\s\S]*adp workspace task mark \$\(\$Task\.name\) checkpoint-waived'
+Assert-Contains -Name "workspace task snapshot prints waiver command" -Text $workspace -Pattern 'function\s+Write-WorkspaceTaskSnapshot[\s\S]*If the human reviewer intentionally accepts missing snapshot protection[\s\S]*adpos workspace task mark \$\(\$Task\.name\) checkpoint-waived'
 Assert-Contains -Name "workspace validate supports explicit execution" -Text $workspace -Pattern '\[switch\]\$Execute[\s\S]*\[switch\]\$Plan[\s\S]*function\s+Invoke-WorkspaceRemoteValidationCommand[\s\S]*Write-WorkspaceTaskValidate'
-Assert-Contains -Name "workspace validate execution is scoped to validate command" -Text $workspace -Pattern '-Execute.*-Local.*-Plan are only supported with: adp workspace task validate <task-name>'
+Assert-Contains -Name "workspace validate execution is scoped to validate command" -Text $workspace -Pattern '-Execute.*-Local.*-Plan are only supported with: adpos workspace task validate <task-name>'
 Assert-Contains -Name "workspace validate execution resolves task project" -Text $workspace -Pattern 'Find-WorkspaceProjectForTask[\s\S]*tasks\[\]\.project'
 Assert-Contains -Name "workspace validate execution rejects unsafe project paths" -Text $workspace -Pattern 'Resolve-WorkspaceRemoteProjectPath[\s\S]*path cannot contain'
 Assert-Contains -Name "workspace validate execution records validation result" -Text $workspace -Pattern 'Set-WorkspaceTaskValidationResult[\s\S]*validation_failed[\s\S]*Write-WorkspaceValidationResult'
@@ -405,23 +444,23 @@ Assert-Contains -Name "workspace dashboard displays validation result" -Text $wo
 Assert-Contains -Name "workspace review displays validation result" -Text $workspace -Pattern 'recorded validation:[\s\S]*Write-WorkspaceValidationDetailLines[\s\S]*state file:'
 Assert-Contains -Name "workspace review has decision gate" -Text $workspace -Pattern 'function\s+Get-WorkspaceReviewDecision[\s\S]*blocked by sync hygiene[\s\S]*validation failed[\s\S]*validation result missing'
 Assert-Contains -Name "workspace review prints sync hygiene gate" -Text $workspace -Pattern 'function\s+Write-WorkspaceTaskReview[\s\S]*Get-WorkspaceTaskSyncHygieneStatus[\s\S]*Confirm sync hygiene before review[\s\S]*Review should not accept the task until sync hygiene is reviewed'
-Assert-Contains -Name "workspace review withholds acceptance until gate passes" -Text $workspace -Pattern 'if\s*\(\$reviewDecision\.Verdict\s+-eq\s+"validation passed"\)[\s\S]*accept:\s+adp workspace task mark \$\(\$Task\.name\) reviewed[\s\S]*accept:\s+withheld until review decision gate is OK[\s\S]*Commit readiness requires sync hygiene, recorded validation'
+Assert-Contains -Name "workspace review withholds acceptance until gate passes" -Text $workspace -Pattern 'if\s*\(\$reviewDecision\.Verdict\s+-eq\s+"validation passed"\)[\s\S]*accept:\s+adpos workspace task mark \$\(\$Task\.name\) reviewed[\s\S]*accept:\s+withheld until review decision gate is OK[\s\S]*Commit readiness requires sync hygiene, recorded validation'
 Assert-Contains -Name "workspace rollback reads validation and sync hygiene state" -Text $workspace -Pattern 'function\s+Write-WorkspaceTaskRollback[\s\S]*Get-WorkspaceTaskSyncHygieneStatus[\s\S]*Decision context:[\s\S]*sync hygiene:[\s\S]*recorded validation:'
-Assert-Contains -Name "workspace rollback withholds restore when checkpoint gate blocks" -Text $workspace -Pattern 'Snapshot rollback is not ready:[\s\S]*Resolve the checkpoint gate before using VM snapshot rollback[\s\S]*adp restore \$\(\$Task\.runtime\) \$\(\$Task\.snapshot\)'
-Assert-Contains -Name "workspace rollback withholds restore when checkpoint is waived" -Text $workspace -Pattern 'Snapshot rollback is waived:[\s\S]*No VM restore command is printed because no checkpoint was confirmed[\s\S]*adp restore \$\(\$Task\.runtime\) \$\(\$Task\.snapshot\)'
-Assert-Contains -Name "workspace rollback prints local rollback mark command" -Text $workspace -Pattern 'After rollback is completed manually, record local rollback state:[\s\S]*adp workspace task mark \$\(\$Task\.name\) rollback'
+Assert-Contains -Name "workspace rollback withholds restore when checkpoint gate blocks" -Text $workspace -Pattern 'Snapshot rollback is not ready:[\s\S]*Resolve the checkpoint gate before using VM snapshot rollback[\s\S]*adpos restore \$\(\$Task\.runtime\) \$\(\$Task\.snapshot\)'
+Assert-Contains -Name "workspace rollback withholds restore when checkpoint is waived" -Text $workspace -Pattern 'Snapshot rollback is waived:[\s\S]*No VM restore command is printed because no checkpoint was confirmed[\s\S]*adpos restore \$\(\$Task\.runtime\) \$\(\$Task\.snapshot\)'
+Assert-Contains -Name "workspace rollback prints local rollback mark command" -Text $workspace -Pattern 'After rollback is completed manually, record local rollback state:[\s\S]*adpos workspace task mark \$\(\$Task\.name\) rollback'
 Assert-Contains -Name "workspace rollback receives manifest and state paths" -Text $workspace -Pattern '"rollback"\s*\{[\s\S]*Write-WorkspaceTaskRollback\s+-Manifest\s+\$Manifest\s+-Task\s+\$task\s+-ManifestPath\s+\$Path\s+-StatePath\s+\$LocalStatePath'
 Assert-Contains -Name "workspace commit has readiness gate" -Text $workspace -Pattern 'function\s+Get-WorkspaceCommitDecision[\s\S]*blocked by sync hygiene[\s\S]*blocked by validation[\s\S]*commit ready[\s\S]*review not recorded'
 Assert-Contains -Name "workspace commit reads validation and sync hygiene state" -Text $workspace -Pattern 'function\s+Write-WorkspaceTaskCommit[\s\S]*Get-WorkspaceTaskSyncHygieneStatus[\s\S]*Commit readiness gate:[\s\S]*sync hygiene:[\s\S]*recorded validation:'
 Assert-Contains -Name "workspace commit withholds git commands until ready" -Text $workspace -Pattern 'if\s*\(\$commitDecision\.Verdict\s+-eq\s+"commit ready"\)[\s\S]*git add <paths>[\s\S]*Commit commands withheld until commit readiness is OK'
-Assert-Contains -Name "workspace commit prints local committed mark command" -Text $workspace -Pattern 'After the commit is created manually, record local committed state:[\s\S]*adp workspace task mark \$\(\$Task\.name\) committed'
+Assert-Contains -Name "workspace commit prints local committed mark command" -Text $workspace -Pattern 'After the commit is created manually, record local committed state:[\s\S]*adpos workspace task mark \$\(\$Task\.name\) committed'
 Assert-Contains -Name "workspace commit receives manifest and state path" -Text $workspace -Pattern '"commit"\s*\{[\s\S]*Write-WorkspaceTaskCommit\s+-Manifest\s+\$Manifest\s+-Task\s+\$task\s+-ManifestPath\s+\$Path\s+-StatePath\s+\$LocalStatePath'
 Assert-Contains -Name "workspace state defaults to ignored local path" -Text $workspace -Pattern 'adp-workspace\.state\.json'
 Assert-Contains -Name "workspace task mark records local state only" -Text $workspace -Pattern 'Recorded local lifecycle state only\. No VM, sync, snapshot, file, Git, or validation command was run'
 Assert-Contains -Name "workspace task mark supports checkpoint waiver boundary" -Text $workspace -Pattern '\$validStates\s*=\s*@\("prepared", "checkpointed", "checkpoint-waived"[\s\S]*checkpoint-waived records explicit human acceptance of missing VM snapshot protection[\s\S]*does not create a snapshot, prove rollback safety, or restore rollback capability'
 Assert-Contains -Name "workspace task lifecycle is plan-only" -Text $workspace -Pattern 'Task lifecycle output is plan-only\. No VM, sync, snapshot, file, Git, or validation command will be changed or run'
 Assert-Contains -Name "workspace task run states manual execution boundary" -Text $workspace -Pattern 'Manual execution only: this command does not start an agent, approve broad agent work, record task state, run validation, or make the task commit-ready'
-Assert-Contains -Name "workspace task run points running mark to local state" -Text $workspace -Pattern 'After manual execution starts, mark running only as local state:[\s\S]*adp workspace task mark \$\(\$Task\.name\) running'
+Assert-Contains -Name "workspace task run points running mark to local state" -Text $workspace -Pattern 'After manual execution starts, mark running only as local state:[\s\S]*adpos workspace task mark \$\(\$Task\.name\) running'
 Assert-Contains -Name "workspace task mark running boundary" -Text $workspace -Pattern 'running means manual execution began or was attempted; ADP-OS did not start the agent, approve execution, validate output, or satisfy review/commit readiness'
 Assert-Contains -Name "workspace task mark reviewed boundary" -Text $workspace -Pattern 'reviewed should be used only after human source review accepts the diff, rollback path, snapshot context, and recorded validation evidence'
 Assert-Contains -Name "workspace task mark committed boundary" -Text $workspace -Pattern 'committed is a local lifecycle note only; ADP-OS did not stage files or run git commit'

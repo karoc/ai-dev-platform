@@ -41,7 +41,7 @@ Before creating or networking runtimes, confirm that VMware Workstation's NAT ne
 Run:
 
 ```powershell
-.\cli\adp.ps1 doctor
+adpos doctor
 ```
 
 `doctor` reports:
@@ -91,8 +91,8 @@ Edit per-runtime IPs in `configs\topology.json`:
 For machine-specific NAT settings, prefer ignored local overrides instead of editing committed defaults:
 
 ```powershell
-.\cli\adp.ps1 network configure-local -Plan
-.\cli\adp.ps1 network configure-local -Apply
+adpos network configure-local -Plan
+adpos network configure-local -Apply
 ```
 
 `network configure-local -Plan` detects host `VMnet8`, shows the target local NAT settings and runtime static IPs, prints a field-level change summary, and does not change files. Running `network configure-local` without switches is also non-mutating and tells you to use `-Apply` if you choose that remediation. With `-Apply`, the command updates only the ignored `configs\local.json` override and backs up an existing local file as `configs\local.json.bak.<timestamp>`. It does not create, start, stop, or modify VMs, does not open SSH, does not change VMware `VMnet8`, and does not change guest networking.
@@ -106,13 +106,13 @@ Manual editing is still supported: copy `configs\local.example.json` to `configs
 After changing network settings, apply them:
 
 ```powershell
-.\cli\adp.ps1 network apply all
+adpos network apply all
 ```
 
 Or apply one runtime:
 
 ```powershell
-.\cli\adp.ps1 network apply frontend
+adpos network apply frontend
 ```
 
 This command:
@@ -127,9 +127,9 @@ This command:
 
 For newly provisioned Ubuntu VMs, ADP injects static networking into cloud-init autoinstall user data. This means newly created VMs should come up directly on their configured `static_ip`.
 
-Before creating a new VM, `adp up <runtime>` checks the configured VMware NAT subnet against the host `VMnet8` network when the host exposes that information. If they differ, ADP exits before creating the VM and presents two remediation paths: align ADP local overrides with `.\cli\adp.ps1 network configure-local -Plan` followed by `.\cli\adp.ps1 network configure-local -Apply`, or keep ADP's configured subnet and change VMware `VMnet8` in Virtual Network Editor.
+Before creating a new VM, `adpos up <runtime>` checks the configured VMware NAT subnet against the host `VMnet8` network when the host exposes that information. If they differ, ADP exits before creating the VM and presents two remediation paths: align ADP local overrides with `adpos network configure-local -Plan` followed by `adpos network configure-local -Apply`, or keep ADP's configured subnet and change VMware `VMnet8` in Virtual Network Editor.
 
-Changing `configs\local.json` after a VM has already been created does not rewrite the guest network by itself. Run `.\cli\adp.ps1 status <runtime>` or `.\cli\adp.ps1 doctor`; if they report `network drift` or `seed network drift`, rebuild the runtime or update guest networking from the old seed-era address.
+Changing `configs\local.json` after a VM has already been created does not rewrite the guest network by itself. Run `adpos status <runtime>` or `adpos doctor`; if they report `network drift` or `seed network drift`, rebuild the runtime or update guest networking from the old seed-era address.
 
 ## Troubleshooting
 
@@ -148,7 +148,7 @@ ssh -i $env:USERPROFILE\.ssh\adp-os\adp-os adp@192.168.242.131 "ip route show de
 Check sync state:
 
 ```powershell
-.\cli\adp.ps1 sync status
+adpos sync status
 ```
 
 If VMware DHCP and ADP static addresses conflict, change the static addresses to unused IPs inside the NAT subnet and run `network apply` again.

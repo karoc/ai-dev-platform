@@ -46,9 +46,9 @@ Deer-Flow Agent
 
 | 要求 | 检查命令 | 说明 |
 |------|---------|------|
-| ADP-OS 已安装 | `pwsh -File cli/adp.ps1 doctor` | 必须返回 "healthy" |
+| ADP-OS 已安装 | `adpos doctor` | 必须返回 "healthy" |
 | VMware Workstation | 在 Windows 主机上运行 | VM 配置后端 |
-| 至少一个运行时 | `pwsh -File cli/adp.ps1 status` | 在 `configs/topology.json` 中配置 |
+| 至少一个运行时 | `adpos status` | 在 `configs/topology.json` 中配置 |
 | Python 3.10+ | `python3 --version` | MCP 服务器和适配器需要 |
 | SSH 可达的 VM | `ssh adp@<vm-ip> echo OK` | 默认凭证: `adp`/`adp` |
 

@@ -78,24 +78,24 @@
 展示给用户前：
 
 - 在真实 Windows 10/11 主机上运行，且 VMware Workstation 可用并可访问。
-- 控制面使用 PowerShell 7。从 stock Windows shell 运行时使用 `.\adp.cmd`；如果机器只有内置 Windows PowerShell 5.1，先运行 `.\setup.cmd`，让用户得到 PowerShell 7 安装路径，而不是直接得到失败的 ADP 命令。
+- 控制面使用 PowerShell 7。从 stock Windows shell 运行时使用 `.\adpos.cmd`；如果机器只有内置 Windows PowerShell 5.1，先运行 `.\setup.cmd`，让用户得到 PowerShell 7 安装路径，而不是直接得到失败的 ADP 命令。
 - 使用包含公开文档和 recipes 的 ADP-OS checkout。
 - 预先创建好 `agent` runtime；首次 VM 创建不计入 10 分钟窗口。
-- 确认 `adp doctor` 在 demo 前报告 0 issues。
-- 确认 `adp status agent` 显示 runtime 正在运行且 SSH 可达。
-- 确认 `adp sync status` 在 demo 前显示 `agent` session healthy 或 watching。开始用户可见运行前，先停止并重建 stale `adp-agent` session。
+- 确认 `adpos doctor` 在 demo 前报告 0 issues。
+- 确认 `adpos status agent` 显示 runtime 正在运行且 SSH 可达。
+- 确认 `adpos sync status` 在 demo 前显示 `agent` session healthy 或 watching。开始用户可见运行前，先停止并重建 stale `adp-agent` session。
 - 确认 presenter script 在 VM mutation 和 rollback 前设置 sync fence：破坏性任务前停止 `agent` sync，restore 期间保持 stopped，只在选定 host 或 VM workspace 作为 source of truth 并完成 reconcile 后重启。
-- 确认 restore 后 readiness 能通过公开 ADP 命令观察：restore 后 `adp status agent` 必须返回有界状态；如果 runtime stopped，`adp up agent -NoBootstrap` 必须返回，随后 `adp status agent` 必须达到 running + SSH reachable，才能继续直接 SSH 文件检查。
+- 确认 restore 后 readiness 能通过公开 ADP 命令观察：restore 后 `adpos status agent` 必须返回有界状态；如果 runtime stopped，`adpos up agent -NoBootstrap` 必须返回，随后 `adpos status agent` 必须达到 running + SSH reachable，才能继续直接 SSH 文件检查。
 - 创建或确认 demo script 中指定的 snapshot。
 - 确认 evidence export 前已经在 manifest workspace root 中生成 `workspace-report.md`。使用公开 recipe manifest 时，该路径是 `configs\workspace-report.md`。
-- 用 `adp workspace evidence -Export` 导出真实 evidence ZIP，并验证其中包含 `README.txt`、`snapshot-hashes.json`、`operation-log.json`、`workspace-report.md` 和 `adp-workspace.json`。
-- 验证 rollback 会恢复 `README.md`、移除 `generated/output.json`，并回退 `src/main.ts` 的 demo mutation。如果 restore 后 runtime 处于 stopped，先运行 `adp up agent -NoBootstrap` 和 `adp status agent`，再做 SSH 文件检查。
+- 用 `adpos workspace evidence -Export` 导出真实 evidence ZIP，并验证其中包含 `README.txt`、`snapshot-hashes.json`、`operation-log.json`、`workspace-report.md` 和 `adp-workspace.json`。
+- 验证 rollback 会恢复 `README.md`、移除 `generated/output.json`，并回退 `src/main.ts` 的 demo mutation。如果 restore 后 runtime 处于 stopped，先运行 `adpos up agent -NoBootstrap` 和 `adpos status agent`，再做 SSH 文件检查。
 - 记录真实的 restore、`up`、`status` 和 SSH verification 耗时。如果运行需要未写入公开文档的 VMware 手工介入、私有清理，或超过公开排障路径的 host-key 手工处理，这只能算 rehearsal evidence，不能算有效 10 分钟 demo evidence。
 - 保留真实耗时，不要把 snapshot 或 restore 的慢操作美化掉。
 
-如果预先创建好的 `agent` VM 仍被显示为 installing，不要继续把这次运行当作正常首次安装。运行 `adp status agent`、`adp doctor` 和 `adp network apply agent -Plan`。一种常见 stale-VM 故障是：旧 guest 已经 provisioned，但它是在静态网络 seed 注入之前创建的，因此会启动到旧 VMware NAT 地址，而 ADP-OS 目标是当前 static IP。这是 network drift / product-readiness 问题，不是有效的 10 分钟 demo 证据。
+如果预先创建好的 `agent` VM 仍被显示为 installing，不要继续把这次运行当作正常首次安装。运行 `adpos status agent`、`adpos doctor` 和 `adpos network apply agent -Plan`。一种常见 stale-VM 故障是：旧 guest 已经 provisioned，但它是在静态网络 seed 注入之前创建的，因此会启动到旧 VMware NAT 地址，而 ADP-OS 目标是当前 static IP。这是 network drift / product-readiness 问题，不是有效的 10 分钟 demo 证据。
 
-如果 `adp snapshot create agent <name>` 看起来卡住，不要继续对用户演示，直到 snapshot 被确认。使用 `vmrun listSnapshots` 检查，或等命令返回后重新运行 `adp snapshot create`。如果 snapshot 已存在但 CLI 挂住，应把该彩排记录为产品失败，因为 rollback 和 evidence 是 survival path 的核心。
+如果 `adpos snapshot create agent <name>` 看起来卡住，不要继续对用户演示，直到 snapshot 被确认。使用 `vmrun listSnapshots` 检查，或等命令返回后重新运行 `adpos snapshot create`。如果 snapshot 已存在但 CLI 挂住，应把该彩排记录为产品失败，因为 rollback 和 evidence 是 survival path 的核心。
 
 硬性规则：如果 VMware 不可用，不要运行 survival demo。不要伪造 VMware、snapshot、restore、SSH、evidence chain 或 evidence export 输出。
 
@@ -111,7 +111,7 @@ demo 过程中记录：
 - 是否真实创建或复用了 snapshot。
 - agent-style task 前后是否记录了 evidence。
 - 任务是否改变了 Git 不能完整清理的内容。
-- rollback 是否恢复预期的 runtime 和 workspace 状态；如果 restore 后 runtime stopped，是否先用 `adp up agent -NoBootstrap` 重启后再做 SSH 验证。
+- rollback 是否恢复预期的 runtime 和 workspace 状态；如果 restore 后 runtime stopped，是否先用 `adpos up agent -NoBootstrap` 重启后再做 SSH 验证。
 - restore 后 readiness 是否通过已记录的 ADP 命令完成，是否出现 `ssh-timeout`、`auth-pending`、`unreachable` 或 recovery 状态，并且这些状态是否被记录而不是隐藏。
 - 是否导出了 evidence ZIP，且其中包含预期 5 个条目。
 - 参与者是否能解释它和 Git reset、Docker、WSL2、Dev Containers 的区别。

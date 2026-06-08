@@ -891,7 +891,7 @@ function New-RuntimeVM {
     if ($SkipProvision) {
         Write-Host ""
         Write-UIHost -English "Provisioning skipped. VM definition is ready but not started." -Chinese "已跳过 provisioning。VM 定义已就绪，但尚未启动。" -ForegroundColor Yellow
-        Write-UIHost -English "  Start install later with: adp up $RuntimeName" -Chinese "  稍后可运行此命令开始安装: adp up $RuntimeName" -ForegroundColor DarkGray
+        Write-UIHost -English "  Start install later with: adpos up $RuntimeName" -Chinese "  稍后可运行此命令开始安装: adpos up $RuntimeName" -ForegroundColor DarkGray
         return $vmxPath
     }
 
@@ -932,12 +932,12 @@ function New-RuntimeVM {
                 Write-UIHost -English "  Using configured static IP from topology/local config." -Chinese "  将使用 topology/local config 中配置的 static IP。" -ForegroundColor DarkGray
             }
             Write-Host "  SSH: ssh -i $sshKeyPath $($config.defaults.admin_user)@$ip" -ForegroundColor DarkGray
-            Write-Host "  Status: .\cli\adp.ps1 status $RuntimeName" -ForegroundColor DarkGray
-            Write-Host "  Sync:   .\cli\adp.ps1 sync start $RuntimeName" -ForegroundColor DarkGray
+            Write-Host "  Status: adpos status $RuntimeName" -ForegroundColor DarkGray
+            Write-Host "  Sync:   adpos sync start $RuntimeName" -ForegroundColor DarkGray
             $script:VmFactoryState."${RuntimeName}_ip" = $ip
         } else {
             Write-UIHost -English "  IP will be available after first reboot." -Chinese "  IP 将在首次重启后可用。" -ForegroundColor Yellow
-            Write-UIHost -English "  Check: .\cli\adp.ps1 status $RuntimeName" -Chinese "  检查: .\cli\adp.ps1 status $RuntimeName" -ForegroundColor DarkGray
+            Write-UIHost -English "  Check: adpos status $RuntimeName" -Chinese "  检查: adpos status $RuntimeName" -ForegroundColor DarkGray
         }
     } else {
         Write-WarnLog -Message (Get-UIText -English "Autoinstall may still be in progress. Check VMware console." -Chinese "Autoinstall 可能仍在进行。请检查 VMware console。") -Component "vm-factory"
@@ -1061,8 +1061,8 @@ function Wait-AutoinstallComplete {
             Write-WarnLog -Message (Get-UIText -English "Circuit breaker opened: '$cbErrorKey' repeated $($autoinstallCb.ConsecutiveCount) times (~${cbMinutes}min)" -Chinese "熔断器断开: '$cbErrorKey' 连续重复 $($autoinstallCb.ConsecutiveCount) 次 (~${cbMinutes}min)") -Component "vm-factory"
             Write-UIHost -English "  Autoinstall circuit breaker opened: same error '$cbErrorKey' repeated for ~${cbMinutes}min (threshold: ${AutoinstallCircuitBreakerMinutes}min)." -Chinese "  自动安装熔断器已断开: 同一错误 '$cbErrorKey' 连续重复约 ${cbMinutes}min (阈值: ${AutoinstallCircuitBreakerMinutes}min)。" -ForegroundColor Yellow
             Write-UIHost -English "  Stopping retry to prevent infinite loop. The VM may have a persistent issue." -Chinese "  停止重试以防止无限循环。VM 可能存在持续性故障。" -ForegroundColor Yellow
-            Write-UIHost -English "  Next: check VMware console for installer errors, then investigate with: adp status $RuntimeName" -Chinese "  下一步: 检查 VMware console 中的 installer 错误，然后通过 adp status $RuntimeName 排查。" -ForegroundColor DarkGray
-            Write-UIHost -English "  To retry, re-run: adp up $RuntimeName" -Chinese "  如需重试，请重新运行: adp up $RuntimeName" -ForegroundColor DarkGray
+            Write-UIHost -English "  Next: check VMware console for installer errors, then investigate with: adpos status $RuntimeName" -Chinese "  下一步: 检查 VMware console 中的 installer 错误，然后通过 adpos status $RuntimeName 排查。" -ForegroundColor DarkGray
+            Write-UIHost -English "  To retry, re-run: adpos up $RuntimeName" -Chinese "  如需重试，请重新运行: adpos up $RuntimeName" -ForegroundColor DarkGray
             return $false
         }
 
@@ -1103,7 +1103,7 @@ function Wait-AutoinstallComplete {
     Write-Progress -Id $progressId -Activity (Get-UIText -English "Installing Ubuntu in ADP VM" -Chinese "正在 ADP VM 中安装 Ubuntu") -Completed
     Write-UIHost -English "  Autoinstall confirmation timed out after ${TimeoutMinutes}min." -Chinese "  Autoinstall 确认在 ${TimeoutMinutes}min 后超时。" -ForegroundColor Yellow
     Write-UIHost -English "  The VM may still be installing, but ADP did not confirm the provision marker in time." -Chinese "  VM 可能仍在安装，但 ADP 没有在超时前确认 provision marker。" -ForegroundColor DarkGray
-    Write-UIHost -English "  Next: check the VMware console for installer errors, then run: adp status $RuntimeName" -Chinese "  下一步: 检查 VMware console 是否有安装错误，然后运行: adp status $RuntimeName" -ForegroundColor DarkGray
+    Write-UIHost -English "  Next: check the VMware console for installer errors, then run: adpos status $RuntimeName" -Chinese "  下一步: 检查 VMware console 是否有安装错误，然后运行: adpos status $RuntimeName" -ForegroundColor DarkGray
     return $false
 }
 

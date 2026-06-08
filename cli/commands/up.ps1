@@ -12,7 +12,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 if (-not $RuntimeName) {
-    Write-ErrorLog -Message (Get-UIText -English "Usage: adp up <runtime> (frontend|backend|agent) [-IsoPath <path>] [-Plan] [-NoBootstrap] [-NoProvision]" -Chinese "用法: adp up <runtime> (frontend|backend|agent) [-IsoPath <path>] [-Plan] [-NoBootstrap] [-NoProvision]") -Component "cli.up"
+    Write-ErrorLog -Message (Get-UIText -English "Usage: adpos up <runtime> (frontend|backend|agent) [-IsoPath <path>] [-Plan] [-NoBootstrap] [-NoProvision]" -Chinese "用法: adpos up <runtime> (frontend|backend|agent) [-IsoPath <path>] [-Plan] [-NoBootstrap] [-NoProvision]") -Component "cli.up"
     exit 1
 }
 
@@ -21,7 +21,7 @@ if (-not (Test-RuntimeExists $RuntimeName)) {
     exit 1
 }
 
-Write-InfoLog -Message (Get-UIText -English "adp up $RuntimeName (Phase 2)" -Chinese "adp up $RuntimeName（阶段 2）") -Component "cli.up"
+Write-InfoLog -Message (Get-UIText -English "adpos up $RuntimeName (Phase 2)" -Chinese "adpos up $RuntimeName（阶段 2）") -Component "cli.up"
 
 $rt = Get-RuntimeConfig $RuntimeName
 $config = Get-PlatformConfig
@@ -91,12 +91,12 @@ function Write-RuntimeConnectionSummary {
         Write-UIHost -English "  Alias:     ssh $alias" -Chinese "  别名:      ssh $alias" -ForegroundColor DarkGray
     } else {
         Write-UIHost -English "  IP:        unavailable yet" -Chinese "  IP:        暂不可用" -ForegroundColor Yellow
-        Write-UIHost -English "  SSH:       run adp status $TargetRuntime after the guest finishes booting" -Chinese "  SSH:       guest 启动完成后运行 adp status $TargetRuntime" -ForegroundColor DarkGray
+        Write-UIHost -English "  SSH:       run adpos status $TargetRuntime after the guest finishes booting" -Chinese "  SSH:       guest 启动完成后运行 adpos status $TargetRuntime" -ForegroundColor DarkGray
     }
     Write-UIHost -English "  Workspace: $workspacePath" -Chinese "  工作区:    $workspacePath" -ForegroundColor DarkGray
-    Write-UIHost -English "  Sync:      adp sync start $TargetRuntime" -Chinese "  同步:      adp sync start $TargetRuntime" -ForegroundColor DarkGray
-    Write-UIHost -English "  Status:    adp status $TargetRuntime" -Chinese "  状态:      adp status $TargetRuntime" -ForegroundColor DarkGray
-    Write-UIHost -English "  Doctor:    adp doctor" -Chinese "  诊断:      adp doctor" -ForegroundColor DarkGray
+    Write-UIHost -English "  Sync:      adpos sync start $TargetRuntime" -Chinese "  同步:      adpos sync start $TargetRuntime" -ForegroundColor DarkGray
+    Write-UIHost -English "  Status:    adpos status $TargetRuntime" -Chinese "  状态:      adpos status $TargetRuntime" -ForegroundColor DarkGray
+    Write-UIHost -English "  Doctor:    adpos doctor" -Chinese "  诊断:      adpos doctor" -ForegroundColor DarkGray
 }
 
 function Test-GuestProvisionMarkerViaVmwareTools {
@@ -256,13 +256,13 @@ function Write-ProvisionedNetworkNotReadyGuidance {
     Write-Host ""
     Write-UIHost -English "Next steps:" -Chinese "下一步:" -ForegroundColor Cyan
     Write-UIHost -English "  1. Inspect the current runtime and host NAT diagnosis:" -Chinese "  1. 查看当前 runtime 与 host NAT 诊断:" -ForegroundColor DarkGray
-    Write-Host "     adp status $TargetRuntime" -ForegroundColor DarkGray
-    Write-Host "     adp doctor" -ForegroundColor DarkGray
+    Write-Host "     adpos status $TargetRuntime" -ForegroundColor DarkGray
+    Write-Host "     adpos doctor" -ForegroundColor DarkGray
     Write-UIHost -English "  2. If network drift is reported, preview the in-place guest network fix:" -Chinese "  2. 如果报告 network drift，先预览 guest 内网络修复:" -ForegroundColor DarkGray
-    Write-Host "     adp network apply $TargetRuntime -Plan" -ForegroundColor DarkGray
+    Write-Host "     adpos network apply $TargetRuntime -Plan" -ForegroundColor DarkGray
     Write-UIHost -English "  3. Apply only after the plan identifies the expected runtime/IP change:" -Chinese "  3. 仅在计划确认目标 runtime/IP 变更后再应用:" -ForegroundColor DarkGray
-    Write-Host "     adp network apply $TargetRuntime" -ForegroundColor DarkGray
-    Write-UIHost -English "  Bootstrap will resume after SSH is reachable: adp up $TargetRuntime" -Chinese "  SSH 可达后再继续 bootstrap: adp up $TargetRuntime" -ForegroundColor DarkGray
+    Write-Host "     adpos network apply $TargetRuntime" -ForegroundColor DarkGray
+    Write-UIHost -English "  Bootstrap will resume after SSH is reachable: adpos up $TargetRuntime" -Chinese "  SSH 可达后再继续 bootstrap: adpos up $TargetRuntime" -ForegroundColor DarkGray
 }
 
 function Assert-VMwareNatReadyForRuntimeCreate {
@@ -289,10 +289,10 @@ function Assert-VMwareNatReadyForRuntimeCreate {
         Write-UIHost -English "  Host VMnet8: $($hostNat.HostCidr) ($($hostNat.HostAddress), $($hostNat.HostSource))" -Chinese "  主机 VMnet8: $($hostNat.HostCidr) ($($hostNat.HostAddress), $($hostNat.HostSource))" -ForegroundColor DarkGray
         Write-UIHost -English "  ADP configuration and host VMware NAT disagree. Choose one remediation path:" -Chinese "  ADP 配置与主机 VMware NAT 不一致。请选择一种修复路径:" -ForegroundColor Yellow
         Write-UIHost -English "  Option A: Align ADP local overrides to current host VMnet8:" -Chinese "  方案 A：将 ADP 本机覆盖对齐到当前 host VMnet8:" -ForegroundColor DarkGray
-        Write-Host "    .\cli\adp.ps1 network configure-local -Plan" -ForegroundColor DarkGray
-        Write-Host "    .\cli\adp.ps1 network configure-local -Apply" -ForegroundColor DarkGray
+        Write-Host "    adpos network configure-local -Plan" -ForegroundColor DarkGray
+        Write-Host "    adpos network configure-local -Apply" -ForegroundColor DarkGray
         Write-UIHost -English "  Option B: Keep ADP's configured subnet and change VMware VMnet8 to $($hostNat.ConfiguredCidr) in Virtual Network Editor." -Chinese "  方案 B：保留 ADP 配置的网段，并在 VMware Virtual Network Editor 中把 VMnet8 改为 $($hostNat.ConfiguredCidr)。" -ForegroundColor DarkGray
-        Write-UIHost -English "  Then rerun: .\cli\adp.ps1 doctor -FirstRun" -Chinese "  然后重新运行: .\cli\adp.ps1 doctor -FirstRun" -ForegroundColor DarkGray
+        Write-UIHost -English "  Then rerun: adpos doctor -FirstRun" -Chinese "  然后重新运行: adpos doctor -FirstRun" -ForegroundColor DarkGray
         Write-UIHost -English "  No VM was created." -Chinese "  未创建任何 VM。" -ForegroundColor DarkGray
         exit 1
     }
@@ -340,8 +340,8 @@ function Check-PreRuntimeStaleSessions {
     Write-UIHost -English "Sync note: a Mutagen session '$sessionName' exists but doesn't match the current environment." -Chinese "同步提示: Mutagen session '$sessionName' 已存在，但与当前环境不匹配。" -ForegroundColor Yellow
     Write-UIHost -English "  This happens when a session was created from a different clone or a previous VM." -Chinese "  这通常是之前的 clone 或旧 VM 留下来的 session。" -ForegroundColor DarkGray
     Write-UIHost -English "  Stopping a stale session is safe — workspace files on both sides are not deleted." -Chinese "  停止 stale session 是安全的 — 不会删除任何一侧的 workspace 文件。" -ForegroundColor Green
-    Write-UIHost -English "  To clean up before proceeding: adp sync stop $TargetRuntime" -Chinese "  继续之前先清理: adp sync stop $TargetRuntime" -ForegroundColor Yellow
-    Write-UIHost -English "  Then restart sync after the runtime is ready: adp sync start $TargetRuntime" -Chinese "  等 runtime 就绪后再启动同步: adp sync start $TargetRuntime" -ForegroundColor DarkGray
+    Write-UIHost -English "  To clean up before proceeding: adpos sync stop $TargetRuntime" -Chinese "  继续之前先清理: adpos sync stop $TargetRuntime" -ForegroundColor Yellow
+    Write-UIHost -English "  Then restart sync after the runtime is ready: adpos sync start $TargetRuntime" -Chinese "  等 runtime 就绪后再启动同步: adpos sync start $TargetRuntime" -ForegroundColor DarkGray
     Write-Host ""
 }
 
@@ -391,9 +391,9 @@ function Invoke-BootstrapIfReady {
 
         Write-Host ""
         Write-UIHost -English "VM is still installing or provisioning. Once the install finishes, run:" -Chinese "VM 仍在安装或 provisioning。安装完成后运行:" -ForegroundColor Yellow
-        Write-Host "  adp up $TargetRuntime" -ForegroundColor DarkGray
+        Write-Host "  adpos up $TargetRuntime" -ForegroundColor DarkGray
         Write-UIHost -English "  (it will detect the VM and skip creation)" -Chinese "  (它会检测已有 VM 并跳过创建)" -ForegroundColor DarkGray
-        Write-Host "  adp status $TargetRuntime" -ForegroundColor DarkGray
+        Write-Host "  adpos status $TargetRuntime" -ForegroundColor DarkGray
         return
     }
 
@@ -408,10 +408,10 @@ function Invoke-BootstrapIfReady {
         $rtConfig = Get-RuntimeConfig $TargetRuntime
         $bootstrapSucceeded = Invoke-RuntimeBootstrap -RuntimeName $TargetRuntime -SSHHost $ip -Port $rtConfig.ssh_port
         if (-not $bootstrapSucceeded) {
-            Write-WarnLog -Message "Bootstrap did not complete cleanly. Try: adp doctor" -Component "cli.up"
+            Write-WarnLog -Message "Bootstrap did not complete cleanly. Try: adpos doctor" -Component "cli.up"
         }
     } catch {
-        Write-WarnLog -Message "Bootstrap had issues but VM is running. Try: adp doctor" -Component "cli.up"
+        Write-WarnLog -Message "Bootstrap had issues but VM is running. Try: adpos doctor" -Component "cli.up"
     }
 
     Write-RuntimeConnectionSummary -TargetRuntime $TargetRuntime -TargetVmxPath $TargetVmxPath
@@ -502,7 +502,7 @@ if (-not (Test-Path $isoPath)) {
     Write-ErrorLog -Message "OS ISO not found: $isoPath" -Component "cli.up"
     Write-Host ""
     Write-UIHost -English "Please download a supported Linux ISO and run:" -Chinese "请下载受支持的 Linux ISO 并运行:" -ForegroundColor Yellow
-    Write-Host "  adp up $RuntimeName -IsoPath <path-to-iso>" -ForegroundColor DarkGray
+    Write-Host "  adpos up $RuntimeName -IsoPath <path-to-iso>" -ForegroundColor DarkGray
     Write-Host ""
     Write-UIHost -English "Or place the ISO at: $isoPath" -Chinese "或将 ISO 放到: $isoPath" -ForegroundColor DarkGray
     exit 1
@@ -519,8 +519,8 @@ try {
 if ($NoProvision) {
     Write-Host ""
     Write-UIHost -English "Runtime '$RuntimeName' definition is ready. Provisioning, startup, and bootstrap were skipped." -Chinese "运行时 '$RuntimeName' 定义已就绪。已跳过 provisioning、startup 和 bootstrap。" -ForegroundColor Yellow
-    Write-UIHost -English "  Start later: adp up $RuntimeName" -Chinese "  稍后启动: adp up $RuntimeName" -ForegroundColor DarkGray
-    Write-UIHost -English "  Status:      adp status $RuntimeName" -Chinese "  状态:      adp status $RuntimeName" -ForegroundColor DarkGray
+    Write-UIHost -English "  Start later: adpos up $RuntimeName" -Chinese "  稍后启动: adpos up $RuntimeName" -ForegroundColor DarkGray
+    Write-UIHost -English "  Status:      adpos status $RuntimeName" -Chinese "  状态:      adpos status $RuntimeName" -ForegroundColor DarkGray
     return
 }
 

@@ -9,7 +9,7 @@ function New-BoundarySandbox {
     $sandboxRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("adp-local-config-boundary-{0}" -f ([guid]::NewGuid().ToString("N")))
     New-Item -ItemType Directory -Path $sandboxRoot -Force | Out-Null
 
-    $trackedFiles = & git -C $projectRoot ls-files
+    $trackedFiles = & git -C $projectRoot ls-files --cached --others --exclude-standard
     if ($LASTEXITCODE -ne 0) {
         throw "git ls-files failed while preparing local config boundary sandbox."
     }

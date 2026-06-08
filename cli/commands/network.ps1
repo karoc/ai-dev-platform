@@ -11,17 +11,17 @@ param(
 $ErrorActionPreference = "Stop"
 
 if (-not $SubCommand -or $SubCommand -notin @("apply", "configure-local", "local")) {
-    Write-ErrorLog -Message (Get-UIText -English "Usage: adp network apply <runtime|all> [-Plan] | adp network configure-local [-Plan|-Apply] (alias: local)" -Chinese "用法: adp network apply <runtime|all> [-Plan] | adp network configure-local [-Plan|-Apply] (别名: local)") -Component "cli.network"
+    Write-ErrorLog -Message (Get-UIText -English "Usage: adpos network apply <runtime|all> [-Plan] | adpos network configure-local [-Plan|-Apply] (alias: local)" -Chinese "用法: adpos network apply <runtime|all> [-Plan] | adpos network configure-local [-Plan|-Apply] (别名: local)") -Component "cli.network"
     exit 1
 }
 
 if ($SubCommand -eq "apply" -and -not $RuntimeName) {
-    Write-ErrorLog -Message (Get-UIText -English "Usage: adp network apply <runtime|all> [-Plan]" -Chinese "用法: adp network apply <runtime|all> [-Plan]") -Component "cli.network"
+    Write-ErrorLog -Message (Get-UIText -English "Usage: adpos network apply <runtime|all> [-Plan]" -Chinese "用法: adpos network apply <runtime|all> [-Plan]") -Component "cli.network"
     exit 1
 }
 
 if ($SubCommand -eq "apply" -and $Apply) {
-    Write-ErrorLog -Message (Get-UIText -English "-Apply is only supported with: adp network configure-local -Apply" -Chinese "-Apply 仅支持: adp network configure-local -Apply") -Component "cli.network"
+    Write-ErrorLog -Message (Get-UIText -English "-Apply is only supported with: adpos network configure-local -Apply" -Chinese "-Apply 仅支持: adpos network configure-local -Apply") -Component "cli.network"
     exit 1
 }
 
@@ -310,8 +310,8 @@ function Invoke-ConfigureLocalNetwork {
     if (-not $ApplyChanges) {
         Write-UIHost -English "  Plan only: configs\local.json will not be changed." -Chinese "  仅预览：不会修改 configs\local.json。" -ForegroundColor Cyan
         Write-UIHost -English "  No files changed." -Chinese "  未修改任何文件。" -ForegroundColor Cyan
-        Write-UIHost -English "  To apply this local override: .\cli\adp.ps1 network configure-local -Apply" -Chinese "  如要应用该本机覆盖: .\cli\adp.ps1 network configure-local -Apply" -ForegroundColor DarkGray
-        Write-UIHost -English "  Then rerun: .\cli\adp.ps1 doctor -FirstRun" -Chinese "  然后重新运行: .\cli\adp.ps1 doctor -FirstRun" -ForegroundColor DarkGray
+        Write-UIHost -English "  To apply this local override: adpos network configure-local -Apply" -Chinese "  如要应用该本机覆盖: adpos network configure-local -Apply" -ForegroundColor DarkGray
+        Write-UIHost -English "  Then rerun: adpos doctor -FirstRun" -Chinese "  然后重新运行: adpos doctor -FirstRun" -ForegroundColor DarkGray
         return
     }
 
@@ -322,8 +322,8 @@ function Invoke-ConfigureLocalNetwork {
     } else {
         Write-UIHost -English "  Backup: none; configs\local.json did not exist before apply." -Chinese "  备份: 无；apply 前 configs\local.json 不存在。" -ForegroundColor DarkGray
     }
-    Write-UIHost -English "  Next: .\cli\adp.ps1 doctor -FirstRun" -Chinese "  下一步: .\cli\adp.ps1 doctor -FirstRun" -ForegroundColor DarkGray
-    Write-UIHost -English "  Then: .\cli\adp.ps1 up <runtime> -Plan" -Chinese "  然后: .\cli\adp.ps1 up <runtime> -Plan" -ForegroundColor DarkGray
+    Write-UIHost -English "  Next: adpos doctor -FirstRun" -Chinese "  下一步: adpos doctor -FirstRun" -ForegroundColor DarkGray
+    Write-UIHost -English "  Then: adpos up <runtime> -Plan" -Chinese "  然后: adpos up <runtime> -Plan" -ForegroundColor DarkGray
 }
 
 function Get-ConfiguredNetwork {
@@ -495,7 +495,7 @@ function Apply-RuntimeNetwork {
     $vmName = "adp-$TargetRuntime"
     $vmxPath = Join-Path $vmStore "$vmName\$vmName.vmx"
     if (-not (Test-Path $vmxPath)) {
-        throw "VM not found for runtime '$TargetRuntime'. Run: adp up $TargetRuntime"
+        throw "VM not found for runtime '$TargetRuntime'. Run: adpos up $TargetRuntime"
     }
 
     $statusResult = Get-VMStatus -Name $TargetRuntime
@@ -527,7 +527,7 @@ function Apply-RuntimeNetwork {
         if ($seedNetwork -and $seedNetwork.Address -and $seedNetwork.Address -ne $network.Address) {
              Write-UIHost -English "  Network drift detected: seed uses $($seedNetwork.Address)/$($seedNetwork.Prefix), target is $($network.Address)/$($network.Prefix)." -Chinese "  检测到网络漂移：seed 使用 $($seedNetwork.Address)/$($seedNetwork.Prefix)，目标是 $($network.Address)/$($network.Prefix)。" -ForegroundColor Yellow
              Write-UIHost -English "  This plan covers the in-place guest netplan fix path only." -Chinese "  此计划仅涵盖 guest netplan 原地修复路径。" -ForegroundColor Yellow
-             Write-UIHost -English "  If the VM can be recreated, preview rebuild first: adp destroy $TargetRuntime -Plan" -Chinese "  如果可以重建 VM，请先预览重建: adp destroy $TargetRuntime -Plan" -ForegroundColor DarkGray
+             Write-UIHost -English "  If the VM can be recreated, preview rebuild first: adpos destroy $TargetRuntime -Plan" -Chinese "  如果可以重建 VM，请先预览重建: adpos destroy $TargetRuntime -Plan" -ForegroundColor DarkGray
              Write-UIHost -English "  If SSH is only reachable through the seed-era network, use an admin-only temporary host-route workaround outside ADP, then rerun this command." -Chinese "  如果 SSH 只能通过 seed 时期网络连接，请在 ADP 外部使用管理员临时 host route 变通方法，然后重新运行此命令。" -ForegroundColor DarkGray
              Write-UIHost -English "  ADP will not add, change, or remove host routes automatically." -Chinese "  ADP 不会自动添加、修改或删除 host route。" -ForegroundColor DarkGray
         }

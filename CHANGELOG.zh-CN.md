@@ -12,6 +12,12 @@
 
 ### 2026-06-08
 
+### 新增
+
+- 新增 `adpos` 作为正式公开命令入口。`setup.cmd` / `setup.ps1` 现在默认会在 `%LOCALAPPDATA%\ADP-OS\bin` 下注册用户级 `adpos` shim，并且只把该 bin 目录加入用户 `PATH`；`adp` / `adp.cmd` 作为兼容别名继续保留。
+- 新增一键安全卸载入口：`adpos uninstall` 以及仓库根目录的 `uninstall.cmd` wrapper。默认卸载只移除全局 `adpos` 命令注册，不删除 VM、workspace、ISO 缓存、本地工具、日志或仓库文件。
+- 改进 stock Windows shell 的一键 bootstrap 行为。缺少 `pwsh.exe` 时，`setup.cmd`、`setup.ps1` 和 `install.ps1` 现在会尝试用 `winget` 安装 PowerShell 7，然后继续用 PowerShell 7 执行 setup。PowerShell 7 不可用时，`uninstall.cmd` 也可以通过 Windows PowerShell 5.1 移除命令注册。
+
 ### 修复
 
 - 加固 survival demo 路径中的 restore 后 runtime readiness 检查。ADP 管理的 SSH 探测现在使用有界进程 timeout，将 `ssh-timeout` 与 `auth-pending`、`unreachable` 分开分类，readiness 检查不依赖 direct OpenSSH 的 stale known-hosts 状态，并让 VMware 控制操作保持有界，避免 `status`、`up -NoBootstrap` 和 `stop` 在 restore 后 half-ready VM 上表现为无限等待。

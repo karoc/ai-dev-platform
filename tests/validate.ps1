@@ -34,6 +34,32 @@ function Invoke-ValidationStep {
     Write-Host "OK: $Name" -ForegroundColor Green
 }
 
+function Invoke-WithIsolatedUserEnvironment {
+    param(
+        [Parameter(Mandatory = $true)]
+        [scriptblock]$ScriptBlock
+    )
+
+    $userProfile = Join-Path ([System.IO.Path]::GetTempPath()) ("adp-validate-home-{0}" -f ([guid]::NewGuid().ToString("N")))
+    $localAppData = Join-Path $userProfile "AppData\Local"
+    $previousEnvironment = @{
+        USERPROFILE   = [System.Environment]::GetEnvironmentVariable("USERPROFILE", "Process")
+        LOCALAPPDATA  = [System.Environment]::GetEnvironmentVariable("LOCALAPPDATA", "Process")
+    }
+
+    New-Item -ItemType Directory -Path $userProfile, $localAppData -Force | Out-Null
+    try {
+        [System.Environment]::SetEnvironmentVariable("USERPROFILE", $userProfile, "Process")
+        [System.Environment]::SetEnvironmentVariable("LOCALAPPDATA", $localAppData, "Process")
+        & $ScriptBlock
+    } finally {
+        foreach ($name in $previousEnvironment.Keys) {
+            [System.Environment]::SetEnvironmentVariable($name, $previousEnvironment[$name], "Process")
+        }
+        Remove-Item -LiteralPath $userProfile -Recurse -Force -ErrorAction SilentlyContinue
+    }
+}
+
 Invoke-ValidationStep -Name "Parse PowerShell scripts" -ScriptBlock {
     $failed = $false
     Get-ChildItem -Recurse -Filter *.ps1 -File | ForEach-Object {
@@ -68,6 +94,10 @@ Invoke-ValidationStep -Name "Parse JSON configuration" -ScriptBlock {
 
 Invoke-ValidationStep -Name "Check CLI parameter contracts" -ScriptBlock {
     & ".\tests\cli-parameter-contracts.ps1"
+}
+
+Invoke-ValidationStep -Name "Check adpos registration contract" -ScriptBlock {
+    & ".\tests\adpos-registration-contract.ps1"
 }
 
 Invoke-ValidationStep -Name "Check up provision marker handling" -ScriptBlock {
@@ -112,7 +142,9 @@ Invoke-ValidationStep -Name "Check workspace evidence command contract" -ScriptB
 
 if (-not $SkipCliSmoke) {
     Invoke-ValidationStep -Name "Run CLI smoke tests" -ScriptBlock {
-        & ".\tests\cli-smoke.ps1"
+        Invoke-WithIsolatedUserEnvironment {
+            & ".\tests\cli-smoke.ps1"
+        }
     }
 }
 else {

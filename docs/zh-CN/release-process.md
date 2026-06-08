@@ -35,7 +35,7 @@
 4. 当变更影响 workflow、runtime、validation、docs 或 release readiness 时，生成 release evidence：
 
    ```powershell
-   .\cli\adp.ps1 workspace report -Markdown -ManifestPath configs\workspace.recipes.example.json
+   adpos workspace report -Markdown -ManifestPath configs\workspace.recipes.example.json
    ```
 
    `configs\workspace.recipes.example.json` 是示例 manifest。真实 release decision 应使用描述当前 task bundle 的 manifest。

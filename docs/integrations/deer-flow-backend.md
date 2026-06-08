@@ -46,9 +46,9 @@ Both paths provide the same 8 in-VM sandbox operations: execute commands, read/w
 
 | Requirement | Check command | Notes |
 |-------------|--------------|-------|
-| ADP-OS installed | `pwsh -File cli/adp.ps1 doctor` | Must return "healthy" |
+| ADP-OS installed | `adpos doctor` | Must return "healthy" |
 | VMware Workstation | Running on Windows host | VM provisioning backend |
-| At least one runtime | `pwsh -File cli/adp.ps1 status` | Configured in `configs/topology.json` |
+| At least one runtime | `adpos status` | Configured in `configs/topology.json` |
 | Python 3.10+ | `python3 --version` | For MCP server and adapter |
 | SSH reachable VM | `ssh adp@<vm-ip> echo OK` | Default credentials: `adp`/`adp` |
 

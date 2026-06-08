@@ -41,7 +41,7 @@ sandbox   192.168.242.137
 运行：
 
 ```powershell
-.\cli\adp.ps1 doctor
+adpos doctor
 ```
 
 `doctor` 会报告：
@@ -91,8 +91,8 @@ sandbox   192.168.242.137
 对于本机专属的 NAT 设置，优先使用被忽略的本地覆盖文件，而不是直接修改已提交的默认配置：
 
 ```powershell
-.\cli\adp.ps1 network configure-local -Plan
-.\cli\adp.ps1 network configure-local -Apply
+adpos network configure-local -Plan
+adpos network configure-local -Apply
 ```
 
 `network configure-local -Plan` 会探测 host `VMnet8`，显示目标 local NAT 设置和 runtime static IP，打印字段级变更摘要，并且不会修改文件。不带任何开关运行 `network configure-local` 同样不会修改文件，只会提示如果选择这条修复路径需要使用 `-Apply`。使用 `-Apply` 时，命令只更新被忽略的 `configs\local.json` override，并把已有本地文件备份为 `configs\local.json.bak.<timestamp>`。它不会创建、启动、停止或修改 VM，不会打开 SSH，不会修改 VMware `VMnet8`，也不会修改 guest networking。
@@ -106,13 +106,13 @@ sandbox   192.168.242.137
 修改网络设置后应用：
 
 ```powershell
-.\cli\adp.ps1 network apply all
+adpos network apply all
 ```
 
 也可以只应用一个运行时：
 
 ```powershell
-.\cli\adp.ps1 network apply frontend
+adpos network apply frontend
 ```
 
 该命令会：
@@ -127,9 +127,9 @@ sandbox   192.168.242.137
 
 对于新 provision 的 Ubuntu VM，ADP 会把静态网络注入 cloud-init autoinstall user data。这意味着新 VM 应直接使用配置的 `static_ip` 启动。
 
-创建新 VM 前，`adp up <runtime>` 会在 host 暴露相关信息时，比对配置的 VMware NAT 子网和 host `VMnet8` 网络。如果二者不一致，ADP 会在创建 VM 前退出，并给出两条修复路径：使用 `.\cli\adp.ps1 network configure-local -Plan` 和 `.\cli\adp.ps1 network configure-local -Apply` 将 ADP 本机 override 对齐到 host `VMnet8`，或保留 ADP 配置的 subnet 并在 VMware Virtual Network Editor 中修改 `VMnet8`。
+创建新 VM 前，`adpos up <runtime>` 会在 host 暴露相关信息时，比对配置的 VMware NAT 子网和 host `VMnet8` 网络。如果二者不一致，ADP 会在创建 VM 前退出，并给出两条修复路径：使用 `adpos network configure-local -Plan` 和 `adpos network configure-local -Apply` 将 ADP 本机 override 对齐到 host `VMnet8`，或保留 ADP 配置的 subnet 并在 VMware Virtual Network Editor 中修改 `VMnet8`。
 
-VM 创建完成后再修改 `configs\local.json`，不会自动重写 guest 内部网络。运行 `.\cli\adp.ps1 status <runtime>` 或 `.\cli\adp.ps1 doctor`；如果看到 `network drift` 或 `seed network drift`，请重建该 runtime，或从旧 seed-era 地址进入 guest 后更新网络。
+VM 创建完成后再修改 `configs\local.json`，不会自动重写 guest 内部网络。运行 `adpos status <runtime>` 或 `adpos doctor`；如果看到 `network drift` 或 `seed network drift`，请重建该 runtime，或从旧 seed-era 地址进入 guest 后更新网络。
 
 ## 排障
 
@@ -148,7 +148,7 @@ ssh -i $env:USERPROFILE\.ssh\adp-os\adp-os adp@192.168.242.131 "ip route show de
 检查同步状态：
 
 ```powershell
-.\cli\adp.ps1 sync status
+adpos sync status
 ```
 
 如果 VMware DHCP 与 ADP 静态地址冲突，请把静态地址改成 NAT 子网内未使用的 IP，然后再次运行 `network apply`。

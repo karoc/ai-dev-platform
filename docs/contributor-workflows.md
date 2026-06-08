@@ -29,9 +29,9 @@ Use the closest template when describing a task in `adp-workspace.json` or a pro
 
 Expected flow:
 
-1. Run `adp workspace task validate docs-copy-edit -Execute -Plan`.
-2. Run `adp workspace task validate docs-copy-edit -Execute` when the plan is correct.
-3. Run `adp workspace task review docs-copy-edit`.
+1. Run `adpos workspace task validate docs-copy-edit -Execute -Plan`.
+2. Run `adpos workspace task validate docs-copy-edit -Execute` when the plan is correct.
+3. Run `adpos workspace task review docs-copy-edit`.
 4. Mark reviewed only after source review is accepted.
 5. Commit only when sync hygiene is reviewed and `workspace report` shows `ready to commit` and `release candidate`.
 
@@ -56,7 +56,7 @@ Expected flow:
 
 Expected flow:
 
-1. Preview validation with `adp workspace task validate frontend-browser-acceptance -Execute -Plan`.
+1. Preview validation with `adpos workspace task validate frontend-browser-acceptance -Execute -Plan`.
 2. Execute only the declared validation commands with `-Execute`.
 3. Review recorded browser validation, source diff, and generated artifacts before commit.
 4. Keep package installs and browser downloads explicit in the validation command, not hidden in ADP-OS.
@@ -110,7 +110,7 @@ Expected flow:
 
 Expected flow:
 
-1. Run `adp workspace task snapshot broad-agent-refactor`.
+1. Run `adpos workspace task snapshot broad-agent-refactor`.
 2. Create the checkpoint before broad agent execution. Use `before-<task-name>` for task-scoped checkpoints or `milestone-<name>` for broader checkpoints.
 3. Keep execution manual and explicit.
 4. Run validation after the task.
@@ -121,9 +121,9 @@ Expected flow:
 
 Use this repeatable ritual before accepting a contribution:
 
-1. Run `adp workspace dashboard` for the fast health scan.
-2. Run `adp workspace report` for release decision, governance loop, decision queues, and stale-task remediation.
-3. Run `adp workspace report -Markdown` when the decision needs to be copied into a pull request, release note, or handoff.
+1. Run `adpos workspace dashboard` for the fast health scan.
+2. Run `adpos workspace report` for release decision, governance loop, decision queues, and stale-task remediation.
+3. Run `adpos workspace report -Markdown` when the decision needs to be copied into a pull request, release note, or handoff.
 4. Resolve the report in this order: `release blocked`, `validation required`, `review required`, `governance incomplete`, `release candidate`.
 5. Ask the contributor to fill missing owner, review cadence, due date, validation, or snapshot metadata when the report shows governance gaps.
 6. Resolve any `review sync ignore` item before review acceptance or commit.
@@ -137,7 +137,7 @@ Pull requests should include:
 
 - The task shape used, or a short explanation if no workspace task applies.
 - The `workspace report` release decision, preferably from `workspace report -Markdown` when the change affects workflows, runtimes, validation, docs, or release readiness.
-- Validation commands run and whether they were executed through `adp workspace task validate -Execute`.
+- Validation commands run and whether they were executed through `adpos workspace task validate -Execute`.
 - Review status and any unresolved stale-task remediation items.
 - Sync hygiene status, especially any `review sync ignore` decision.
 - Confirmation that README and Simplified Chinese docs were updated together when relevant.

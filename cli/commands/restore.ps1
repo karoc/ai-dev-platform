@@ -10,7 +10,7 @@ param(
 )
 
 if (-not $RuntimeName -or -not $SnapshotName) {
-    Write-ErrorLog -Message (Get-UIText -English "Usage: adp restore <runtime> <snapshot-name> [-Plan] [-Force]" -Chinese "用法: adp restore <runtime> <snapshot-name> [-Plan] [-Force]") -Component "cli.restore"
+    Write-ErrorLog -Message (Get-UIText -English "Usage: adpos restore <runtime> <snapshot-name> [-Plan] [-Force]" -Chinese "用法: adpos restore <runtime> <snapshot-name> [-Plan] [-Force]") -Component "cli.restore"
     exit 1
 }
 
@@ -49,7 +49,7 @@ if ($Plan) {
 
 if (-not $Force) {
     Write-UIHost -English "This will discard the CURRENT VM state and restore snapshot '$SnapshotName'." -Chinese "这将丢弃当前 VM 状态并恢复快照 '$SnapshotName'。" -ForegroundColor Red
-    Write-UIHost -English "Run 'adp restore $RuntimeName $SnapshotName -Force' to confirm, or 'adp restore $RuntimeName $SnapshotName -Plan' to preview." -Chinese "运行 'adp restore $RuntimeName $SnapshotName -Force' 确认，或 'adp restore $RuntimeName $SnapshotName -Plan' 预览。" -ForegroundColor Yellow
+    Write-UIHost -English "Run 'adpos restore $RuntimeName $SnapshotName -Force' to confirm, or 'adpos restore $RuntimeName $SnapshotName -Plan' to preview." -Chinese "运行 'adpos restore $RuntimeName $SnapshotName -Force' 确认，或 'adpos restore $RuntimeName $SnapshotName -Plan' 预览。" -ForegroundColor Yellow
     return
 }
 

@@ -53,7 +53,7 @@ ADP-OS 通过 `configs` 目录中的 JSON 文件进行配置。
 
 ```powershell
 $env:ADP_LANG = "zh-CN"
-.\cli\adp.ps1 help
+adpos help
 ```
 
 ## `topology.json`
@@ -179,13 +179,13 @@ Copy-Item configs\local.example.json configs\local.json
 
 JSON object 会递归合并。数组和标量值会替换默认值，因此本地 `sync_profiles.<name>.ignore` 覆盖应包含你仍然想保留的所有默认忽略路径。空的 `configs\local.json` 会被忽略。
 
-`platform.defaults.iso_path` 会在 `platform.paths.iso_cache` 内解析。如果要从任意位置导入 ISO，请运行 `.\install.ps1 -IsoPath C:\path\to\ubuntu-26.04-live-server-amd64.iso`；安装脚本会把它复制到配置的 ISO cache。
+`platform.defaults.iso_path` 会在 `platform.paths.iso_cache` 内解析。如果要从任意位置导入 ISO，请运行 `.\setup.cmd -IsoPath C:\path\to\ubuntu-26.04-live-server-amd64.iso`；setup 会把它复制到配置的 ISO cache。
 
 `platform.ui.language` 控制已接入本地化的 installer 和 CLI 用户可见语言。当前支持的值为 `en` 和 `zh-CN`。`ADP_LANG` 优先级高于配置，适合单次命令临时切换，因此用户可以在当前 shell 中设置 `ADP_LANG=zh-CN`，而不必编辑 `configs\local.json`。不支持的值会回退到英文。
 
-简体中文覆盖全新部署主路径的关键输出：`install.ps1`、`adp help`、`adp init`、`adp doctor -FirstRun`、`adp doctor -FixMutagen -Plan`、`adp up <runtime> -Plan`、主要 `adp up <runtime>` 用户提示、`adp status [runtime]`，以及 `adp network configure-local [-Plan|-Apply]`。部分低层诊断检查名和机器可读状态值会有意保留英文，以便日志可搜索、支持输出保持稳定。
+简体中文覆盖全新部署主路径的关键输出：`setup.cmd`、`adpos help`、`adpos init`、`adpos doctor -FirstRun`、`adpos doctor -FixMutagen -Plan`、`adpos up <runtime> -Plan`、主要 `adpos up <runtime>` 用户提示、`adpos status [runtime]`，以及 `adpos network configure-local [-Plan|-Apply]`。部分低层诊断检查名和机器可读状态值会有意保留英文，以便日志可搜索、支持输出保持稳定。
 
-`platform.tools.mutagen` 只影响显式执行的 `.\cli\adp.ps1 doctor -FixMutagen` 修复路径。当 GitHub release 下载很慢或不可达时可以使用它：
+`platform.tools.mutagen` 只影响显式执行的 `adpos doctor -FixMutagen` 修复路径。当 GitHub release 下载很慢或不可达时可以使用它：
 
 - `download_url`：ADP 需要下载 Mutagen 时使用的 archive URL。
 - `archive_path`：可选本地 archive 路径。设置后，ADP 会把该 archive 复制到被忽略的 `.tools\mutagen`，而不是下载。
@@ -197,14 +197,14 @@ JSON object 会递归合并。数组和标量值会替换默认值，因此本�
 如果不同机器上的 VMware NAT 设置不同，优先使用：
 
 ```powershell
-.\cli\adp.ps1 network configure-local -Plan
-.\cli\adp.ps1 network configure-local -Apply
+adpos network configure-local -Plan
+adpos network configure-local -Apply
 ```
 
 该命令会探测 host `VMnet8`，预览目标 `platform.network.vmware_nat` 和 `topology.<runtime>.static_ip` 值；只有显式使用 `-Apply` 时才会写入本地配置。使用 `-Apply` 时，命令只更新被忽略的 `configs\local.json` override，并把已有本地文件备份为 `configs\local.json.bak.<timestamp>`。当 host 探测不可用，或你希望保留 ADP 配置的 subnet 并在 VMware Virtual Network Editor 中修改 `VMnet8` 时，仍然可以手动编辑。如有需要，请在 VMware Workstation 的 Virtual Network Editor 中确认真实 NAT 子网；参见[网络说明](networking.md#前置条件)。
 
 不要提交 `configs\local.json`；共享默认值应提交到主配置文件。
 
-运行 `.\cli\adp.ps1 doctor` 可以查看 `configs\local.json` 是不存在、为空、已应用、存在但没有支持的顶层字段，还是使用了不支持的顶层字段。
+运行 `adpos doctor` 可以查看 `configs\local.json` 是不存在、为空、已应用、存在但没有支持的顶层字段，还是使用了不支持的顶层字段。
 
 `configs\secrets.json` 同样已被忽略，保留给未来专门的 secret 支持。当前 MVP 不会读取它。

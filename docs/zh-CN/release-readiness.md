@@ -7,8 +7,8 @@ ADP-OS 将 release readiness 视为显式 review 边界，而不是 task 完成�
 在接受、发布或提交 task bundle 前，先运行 report：
 
 ```powershell
-.\cli\adp.ps1 workspace report -ManifestPath configs\workspace.recipes.example.json
-.\cli\adp.ps1 workspace report -Markdown -ManifestPath configs\workspace.recipes.example.json
+adpos workspace report -ManifestPath configs\workspace.recipes.example.json
+adpos workspace report -Markdown -ManifestPath configs\workspace.recipes.example.json
 ```
 
 Report 是非破坏性的。它不会 clone project、启动 runtime、修改 sync session、创建快照、运行 validation command、stage 文件或 commit 文件。当同一份 release decision 需要粘贴到 pull request、release note 或维护者 handoff 时，可以添加 `-Markdown`。
@@ -53,9 +53,9 @@ Snapshot naming 也是 rollback clarity 的 review 内容。task 级 checkpoint 
 
 `Stale-task remediation` 会列出需要关注的 task。维护者应把它当作处理队列：
 
-- `create snapshot`：在 execution、review 或 commit 前创建 checkpoint，或用 `adp workspace task mark <task> checkpoint-waived` 记录显式本地 waiver。
+- `create snapshot`：在 execution、review 或 commit 前创建 checkpoint，或用 `adpos workspace task mark <task> checkpoint-waived` 记录显式本地 waiver。
 - `review sync ignore`：发布前检查检测到的生成目录和 runtime sync profile。
-- `validate now`：运行声明的 task validation，通常是 `adp workspace task validate <task> -Execute`。
+- `validate now`：运行声明的 task validation，通常是 `adpos workspace task validate <task> -Execute`。
 - `review now`：检查源码 diff、已记录 validation、rollback path，并且只在接受后标记 reviewed。
 - `rollback or revise`：失败 validation 会阻塞 release；修订 task 并重新 validation，或使用 rollback guidance。
 - `ready to commit`：检查最终 diff，然后在目标 project 内 stage 和 commit。
@@ -66,9 +66,9 @@ Snapshot naming 也是 rollback clarity 的 review 内容。task 级 checkpoint 
 
 发布或接受 task bundle 前使用这份 checklist：
 
-1. 运行 `adp workspace dashboard` 扫描 project 和 lifecycle health。
-2. 运行 `adp workspace report` 检查 release decision、governance loop、decision queues 和 stale-task remediation。
-3. 当 PR 或 release evidence 需要复制到其他 review surface 时，运行 `adp workspace report -Markdown`。
+1. 运行 `adpos workspace dashboard` 扫描 project 和 lifecycle health。
+2. 运行 `adpos workspace report` 检查 release decision、governance loop、decision queues 和 stale-task remediation。
+3. 当 PR 或 release evidence 需要复制到其他 review surface 时，运行 `adpos workspace report -Markdown`。
 4. 先处理所有 `release blocked` task，包括 `review sync ignore` task。
 5. 对所有 `validation required` task 运行或重新运行 validation。
 6. 对所有 `review required` task 完成 source review。

@@ -138,8 +138,8 @@ Mutagen SSH endpoints 使用 ADP 在用户 SSH config 中管理的 Host aliases�
 快照是运行时范围内的 VMware snapshots。CLI 当前暴露：
 
 ```powershell
-.\cli\adp.ps1 snapshot create <runtime> <name>
-.\cli\adp.ps1 restore <runtime> <name>
+adpos snapshot create <runtime> <name>
+adpos restore <runtime> <name>
 ```
 
 快照创建是防御性的：如果 `vmrun` 超时但之后能看到快照，ADP 会把操作视为成功。

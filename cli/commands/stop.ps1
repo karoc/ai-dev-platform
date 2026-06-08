@@ -6,7 +6,7 @@ param(
 )
 
 if (-not $RuntimeName) {
-    Write-ErrorLog -Message (Get-UIText -English "Usage: adp stop <runtime> (frontend|backend|agent)" -Chinese "用法: adp stop <runtime> (frontend|backend|agent)") -Component "cli.stop"
+    Write-ErrorLog -Message (Get-UIText -English "Usage: adpos stop <runtime> (frontend|backend|agent)" -Chinese "用法: adpos stop <runtime> (frontend|backend|agent)") -Component "cli.stop"
     exit 1
 }
 

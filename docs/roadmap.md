@@ -32,7 +32,7 @@ The current public project is a Windows VMware MVP plus open-source hardening:
 - Bilingual public documentation.
 - Workspace manifests, recipes, local directory creation, project open/sync/project views, task lifecycle commands, milestone planning, evaluation planning, sync hygiene checks, validation recording, review gates, commit readiness, and Markdown release evidence.
 - Dev container metadata detection as runtime-internal project context.
-- A public capability boundary through `adp capabilities`.
+- A public capability boundary through `adpos capabilities`.
 
 ## Near-Term Work
 
@@ -97,7 +97,7 @@ Remaining directions:
 
 ADP-OS currently targets Windows plus VMware Workstation. Future runtime expansion should preserve the same user-facing lifecycle while moving host-specific behavior behind adapters.
 
-For the current supported and planned capability boundary, run `.\cli\adp.ps1 capabilities` or see [Capabilities](capabilities.md). That boundary is authoritative for what is available today; this roadmap remains directional.
+For the current supported and planned capability boundary, run `adpos capabilities` or see [Capabilities](capabilities.md). That boundary is authoritative for what is available today; this roadmap remains directional.
 
 Candidate directions:
 
@@ -134,7 +134,7 @@ Public updates should follow the release process:
 - Run `.\tests\validate.ps1`.
 - Update English and Simplified Chinese documentation together when translated docs exist.
 - Update `CHANGELOG.md` and `CHANGELOG.zh-CN.md` with the changes for the release.
-- Generate `adp workspace report -Markdown` evidence when workflow, validation, release-readiness, or task behavior changes.
+- Generate `adpos workspace report -Markdown` evidence when workflow, validation, release-readiness, or task behavior changes.
 - Check for local artifacts, credentials, generated state, VM files, ISO files, downloaded tools, and private maintainer material.
 - Run `.\scripts\release.ps1` to validate and tag the release (or `-DryRun` to preview).
 - Pushing the tag automatically creates a GitHub Release via CI.

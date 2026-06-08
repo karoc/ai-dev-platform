@@ -25,9 +25,9 @@ Both paths provide the same sandbox capabilities: VM lifecycle (acquire/release)
 ## Prerequisites
 
 - **ADP-OS installed** on a Windows host with VMware Workstation
-  - Verified: `pwsh -File cli/adp.ps1 doctor` returns healthy
+  - Verified: `adpos doctor` returns healthy
 - **At least one VM runtime** configured in `configs/topology.json`
-  - Test with: `pwsh -File cli/adp.ps1 up agent`
+  - Test with: `adpos up agent`
 - **SSH access to VMs** (port 22 on VMware NAT subnet)
   - Default credentials: `adp` / `adp` (set during Ubuntu autoinstall)
 - **Python 3.10+** and **PowerShell 7+** on the integration host
@@ -236,8 +236,8 @@ Default mapping when `thread_id=None`: `"agent"` runtime.
 
 ## Verification Checklist
 
-- [ ] ADP-OS CLI healthy: `pwsh -File cli/adp.ps1 doctor`
-- [ ] At least one VM runtime configured: `pwsh -File cli/adp.ps1 status`
+- [ ] ADP-OS CLI healthy: `adpos doctor`
+- [ ] At least one VM runtime configured: `adpos status`
 - [ ] MCP server lists 26 tools: `python cli/mcp/server.py --list-tools`
 - [ ] MCP server tests pass: `python -m pytest tests/test-mcp-server.py -v`
 - [ ] Deer-flow adapter tests pass: `python -m pytest tests/test_deerflow_adp_sandbox.py -v`
@@ -261,7 +261,7 @@ Default mapping when `thread_id=None`: `"agent"` runtime.
 **Symptoms**: `adp_exec` or adapter methods return "Connection refused".
 
 **Checks**:
-1. VM is running: `pwsh -File cli/adp.ps1 status agent`
+1. VM is running: `adpos status agent`
 2. SSH port is reachable from integration host
 3. SSH credentials match `configs/topology.json` settings
 4. VMware NAT network is properly configured
@@ -290,7 +290,7 @@ pip install paramiko
 
 ### WSL-specific: pwsh.exe not found
 
-**Symptoms**: `adp.ps1` commands fail with "pwsh not found".
+**Symptoms**: `adpos` commands fail with "pwsh not found".
 
 **Solution**: Set `ADP_HOME_WIN` to the Windows-style path for the ADP-OS directory so PowerShell scripts run via `pwsh.exe` from WSL.
 

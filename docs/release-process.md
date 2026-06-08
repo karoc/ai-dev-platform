@@ -35,7 +35,7 @@ Use this order before committing, pushing, or publishing a public update:
 4. Generate release evidence when workflows, runtimes, validation, docs, or release readiness are affected:
 
    ```powershell
-   .\cli\adp.ps1 workspace report -Markdown -ManifestPath configs\workspace.recipes.example.json
+   adpos workspace report -Markdown -ManifestPath configs\workspace.recipes.example.json
    ```
 
    `configs\workspace.recipes.example.json` is an example manifest. Use the manifest that describes the actual task bundle for a real release decision.

@@ -85,8 +85,8 @@ Docker can rebuild containers and images, but AI development environments often 
 ADP-OS exposes VM-level rollback:
 
 ```powershell
-.\cli\adp.ps1 snapshot create agent clean
-.\cli\adp.ps1 restore agent clean
+adpos snapshot create agent clean
+adpos restore agent clean
 ```
 
 That restores the runtime as a machine, not just one process or one container.
@@ -104,10 +104,10 @@ agent: higher resource profile, IO tuning, agent sandbox preparation
 The same ADP commands manage each runtime:
 
 ```powershell
-.\cli\adp.ps1 up frontend
-.\cli\adp.ps1 sync start frontend
-.\cli\adp.ps1 snapshot create frontend clean
-.\cli\adp.ps1 doctor
+adpos up frontend
+adpos sync start frontend
+adpos snapshot create frontend clean
+adpos doctor
 ```
 
 ### Agent-Native Development

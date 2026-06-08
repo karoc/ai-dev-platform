@@ -22,9 +22,9 @@ AI is writing more code every day. But when an AI generates a commit, how do you
 ADP-OS answers these questions with a verifiable **evidence chain**:
 
 - **Snapshot signatures** — Every VM state checkpoint is hashed and timestamped, so you can prove the exact environment a piece of code was built in.
-- **Operation logs** — Every `adp up`, `adp sync`, `adp snapshot`, and validation run is logged with operation type, timestamp, and outcome.
-- **Evidence export** — `adp workspace evidence -Export` packages all logs, signatures, task states, and AI declarations into a single ZIP archive for compliance, review, or publication.
-- **AI declarations** — `adp workspace declare -AiAssisted` records who reviewed AI-generated code, creating a provenance trail from prompt to production.
+- **Operation logs** — Every `adpos up`, `adpos sync`, `adpos snapshot`, and validation run is logged with operation type, timestamp, and outcome.
+- **Evidence export** — `adpos workspace evidence -Export` packages all logs, signatures, task states, and AI declarations into a single ZIP archive for compliance, review, or publication.
+- **AI declarations** — `adpos workspace declare -AiAssisted` records who reviewed AI-generated code, creating a provenance trail from prompt to production.
 
 ```
 以前：ADP-OS 是一个管理 AI 开发 VM 的工具。
@@ -38,7 +38,7 @@ ADP-OS answers these questions with a verifiable **evidence chain**:
 
 ## What It Provides
 
-- **Evidence chain** — Snapshot signing (`adp workspace evidence -Snapshot`), operation logs (`adp workspace evidence -Log`), evidence package export (`adp workspace evidence -Export`), and AI-assisted development declarations (`adp workspace declare -AiAssisted`). Every build is auditable, every AI contribution is recorded.
+- **Evidence chain** — Snapshot signing (`adpos workspace evidence -Snapshot`), operation logs (`adpos workspace evidence -Log`), evidence package export (`adpos workspace evidence -Export`), and AI-assisted development declarations (`adpos workspace declare -AiAssisted`). Every build is auditable, every AI contribution is recorded.
 - **Windows-first VM sandbox** — Local-first, self-hosted programmable code execution sandbox infrastructure with hardware-level isolation for AI agents and computer-use agents. Windows control plane implemented in PowerShell 7.
 - VMware Workstation VM factory for Ubuntu Server 26.04.
 - Remastered Ubuntu autoinstall ISO generation with cloud-init seed data.
@@ -90,7 +90,7 @@ ADP-OS is compatible with [Claude Managed Agents](https://docs.anthropic.com/en/
 
 - Windows 11.
 - Git for cloning the repository.
-- PowerShell 7 or newer. `setup.cmd` is the stock Windows shell bootstrap entry point; built-in Windows PowerShell 5.1 can only restart `setup.ps1` / `install.ps1` with `pwsh.exe` or show the install command. The ADP-OS control plane runs on PowerShell 7.
+- PowerShell 7 or newer. `setup.cmd` is the stock Windows shell bootstrap entry point; if PowerShell 7 is missing, it attempts to install it with `winget` and then continues setup. If automatic installation is unavailable, it prints the manual `winget` / MSI path. The ADP-OS control plane runs on PowerShell 7.
 - VMware Workstation Pro with `vmrun.exe` and `vmware-vdiskmanager.exe`.
 - Ubuntu Server 26.04 live server ISO.
 - WSL with `xorriso` or another compatible ISO remastering path.
@@ -129,7 +129,9 @@ If you already have PowerShell 7 open, you can run the PowerShell entry point di
 .\setup.ps1
 ```
 
-Both entries guide you through the entire setup in one pass: prerequisite scanning, ISO download (~2.6 GB), platform bootstrap, initialization, and system diagnostics. If PowerShell 7 is missing, `setup.cmd` prints the install command and exits before running the ADP-OS control plane. If you launch `setup.ps1` from built-in Windows PowerShell 5.1 and PowerShell 7 is installed, it restarts itself with `pwsh.exe`.
+Both entries guide you through the entire setup in one pass: prerequisite scanning, ISO download (~2.6 GB), platform bootstrap, initialization, and system diagnostics. If PowerShell 7 is missing, `setup.cmd` and `setup.ps1` first try to install it with `winget`; if that cannot produce a working `pwsh.exe`, they print the manual install path and exit before running the ADP-OS control plane. If you launch `setup.ps1` from built-in Windows PowerShell 5.1 and PowerShell 7 is available or successfully installed, it restarts itself with `pwsh.exe`.
+
+Setup also registers the global `adpos` command for your user account, so after installation you can run ADP-OS from any directory. Open a new terminal if the current shell has not picked up the updated user `PATH` yet. From the repository root, `.\adpos.cmd` is the preferred local wrapper; `adp` and `.\adp.cmd` remain compatibility aliases for existing users and scripts.
 
 **Options:**
 
@@ -143,10 +145,10 @@ Both entries guide you through the entire setup in one pass: prerequisite scanni
 **Before you start, check prerequisites:**
 
 ```powershell
-.\adp.cmd precheck
+.\adpos.cmd precheck
 ```
 
-`adp precheck` scans all 6 prerequisites (Windows 11, PowerShell 7+, VMware Workstation Pro, WSL+xorriso, Mutagen 0.18.x, OpenSSH) and prints a status table with specific remediation commands for each missing item. Run it before `setup.cmd` or `install.ps1` to see what you need. Use `.\adp.cmd precheck --help-prereqs` for the full requirements list with OS-specific install commands.
+`adpos precheck` scans all 6 prerequisites (Windows 11, PowerShell 7+, VMware Workstation Pro, WSL+xorriso, Mutagen 0.18.x, OpenSSH) and prints a status table with specific remediation commands for each missing item. Run it before `setup.cmd` or `install.ps1` to see what you need. Use `.\adpos.cmd precheck --help-prereqs` for the full requirements list with OS-specific install commands.
 
 **Alternatively, step-by-step:**
 
@@ -161,24 +163,24 @@ pwsh.exe -ExecutionPolicy Bypass -File .\install.ps1
 Check what you need before continuing:
 
 ```powershell
-.\adp.cmd precheck
+.\adpos.cmd precheck
 ```
 
 Download the Ubuntu Server ISO:
 
 ```powershell
 # Automatic download (recommended, uses BITS transfer with resume support):
-.\adp.cmd iso
+adpos iso
 
 # Download a different distro:
-.\adp.cmd iso almalinux
-.\adp.cmd iso rocky
-.\adp.cmd iso debian
+adpos iso almalinux
+adpos iso rocky
+adpos iso debian
 
 # If you're in China, use a mirror for faster download:
-.\adp.cmd iso -Url "https://mirrors.aliyun.com/ubuntu-releases/26.04/ubuntu-26.04-live-server-amd64.iso"
-.\adp.cmd iso -Url "https://mirrors.ustc.edu.cn/ubuntu-releases/26.04/ubuntu-26.04-live-server-amd64.iso"
-.\adp.cmd iso -Url "https://mirrors.tuna.tsinghua.edu.cn/ubuntu-releases/26.04/ubuntu-26.04-live-server-amd64.iso"
+adpos iso -Url "https://mirrors.aliyun.com/ubuntu-releases/26.04/ubuntu-26.04-live-server-amd64.iso"
+adpos iso -Url "https://mirrors.ustc.edu.cn/ubuntu-releases/26.04/ubuntu-26.04-live-server-amd64.iso"
+adpos iso -Url "https://mirrors.tuna.tsinghua.edu.cn/ubuntu-releases/26.04/ubuntu-26.04-live-server-amd64.iso"
 
 # Or download manually:
 # PowerShell: Invoke-WebRequest -Uri "https://releases.ubuntu.com/26.04/ubuntu-26.04-live-server-amd64.iso" -OutFile "$env:USERPROFILE\adp-iso\ubuntu-26.04-live-server-amd64.iso"
@@ -196,35 +198,35 @@ See [Configuration](docs/configuration.md#local-overrides) for supported local o
 Initialize your first runtime:
 
 ```powershell
-.\adp.cmd init           # or: .\adp.cmd init -Quick (skip redundant dep re-checks since install.ps1 already ran)
+adpos init           # or: adpos init -Quick (skip redundant dep re-checks since install.ps1 already ran)
 ```
 
 > [!NOTE]
-> From the repository root, use `.\adp.cmd` instead of running `.\cli\adp.ps1` directly. If you add the repository root to `PATH`, you can use bare `adp`.
+> Use `adpos` as the formal command after setup. From the repository root, `.\adpos.cmd` is available if your current shell has not refreshed `PATH`. `adp` and `.\adp.cmd` remain compatibility aliases.
 
 ### Runtime Operations
 
 Create and start runtimes:
 
 ```powershell
-.\adp.cmd up frontend
-.\adp.cmd up backend
-.\adp.cmd up agent
+adpos up frontend
+adpos up backend
+adpos up agent
 ```
 
 Check runtime status and connection details:
 
 ```powershell
-.\adp.cmd status
-.\adp.cmd status agent
+adpos status
+adpos status agent
 ```
 
 Start workspace synchronization:
 
 ```powershell
-.\adp.cmd sync start frontend
-.\adp.cmd sync start backend
-.\adp.cmd sync start agent
+adpos sync start frontend
+adpos sync start backend
+adpos sync start agent
 ```
 
 Prepare frontend browser acceptance testing when needed:
@@ -238,13 +240,13 @@ adp-frontend-browser-install chromium
 Check health:
 
 ```powershell
-.\adp.cmd doctor
-.\adp.cmd doctor -FirstRun
-.\adp.cmd doctor -FixMutagen -Plan
-.\adp.cmd sync status
+adpos doctor
+adpos doctor -FirstRun
+adpos doctor -FixMutagen -Plan
+adpos sync status
 ```
 
-`install.ps1` and `doctor` check VMware tooling, `vmware-vdiskmanager.exe`, WSL, WSL `xorriso`, Mutagen 0.18.x, OpenSSH, ISO presence, and basic ISO shape. They print remediation commands or placement guidance, but do not download large binaries by default. To install the tested local Mutagen binary, preview first with `.\adp.cmd doctor -FixMutagen -Plan`, then run `.\adp.cmd doctor -FixMutagen`; the archive and extracted binary stay under ignored `.tools\mutagen`. If GitHub release downloads are slow or blocked, place `mutagen_windows_amd64_v0.18.1.zip` under `.tools\mutagen` or set `platform.tools.mutagen.archive_path` in `configs\local.json`; set `platform.tools.mutagen.sha256` to enforce archive hash verification.
+`install.ps1` and `doctor` check VMware tooling, `vmware-vdiskmanager.exe`, WSL, WSL `xorriso`, Mutagen 0.18.x, OpenSSH, ISO presence, and basic ISO shape. They print remediation commands or placement guidance, but do not download large binaries by default. To install the tested local Mutagen binary, preview first with `adpos doctor -FixMutagen -Plan`, then run `adpos doctor -FixMutagen`; the archive and extracted binary stay under ignored `.tools\mutagen`. If GitHub release downloads are slow or blocked, place `mutagen_windows_amd64_v0.18.1.zip` under `.tools\mutagen` or set `platform.tools.mutagen.archive_path` in `configs\local.json`; set `platform.tools.mutagen.sha256` to enforce archive hash verification.
 
 Run non-destructive validation:
 
@@ -270,17 +272,31 @@ For targeted validation:
 Create clean snapshots:
 
 ```powershell
-.\adp.cmd snapshot create frontend clean
-.\adp.cmd snapshot create backend clean
-.\adp.cmd snapshot create agent clean
+adpos snapshot create frontend clean
+adpos snapshot create backend clean
+adpos snapshot create agent clean
 ```
 
 Sign your snapshot and export the evidence chain:
 
 ```powershell
-.\adp.cmd workspace evidence -Snapshot
-.\adp.cmd workspace evidence -Export
-.\adp.cmd workspace declare -AiAssisted -Reviewer "your-name"
+adpos workspace evidence -Snapshot
+adpos workspace evidence -Export
+adpos workspace declare -AiAssisted -Reviewer "your-name"
+```
+
+Uninstall the user-level command registration in one step:
+
+```powershell
+adpos uninstall
+```
+
+This only removes the user-level `adpos` PATH shim. It does not delete VMs, workspace files, ISO cache, local tools, logs, or repository files.
+
+If `adpos` is not available in the current shell, run the repository-root wrapper instead:
+
+```powershell
+.\uninstall.cmd
 ```
 
 ## Default Runtimes
@@ -297,7 +313,7 @@ Static addresses are configured in `configs\topology.json`. The VMware NAT subne
 Apply configured networking to existing VMs:
 
 ```powershell
-.\adp.cmd network apply all
+adpos network apply all
 ```
 
 ## Workspace Paths
@@ -335,81 +351,85 @@ See [Capabilities](docs/capabilities.md) for the current supported runtime and a
 ADP-OS also includes a multi-scenario, spec-driven workspace recipes manifest for common agent-native workflows. Treat the manifest as a spec: declare what to build, how to validate, and which milestones gate progress, then let the platform execute and produce auditable release evidence:
 
 ```powershell
-.\adp.cmd workspace show -ManifestPath configs\workspace.recipes.example.json
-.\adp.cmd workspace plan -ManifestPath configs\workspace.recipes.example.json
-.\adp.cmd workspace recipes -ManifestPath configs\workspace.recipes.example.json
-.\adp.cmd workspace create -Plan -ManifestPath configs\workspace.recipes.example.json
-.\adp.cmd workspace open frontend-app -ManifestPath configs\workspace.recipes.example.json
-.\adp.cmd workspace sync frontend-app -ManifestPath configs\workspace.recipes.example.json
-.\adp.cmd workspace project frontend-app -ManifestPath configs\workspace.recipes.example.json
-.\adp.cmd workspace dashboard -ManifestPath configs\workspace.recipes.example.json
-.\adp.cmd workspace report -ManifestPath configs\workspace.recipes.example.json
-.\adp.cmd workspace report -Markdown -ManifestPath configs\workspace.recipes.example.json
+adpos workspace show -ManifestPath configs\workspace.recipes.example.json
+adpos workspace plan -ManifestPath configs\workspace.recipes.example.json
+adpos workspace recipes -ManifestPath configs\workspace.recipes.example.json
+adpos workspace create -Plan -ManifestPath configs\workspace.recipes.example.json
+adpos workspace open frontend-app -ManifestPath configs\workspace.recipes.example.json
+adpos workspace sync frontend-app -ManifestPath configs\workspace.recipes.example.json
+adpos workspace project frontend-app -ManifestPath configs\workspace.recipes.example.json
+adpos workspace dashboard -ManifestPath configs\workspace.recipes.example.json
+adpos workspace report -ManifestPath configs\workspace.recipes.example.json
+adpos workspace report -Markdown -ManifestPath configs\workspace.recipes.example.json
 ```
 
-The recipes cover low-risk maintenance, frontend browser acceptance, backend validation, and high-risk agent work with a snapshot-first gate. They also demonstrate optional `milestones[]` planning so related tasks can share a visible milestone checkpoint such as `milestone-agent-refactor-safety`, plus plan-only `evaluations[]` hooks so agent-native review criteria, metrics, and declared evaluation commands can appear in release evidence without being executed. `workspace recipes` is the discovery view for these examples: it summarizes project recipes, task recipes, milestone checkpoints, evaluation hooks, and evidence commands without cloning projects, opening SSH, creating snapshots, running validation, running evaluation commands, starting sync, or running Git. `workspace create -Plan` previews local project directories declared by the manifest; `workspace create` creates only those local directories and still does not clone projects, start sync, start runtimes, open SSH, create snapshots, run validation, run evaluation commands, or run Git. `workspace open` prints a non-destructive open guide for one project: local path, remote path, readiness, and copyable local, editor, SSH, sync, and status commands. `workspace sync` prints a non-destructive project-aware sync guide: it maps the manifest project back to the runtime sync session, shows sync readiness and sync hygiene, and prints the runtime `adp sync` commands to run explicitly. `workspace project` prints the project operational lifecycle in one place: open, runtime, sync, validation, linked tasks, and evidence handoff. `workspace report` also prints a release handoff summary that counts validation results, lists blockers, shows tasks ready for review or commit, names the current release gate, exposes milestone checkpoint status, exposes evaluation queue status, and exposes task governance fields such as owner, review cadence, and due date. It also groups tasks into owner queues, review cadence queues, milestone queues, milestone review rollups, a validation execution queue, an evaluation queue, an attention queue for recurring review, decision queues for actions such as validate, review, revise, snapshot, or commit, a release decision policy, and stale-task remediation guidance. Add `-Markdown` to generate copyable PR or release evidence with the same decision state, including Validation Execution Queue, Evaluation Queue, Milestone Checkpoints, and Milestone Review Rollup tables. The recipes are planning examples only; the workspace commands do not install packages, download browsers, create snapshots, run validation, run evaluation commands, open editors, SSH into runtimes, start sync, stop sync, or commit files.
+The recipes cover low-risk maintenance, frontend browser acceptance, backend validation, and high-risk agent work with a snapshot-first gate. They also demonstrate optional `milestones[]` planning so related tasks can share a visible milestone checkpoint such as `milestone-agent-refactor-safety`, plus plan-only `evaluations[]` hooks so agent-native review criteria, metrics, and declared evaluation commands can appear in release evidence without being executed. `workspace recipes` is the discovery view for these examples: it summarizes project recipes, task recipes, milestone checkpoints, evaluation hooks, and evidence commands without cloning projects, opening SSH, creating snapshots, running validation, running evaluation commands, starting sync, or running Git. `workspace create -Plan` previews local project directories declared by the manifest; `workspace create` creates only those local directories and still does not clone projects, start sync, start runtimes, open SSH, create snapshots, run validation, run evaluation commands, or run Git. `workspace open` prints a non-destructive open guide for one project: local path, remote path, readiness, and copyable local, editor, SSH, sync, and status commands. `workspace sync` prints a non-destructive project-aware sync guide: it maps the manifest project back to the runtime sync session, shows sync readiness and sync hygiene, and prints the runtime `adpos sync` commands to run explicitly. `workspace project` prints the project operational lifecycle in one place: open, runtime, sync, validation, linked tasks, and evidence handoff. `workspace report` also prints a release handoff summary that counts validation results, lists blockers, shows tasks ready for review or commit, names the current release gate, exposes milestone checkpoint status, exposes evaluation queue status, and exposes task governance fields such as owner, review cadence, and due date. It also groups tasks into owner queues, review cadence queues, milestone queues, milestone review rollups, a validation execution queue, an evaluation queue, an attention queue for recurring review, decision queues for actions such as validate, review, revise, snapshot, or commit, a release decision policy, and stale-task remediation guidance. Add `-Markdown` to generate copyable PR or release evidence with the same decision state, including Validation Execution Queue, Evaluation Queue, Milestone Checkpoints, and Milestone Review Rollup tables. The recipes are planning examples only; the workspace commands do not install packages, download browsers, create snapshots, run validation, run evaluation commands, open editors, SSH into runtimes, start sync, stop sync, or commit files.
 
 Validation can be executed explicitly from a task recipe:
 
 ```powershell
-.\adp.cmd workspace task validate frontend-browser-acceptance -Execute -Plan -ManifestPath configs\workspace.recipes.example.json
-.\adp.cmd workspace task validate frontend-browser-acceptance -Execute -ManifestPath configs\workspace.recipes.example.json
+adpos workspace task validate frontend-browser-acceptance -Execute -Plan -ManifestPath configs\workspace.recipes.example.json
+adpos workspace task validate frontend-browser-acceptance -Execute -ManifestPath configs\workspace.recipes.example.json
 ```
 
 `-Execute -Plan` previews the readiness gate and remote SSH commands. `-Execute` runs only the declared `tasks[].validation` commands in the target project directory and records the result in ignored local workspace state. Review, rollback, and commit commands read that recorded result to show decision gates, but staging, restore, and commit execution remain separate explicit steps.
 
 ## Command Reference
 
-The reference uses `adp` as the command name. From the repository root, run `.\adp.cmd ...`; use bare `adp ...` only after adding the repository root to `PATH`.
+The reference uses `adpos`, the formal command installed by `.\setup.cmd`. From the repository root, `.\adpos.cmd ...` is the local wrapper if your current shell has not refreshed `PATH`. `adp` and `.\adp.cmd` remain compatibility aliases; MCP tool names such as `adp_status` stay unchanged protocol identifiers.
+
+`adpos uninstall` removes only the global command registration. Runtime data, workspace data, caches, tools, logs, and repository files remain untouched.
 
 ```powershell
-adp iso [ubuntu|almalinux|rocky|debian] [-Url <url>] [-Force] [-NonInteractive]
-adp quickstart [-Distro <name>] [-IsoPath <path>] [-SkipIsoDownload] [-SkipDoctor] [-Force] [-NonInteractive]
-adp init
-adp init <frontend|backend|agent|sandbox> [-IsoPath <path>] [-NoProvision] [-Quick] [-NonInteractive]
-adp up <frontend|backend|agent|sandbox> [-IsoPath <path>] [-Plan] [-NoProvision] [-NoBootstrap]
-adp status [frontend|backend|agent|sandbox]
-adp capabilities
-adp stop <frontend|backend|agent|sandbox>
-adp sync status
-adp workspace init
-adp workspace show
-adp workspace plan
-adp workspace status
-adp workspace dashboard
-adp workspace recipes
-adp workspace create [-Plan]
-adp workspace open [project-name]
-adp workspace sync [project-name]
-adp workspace project [project-name]
-adp workspace report
-adp workspace report [-Markdown]
-adp workspace evidence -Snapshot [-Json]                        Sign current snapshot metadata (SHA-256 chain)
-adp workspace evidence -Log -Operation <op> [-Details <text>] [-Json]  Record operation log entry
-adp workspace evidence -Export [-Path <path>]                   Export all evidence as ZIP
-adp workspace declare -AiAssisted [-Reviewer <name>] [-Notes "..."] [-Json]  Declare AI-assisted development
-adp workspace task <prepare|snapshot|run|validate|review|rollback|commit> <task-name>
-adp workspace task validate <task-name> [-Execute] [-Plan]
-adp workspace task mark <task-name> <prepared|checkpointed|checkpoint-waived|running|validated|reviewed|rollback|committed>
-adp sync start <frontend|backend|agent|sandbox>
-adp sync stop <frontend|backend|agent|sandbox>
-adp network apply <frontend|backend|agent|sandbox|all> [-Plan]
-adp snapshot create <runtime> <name>
-adp restore <runtime> <name>
-adp logs <runtime>
-adp doctor [-FirstRun] [-FixMutagen] [-Plan]
-adp destroy <runtime> [-Plan]
-adp workspace evidence -Snapshot [-ManifestPath <path>]
-adp workspace evidence -Log -Operation <op> [-Details <text>] [-ManifestPath <path>]
-adp workspace evidence -Export [-Path <path>] [-ManifestPath <path>]
-adp workspace declare -AiAssisted [-Reviewer <name>] [-Notes "..."] [-ManifestPath <path>]
+adpos setup [-IsoPath <path>] [-SkipIsoDownload] [-NonInteractive] [-Force]
+adpos uninstall
+adpos iso [ubuntu|almalinux|rocky|debian] [-Url <url>] [-Force] [-NonInteractive]
+adpos quickstart [-Distro <name>] [-IsoPath <path>] [-SkipIsoDownload] [-SkipDoctor] [-Force] [-NonInteractive]
+adpos init
+adpos init <frontend|backend|agent|sandbox> [-IsoPath <path>] [-NoProvision] [-Quick] [-NonInteractive]
+adpos up <frontend|backend|agent|sandbox> [-IsoPath <path>] [-Plan] [-NoProvision] [-NoBootstrap]
+adpos status [frontend|backend|agent|sandbox]
+adpos capabilities
+adpos stop <frontend|backend|agent|sandbox>
+adpos sync status
+adpos workspace init
+adpos workspace show
+adpos workspace plan
+adpos workspace status
+adpos workspace dashboard
+adpos workspace recipes
+adpos workspace create [-Plan]
+adpos workspace open [project-name]
+adpos workspace sync [project-name]
+adpos workspace project [project-name]
+adpos workspace report
+adpos workspace report [-Markdown]
+adpos workspace evidence -Snapshot [-Json]                        Sign current snapshot metadata (SHA-256 chain)
+adpos workspace evidence -Log -Operation <op> [-Details <text>] [-Json]  Record operation log entry
+adpos workspace evidence -Export [-Path <path>]                   Export all evidence as ZIP
+adpos workspace declare -AiAssisted [-Reviewer <name>] [-Notes "..."] [-Json]  Declare AI-assisted development
+adpos workspace task <prepare|snapshot|run|validate|review|rollback|commit> <task-name>
+adpos workspace task validate <task-name> [-Execute] [-Plan]
+adpos workspace task mark <task-name> <prepared|checkpointed|checkpoint-waived|running|validated|reviewed|rollback|committed>
+adpos sync start <frontend|backend|agent|sandbox>
+adpos sync stop <frontend|backend|agent|sandbox>
+adpos network apply <frontend|backend|agent|sandbox|all> [-Plan]
+adpos snapshot create <runtime> <name>
+adpos restore <runtime> <name>
+adpos logs <runtime>
+adpos doctor [-FirstRun] [-FixMutagen] [-Plan]
+adpos destroy <runtime> [-Plan]
+adpos workspace evidence -Snapshot [-ManifestPath <path>]
+adpos workspace evidence -Log -Operation <op> [-Details <text>] [-ManifestPath <path>]
+adpos workspace evidence -Export [-Path <path>] [-ManifestPath <path>]
+adpos workspace declare -AiAssisted [-Reviewer <name>] [-Notes "..."] [-ManifestPath <path>]
 ```
 
 ## What Success Looks Like
 
 A healthy ADP-OS installation produces output like the following.
 
-### `adp status` — all runtimes running
+### `adpos status` — all runtimes running
 
 ```text
 RUNTIME   STATE     IP               SSH
@@ -418,7 +438,7 @@ backend   running   192.168.242.133  adp-os-adp-backend
 agent     running   192.168.242.135  adp-os-adp-agent
 ```
 
-### `adp doctor` — all checks passing
+### `adpos doctor` — all checks passing
 
 ```text
 [PASS] VMware Workstation      (vmrun.exe found)
@@ -432,7 +452,7 @@ agent     running   192.168.242.135  adp-os-adp-agent
 Doctor complete: 7/7 checks passed.
 ```
 
-### `adp sync status` — workspaces syncing
+### `adpos sync status` — workspaces syncing
 
 ```text
 RUNTIME   STATUS    SOURCE                              DEST

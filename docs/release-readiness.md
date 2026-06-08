@@ -7,8 +7,8 @@ ADP-OS treats release readiness as an explicit review boundary, not an implicit 
 Use the report before accepting, publishing, or committing a task bundle:
 
 ```powershell
-.\cli\adp.ps1 workspace report -ManifestPath configs\workspace.recipes.example.json
-.\cli\adp.ps1 workspace report -Markdown -ManifestPath configs\workspace.recipes.example.json
+adpos workspace report -ManifestPath configs\workspace.recipes.example.json
+adpos workspace report -Markdown -ManifestPath configs\workspace.recipes.example.json
 ```
 
 The report is non-destructive. It does not clone projects, start runtimes, change sync sessions, create snapshots, run validation commands, stage files, or commit files. Add `-Markdown` when the same release decision needs to be pasted into a pull request, release note, or maintainer handoff.
@@ -53,9 +53,9 @@ Snapshot naming is reviewed as part of rollback clarity. Prefer `before-<task-na
 
 The `Stale-task remediation` section lists tasks that need attention. Use it as the maintainer queue:
 
-- `create snapshot`: create the checkpoint, or record an explicit local waiver with `adp workspace task mark <task> checkpoint-waived` before execution, review, or commit.
+- `create snapshot`: create the checkpoint, or record an explicit local waiver with `adpos workspace task mark <task> checkpoint-waived` before execution, review, or commit.
 - `review sync ignore`: inspect the detected generated directory and runtime sync profile before release.
-- `validate now`: run the declared task validation, usually with `adp workspace task validate <task> -Execute`.
+- `validate now`: run the declared task validation, usually with `adpos workspace task validate <task> -Execute`.
 - `review now`: inspect source diff, recorded validation, rollback path, and mark the task reviewed only when accepted.
 - `rollback or revise`: failed validation blocks release; revise the task and rerun validation, or use rollback guidance.
 - `ready to commit`: inspect final diff, then stage and commit inside the target project.
@@ -66,9 +66,9 @@ The queue also shows owner, cadence, and timing so recurring review can be assig
 
 Use this checklist before publishing or accepting a task bundle:
 
-1. Run `adp workspace dashboard` to scan project and lifecycle health.
-2. Run `adp workspace report` to inspect release decision, governance loop, decision queues, and stale-task remediation.
-3. Run `adp workspace report -Markdown` when PR or release evidence should be copied into another review surface.
+1. Run `adpos workspace dashboard` to scan project and lifecycle health.
+2. Run `adpos workspace report` to inspect release decision, governance loop, decision queues, and stale-task remediation.
+3. Run `adpos workspace report -Markdown` when PR or release evidence should be copied into another review surface.
 4. Resolve every `release blocked` task first, including `review sync ignore` tasks.
 5. Run or rerun validation for every `validation required` task.
 6. Complete source review for every `review required` task.

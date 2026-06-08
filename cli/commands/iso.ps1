@@ -17,7 +17,7 @@ param(
 
 . (Join-Path (Get-ProjectRoot) "runtimes\vmware\os-profiles.ps1")
 
-Write-InfoLog -Message (Get-UIText -English "adp iso download $Distro" -Chinese "adp iso 下载 $Distro") -Component "cli.iso"
+Write-InfoLog -Message (Get-UIText -English "adpos iso download $Distro" -Chinese "adpos iso 下载 $Distro") -Component "cli.iso"
 
 $config = Get-PlatformConfig
 $isoCache = Resolve-Path "iso_cache"
@@ -86,7 +86,7 @@ if (-not $Url -and -not $NonInteractive -and $entry.Mirrors.Count -gt 0) {
     Write-UIHost -English "  China mirror options (faster from mainland China):" -Chinese "  中国镜像选项（从中国大陆下载更快）：" -ForegroundColor Yellow
     foreach ($mirror in $entry.Mirrors) {
         Write-Host "    $($mirror.Name)" -ForegroundColor DarkGray -NoNewline
-        Write-Host " : adp iso $Distro -Url '$($mirror.Url)'" -ForegroundColor DarkGray
+        Write-Host " : adpos iso $Distro -Url '$($mirror.Url)'" -ForegroundColor DarkGray
     }
     Write-Host ""
 }
@@ -97,7 +97,7 @@ if (Test-Path $destPath) {
     if (-not $Force) {
         Write-UIHost -English "  ISO already exists: $destPath ($existingSize GB)" -Chinese "  ISO 已存在: $destPath ($existingSize GB)" -ForegroundColor Green
         Write-UIHost -English "  Use -Force to re-download." -Chinese "  使用 -Force 重新下载。" -ForegroundColor DarkGray
-        Write-UIHost -English "  To use this ISO for init: adp init -IsoPath `"$destPath`"" -Chinese "  使用此 ISO 进行初始化: adp init -IsoPath `"$destPath`"" -ForegroundColor DarkGray
+        Write-UIHost -English "  To use this ISO for init: adpos init -IsoPath `"$destPath`"" -Chinese "  使用此 ISO 进行初始化: adpos init -IsoPath `"$destPath`"" -ForegroundColor DarkGray
         Write-Host ""
         exit 0
     }
@@ -147,7 +147,7 @@ try {
 
     if (-not $NonInteractive) {
         Write-UIHost -English "Next steps:" -Chinese "下一步:" -ForegroundColor Cyan
-        Write-UIHost -English "  .\cli\adp.ps1 init" -Chinese "  .\cli\adp.ps1 init" -ForegroundColor DarkGray
+        Write-UIHost -English "  adpos init" -Chinese "  adpos init" -ForegroundColor DarkGray
         Write-Host ""
     }
 
@@ -167,8 +167,8 @@ try {
         }
     }
 
-    Write-UIHost -English "  Retry with: .\cli\adp.ps1 iso download $Distro" -Chinese "  重试: .\cli\adp.ps1 iso download $Distro" -ForegroundColor Yellow
-    Write-UIHost -English "  Or use a China mirror: adp iso $Distro -Url '<mirror-url>'" -Chinese "  或使用中国镜像: adp iso $Distro -Url '<镜像地址>'" -ForegroundColor Yellow
+    Write-UIHost -English "  Retry with: adpos iso download $Distro" -Chinese "  重试: adpos iso download $Distro" -ForegroundColor Yellow
+    Write-UIHost -English "  Or use a China mirror: adpos iso $Distro -Url '<mirror-url>'" -Chinese "  或使用中国镜像: adpos iso $Distro -Url '<镜像地址>'" -ForegroundColor Yellow
     Write-UIHost -English "  Or download manually and place at: $isoCache" -Chinese "  或手动下载后放到: $isoCache" -ForegroundColor Yellow
     if (-not $NonInteractive) { Write-Host "" }
     exit 1

@@ -15,7 +15,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 if (-not $RuntimeName) {
-    Write-ErrorLog -Message (Get-UIText -English "Usage: adp run <runtime> (frontend|backend|agent) [-IsoPath <path>] [-Plan] [-NoBootstrap] [-NoProvision] [-NoSync]" -Chinese "用法: adp run <runtime> (frontend|backend|agent) [-IsoPath <path>] [-Plan] [-NoBootstrap] [-NoProvision] [-NoSync]") -Component "cli.run"
+    Write-ErrorLog -Message (Get-UIText -English "Usage: adpos run <runtime> (frontend|backend|agent) [-IsoPath <path>] [-Plan] [-NoBootstrap] [-NoProvision] [-NoSync]" -Chinese "用法: adpos run <runtime> (frontend|backend|agent) [-IsoPath <path>] [-Plan] [-NoBootstrap] [-NoProvision] [-NoSync]") -Component "cli.run"
     exit 1
 }
 
@@ -38,22 +38,22 @@ if ($Plan) {
     Write-Host ""
 
     # Show what would happen
-    Write-UIHost -English "[1/4] Would run: adp init" -Chinese "[1/4] 将运行: adp init" -ForegroundColor Yellow
+    Write-UIHost -English "[1/4] Would run: adpos init" -Chinese "[1/4] 将运行: adpos init" -ForegroundColor Yellow
     Write-UIHost -English "       Verify VMware, ISO, SSH keys, directories, VM factory" -Chinese "       验证 VMware、ISO、SSH 密钥、目录、VM factory" -ForegroundColor DarkGray
     Write-Host ""
     $upArgs = @("-Plan")
     if ($IsoPath) { $upArgs += "-IsoPath"; $upArgs += $IsoPath }
     if ($NoBootstrap) { $upArgs += "-NoBootstrap" }
     if ($NoProvision) { $upArgs += "-NoProvision" }
-    Write-UIHost -English "[2/4] Would run: adp up $RuntimeName $($upArgs -join ' ')" -Chinese "[2/4] 将运行: adp up $RuntimeName $($upArgs -join ' ')" -ForegroundColor Yellow
+    Write-UIHost -English "[2/4] Would run: adpos up $RuntimeName $($upArgs -join ' ')" -Chinese "[2/4] 将运行: adpos up $RuntimeName $($upArgs -join ' ')" -ForegroundColor Yellow
     Write-UIHost -English "       Create/start VM, autoinstall, bootstrap" -Chinese "       创建/启动 VM、autoinstall、bootstrap" -ForegroundColor DarkGray
     Write-Host ""
     if (-not $NoSync) {
-        Write-UIHost -English "[3/4] Would run: adp sync start $RuntimeName" -Chinese "[3/4] 将运行: adp sync start $RuntimeName" -ForegroundColor Yellow
+        Write-UIHost -English "[3/4] Would run: adpos sync start $RuntimeName" -Chinese "[3/4] 将运行: adpos sync start $RuntimeName" -ForegroundColor Yellow
         Write-UIHost -English "       Start Mutagen file sync between local workspace and VM" -Chinese "       启动 Mutagen 文件同步（本地工作区 ↔ VM）" -ForegroundColor DarkGray
         Write-Host ""
     }
-    Write-UIHost -English "[4/4] Would run: adp status $RuntimeName" -Chinese "[4/4] 将运行: adp status $RuntimeName" -ForegroundColor Yellow
+    Write-UIHost -English "[4/4] Would run: adpos status $RuntimeName" -Chinese "[4/4] 将运行: adpos status $RuntimeName" -ForegroundColor Yellow
     Write-UIHost -English "       Show runtime status and connection details" -Chinese "       显示运行时状态和连接信息" -ForegroundColor DarkGray
     Write-Host ""
     Write-UIHost -English "To execute: run without -Plan" -Chinese "要执行: 不加 -Plan 运行" -ForegroundColor Cyan
@@ -94,7 +94,7 @@ try {
     $upExit = & $upScript @upArgs
     if ($LASTEXITCODE -ne 0 -and $LASTEXITCODE) {
         Write-ErrorLog -Message "Up step failed with exit code $LASTEXITCODE" -Component "cli.run"
-        Write-UIHost -English "VM is running but may need manual attention. Run: adp status $RuntimeName" -Chinese "VM 可能在运行但需要手动处理。运行: adp status $RuntimeName" -ForegroundColor Yellow
+        Write-UIHost -English "VM is running but may need manual attention. Run: adpos status $RuntimeName" -Chinese "VM 可能在运行但需要手动处理。运行: adpos status $RuntimeName" -ForegroundColor Yellow
         exit $LASTEXITCODE
     }
 } catch {
@@ -111,11 +111,11 @@ if (-not $NoSync) {
     try {
         & $syncScript "start" $RuntimeName
         if ($LASTEXITCODE -ne 0 -and $LASTEXITCODE) {
-            Write-WarnLog -Message "Sync start had issues (exit $LASTEXITCODE). VM is running — try: adp sync start $RuntimeName" -Component "cli.run"
+            Write-WarnLog -Message "Sync start had issues (exit $LASTEXITCODE). VM is running — try: adpos sync start $RuntimeName" -Component "cli.run"
         }
     } catch {
         Write-WarnLog -Message "Sync start had issues: $_" -Component "cli.run"
-        Write-UIHost -English "Sync could not start. VM is running. Try manually: adp sync start $RuntimeName" -Chinese "无法启动同步。VM 已在运行。手动尝试: adp sync start $RuntimeName" -ForegroundColor Yellow
+        Write-UIHost -English "Sync could not start. VM is running. Try manually: adpos sync start $RuntimeName" -Chinese "无法启动同步。VM 已在运行。手动尝试: adpos sync start $RuntimeName" -ForegroundColor Yellow
     }
     $global:LASTEXITCODE = 0
 }

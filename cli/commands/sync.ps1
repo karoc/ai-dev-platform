@@ -9,7 +9,7 @@ param(
 Write-InfoLog -Message "Sync command: $SubCommand $RuntimeName" -Component "cli.sync"
 
 if (-not $SubCommand) {
-    Write-ErrorLog -Message (Get-UIText -English "Usage: adp sync <status|start|stop|list>" -Chinese "用法: adp sync <status|start|stop|list>") -Component "cli.sync"
+    Write-ErrorLog -Message (Get-UIText -English "Usage: adpos sync <status|start|stop|list>" -Chinese "用法: adpos sync <status|start|stop|list>") -Component "cli.sync"
     exit 1
 }
 
@@ -21,7 +21,7 @@ if ($SubCommand -notin $validSubCommands) {
 
 if ($SubCommand -in @("start", "stop")) {
     if (-not $RuntimeName) {
-        Write-ErrorLog -Message (Get-UIText -English "Usage: adp sync $SubCommand <runtime>" -Chinese "用法: adp sync $SubCommand <runtime>") -Component "cli.sync"
+        Write-ErrorLog -Message (Get-UIText -English "Usage: adpos sync $SubCommand <runtime>" -Chinese "用法: adpos sync $SubCommand <runtime>") -Component "cli.sync"
         exit 1
     }
     if (-not (Test-RuntimeExists $RuntimeName)) {
@@ -66,7 +66,7 @@ function Write-SyncRuntimeSummary {
     }
 
     if (-not $session.Exists) {
-        Write-UIHost -English "  ${TargetRuntime}: not-started — run adp sync start $TargetRuntime" -Chinese "  ${TargetRuntime}: 未启动 — 运行 adp sync start $TargetRuntime" -ForegroundColor Yellow
+        Write-UIHost -English "  ${TargetRuntime}: not-started — run adpos sync start $TargetRuntime" -Chinese "  ${TargetRuntime}: 未启动 — 运行 adpos sync start $TargetRuntime" -ForegroundColor Yellow
         return
     }
 
@@ -74,8 +74,8 @@ function Write-SyncRuntimeSummary {
         Write-UIHost -English "  ${TargetRuntime}: stale-session — existing session was found before this runtime was created in the current checkout" -Chinese "  ${TargetRuntime}: 陈旧会话 — 在当前检出中创建此运行时之前已存在该会话" -ForegroundColor Yellow
         Write-Host "    local:  $($session.AlphaUrl)" -ForegroundColor DarkGray
         Write-Host "    remote: $($session.BetaUrl)" -ForegroundColor DarkGray
-        Write-Host "    cleanup: adp sync stop $TargetRuntime" -ForegroundColor Yellow
-        Write-Host "    next:    adp up $TargetRuntime; adp sync start $TargetRuntime" -ForegroundColor DarkGray
+        Write-Host "    cleanup: adpos sync stop $TargetRuntime" -ForegroundColor Yellow
+        Write-Host "    next:    adpos up $TargetRuntime; adpos sync start $TargetRuntime" -ForegroundColor DarkGray
         return
     }
 
@@ -84,7 +84,7 @@ function Write-SyncRuntimeSummary {
     Write-Host "    local:  $($session.AlphaUrl)" -ForegroundColor DarkGray
     Write-Host "    remote: $($session.BetaUrl)" -ForegroundColor DarkGray
     if ($session.Health -notin @("healthy", "present")) {
-        Write-Host "    fix:    adp sync stop $TargetRuntime; adp sync start $TargetRuntime" -ForegroundColor Yellow
+        Write-Host "    fix:    adpos sync stop $TargetRuntime; adpos sync start $TargetRuntime" -ForegroundColor Yellow
     }
 }
 
@@ -95,7 +95,7 @@ try {
     Write-Host "  Download: https://github.com/mutagen-io/mutagen/releases" -ForegroundColor DarkGray
     Write-Host "  Place:    .tools\mutagen\mutagen.exe" -ForegroundColor DarkGray
     Write-Host "  Or add mutagen.exe to PATH." -ForegroundColor DarkGray
-    Write-Host "  ADP helper: .\cli\adp.ps1 doctor -FixMutagen -Plan" -ForegroundColor DarkGray
+    Write-Host "  ADP helper: adpos doctor -FixMutagen -Plan" -ForegroundColor DarkGray
     return
 }
 
@@ -123,13 +123,13 @@ switch ($SubCommand) {
         $vmCreated = ($statusResult.Success -and $statusResult.Data -ne "not-created")
 
         if (-not $vmCreated) {
-            Write-ErrorLog -Message (Get-UIText -English "VM not found for runtime '$RuntimeName'. Run: adp up $RuntimeName" -Chinese "运行时 '$RuntimeName' 的 VM 未找到。请运行: adp up $RuntimeName") -Component "cli.sync"
+            Write-ErrorLog -Message (Get-UIText -English "VM not found for runtime '$RuntimeName'. Run: adpos up $RuntimeName" -Chinese "运行时 '$RuntimeName' 的 VM 未找到。请运行: adpos up $RuntimeName") -Component "cli.sync"
             exit 1
         }
 
         $status = if ($statusResult.Success) { $statusResult.Data } else { "unknown" }
         if ($status -notmatch "running") {
-            Write-ErrorLog -Message (Get-UIText -English "Runtime '$RuntimeName' is not running. Run: adp up $RuntimeName" -Chinese "运行时 '$RuntimeName' 未运行。请运行: adp up $RuntimeName") -Component "cli.sync"
+            Write-ErrorLog -Message (Get-UIText -English "Runtime '$RuntimeName' is not running. Run: adpos up $RuntimeName" -Chinese "运行时 '$RuntimeName' 未运行。请运行: adpos up $RuntimeName") -Component "cli.sync"
             exit 1
         }
 

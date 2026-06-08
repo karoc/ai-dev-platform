@@ -25,9 +25,9 @@ ADP-OS 为 deer-flow 提供**两种集成方式**：
 ## 前置条件
 
 - **ADP-OS 已安装**在 Windows 主机上，带 VMware Workstation
-  - 验证：`pwsh -File cli/adp.ps1 doctor` 返回 healthy
+  - 验证：`adpos doctor` 返回 healthy
 - **至少一个 VM 运行时**在 `configs/topology.json` 中配置
-  - 测试：`pwsh -File cli/adp.ps1 up agent`
+  - 测试：`adpos up agent`
 - **SSH 可访问 VM**（VMware NAT 子网端口 22）
   - 默认凭据：`adp` / `adp`（Ubuntu 自动安装时设置）
 - **Python 3.10+** 和 **PowerShell 7+** 在集成主机上
@@ -236,8 +236,8 @@ provider.release(sandbox_id)
 
 ## 验证清单
 
-- [ ] ADP-OS CLI 健康：`pwsh -File cli/adp.ps1 doctor`
-- [ ] 至少一个 VM 运行时已配置：`pwsh -File cli/adp.ps1 status`
+- [ ] ADP-OS CLI 健康：`adpos doctor`
+- [ ] 至少一个 VM 运行时已配置：`adpos status`
 - [ ] MCP 服务器列出 26 个工具：`python3 -c "from cli.mcp.server import mcp; print(len(mcp._tool_manager._tools))"` → `26`
 - [ ] MCP 服务器测试通过：`python -m pytest tests/test-mcp-server.py -v`
 - [ ] Deer-flow 适配器测试通过：`python -m pytest tests/test_deerflow_adp_sandbox.py -v`
@@ -261,7 +261,7 @@ provider.release(sandbox_id)
 **症状**：`adp_exec` 或适配器方法返回"Connection refused"。
 
 **检查**：
-1. VM 正在运行：`pwsh -File cli/adp.ps1 status agent`
+1. VM 正在运行：`adpos status agent`
 2. SSH 端口可从集成主机访问
 3. SSH 凭据与 `configs/topology.json` 设置匹配
 4. VMware NAT 网络配置正确
@@ -290,7 +290,7 @@ pip install paramiko
 
 ### WSL 特定：未找到 pwsh.exe
 
-**症状**：`adp.ps1` 命令失败，提示"pwsh not found"。
+**症状**：`adpos` 命令失败，提示"pwsh not found"。
 
 **解决方案**：将 `ADP_HOME_WIN` 设置为 ADP-OS 目录的 Windows 风格路径，以便从 WSL 通过 `pwsh.exe` 运行 PowerShell 脚本。
 

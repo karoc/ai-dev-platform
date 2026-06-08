@@ -27,15 +27,15 @@ After completing this guide, deer-flow agents can:
 
 | Requirement | How to verify | Notes |
 |-------------|--------------|-------|
-| ADP-OS installed | `pwsh -File cli/adp.ps1 doctor` | VMware Workstation on Windows host |
-| SSH reachable VM | `pwsh -File cli/adp.ps1 status` | At least one runtime configured |
+| ADP-OS installed | `adpos doctor` | VMware Workstation on Windows host |
+| SSH reachable VM | `adpos status` | At least one runtime configured |
 | Python 3.10+ | `python3 --version` | Required by MCP server |
 | deer-flow installed | Project root has `extensions_config.json` | deer-flow MCP extension support |
 | (Optional) `paramiko` | `pip install paramiko` | Better SSH performance |
 
 ```bash
 # Quick prerequisite check
-pwsh -File cli/adp.ps1 doctor   # Should return "healthy"
+adpos doctor   # Should return "healthy"
 python3 --version                # Should be ≥3.10
 ```
 
@@ -299,7 +299,7 @@ kill %1
 
 **Checks**:
 1. VMware Workstation is running on the Windows host
-2. `pwsh -File cli/adp.ps1 status` shows VM state
+2. `adpos status` shows VM state
 3. First-time Ubuntu autoinstall can take 15-45 minutes — wait longer
 4. ISO exists at the configured path in `configs/topology.json`
 
@@ -353,8 +353,8 @@ adp_file_upload agent "/tmp/data.bin" "SGVsbG8=" plan_only=False
 
 ## Verification Checklist
 
-- [ ] ADP-OS CLI healthy: `pwsh -File cli/adp.ps1 doctor`
-- [ ] At least one VM runtime configured: `pwsh -File cli/adp.ps1 status`
+- [ ] ADP-OS CLI healthy: `adpos doctor`
+- [ ] At least one VM runtime configured: `adpos status`
 - [ ] MCP server module loads: `python3 -c "from cli.mcp.server import mcp; print(len(mcp._tool_manager._tools))"` → `26`
 - [ ] MCP server tests pass: `python3 -m pytest tests/test-mcp-server.py -q` → `45 passed`
 - [ ] Deer-flow adapter tests pass: `python3 -m pytest tests/test_deerflow_adp_sandbox.py -q` → `46 passed`

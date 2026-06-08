@@ -15,8 +15,22 @@ if not defined PWSH call :UsePowerShell7 "%LocalAppData%\Programs\PowerShell\7\p
 if not defined PWSH call :UsePowerShell7 "%UserProfile%\AppData\Local\Microsoft\WindowsApps\pwsh.exe"
 
 if not defined PWSH (
+    call :InstallPowerShell7WithWinget
+    if not errorlevel 1 (
+        for /f "delims=" %%P in ('where pwsh.exe 2^>nul') do (
+            if not defined PWSH call :UsePowerShell7 "%%P"
+        )
+        if not defined PWSH call :UsePowerShell7 "%ProgramFiles%\PowerShell\7\pwsh.exe"
+        if not defined PWSH call :UsePowerShell7 "%ProgramFiles(x86)%\PowerShell\7\pwsh.exe"
+        if not defined PWSH call :UsePowerShell7 "%LocalAppData%\Programs\PowerShell\7\pwsh.exe"
+        if not defined PWSH call :UsePowerShell7 "%UserProfile%\AppData\Local\Microsoft\WindowsApps\pwsh.exe"
+    )
+)
+
+if not defined PWSH (
     echo ADP-OS requires PowerShell 7+ ^(pwsh.exe^).
-    echo Install it, then rerun setup.cmd:
+    echo setup.cmd tried to install it automatically with winget but could not find a working pwsh.exe.
+    echo Install PowerShell 7 manually, then rerun setup.cmd:
     echo   winget install --id Microsoft.PowerShell --source winget
     echo Or download the MSI from:
     echo   https://github.com/PowerShell/PowerShell/releases
@@ -27,6 +41,14 @@ if not defined PWSH (
 
 "%PWSH%" -NoProfile -ExecutionPolicy Bypass -File "%~dp0setup.ps1" %*
 exit /b %ERRORLEVEL%
+
+:InstallPowerShell7WithWinget
+where winget.exe >nul 2>nul
+if errorlevel 1 exit /b 1
+echo PowerShell 7 was not found. Installing PowerShell 7 with winget...
+winget install --id Microsoft.PowerShell --source winget --accept-package-agreements --accept-source-agreements --silent
+if errorlevel 1 exit /b 1
+exit /b 0
 
 :UsePowerShell7
 if not exist "%~1" exit /b 0

@@ -11,8 +11,8 @@ The frontend runtime is intentionally lightweight by default. It installs Node.j
 Start and sync the frontend runtime:
 
 ```powershell
-.\cli\adp.ps1 up frontend
-.\cli\adp.ps1 sync start frontend
+adpos up frontend
+adpos sync start frontend
 ```
 
 Enter the runtime:

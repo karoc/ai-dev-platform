@@ -6,7 +6,8 @@ param(
     [switch]$SkipDependencyCheck,
     [switch]$SkipVMValidation,
     [switch]$Quick,
-    [string]$IsoPath
+    [string]$IsoPath,
+    [switch]$NoRegisterCommand
 )
 
 $ErrorActionPreference = "Stop"
@@ -45,14 +46,33 @@ function Test-ADPPowerShell7 {
     }
 }
 
+function Install-ADPPowerShell7WithWinget {
+    $winget = (Get-Command winget.exe -ErrorAction SilentlyContinue).Source
+    if (-not $winget) {
+        return $false
+    }
+
+    Write-Host ""
+    Write-Host "PowerShell 7 was not found. Installing PowerShell 7 with winget..." -ForegroundColor Cyan
+    & $winget install --id Microsoft.PowerShell --source winget --accept-package-agreements --accept-source-agreements --silent
+    return $LASTEXITCODE -eq 0
+}
+
 if ($PSVersionTable.PSVersion.Major -lt 7) {
     $pwsh = Find-ADPPowerShell7
+    if (-not $pwsh) {
+        if (Install-ADPPowerShell7WithWinget) {
+            $pwsh = Find-ADPPowerShell7
+        }
+    }
+
     if ($pwsh) {
         $forwardArgs = @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $PSCommandPath)
         if ($SkipDependencyCheck) { $forwardArgs += "-SkipDependencyCheck" }
         if ($SkipVMValidation) { $forwardArgs += "-SkipVMValidation" }
         if ($Quick) { $forwardArgs += "-Quick" }
         if ($IsoPath) { $forwardArgs += @("-IsoPath", $IsoPath) }
+        if ($NoRegisterCommand) { $forwardArgs += "-NoRegisterCommand" }
 
         Write-Host "Restarting ADP-OS install with PowerShell 7: $pwsh" -ForegroundColor Cyan
         & $pwsh @forwardArgs
@@ -61,7 +81,7 @@ if ($PSVersionTable.PSVersion.Major -lt 7) {
 
     Write-Host ""
     Write-Host "ADP-OS requires PowerShell 7+ (pwsh.exe)." -ForegroundColor Red
-    Write-Host "Built-in Windows PowerShell 5.1 can only show this bootstrap message; it cannot run the ADP-OS control plane." -ForegroundColor Yellow
+    Write-Host "install.ps1 tried to install it automatically with winget but could not find a working pwsh.exe." -ForegroundColor Yellow
     Write-Host ""
     Write-Host "Install PowerShell 7, then rerun .\install.ps1:" -ForegroundColor Cyan
     Write-Host "  winget install --id Microsoft.PowerShell --source winget" -ForegroundColor White
@@ -78,6 +98,7 @@ if ($PSVersionTable.PSVersion.Major -lt 7) {
 . "$script:ProjectRoot\adapters\windows\vmware\vmware.ps1"
 . "$script:ProjectRoot\adapters\windows\mutagen\mutagen.ps1"
 . "$script:ProjectRoot\runtimes\vmware\vm-factory.ps1"
+. "$script:ProjectRoot\scripts\adpos-registration.ps1"
 
 # --- Initialize ---
 Initialize-Config -ProjectRoot $script:ProjectRoot
@@ -127,7 +148,7 @@ if ($Quick) {
 
 # --- Precheck tip ---
 if (-not $Quick) {
-    Write-InstallHost -English "Tip: Run 'adp precheck' first for a full prerequisite scan with remediation steps." -Chinese "提示: 先运行 'adp precheck' 获取完整前提条件扫描和修复步骤。" -ForegroundColor DarkGray
+    Write-InstallHost -English "Tip: Run 'adpos precheck' first for a full prerequisite scan with remediation steps." -Chinese "提示: 先运行 'adpos precheck' 获取完整前提条件扫描和修复步骤。" -ForegroundColor DarkGray
     Write-Host ""
 }
 
@@ -136,12 +157,16 @@ if ($Quick -and $alreadyInitialized) {
     Write-InstallHost -English "ADP-OS is already initialized. Nothing to do." -Chinese "ADP-OS 已初始化。无需操作。" -ForegroundColor Green
     $workspaceRoot = Resolve-Path "workspace_root"
     $isoCache = Resolve-Path "iso_cache"
+    if (-not $NoRegisterCommand) {
+        $registration = Install-ADPOSCommandRegistration -ProjectRoot $script:ProjectRoot
+        Write-InstallHost -English "Global command registered: adpos" -Chinese "已注册全局命令: adpos" -ForegroundColor Green
+        Write-Host "  $($registration.ShimPath)" -ForegroundColor DarkGray
+    }
     Write-Host ""
     Write-InstallHost -English "Next steps:" -Chinese "下一步:" -ForegroundColor Cyan
-    Write-InstallHost -English "  adp quickstart    Guided setup (ISO + init + doctor)" -Chinese "  adp quickstart    引导式设置 (ISO + init + doctor)" -ForegroundColor DarkGray
-    Write-InstallHost -English "  adp iso download  Download a Linux ISO" -Chinese "  adp iso download  下载 Linux ISO" -ForegroundColor DarkGray
-    Write-InstallHost -English "  adp doctor        Check platform health" -Chinese "  adp doctor        检查平台健康状态" -ForegroundColor DarkGray
-    Write-InstallHost -English "  adp up frontend   Start your first runtime" -Chinese "  adp up frontend   启动第一个运行时" -ForegroundColor DarkGray
+    Write-InstallHost -English "  adpos setup       Guided setup (ISO + init + doctor)" -Chinese "  adpos setup       引导式设置 (ISO + init + doctor)" -ForegroundColor DarkGray
+    Write-InstallHost -English "  adpos doctor      Check platform health" -Chinese "  adpos doctor      检查平台健康状态" -ForegroundColor DarkGray
+    Write-InstallHost -English "  adpos up frontend Start your first runtime" -Chinese "  adpos up frontend 启动第一个运行时" -ForegroundColor DarkGray
     Write-Host ""
     exit 0
 }
@@ -317,12 +342,12 @@ if ($SkipDependencyCheck) {
             Write-DependencyLine -Name "Mutagen" -Status "OK" -Detail "$mutagenVersion at $mutagen"
             Add-DependencyResult -Name "Mutagen" -Status "OK" -Path $mutagen
         } else {
-            $remediation = Get-InstallText -English "ADP-OS is tested with Mutagen 0.18.x. Run: .\cli\adp.ps1 doctor -FixMutagen -Plan" -Chinese "ADP-OS 使用 Mutagen 0.18.x 测试。运行: .\cli\adp.ps1 doctor -FixMutagen -Plan"
+            $remediation = Get-InstallText -English "ADP-OS is tested with Mutagen 0.18.x. Run: adpos doctor -FixMutagen -Plan" -Chinese "ADP-OS 使用 Mutagen 0.18.x 测试。运行: adpos doctor -FixMutagen -Plan"
             Write-DependencyLine -Name "Mutagen" -Status "WARN" -Detail "$mutagenVersion at $mutagen" -Remediation $remediation
             Add-DependencyResult -Name "Mutagen" -Status "WARN" -Path $mutagen -Remediation $remediation
         }
     } else {
-        $remediation = Get-InstallText -English "Run: .\cli\adp.ps1 doctor -FixMutagen -Plan, or place Mutagen 0.18.x at .tools\mutagen\mutagen.exe." -Chinese "运行: .\cli\adp.ps1 doctor -FixMutagen -Plan，或把 Mutagen 0.18.x 放到 .tools\mutagen\mutagen.exe。"
+        $remediation = Get-InstallText -English "Run: adpos doctor -FixMutagen -Plan, or place Mutagen 0.18.x at .tools\mutagen\mutagen.exe." -Chinese "运行: adpos doctor -FixMutagen -Plan，或把 Mutagen 0.18.x 放到 .tools\mutagen\mutagen.exe。"
         Write-DependencyLine -Name "Mutagen" -Status "MISSING" -Detail (Get-InstallText -English "needed for workspace sync" -Chinese "工作区同步需要此工具") -Remediation $remediation
         Add-DependencyResult -Name "Mutagen" -Status "MISSING" -Remediation $remediation
     }
@@ -427,6 +452,14 @@ Write-InfoLog -Message (Get-InstallText -English "Config finalization" -Chinese 
 
 Set-ADPInitialized
 
+if (-not $NoRegisterCommand) {
+    $registration = Install-ADPOSCommandRegistration -ProjectRoot $script:ProjectRoot
+    Write-InstallHost -English "  Global command registered: adpos" -Chinese "  已注册全局命令: adpos" -ForegroundColor Green
+    Write-Host "    $($registration.ShimPath)" -ForegroundColor DarkGray
+} else {
+    Write-InstallHost -English "  Global command registration skipped by -NoRegisterCommand." -Chinese "  已通过 -NoRegisterCommand 跳过全局命令注册。" -ForegroundColor Yellow
+}
+
 $topology = Get-TopologyConfig
 $runtimeNames = Get-AllRuntimeNames
 
@@ -484,12 +517,14 @@ if ($SkipDependencyCheck) {
 
 Write-Host ""
 Write-InstallHost -English "Next steps:" -Chinese "下一步:" -ForegroundColor Cyan
-Write-InstallHost -English "  Recommended: adp quickstart    One command guided setup (ISO + init + doctor)" -Chinese "  推荐: adp quickstart    一键引导式设置 (ISO + init + doctor)" -ForegroundColor Green
+Write-InstallHost -English "  Recommended: adpos setup       One-command guided setup (ISO + init + doctor)" -Chinese "  推荐: adpos setup       一键引导式设置 (ISO + init + doctor)" -ForegroundColor Green
 Write-InstallHost -English "  Or step by step:" -Chinese "  或逐步操作:" -ForegroundColor DarkGray
-Write-InstallHost -English "    1. adp iso download          Download a supported Linux ISO (~2.6 GB, 10-30 min)" -Chinese "    1. adp iso download          下载受支持的 Linux ISO (~2.6 GB, 10-30 分钟)" -ForegroundColor DarkGray
-Write-InstallHost -English "    2. adp init [-IsoPath <path>] Initialize platform with ISO (~30s)" -Chinese "    2. adp init [-IsoPath <path>] 使用 ISO 初始化平台 (~30s)" -ForegroundColor DarkGray
-Write-InstallHost -English "    3. adp doctor -FirstRun       Verify platform health and see setup checklist" -Chinese "    3. adp doctor -FirstRun       验证平台健康状态并查看设置清单" -ForegroundColor DarkGray
-Write-InstallHost -English "    4. adp up frontend [-Plan]    Start your first runtime (~20-30 min first time)" -Chinese "    4. adp up frontend [-Plan]    启动第一个运行时（首次约 20-30 分钟）" -ForegroundColor DarkGray
+Write-InstallHost -English "    1. adpos iso                 Download a supported Linux ISO (~2.6 GB, 10-30 min)" -Chinese "    1. adpos iso                 下载受支持的 Linux ISO (~2.6 GB, 10-30 分钟)" -ForegroundColor DarkGray
+Write-InstallHost -English "    2. adpos init [-IsoPath <path>] Initialize platform with ISO (~30s)" -Chinese "    2. adpos init [-IsoPath <path>] 使用 ISO 初始化平台 (~30s)" -ForegroundColor DarkGray
+Write-InstallHost -English "    3. adpos doctor -FirstRun     Verify platform health and see setup checklist" -Chinese "    3. adpos doctor -FirstRun     验证平台健康状态并查看设置清单" -ForegroundColor DarkGray
+Write-InstallHost -English "    4. adpos up frontend [-Plan]  Start your first runtime (~15-45 min first time)" -Chinese "    4. adpos up frontend [-Plan]  启动第一个运行时（首次约 15-45 分钟）" -ForegroundColor DarkGray
+Write-InstallHost -English "  Uninstall: adpos uninstall      Remove the global command registration" -Chinese "  卸载: adpos uninstall      移除全局命令注册" -ForegroundColor DarkGray
+Write-InstallHost -English "  If this terminal cannot find adpos yet, open a new terminal or use .\adpos.cmd from this repository." -Chinese "  如果当前终端暂时找不到 adpos，请打开新终端，或在本仓库中使用 .\adpos.cmd。" -ForegroundColor DarkGray
 Write-Host ""
 
 Write-InfoLog -Message (Get-InstallText -English "ADP-OS Phase 1 install complete" -Chinese "ADP-OS 阶段 1 安装完成") -Component "install"

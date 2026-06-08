@@ -13,14 +13,14 @@
 
 Run these before the session. Do NOT include in the 10-minute window.
 
-- [ ] 1. **Verify VMware** — `adp doctor` shows VMware reachable. If "VMware: unavailable", stop — demo cannot proceed.
-- [ ] 2. **Verify agent runtime** — `adp status agent` shows the VM running, SSH reachable, and sync healthy.
-- [ ] 3. **Pre-create snapshot** — `adp snapshot create agent before-broad-agent-refactor` (VMware snapshot; takes 30–120s). If it already exists, confirm it was created from the exact workspace baseline for this recording. If the baseline changed, replace it during pre-demo setup with VMware Workstation/`vmrun`, or choose a fresh snapshot name before rehearsing.
-- [ ] 4. **Note agent IP** — `adp status agent -Json | ConvertFrom-Json | Select-Object -ExpandProperty Runtimes | Where-Object {$_.Runtime -eq 'agent'} | Select-Object -ExpandProperty DetectedIp`. Or use SSH alias: `ssh adp-os-adp-agent`.
-- [ ] 5. **Clean terminal** — close other windows and disable notifications. Use Windows Terminal with a clean profile. From stock Windows shells, run ADP-OS through `.\adp.cmd`; if it reports missing PowerShell 7, run `.\setup.cmd` and install PowerShell 7 before recording.
+- [ ] 1. **Verify VMware** — `adpos doctor` shows VMware reachable. If "VMware: unavailable", stop — demo cannot proceed.
+- [ ] 2. **Verify agent runtime** — `adpos status agent` shows the VM running, SSH reachable, and sync healthy.
+- [ ] 3. **Pre-create snapshot** — `adpos snapshot create agent before-broad-agent-refactor` (VMware snapshot; takes 30–120s). If it already exists, confirm it was created from the exact workspace baseline for this recording. If the baseline changed, replace it during pre-demo setup with VMware Workstation/`vmrun`, or choose a fresh snapshot name before rehearsing.
+- [ ] 4. **Note agent IP** — `adpos status agent -Json | ConvertFrom-Json | Select-Object -ExpandProperty Runtimes | Where-Object {$_.Runtime -eq 'agent'} | Select-Object -ExpandProperty DetectedIp`. Or use SSH alias: `ssh adp-os-adp-agent`.
+- [ ] 5. **Clean terminal** — close other windows and disable notifications. Use Windows Terminal with a clean profile. From stock Windows shells, run ADP-OS through `.\adpos.cmd`; if it reports missing PowerShell 7, run `.\setup.cmd` and install PowerShell 7 before recording.
 - [ ] 6. **Prepare agent workspace** — SSH into agent VM and ensure `/home/adp/workspace/agent-workspace/` has a `.git` directory, README.md, src/main.ts, and a clean working tree. Mutagen sync does not copy `.git`; if sync recreated the files without git metadata, initialize the VM workspace and commit the clean demo baseline inside the VM before creating the snapshot.
 - [ ] 7. **Plan the sync fence** — start the demo with sync healthy, then stop `agent` sync before mutating the VM. Do not restart sync after restore until you have chosen the host or VM workspace as the source of truth and reconciled the other side.
-- [ ] 8. **Verify evidence chain** — `adp workspace evidence -Snapshot -ManifestPath configs\workspace.recipes.example.json` should succeed.
+- [ ] 8. **Verify evidence chain** — `adpos workspace evidence -Snapshot -ManifestPath configs\workspace.recipes.example.json` should succeed.
 
 > **Hard constraint**: If VMware is unavailable, the demo CANNOT be run. Do not fake snapshot, restore, or evidence output.
 
@@ -34,7 +34,7 @@ Run these before the session. Do NOT include in the 10-minute window.
 
 ```powershell
 # Step A1 — Precheck (existing command)
-adp precheck
+adpos precheck
 ```
 
 Expected: all precheck rows OK, for example `6 OK, 0 WARN, 0 MISSING` on a fully prepared host.
@@ -43,7 +43,7 @@ Expected: all precheck rows OK, for example `6 OK, 0 WARN, 0 MISSING` on a fully
 
 ```powershell
 # Step A2 — Agent runtime status (existing command)
-adp status agent
+adpos status agent
 ```
 
 Expected: `agent` is running, SSH is reachable, and sync is healthy.
@@ -65,7 +65,7 @@ Expected: `True`.
 
 ```powershell
 # Step B2 — Show available recipes (existing command)
-adp workspace recipes -ManifestPath configs\workspace.recipes.example.json
+adpos workspace recipes -ManifestPath configs\workspace.recipes.example.json
 ```
 
 Expected: Shows 4 tasks including `broad-agent-refactor` (risk: high, requires_snapshot: true).
@@ -74,7 +74,7 @@ Expected: Shows 4 tasks including `broad-agent-refactor` (risk: high, requires_s
 
 ```powershell
 # Step B3 — Create VM snapshot (existing command)
-adp snapshot create agent before-broad-agent-refactor
+adpos snapshot create agent before-broad-agent-refactor
 ```
 
 Expected: "Snapshot 'before-broad-agent-refactor' created successfully" — or "already exists" if pre-created.
@@ -83,14 +83,14 @@ Expected: "Snapshot 'before-broad-agent-refactor' created successfully" — or "
 
 ```powershell
 # Step B4 — Sign snapshot in evidence chain (existing command)
-adp workspace evidence -Snapshot -ManifestPath configs\workspace.recipes.example.json
+adpos workspace evidence -Snapshot -ManifestPath configs\workspace.recipes.example.json
 ```
 
 Expected: "Evidence snapshot entry recorded."
 
 ```powershell
 # Step B5 — Record operation log entry (existing command)
-adp workspace evidence -Log -Operation "snapshot" -Details "snapshot=before-broad-agent-refactor;state=clean-pre-agent-checkpoint" -ManifestPath configs\workspace.recipes.example.json
+adpos workspace evidence -Log -Operation "snapshot" -Details "snapshot=before-broad-agent-refactor;state=clean-pre-agent-checkpoint" -ManifestPath configs\workspace.recipes.example.json
 ```
 
 Expected: "Evidence log entry recorded."
@@ -105,21 +105,21 @@ Expected: "Evidence log entry recorded."
 
 ```powershell
 # Step C1 — Mark task as prepared (existing command)
-adp workspace task mark broad-agent-refactor prepared -ManifestPath configs\workspace.recipes.example.json
+adpos workspace task mark broad-agent-refactor prepared -ManifestPath configs\workspace.recipes.example.json
 ```
 
 ```powershell
 # Step C2 — Mark checkpoint (existing command)
-adp workspace task mark broad-agent-refactor checkpointed -ManifestPath configs\workspace.recipes.example.json
+adpos workspace task mark broad-agent-refactor checkpointed -ManifestPath configs\workspace.recipes.example.json
 ```
 
 > Narrator: "The task lifecycle records every gate. Prepared → Checkpointed → the agent can now work."
 
 ```powershell
 # Step C3 — Stop sync before mutating the VM
-adp sync stop agent
-adp sync status
-adp workspace evidence -Log -Operation "sync" -Details "runtime=agent;action=stop;reason=restore-demo-fence" -ManifestPath configs\workspace.recipes.example.json
+adpos sync stop agent
+adpos sync status
+adpos workspace evidence -Log -Operation "sync" -Details "runtime=agent;action=stop;reason=restore-demo-fence" -ManifestPath configs\workspace.recipes.example.json
 ```
 
 Expected: the `agent` sync session is stopped or no longer watching.
@@ -145,12 +145,12 @@ Expected: prints `FAIL: missing README.md` and exits non-zero.
 
 ```powershell
 # Step C6 — Record operation (existing command)
-adp workspace evidence -Log -Operation "validate" -Details "task=broad-agent-refactor;agent=claude-code;files_changed=2;warnings=1;result=failed" -ManifestPath configs\workspace.recipes.example.json
+adpos workspace evidence -Log -Operation "validate" -Details "task=broad-agent-refactor;agent=claude-code;files_changed=2;warnings=1;result=failed" -ManifestPath configs\workspace.recipes.example.json
 ```
 
 ```powershell
 # Step C7 — Record failed validation in task lifecycle
-adp workspace task mark broad-agent-refactor validation_failed -ManifestPath configs\workspace.recipes.example.json
+adpos workspace task mark broad-agent-refactor validation_failed -ManifestPath configs\workspace.recipes.example.json
 ```
 
 Expected: ADP records the external validation result as failed.
@@ -167,14 +167,14 @@ Expected: ADP records the external validation result as failed.
 
 ```powershell
 # Step D1 — Generate workspace report (existing command)
-adp workspace report -Markdown -ManifestPath configs\workspace.recipes.example.json | Tee-Object -FilePath configs\workspace-report.md
+adpos workspace report -Markdown -ManifestPath configs\workspace.recipes.example.json | Tee-Object -FilePath configs\workspace-report.md
 ```
 
 Expected: Markdown report printed in the terminal and saved as `configs\workspace-report.md` for the evidence export. The export uses the manifest directory as the workspace root.
 
 ```powershell
 # Step D2 — Declare AI-assisted development (existing command)
-adp workspace declare -AiAssisted -Reviewer "presenter" -Notes "demo-agent-modified-src-main-ts-generated-output-json-deleted-readme" -ManifestPath configs\workspace.recipes.example.json
+adpos workspace declare -AiAssisted -Reviewer "presenter" -Notes "demo-agent-modified-src-main-ts-generated-output-json-deleted-readme" -ManifestPath configs\workspace.recipes.example.json
 ```
 
 Expected: "Evidence declare entry recorded."
@@ -183,7 +183,7 @@ Expected: "Evidence declare entry recorded."
 
 ```powershell
 # Step D3 — Show dashboard (existing command)
-adp workspace dashboard -ManifestPath configs\workspace.recipes.example.json
+adpos workspace dashboard -ManifestPath configs\workspace.recipes.example.json
 ```
 
 > Narrator: "The dashboard shows the full picture at a glance. But the real proof is in the evidence chain — detailed later."
@@ -196,7 +196,7 @@ adp workspace dashboard -ManifestPath configs\workspace.recipes.example.json
 
 ```powershell
 # Step E1 — Plan the rollback first (existing command)
-adp restore agent before-broad-agent-refactor -Plan
+adpos restore agent before-broad-agent-refactor -Plan
 ```
 
 Expected: "Plan only: no changes will be made" and "Would restore snapshot: 'before-broad-agent-refactor'."
@@ -205,31 +205,31 @@ Expected: "Plan only: no changes will be made" and "Would restore snapshot: 'bef
 
 ```powershell
 # Step E2 — Execute rollback (existing command)
-adp restore agent before-broad-agent-refactor -Force
+adpos restore agent before-broad-agent-refactor -Force
 ```
 
 Expected: "Restored to snapshot 'before-broad-agent-refactor'."
 
 ```powershell
 # Step E3 — Post-restore readiness gate
-adp status agent
+adpos status agent
 ```
 
 Expected: ADP returns a bounded, classified status. The runtime may be stopped after restore. If it is stopped, restart it without bootstrapping:
 
 ```powershell
-adp up agent -NoBootstrap
-adp status agent
+adpos up agent -NoBootstrap
+adpos status agent
 ```
 
-Expected: `agent: running, SSH reachable`. Continue only after `adp status agent` reaches that state. If `status` reports `ssh-timeout`, `auth-pending`, `unreachable`, or any recovery state after the restart, stop the recording and treat the run as rehearsal/product-readiness evidence, not a successful public demo. Keep sync stopped until host and VM workspace state are reconciled.
+Expected: `agent: running, SSH reachable`. Continue only after `adpos status agent` reaches that state. If `status` reports `ssh-timeout`, `auth-pending`, `unreachable`, or any recovery state after the restart, stop the recording and treat the run as rehearsal/product-readiness evidence, not a successful public demo. Keep sync stopped until host and VM workspace state are reconciled.
 
 ```powershell
 # Step E4 — Verify restoration inside the VM (SSH)
 ssh adp-os-adp-agent "cd /home/adp/workspace/agent-workspace && test -f README.md && echo README_OK && test ! -e generated/output.json && echo GENERATED_GONE && ! grep -q 'AI-generated feature' src/main.ts && echo MAIN_TS_REVERTED"
 ```
 
-If direct OpenSSH reports a stale host-key warning after restore, refresh only the ADP runtime alias/IP entry, rerun `adp status agent`, and continue only when status is running and SSH reachable.
+If direct OpenSSH reports a stale host-key warning after restore, refresh only the ADP runtime alias/IP entry, rerun `adpos status agent`, and continue only when status is running and SSH reachable.
 
 > Narrator: "Full VM rollback in one command. Let's compare with git reset:"
 
@@ -252,7 +252,7 @@ If direct OpenSSH reports a stale host-key warning after restore, refresh only t
 
 ```powershell
 # Step F1 — Export evidence ZIP (existing command)
-adp workspace evidence -Export -Path evidence-demo-export.zip -ManifestPath configs\workspace.recipes.example.json
+adpos workspace evidence -Export -Path evidence-demo-export.zip -ManifestPath configs\workspace.recipes.example.json
 ```
 
 Expected: "Evidence Export Complete" and `Output      : ...\evidence-demo-export.zip`.
@@ -309,23 +309,23 @@ The demo must honestly disclose:
 
 | Symptom | Likely Cause | Fix |
 |---------|-------------|-----|
-| `adp precheck` shows red checks | Missing prerequisite | Follow remediation printed by precheck |
-| `adp status agent` shows "VMware: unavailable" | VMware Workstation not running or vmrun not in PATH | Start VMware, verify `vmrun list` |
-| `adp snapshot create` reaches the command timeout but the snapshot exists | VMware snapshot creation crossed ADP's 120s command boundary | Treat this as pre-demo setup friction: confirm the snapshot exists before recording, and do not start the timed flow until the baseline snapshot is ready |
-| SSH connection refused | Agent VM IP changed or SSH service down | `adp status agent -Json` to get current IP; `adp up agent` to restart |
-| Restore succeeds but readiness does not settle | Restore left the VM stopped or guest SSH/control plane is still settling | Run `adp status agent`; if stopped, run `adp up agent -NoBootstrap`; continue only after status is running and SSH reachable |
-| `status` reports `ssh-timeout` after restore | ADP bounded probe could not classify SSH readiness in time | Stop the recording, wait briefly, rerun `adp status agent`, and record this as rehearsal/product-readiness evidence if it persists |
-| Direct SSH reports host identification changed | OpenSSH has a stale `known_hosts` entry for the restored/recreated runtime | Refresh only the ADP runtime alias/IP entry, rerun `adp status agent`, then continue only when ADP reports SSH reachable |
+| `adpos precheck` shows red checks | Missing prerequisite | Follow remediation printed by precheck |
+| `adpos status agent` shows "VMware: unavailable" | VMware Workstation not running or vmrun not in PATH | Start VMware, verify `vmrun list` |
+| `adpos snapshot create` reaches the command timeout but the snapshot exists | VMware snapshot creation crossed ADP's 120s command boundary | Treat this as pre-demo setup friction: confirm the snapshot exists before recording, and do not start the timed flow until the baseline snapshot is ready |
+| SSH connection refused | Agent VM IP changed or SSH service down | `adpos status agent -Json` to get current IP; `adpos up agent` to restart |
+| Restore succeeds but readiness does not settle | Restore left the VM stopped or guest SSH/control plane is still settling | Run `adpos status agent`; if stopped, run `adpos up agent -NoBootstrap`; continue only after status is running and SSH reachable |
+| `status` reports `ssh-timeout` after restore | ADP bounded probe could not classify SSH readiness in time | Stop the recording, wait briefly, rerun `adpos status agent`, and record this as rehearsal/product-readiness evidence if it persists |
+| Direct SSH reports host identification changed | OpenSSH has a stale `known_hosts` entry for the restored/recreated runtime | Refresh only the ADP runtime alias/IP entry, rerun `adpos status agent`, then continue only when ADP reports SSH reachable |
 | VM restore reintroduces or loses unexpected files | Two-way sync was left running or restarted before reconciliation | Stop `agent` sync before mutation/restore; restart only after choosing host or VM as source of truth |
 | `workspace-report.md` is missing from the ZIP | Report was written outside the manifest workspace root | Generate the report at `configs\workspace-report.md` before export |
-| `adp workspace evidence -Export` fails | Evidence directory or required evidence files missing | Run `evidence -Snapshot`, record `evidence -Log`, and generate `configs\workspace-report.md` first |
+| `adpos workspace evidence -Export` fails | Evidence directory or required evidence files missing | Run `evidence -Snapshot`, record `evidence -Log`, and generate `configs\workspace-report.md` first |
 
 ---
 
 ## Recording Setup (for video production)
 
 - **Screen recording**: OBS Studio (free, Windows)
-- **Terminal**: Windows Terminal, clean profile. From the repository root, `.\adp.cmd ...` is the stock Windows shell entry point; if PowerShell 7 is missing, run `.\setup.cmd` and install it before recording because the ADP-OS control plane requires PowerShell 7.
+- **Terminal**: Windows Terminal, clean profile. From the repository root, `.\adpos.cmd ...` is the stock Windows shell entry point; if PowerShell 7 is missing, run `.\setup.cmd` first so it can attempt the `winget` bootstrap before recording. The ADP-OS control plane still runs on PowerShell 7.
 - **Font**: Cascadia Code or Consolas, 14pt
 - **Resolution**: 1920×1080
 - **Style**: Clean white-on-black terminal. No face cam. Text overlays for key concepts.

@@ -12,7 +12,7 @@ param(
 . (Join-Path (Get-ProjectRoot) "adapters\windows\mutagen\mutagen.ps1")
 . (Join-Path (Get-ProjectRoot) "adapters\windows\vmware\vmware.ps1")
 
-Write-InfoLog -Message (Get-UIText -English "Running: adp precheck" -Chinese "正在运行: adp precheck") -Component "cli.precheck"
+Write-InfoLog -Message (Get-UIText -English "Running: adpos precheck" -Chinese "正在运行: adpos precheck") -Component "cli.precheck"
 
 # --- Help prereqs: just print the full requirements list ---
 if ($HelpPrereqs) {
@@ -41,7 +41,7 @@ if ($HelpPrereqs) {
         Write-Host "       wsl -u root bash -lc `"apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y xorriso`""
         Write-Host ""
         Write-Host "  5. Mutagen 0.18.x" -ForegroundColor White
-        Write-Host "     自动安装: .\adp.cmd doctor -FixMutagen"
+        Write-Host "     自动安装: .\adpos.cmd doctor -FixMutagen"
         Write-Host "     或手动放到: .tools\mutagen\mutagen.exe"
         Write-Host "     下载: https://github.com/mutagen-io/mutagen/releases"
         Write-Host ""
@@ -69,7 +69,7 @@ if ($HelpPrereqs) {
         Write-Host "       wsl -u root bash -lc `"apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y xorriso`""
         Write-Host ""
         Write-Host "  5. Mutagen 0.18.x" -ForegroundColor White
-        Write-Host "     Auto-install: .\adp.cmd doctor -FixMutagen"
+        Write-Host "     Auto-install: .\adpos.cmd doctor -FixMutagen"
         Write-Host "     Or place manually at: .tools\mutagen\mutagen.exe"
         Write-Host "     Download: https://github.com/mutagen-io/mutagen/releases"
         Write-Host ""
@@ -212,12 +212,12 @@ if ($mutagen) {
     } else {
         Add-PrecheckResult -Name "Mutagen 0.18.x" -Status "WARN" `
             -Detail "$mutagenVersion (tested with 0.18.x)" `
-            -Remediation (Get-UIText -English "Run: .\adp.cmd doctor -FixMutagen" -Chinese "运行: .\adp.cmd doctor -FixMutagen")
+            -Remediation (Get-UIText -English "Run: .\adpos.cmd doctor -FixMutagen" -Chinese "运行: .\adpos.cmd doctor -FixMutagen")
     }
 } else {
     Add-PrecheckResult -Name "Mutagen 0.18.x" -Status "MISSING" `
         -Detail (Get-UIText -English "not installed" -Chinese "未安装") `
-        -Remediation (Get-UIText -English "Run: .\adp.cmd doctor -FixMutagen, or place mutagen.exe at .tools\mutagen\mutagen.exe" -Chinese "运行: .\adp.cmd doctor -FixMutagen，或把 mutagen.exe 放到 .tools\mutagen\mutagen.exe")
+        -Remediation (Get-UIText -English "Run: .\adpos.cmd doctor -FixMutagen, or place mutagen.exe at .tools\mutagen\mutagen.exe" -Chinese "运行: .\adpos.cmd doctor -FixMutagen，或把 mutagen.exe 放到 .tools\mutagen\mutagen.exe")
 }
 
 # 6. OpenSSH Client
@@ -342,7 +342,7 @@ Write-Host ""
 if ($missingCount -gt 0) {
     Write-UIHost -English "One or more required tools are missing. Install them and re-run precheck." -Chinese "缺少一个或多个必需工具。请安装后重新运行 precheck。" -ForegroundColor Yellow
     Write-Host ""
-    Write-UIHost -English "To see the full requirements list: adp precheck --help-prereqs" -Chinese "查看完整需求列表: adp precheck --help-prereqs" -ForegroundColor DarkGray
+    Write-UIHost -English "To see the full requirements list: adpos precheck --help-prereqs" -Chinese "查看完整需求列表: adpos precheck --help-prereqs" -ForegroundColor DarkGray
     Write-Host ""
 }
 

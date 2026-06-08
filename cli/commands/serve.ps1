@@ -3,9 +3,9 @@
 # for external monitoring to verify the ADP-OS platform is alive.
 #
 # Usage:
-#   adp serve                  Start on default port 9080 (localhost only)
-#   adp serve -Port 8080       Custom port
-#   adp serve -Public          Listen on all interfaces (requires admin or URL reservation)
+#   adpos serve                  Start on default port 9080 (localhost only)
+#   adpos serve -Port 8080       Custom port
+#   adpos serve -Public          Listen on all interfaces (requires admin or URL reservation)
 
 param(
     [int]$Port = 9080,

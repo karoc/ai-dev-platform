@@ -8,7 +8,7 @@ param(
 )
 
 if (-not $RuntimeName) {
-    Write-ErrorLog -Message (Get-UIText -English "Usage: adp destroy <runtime> [-Plan] [-Force]" -Chinese "用法: adp destroy <runtime> [-Plan] [-Force]") -Component "cli.destroy"
+    Write-ErrorLog -Message (Get-UIText -English "Usage: adpos destroy <runtime> [-Plan] [-Force]" -Chinese "用法: adpos destroy <runtime> [-Plan] [-Force]") -Component "cli.destroy"
     exit 1
 }
 
@@ -46,7 +46,7 @@ if ($Plan) {
 
 if (-not $Force) {
     Write-UIHost -English "This will PERMANENTLY DELETE this runtime and ALL its data." -Chinese "这将永久删除该运行时及其所有数据。" -ForegroundColor Red
-    Write-UIHost -English "Run 'adp destroy $RuntimeName -Force' to confirm, or 'adp destroy $RuntimeName -Plan' to preview." -Chinese "运行 'adp destroy $RuntimeName -Force' 确认，或 'adp destroy $RuntimeName -Plan' 预览。" -ForegroundColor Yellow
+    Write-UIHost -English "Run 'adpos destroy $RuntimeName -Force' to confirm, or 'adpos destroy $RuntimeName -Plan' to preview." -Chinese "运行 'adpos destroy $RuntimeName -Force' 确认，或 'adpos destroy $RuntimeName -Plan' 预览。" -ForegroundColor Yellow
     return
 }
 

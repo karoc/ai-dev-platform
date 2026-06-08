@@ -173,8 +173,8 @@ function Write-StatusNetworkDriftRemediation {
     )
 
     Write-UIHost -English "  remediation:" -Chinese "  修复建议:" -ForegroundColor Yellow
-    Write-UIHost -English "    1. Rebuild when the VM can be recreated: adp destroy $TargetRuntime -Plan, then recreate with adp up $TargetRuntime." -Chinese "    1. 如果 VM 可以重建：先运行 adp destroy $TargetRuntime -Plan，再用 adp up $TargetRuntime 重建。" -ForegroundColor Yellow
-    Write-UIHost -English "    2. In-place guest fix when the seed-era address is reachable: adp network apply $TargetRuntime -Plan." -Chinese "    2. 如果 seed-era 地址可连接：运行 adp network apply $TargetRuntime -Plan 预览 guest 内修复。" -ForegroundColor Yellow
+    Write-UIHost -English "    1. Rebuild when the VM can be recreated: adpos destroy $TargetRuntime -Plan, then recreate with adpos up $TargetRuntime." -Chinese "    1. 如果 VM 可以重建：先运行 adpos destroy $TargetRuntime -Plan，再用 adpos up $TargetRuntime 重建。" -ForegroundColor Yellow
+    Write-UIHost -English "    2. In-place guest fix when the seed-era address is reachable: adpos network apply $TargetRuntime -Plan." -Chinese "    2. 如果 seed-era 地址可连接：运行 adpos network apply $TargetRuntime -Plan 预览 guest 内修复。" -ForegroundColor Yellow
     Write-UIHost -English "    3. Admin-only temporary host-route workaround only to regain SSH to $($SeedNetwork.Address); ADP will not apply host routes automatically." -Chinese "    3. 仅管理员可用的临时 host-route workaround 用于恢复到 $($SeedNetwork.Address) 的 SSH；ADP 不会自动应用 host routes。" -ForegroundColor Yellow
     Write-UIHost -English "    Seed-era network: $($SeedNetwork.Address)/$($SeedNetwork.Prefix)$(if ($SeedNetwork.Gateway) { ', gateway ' + $SeedNetwork.Gateway } else { '' }); target: $ConfiguredIp." -Chinese "    Seed-era 网络: $($SeedNetwork.Address)/$($SeedNetwork.Prefix)$(if ($SeedNetwork.Gateway) { ', gateway ' + $SeedNetwork.Gateway } else { '' }); 目标: $ConfiguredIp。" -ForegroundColor DarkGray
 }
@@ -341,7 +341,7 @@ function Write-StatusRuntime {
         } else {
             # Fallback for cases that don't match specific recovery scenarios
             Write-UIHost -English "  sync note:     existing Mutagen session is not usable for this checkout/runtime" -Chinese "  sync 说明:     现有 Mutagen session 不适用于当前 checkout/runtime" -ForegroundColor Yellow
-            Write-UIHost -English "  sync fix:      adp sync stop $TargetRuntime; adp sync start $TargetRuntime" -Chinese "  sync 修复:     adp sync stop $TargetRuntime; adp sync start $TargetRuntime" -ForegroundColor Yellow
+            Write-UIHost -English "  sync fix:      adpos sync stop $TargetRuntime; adpos sync start $TargetRuntime" -Chinese "  sync 修复:     adpos sync stop $TargetRuntime; adpos sync start $TargetRuntime" -ForegroundColor Yellow
         }
     }
     Write-UIHost -English "  workspace:     $workspacePath" -Chinese "  工作区:        $workspacePath" -ForegroundColor DarkGray
@@ -352,7 +352,7 @@ function Write-StatusRuntime {
     } else {
         Write-UIHost -English "  connect:       unavailable until a static IP or detected guest IP is available" -Chinese "  连接:          需要 static IP 或探测到 guest IP 后才可用" -ForegroundColor Yellow
     }
-    Write-UIHost -English "  next:          adp up $TargetRuntime | adp sync start $TargetRuntime | adp doctor" -Chinese "  下一步:        adp up $TargetRuntime | adp sync start $TargetRuntime | adp doctor" -ForegroundColor DarkGray
+    Write-UIHost -English "  next:          adpos up $TargetRuntime | adpos sync start $TargetRuntime | adpos doctor" -Chinese "  下一步:        adpos up $TargetRuntime | adpos sync start $TargetRuntime | adpos doctor" -ForegroundColor DarkGray
     Write-Host ""
 }
 

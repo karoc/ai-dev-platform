@@ -20,7 +20,7 @@ if (Get-Command New-PesterConfiguration -ErrorAction SilentlyContinue) {
     $config.Output.Verbosity = "Normal"
     $result = Invoke-Pester -Configuration $config
 } else {
-    $result = Invoke-Pester -Script $testPath -EnableExit:$false
+    $result = Invoke-Pester -Script $testPath -EnableExit:$false -PassThru
 }
 
 function Get-PesterResultCount {
@@ -47,6 +47,11 @@ $passedCount = Get-PesterResultCount -Result $result -Names @("PassedCount", "Pa
 
 if ($failedCount -gt 0) {
     Write-Host "Evidence chain tests FAILED: $failedCount failed, $passedCount passed" -ForegroundColor Red
+    exit 1
+}
+
+if ($passedCount -eq 0) {
+    Write-Host "Evidence chain tests FAILED: no tests were reported as passed." -ForegroundColor Red
     exit 1
 }
 

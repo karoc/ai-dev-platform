@@ -25,7 +25,15 @@ function Invoke-Install {
         $savedOutputEncoding = [Console]::OutputEncoding
         [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
         try {
-            $processArguments = @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $install) + $Arguments
+            $effectiveArguments = @()
+            if ($Arguments) {
+                $effectiveArguments += $Arguments
+            }
+            if ($effectiveArguments -notcontains "-NoRegisterCommand") {
+                $effectiveArguments = @("-NoRegisterCommand") + $effectiveArguments
+            }
+
+            $processArguments = @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $install) + $effectiveArguments
             $processEnvironment = @{ USERPROFILE = $UserProfile }
             foreach ($name in $Environment.Keys) {
                 $processEnvironment[$name] = [string]$Environment[$name]
@@ -87,9 +95,15 @@ function Assert-Install {
     )
 
     $userProfile = Join-Path ([System.IO.Path]::GetTempPath()) ("adp-install-smoke-home-{0}" -f ([guid]::NewGuid().ToString("N")))
-    New-Item -ItemType Directory -Path $userProfile -Force | Out-Null
+    $localAppData = Join-Path $userProfile "AppData\Local"
+    New-Item -ItemType Directory -Path $userProfile, $localAppData -Force | Out-Null
     try {
-        $result = Invoke-Install -Arguments $Arguments -UserProfile $userProfile -Environment $Environment
+        $effectiveEnvironment = @{ LOCALAPPDATA = $localAppData }
+        foreach ($name in $Environment.Keys) {
+            $effectiveEnvironment[$name] = $Environment[$name]
+        }
+
+        $result = Invoke-Install -Arguments $Arguments -UserProfile $userProfile -Environment $effectiveEnvironment
         Assert-ExitCode -Name $Name -Result $result -Expected $ExitCode
         foreach ($pattern in $Patterns) {
             Assert-OutputContains -Name $Name -Result $result -Pattern $pattern
@@ -113,6 +127,7 @@ Assert-Install `
         "VMware validation skipped by -SkipVMValidation",
         "agent .* \[agent/high-IO\]",
         "Dependency checks were skipped",
+        "Global command registration skipped by -NoRegisterCommand",
         "ADP-OS Phase 1 Bootstrap Complete"
     ) `
     -Inspect {
@@ -126,6 +141,11 @@ Assert-Install `
             if (-not (Test-Path -LiteralPath $path)) {
                 throw "install did not create expected temporary path: $path"
             }
+        }
+
+        $commandShim = Join-Path $UserProfile "AppData\Local\ADP-OS\bin\adpos.cmd"
+        if (Test-Path -LiteralPath $commandShim) {
+            throw "install smoke unexpectedly created global command shim: $commandShim"
         }
     }
 
@@ -143,6 +163,7 @@ Assert-Install `
         "已通过 -SkipVMValidation 跳过 VMware 验证",
         "agent .* \[Agent 高 IO\]",
         "依赖检查已跳过",
+        "已通过 -NoRegisterCommand 跳过全局命令注册",
         "ADP-OS 阶段 1 平台引导完成",
         "下一步:"
     ) `
@@ -165,6 +186,7 @@ try {
             "ISO warning: file should be a \.iso and usually larger than 1 GB",
             "ISO copied to cache:",
             "VMware validation skipped by -SkipVMValidation",
+            "Global command registration skipped by -NoRegisterCommand",
             "ADP-OS Phase 1 Bootstrap Complete"
         ) `
         -Inspect {

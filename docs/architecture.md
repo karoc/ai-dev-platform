@@ -138,8 +138,8 @@ Mutagen SSH endpoints use ADP-managed Host aliases in the user's SSH config.
 Snapshots are runtime-scoped VMware snapshots. The CLI currently exposes:
 
 ```powershell
-.\cli\adp.ps1 snapshot create <runtime> <name>
-.\cli\adp.ps1 restore <runtime> <name>
+adpos snapshot create <runtime> <name>
+adpos restore <runtime> <name>
 ```
 
 Snapshot creation is defensive: if `vmrun` times out but the snapshot appears afterward, ADP treats the operation as successful.

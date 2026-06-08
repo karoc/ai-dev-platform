@@ -42,7 +42,7 @@ Assert-Contains `
 Assert-Contains `
     -Name "up gives doctor and network apply guidance for provisioned drift" `
     -Text $up `
-    -Pattern 'function\s+Write-ProvisionedNetworkNotReadyGuidance[\s\S]*adp doctor[\s\S]*adp network apply \$TargetRuntime -Plan[\s\S]*adp network apply \$TargetRuntime'
+    -Pattern 'function\s+Write-ProvisionedNetworkNotReadyGuidance[\s\S]*adpos doctor[\s\S]*adpos network apply \$TargetRuntime -Plan[\s\S]*adpos network apply \$TargetRuntime'
 
 Assert-Contains `
     -Name "up checks VMware Tools marker before entering autoinstall monitor" `

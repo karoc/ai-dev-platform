@@ -8,6 +8,7 @@
 #   .\setup.ps1 -SkipIsoDownload        Skip ISO download (ISO already cached)
 #   .\setup.ps1 -NonInteractive         Run without prompts (for scripts/CI)
 #   .\setup.ps1 -Force                  Skip precheck, proceed anyway
+#   .\setup.ps1 -NoRegisterCommand      Do not register the global adpos command
 
 param(
     [string]$Distro = "ubuntu",
@@ -15,7 +16,8 @@ param(
     [switch]$SkipIsoDownload,
     [switch]$SkipDoctor,
     [switch]$NonInteractive,
-    [switch]$Force
+    [switch]$Force,
+    [switch]$NoRegisterCommand
 )
 
 $ErrorActionPreference = "Stop"
@@ -54,8 +56,26 @@ function Test-ADPPowerShell7 {
     }
 }
 
+function Install-ADPPowerShell7WithWinget {
+    $winget = (Get-Command winget.exe -ErrorAction SilentlyContinue).Source
+    if (-not $winget) {
+        return $false
+    }
+
+    Write-Host ""
+    Write-Host "PowerShell 7 was not found. Installing PowerShell 7 with winget..." -ForegroundColor Cyan
+    & $winget install --id Microsoft.PowerShell --source winget --accept-package-agreements --accept-source-agreements --silent
+    return $LASTEXITCODE -eq 0
+}
+
 if ($PSVersionTable.PSVersion.Major -lt 7) {
     $pwsh = Find-ADPPowerShell7
+    if (-not $pwsh) {
+        if (Install-ADPPowerShell7WithWinget) {
+            $pwsh = Find-ADPPowerShell7
+        }
+    }
+
     if ($pwsh) {
         $forwardArgs = @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $PSCommandPath)
         if ($Distro -and $Distro -ne "ubuntu") { $forwardArgs += @("-Distro", $Distro) }
@@ -64,6 +84,7 @@ if ($PSVersionTable.PSVersion.Major -lt 7) {
         if ($SkipDoctor) { $forwardArgs += "-SkipDoctor" }
         if ($NonInteractive) { $forwardArgs += "-NonInteractive" }
         if ($Force) { $forwardArgs += "-Force" }
+        if ($NoRegisterCommand) { $forwardArgs += "-NoRegisterCommand" }
 
         Write-Host "Restarting ADP-OS setup with PowerShell 7: $pwsh" -ForegroundColor Cyan
         & $pwsh @forwardArgs
@@ -72,7 +93,7 @@ if ($PSVersionTable.PSVersion.Major -lt 7) {
 
     Write-Host ""
     Write-Host "ADP-OS requires PowerShell 7+ (pwsh.exe)." -ForegroundColor Red
-    Write-Host "Built-in Windows PowerShell 5.1 can only show this bootstrap message; it cannot run the ADP-OS control plane." -ForegroundColor Yellow
+    Write-Host "setup.ps1 tried to install it automatically with winget but could not find a working pwsh.exe." -ForegroundColor Yellow
     Write-Host ""
     Write-Host "Install PowerShell 7, then rerun .\setup.ps1:" -ForegroundColor Cyan
     Write-Host "  winget install --id Microsoft.PowerShell --source winget" -ForegroundColor White
@@ -124,7 +145,7 @@ if (-not $NonInteractive) {
     Write-Host "This will guide you through:" -ForegroundColor Yellow
     Write-Host "  1. Scan prerequisites (precheck)" -ForegroundColor DarkGray
     Write-Host "  2. Download Linux ISO (~2.6 GB, if needed)" -ForegroundColor DarkGray
-    Write-Host "  3. Platform bootstrap (install)" -ForegroundColor DarkGray
+    Write-Host "  3. Platform bootstrap and global adpos registration (install)" -ForegroundColor DarkGray
     Write-Host "  4. Platform initialization (init)" -ForegroundColor DarkGray
     Write-Host "  5. System diagnostics (doctor)" -ForegroundColor DarkGray
     Write-Host ""
@@ -149,6 +170,9 @@ if ($SkipIsoDownload) {
 }
 if ($SkipDoctor) {
     $quickstartArgs.SkipDoctor = $true
+}
+if ($NoRegisterCommand) {
+    $quickstartArgs.NoRegisterCommand = $true
 }
 
 Write-InfoLog -Message "setup.ps1 → quickstart.ps1" -Component "setup"

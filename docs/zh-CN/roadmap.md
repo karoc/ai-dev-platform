@@ -32,7 +32,7 @@ ADP-OS 正在朝本地、可复现、agent-native 的开发平台演进：
 - 双语公开文档。
 - Workspace manifests、recipes、本地目录创建、project open/sync/project views、task lifecycle commands、milestone planning、evaluation planning、sync hygiene checks、validation recording、review gates、commit readiness 和 Markdown release evidence。
 - 将 dev container metadata detection 作为 runtime 内部项目上下文。
-- 通过 `adp capabilities` 提供公开 capability boundary。
+- 通过 `adpos capabilities` 提供公开 capability boundary。
 
 ## 近期工作
 
@@ -97,7 +97,7 @@ ADP-OS 面向 AI-assisted 和 agent-native development，但广泛 autonomous ex
 
 ADP-OS 当前面向 Windows 和 VMware Workstation。未来 runtime expansion 应在保持同一套用户可见生命周期的同时，把 host-specific behavior 放到 adapter 后面。
 
-当前已支持和计划中的能力边界，请运行 `.\cli\adp.ps1 capabilities` 或查看[能力边界](capabilities.md)。该边界用于说明今天实际可用的能力；本路线图仍然是方向性说明。
+当前已支持和计划中的能力边界，请运行 `adpos capabilities` 或查看[能力边界](capabilities.md)。该边界用于说明今天实际可用的能力；本路线图仍然是方向性说明。
 
 候选方向：
 
@@ -134,7 +134,7 @@ ADP-OS 使用 [语义化版本](https://semver.org/lang/zh-CN/)。当前版本�
 - 运行 `.\tests\validate.ps1`。
 - 当已有翻译文档时，英文和简体中文文档一起更新。
 - 更新 `CHANGELOG.md` 和 `CHANGELOG.zh-CN.md` 以反映本次发布的变更。
-- 当 workflow、validation、release-readiness 或 task behavior 变化时，生成 `adp workspace report -Markdown` evidence。
+- 当 workflow、validation、release-readiness 或 task behavior 变化时，生成 `adpos workspace report -Markdown` evidence。
 - 检查 local artifacts、credentials、generated state、VM files、ISO files、downloaded tools 和 private maintainer material。
 - 运行 `.\scripts\release.ps1` 验证并打 tag（或 `-DryRun` 预览）。
 - 推送 tag 后，CI 自动创建 GitHub Release。

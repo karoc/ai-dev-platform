@@ -10,7 +10,9 @@ if (-not $IsWindows) {
 
 $projectRoot = Split-Path $PSScriptRoot -Parent
 $adpCmd = Join-Path $projectRoot "adp.cmd"
+$adposCmd = Join-Path $projectRoot "adpos.cmd"
 $setupCmd = Join-Path $projectRoot "setup.cmd"
+$uninstallCmd = Join-Path $projectRoot "uninstall.cmd"
 
 function Invoke-CmdProcess {
     param(
@@ -91,6 +93,10 @@ $versionResult = Invoke-CmdProcess -Command "adp.cmd --version" -WorkingDirector
 Assert-ExitCode -Name "adp.cmd --version" -Result $versionResult -Expected 0
 Assert-OutputContains -Name "adp.cmd --version" -Result $versionResult -Pattern "ADP-OS version"
 
+$adposVersionResult = Invoke-CmdProcess -Command "adpos.cmd --version" -WorkingDirectory $projectRoot
+Assert-ExitCode -Name "adpos.cmd --version" -Result $adposVersionResult -Expected 0
+Assert-OutputContains -Name "adpos.cmd --version" -Result $adposVersionResult -Pattern "ADP-OS version"
+
 $tempRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("adp-cmd-wrapper-{0}" -f ([guid]::NewGuid().ToString("N")))
 New-Item -ItemType Directory -Path $tempRoot -Force | Out-Null
 try {
@@ -102,7 +108,8 @@ param(
     [switch]$SkipIsoDownload,
     [switch]$SkipDoctor,
     [switch]$NonInteractive,
-    [switch]$Force
+    [switch]$Force,
+    [switch]$NoRegisterCommand
 )
 
 Write-Output "SETUP_STUB_OK"
@@ -112,10 +119,11 @@ Write-Output "SkipIsoDownload=$SkipIsoDownload"
 Write-Output "SkipDoctor=$SkipDoctor"
 Write-Output "NonInteractive=$NonInteractive"
 Write-Output "Force=$Force"
+Write-Output "NoRegisterCommand=$NoRegisterCommand"
 '@
 
     $setupForwardResult = Invoke-CmdProcess `
-        -Command "setup.cmd -IsoPath C:\stub.iso -SkipIsoDownload -SkipDoctor -NonInteractive -Force" `
+        -Command "setup.cmd -IsoPath C:\stub.iso -SkipIsoDownload -SkipDoctor -NonInteractive -Force -NoRegisterCommand" `
         -WorkingDirectory $tempRoot
     Assert-ExitCode -Name "setup.cmd forwards arguments" -Result $setupForwardResult -Expected 0
     Assert-OutputContains -Name "setup.cmd forwards arguments" -Result $setupForwardResult -Pattern "SETUP_STUB_OK"
@@ -124,19 +132,48 @@ Write-Output "Force=$Force"
     Assert-OutputContains -Name "setup.cmd forwards arguments" -Result $setupForwardResult -Pattern "SkipDoctor=True"
     Assert-OutputContains -Name "setup.cmd forwards arguments" -Result $setupForwardResult -Pattern "NonInteractive=True"
     Assert-OutputContains -Name "setup.cmd forwards arguments" -Result $setupForwardResult -Pattern "Force=True"
+    Assert-OutputContains -Name "setup.cmd forwards arguments" -Result $setupForwardResult -Pattern "NoRegisterCommand=True"
+
+    Copy-Item -LiteralPath $uninstallCmd -Destination (Join-Path $tempRoot "uninstall.cmd")
+    Set-Content -LiteralPath (Join-Path $tempRoot "uninstall.ps1") -Encoding UTF8 -Value @'
+param(
+    [switch]$NonInteractive
+)
+
+Write-Output "UNINSTALL_STUB_OK"
+Write-Output "NonInteractive=$NonInteractive"
+'@
+
+    $uninstallForwardResult = Invoke-CmdProcess `
+        -Command "uninstall.cmd -NonInteractive" `
+        -WorkingDirectory $tempRoot
+    Assert-ExitCode -Name "uninstall.cmd forwards arguments" -Result $uninstallForwardResult -Expected 0
+    Assert-OutputContains -Name "uninstall.cmd forwards arguments" -Result $uninstallForwardResult -Pattern "UNINSTALL_STUB_OK"
+    Assert-OutputContains -Name "uninstall.cmd forwards arguments" -Result $uninstallForwardResult -Pattern "NonInteractive=True"
 
     $isolatedEnv = New-IsolatedCmdEnvironment -Root (Join-Path $tempRoot "isolated")
     Copy-Item -LiteralPath $adpCmd -Destination (Join-Path $tempRoot "adp.cmd")
+    Copy-Item -LiteralPath $adposCmd -Destination (Join-Path $tempRoot "adpos.cmd")
 
     $missingAdpResult = Invoke-CmdProcess -Command "$isolatedEnv && adp.cmd --version" -WorkingDirectory $tempRoot
     Assert-ExitCode -Name "adp.cmd missing pwsh" -Result $missingAdpResult -Expected 1
     Assert-OutputContains -Name "adp.cmd missing pwsh" -Result $missingAdpResult -Pattern "ADP-OS requires PowerShell 7\+"
     Assert-OutputContains -Name "adp.cmd missing pwsh" -Result $missingAdpResult -Pattern "winget install --id Microsoft\.PowerShell --source winget"
 
+    $missingAdposResult = Invoke-CmdProcess -Command "$isolatedEnv && adpos.cmd --version" -WorkingDirectory $tempRoot
+    Assert-ExitCode -Name "adpos.cmd missing pwsh" -Result $missingAdposResult -Expected 1
+    Assert-OutputContains -Name "adpos.cmd missing pwsh" -Result $missingAdposResult -Pattern "ADP-OS requires PowerShell 7\+"
+    Assert-OutputContains -Name "adpos.cmd missing pwsh" -Result $missingAdposResult -Pattern "winget install --id Microsoft\.PowerShell --source winget"
+
     $missingSetupResult = Invoke-CmdProcess -Command "$isolatedEnv && setup.cmd" -WorkingDirectory $tempRoot
     Assert-ExitCode -Name "setup.cmd missing pwsh" -Result $missingSetupResult -Expected 1
     Assert-OutputContains -Name "setup.cmd missing pwsh" -Result $missingSetupResult -Pattern "ADP-OS requires PowerShell 7\+"
     Assert-OutputContains -Name "setup.cmd missing pwsh" -Result $missingSetupResult -Pattern "https://github\.com/PowerShell/PowerShell/releases"
+
+    $missingUninstallResult = Invoke-CmdProcess -Command "$isolatedEnv && uninstall.cmd -NonInteractive" -WorkingDirectory $tempRoot
+    Assert-ExitCode -Name "uninstall.cmd falls back to Windows PowerShell" -Result $missingUninstallResult -Expected 0
+    Assert-OutputContains -Name "uninstall.cmd falls back to Windows PowerShell" -Result $missingUninstallResult -Pattern "UNINSTALL_STUB_OK"
+    Assert-OutputContains -Name "uninstall.cmd falls back to Windows PowerShell" -Result $missingUninstallResult -Pattern "NonInteractive=True"
 } finally {
     Remove-Item -LiteralPath $tempRoot -Recurse -Force -ErrorAction SilentlyContinue
 }

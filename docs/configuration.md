@@ -53,7 +53,7 @@ Supported values are `en` and `zh-CN`. The committed default remains English. Us
 
 ```powershell
 $env:ADP_LANG = "zh-CN"
-.\cli\adp.ps1 help
+adpos help
 ```
 
 ## `topology.json`
@@ -179,13 +179,13 @@ Supported top-level sections:
 
 Merging is recursive for JSON objects. Arrays and scalar values replace the default value, so local `sync_profiles.<name>.ignore` overrides should include every ignored path you still want to keep from the default profile. Empty `configs\local.json` files are ignored.
 
-`platform.defaults.iso_path` is resolved inside `platform.paths.iso_cache`. To import an ISO from any location, run `.\install.ps1 -IsoPath C:\path\to\ubuntu-26.04-live-server-amd64.iso`; the installer copies it into the configured ISO cache.
+`platform.defaults.iso_path` is resolved inside `platform.paths.iso_cache`. To import an ISO from any location, run `.\setup.cmd -IsoPath C:\path\to\ubuntu-26.04-live-server-amd64.iso`; setup copies it into the configured ISO cache.
 
 `platform.ui.language` controls user-facing installer and CLI language where localization has been implemented. The current supported values are `en` and `zh-CN`. `ADP_LANG` takes precedence over configuration for one-off commands, so users can run `ADP_LANG=zh-CN` in the current shell without editing `configs\local.json`. Unsupported values fall back to English.
 
-Simplified Chinese coverage includes the main fresh deployment path: `install.ps1`, `adp help`, `adp init`, `adp doctor -FirstRun`, `adp doctor -FixMutagen -Plan`, `adp up <runtime> -Plan`, the main `adp up <runtime>` user guidance, `adp status [runtime]`, and `adp network configure-local [-Plan|-Apply]`. Some low-level diagnostic check names and machine-readable state values intentionally remain in English so logs stay searchable and support output remains stable.
+Simplified Chinese coverage includes the main fresh deployment path: `setup.cmd`, `adpos help`, `adpos init`, `adpos doctor -FirstRun`, `adpos doctor -FixMutagen -Plan`, `adpos up <runtime> -Plan`, the main `adpos up <runtime>` user guidance, `adpos status [runtime]`, and `adpos network configure-local [-Plan|-Apply]`. Some low-level diagnostic check names and machine-readable state values intentionally remain in English so logs stay searchable and support output remains stable.
 
-`platform.tools.mutagen` controls only the explicit `.\cli\adp.ps1 doctor -FixMutagen` remediation path. Use it when GitHub release downloads are slow or blocked:
+`platform.tools.mutagen` controls only the explicit `adpos doctor -FixMutagen` remediation path. Use it when GitHub release downloads are slow or blocked:
 
 - `download_url`: archive URL used when ADP needs to download Mutagen.
 - `archive_path`: optional local archive path. If set, ADP copies this archive into ignored `.tools\mutagen` instead of downloading.
@@ -197,14 +197,14 @@ Downloaded archives, copied archives, and `mutagen.exe` remain under ignored `.t
 For VMware NAT differences between machines, prefer:
 
 ```powershell
-.\cli\adp.ps1 network configure-local -Plan
-.\cli\adp.ps1 network configure-local -Apply
+adpos network configure-local -Plan
+adpos network configure-local -Apply
 ```
 
 The command detects host `VMnet8`, previews the target `platform.network.vmware_nat` and `topology.<runtime>.static_ip` values, and does not write local configuration unless `-Apply` is explicit. With `-Apply`, the command updates only the ignored `configs\local.json` override and backs up an existing local file as `configs\local.json.bak.<timestamp>`. Manual editing is still supported when host detection is unavailable or when you prefer to keep the ADP subnet and change VMware `VMnet8` in Virtual Network Editor instead. Confirm the actual VMware NAT subnet in VMware Workstation's Virtual Network Editor if needed; see [Networking](networking.md#prerequisites).
 
 Do not commit `configs\local.json`; commit shared defaults to the main config files instead.
 
-Run `.\cli\adp.ps1 doctor` to see whether `configs\local.json` is missing, empty, applied, present without supported sections, or using unsupported top-level sections.
+Run `adpos doctor` to see whether `configs\local.json` is missing, empty, applied, present without supported sections, or using unsupported top-level sections.
 
 `configs\secrets.json` is also ignored and reserved for future secret-specific support. It is not read by the current MVP.

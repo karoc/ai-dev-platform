@@ -14,15 +14,15 @@ $ErrorActionPreference = "Stop"
 # --- Validate ---
 $command = $CommandArgs -join ' '
 if ([string]::IsNullOrWhiteSpace($command)) {
-    $usageEn = "Usage: adp sandbox <command...> [-Distro ubuntu-26.04] [-IsoPath <path>]"
-    $usageZh = "用法: adp sandbox <命令...> [-Distro ubuntu-26.04] [-IsoPath <路径>]"
+    $usageEn = "Usage: adpos sandbox <command...> [-Distro ubuntu-26.04] [-IsoPath <path>]"
+    $usageZh = "用法: adpos sandbox <命令...> [-Distro ubuntu-26.04] [-IsoPath <路径>]"
     Write-ErrorLog -Message (Get-UIText -English $usageEn -Chinese $usageZh) -Component "cli.sandbox"
     Write-Host ""
     Write-UIHost -English "Examples:" -Chinese "示例:" -ForegroundColor Yellow
-    Write-Host "  adp sandbox echo hello"
-    Write-Host "  adp sandbox python3 -c 'print(1+1)'"
-    Write-Host "  adp sandbox pip install numpy && python3 -c 'import numpy; print(numpy.__version__)'"
-    Write-Host "  adp sandbox curl -s https://httpbin.org/ip"
+    Write-Host "  adpos sandbox echo hello"
+    Write-Host "  adpos sandbox python3 -c 'print(1+1)'"
+    Write-Host "  adpos sandbox pip install numpy && python3 -c 'import numpy; print(numpy.__version__)'"
+    Write-Host "  adpos sandbox curl -s https://httpbin.org/ip"
     Write-Host ""
     exit 1
 }
@@ -126,7 +126,7 @@ try {
 
     if (-not $ip) {
         Write-ErrorLog -Message (Get-UIText -English "Could not connect to sandbox VM via SSH. VM may need more time to boot." -Chinese "无法通过 SSH 连接到 sandbox VM。VM 可能需要更多时间启动。") -Component "cli.sandbox"
-        Write-UIHost -English "  Try: adp status sandbox" -Chinese "  尝试: adp status sandbox" -ForegroundColor Yellow
+        Write-UIHost -English "  Try: adpos status sandbox" -Chinese "  尝试: adpos status sandbox" -ForegroundColor Yellow
         exit 1
     }
 

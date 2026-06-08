@@ -78,24 +78,24 @@ Do not optimize the first validation round for generic developers, Linux/macOS-f
 Before showing the demo to a user:
 
 - Run the demo on a real Windows 10/11 host with VMware Workstation available and reachable.
-- Use PowerShell 7 for the control plane. From a stock Windows shell, use `.\adp.cmd`; if only built-in Windows PowerShell 5.1 is available, run `.\setup.cmd` first so the user gets the PowerShell 7 install path instead of a broken ADP command.
+- Use PowerShell 7 for the control plane. From a stock Windows shell, use `.\adpos.cmd`; if only built-in Windows PowerShell 5.1 is available, run `.\setup.cmd` first so the user gets the PowerShell 7 install path instead of a broken ADP command.
 - Use an ADP-OS checkout with public docs and recipes available.
 - Pre-provision the `agent` runtime; first VM creation is not part of the 10-minute window.
-- Confirm `adp doctor` reports 0 issues before the demo.
-- Confirm `adp status agent` reports the runtime as running and SSH reachable.
-- Confirm `adp sync status` reports the `agent` session as healthy or watching before the demo. Stop and recreate stale `adp-agent` sessions before starting the user-facing run.
+- Confirm `adpos doctor` reports 0 issues before the demo.
+- Confirm `adpos status agent` reports the runtime as running and SSH reachable.
+- Confirm `adpos sync status` reports the `agent` session as healthy or watching before the demo. Stop and recreate stale `adp-agent` sessions before starting the user-facing run.
 - Confirm the presenter script fences sync before VM mutation and rollback: stop `agent` sync before the destructive task, keep it stopped through restore, and restart it only after choosing the host or VM workspace as the source of truth.
-- Confirm post-restore readiness is observable through public ADP commands: after restore, `adp status agent` must return a bounded state; if the runtime is stopped, `adp up agent -NoBootstrap` must return and the following `adp status agent` must reach running + SSH reachable before direct SSH file checks.
+- Confirm post-restore readiness is observable through public ADP commands: after restore, `adpos status agent` must return a bounded state; if the runtime is stopped, `adpos up agent -NoBootstrap` must return and the following `adpos status agent` must reach running + SSH reachable before direct SSH file checks.
 - Create or confirm the snapshot named by the demo script.
 - Confirm `workspace-report.md` is generated in the manifest workspace root before evidence export. For the public recipe manifest, that is `configs\workspace-report.md`.
-- Export a real evidence ZIP with `adp workspace evidence -Export`, then verify it contains `README.txt`, `snapshot-hashes.json`, `operation-log.json`, `workspace-report.md`, and `adp-workspace.json`.
-- Verify rollback restores `README.md`, removes `generated/output.json`, and reverts the `src/main.ts` demo mutation. If restore leaves the runtime stopped, run `adp up agent -NoBootstrap` and `adp status agent` before SSH file checks.
+- Export a real evidence ZIP with `adpos workspace evidence -Export`, then verify it contains `README.txt`, `snapshot-hashes.json`, `operation-log.json`, `workspace-report.md`, and `adp-workspace.json`.
+- Verify rollback restores `README.md`, removes `generated/output.json`, and reverts the `src/main.ts` demo mutation. If restore leaves the runtime stopped, run `adpos up agent -NoBootstrap` and `adpos status agent` before SSH file checks.
 - Record real restore, `up`, `status`, and SSH verification durations. If the run needs undocumented VMware intervention, private cleanup, or manual host-key surgery beyond the public troubleshooting path, it is rehearsal evidence, not valid 10-minute demo evidence.
 - Keep the actual elapsed time. Do not round away slow snapshot or restore behavior.
 
-If a pre-provisioned `agent` VM is shown as still installing, stop treating the run as a normal first install. Run `adp status agent`, `adp doctor`, and `adp network apply agent -Plan`. A common stale-VM failure is an old guest that was already provisioned but was created before static network seed injection, so it boots on an old VMware NAT address while ADP-OS targets the current static IP. That is a network drift/product-readiness issue, not valid 10-minute demo evidence.
+If a pre-provisioned `agent` VM is shown as still installing, stop treating the run as a normal first install. Run `adpos status agent`, `adpos doctor`, and `adpos network apply agent -Plan`. A common stale-VM failure is an old guest that was already provisioned but was created before static network seed injection, so it boots on an old VMware NAT address while ADP-OS targets the current static IP. That is a network drift/product-readiness issue, not valid 10-minute demo evidence.
 
-If `adp snapshot create agent <name>` appears stuck, do not continue the user demo until the snapshot is confirmed. Check `vmrun listSnapshots` or rerun `adp snapshot create` after the command returns. A snapshot that exists but left the CLI hanging should be recorded as a product failure for the rehearsal, because rollback and evidence are the core survival path.
+If `adpos snapshot create agent <name>` appears stuck, do not continue the user demo until the snapshot is confirmed. Check `vmrun listSnapshots` or rerun `adpos snapshot create` after the command returns. A snapshot that exists but left the CLI hanging should be recorded as a product failure for the rehearsal, because rollback and evidence are the core survival path.
 
 Hard rule: if VMware is unavailable, do not run the survival demo. Do not fake VMware, snapshot, restore, SSH, evidence chain, or evidence export output.
 
@@ -111,7 +111,7 @@ During the demo, record whether:
 - A real snapshot was created or reused.
 - Evidence was recorded before and after the agent-style task.
 - The task changed something Git alone would not fully clean up.
-- Rollback restored the expected runtime and workspace state; if the runtime stopped after restore, it was restarted with `adp up agent -NoBootstrap` before SSH verification.
+- Rollback restored the expected runtime and workspace state; if the runtime stopped after restore, it was restarted with `adpos up agent -NoBootstrap` before SSH verification.
 - Post-restore readiness completed through documented ADP commands, and any `ssh-timeout`, `auth-pending`, `unreachable`, or recovery state was recorded instead of being hidden.
 - An evidence ZIP was exported and contained the expected five entries.
 - The participant could explain the difference from Git reset, Docker, WSL2, and Dev Containers.

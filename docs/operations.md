@@ -28,7 +28,7 @@ This guide covers day-to-day operation of ADP-OS.
 Run:
 
 ```powershell
-.\cli\adp.ps1 doctor
+adpos doctor
 ```
 
 Expected result:
@@ -40,7 +40,7 @@ All checks passed. Platform is healthy.
 For first-run guidance, include the checklist:
 
 ```powershell
-.\cli\adp.ps1 doctor -FirstRun
+adpos doctor -FirstRun
 ```
 
 `doctor` checks platform prerequisites, configuration shape, local override status, VMware tooling, VMware NAT host match when detectable, Mutagen version, ISO cache, runtime topology, static IP uniqueness, static IP ranges, duplicate running ADP runtime names across VMX paths, existing-runtime seed network drift, VM status, SSH reachability for running VMs, and Mutagen sessions.
@@ -48,13 +48,13 @@ For first-run guidance, include the checklist:
 Preview local Mutagen remediation:
 
 ```powershell
-.\cli\adp.ps1 doctor -FixMutagen -Plan
+adpos doctor -FixMutagen -Plan
 ```
 
 Install the tested local Mutagen binary only after reviewing the plan:
 
 ```powershell
-.\cli\adp.ps1 doctor -FixMutagen
+adpos doctor -FixMutagen
 ```
 
 `-FixMutagen` installs Mutagen 0.18.x into `.tools\mutagen\mutagen.exe`, then verifies the installed version. The install path prints explicit phases, download source/target, offline archive path, connection and hard timeout guidance, optional SHA256 status, clean failure output, and a manual recovery path if the download fails. The `.tools` directory is ignored by Git, so downloaded archives and local binaries are not committed.
@@ -67,7 +67,7 @@ New-Item -ItemType Directory -Path .tools\mutagen -Force
 # https://github.com/mutagen-io/mutagen/releases/download/v0.18.1/mutagen_windows_amd64_v0.18.1.zip
 # Save it as:
 # .tools\mutagen\mutagen_windows_amd64_v0.18.1.zip
-.\cli\adp.ps1 doctor -FixMutagen
+adpos doctor -FixMutagen
 ```
 
 For a custom local archive, mirror, or timeout policy, use ignored `configs\local.json` under `platform.tools.mutagen`:
@@ -136,16 +136,16 @@ The checks print remediation guidance. They do not download VMware, Mutagen, bro
 ## Start Runtimes
 
 ```powershell
-.\cli\adp.ps1 up frontend
-.\cli\adp.ps1 up backend
-.\cli\adp.ps1 up agent
+adpos up frontend
+adpos up backend
+adpos up agent
 ```
 
 If a VM exists and is already running, ADP reports the current IP and skips creation.
 
 After startup, ADP prints the configured connection target, SSH command, SSH alias, workspace path, sync command, and status command. The connection target comes from the merged configuration, including `configs\\local.json` when present.
 
-Before creating or starting a VM, `adp up` checks for stale Mutagen sessions that belong to a different clone or a deleted VM. If a stale same-name session exists, ADP prints a sync note with safe cleanup instructions. Stopping a stale session is safe — it only removes the Mutagen session definition and does not delete workspace files on either side.
+Before creating or starting a VM, `adpos up` checks for stale Mutagen sessions that belong to a different clone or a deleted VM. If a stale same-name session exists, ADP prints a sync note with safe cleanup instructions. Stopping a stale session is safe — it only removes the Mutagen session definition and does not delete workspace files on either side.
 
 The `agent` runtime may print a high-IO profile notice.
 
@@ -156,51 +156,51 @@ ADP also uses PowerShell `Write-Progress` during this phase to show an indetermi
 Preview startup without creating, starting, provisioning, or bootstrapping a VM:
 
 ```powershell
-.\cli\adp.ps1 up agent -Plan
+adpos up agent -Plan
 ```
 
 Create the VM definition without starting OS provisioning or bootstrap:
 
 ```powershell
-.\cli\adp.ps1 up agent -NoProvision
+adpos up agent -NoProvision
 ```
 
 Initialize platform state and create a runtime VM definition without starting OS provisioning:
 
 ```powershell
-.\cli\adp.ps1 init agent -NoProvision
+adpos init agent -NoProvision
 ```
 
 When creating a runtime for the first time, you can pass an ISO from any location:
 
 ```powershell
-.\cli\adp.ps1 up agent -IsoPath D:\Share\ubuntu-26.04-live-server-amd64.iso
+adpos up agent -IsoPath D:\Share\ubuntu-26.04-live-server-amd64.iso
 ```
 
 `-IsoPath` is used directly for VM creation. It does not need to be inside the configured ISO cache.
 
-Before creating a new VM, `adp up <runtime>` compares the configured VMware NAT CIDR with the host `VMnet8` network when the host exposes it. If they do not match, ADP exits before creating the VM and presents two remediation paths: align ADP local overrides to host `VMnet8` with `.\cli\adp.ps1 network configure-local -Plan` and `.\cli\adp.ps1 network configure-local -Apply`, or keep ADP's configured subnet and change VMware `VMnet8` in Virtual Network Editor. This prevents a new VM from being installed with a static IP that the host cannot reach.
+Before creating a new VM, `adpos up <runtime>` compares the configured VMware NAT CIDR with the host `VMnet8` network when the host exposes it. If they do not match, ADP exits before creating the VM and presents two remediation paths: align ADP local overrides to host `VMnet8` with `adpos network configure-local -Plan` and `adpos network configure-local -Apply`, or keep ADP's configured subnet and change VMware `VMnet8` in Virtual Network Editor. This prevents a new VM from being installed with a static IP that the host cannot reach.
 
 ## Stop Runtimes
 
 ```powershell
-.\cli\adp.ps1 stop frontend
+adpos stop frontend
 ```
 
-The command tries a soft stop first, then a hard stop if needed. VMware control operations are bounded: a soft stop has a short timeout, and the hard fallback also has a timeout, so `adp stop` should report a result instead of waiting indefinitely on a half-ready guest.
+The command tries a soft stop first, then a hard stop if needed. VMware control operations are bounded: a soft stop has a short timeout, and the hard fallback also has a timeout, so `adpos stop` should report a result instead of waiting indefinitely on a half-ready guest.
 
 ## Runtime Status
 
 Show all runtime states and connection details:
 
 ```powershell
-.\cli\adp.ps1 status
+adpos status
 ```
 
 Show one runtime:
 
 ```powershell
-.\cli\adp.ps1 status frontend
+adpos status frontend
 ```
 
 `status` is non-destructive. It does not create, start, stop, sync, snapshot, or edit guest files. It reports:
@@ -224,13 +224,13 @@ When a duplicate is present, `status` reports SSH as `ambiguous-duplicate` becau
 
 If `status` reports `network drift`, the VM was created with an older seed network than the current configuration. Editing `configs\local.json` after VM creation does not rewrite guest networking. Use the remediation path that matches the situation:
 
-- Rebuild when the VM can be recreated. Preview first with `.\cli\adp.ps1 destroy <runtime> -Plan`, then recreate with `.\cli\adp.ps1 up <runtime>`.
-- Use an in-place guest netplan fix when the seed-era address is reachable. Preview first with `.\cli\adp.ps1 network apply <runtime> -Plan`; then run without `-Plan` only after confirming it will SSH to the expected guest.
+- Rebuild when the VM can be recreated. Preview first with `adpos destroy <runtime> -Plan`, then recreate with `adpos up <runtime>`.
+- Use an in-place guest netplan fix when the seed-era address is reachable. Preview first with `adpos network apply <runtime> -Plan`; then run without `-Plan` only after confirming it will SSH to the expected guest.
 - Use an administrator-only temporary host-route workaround only when you must regain SSH to the seed-era address first. ADP does not add, change, or remove host routes automatically.
 
 If `status` reports `auth-pending`, the SSH port is open but the ADP key is not accepted yet. During first-time autoinstall this usually means the installer or first boot is still preparing the target user. Keep waiting until the timeout, or inspect the VMware console if the state does not change.
 
-If `status` reports `ssh-timeout`, ADP could open a bounded SSH probe but could not classify the guest as reachable before the hard timeout. This can happen after snapshot restore while VMware reports the VM as running but the guest SSH/control plane is still settling. Rerun `.\cli\adp.ps1 status <runtime>` after a short wait; if the VM is stopped, run `.\cli\adp.ps1 up <runtime> -NoBootstrap` first. Do not treat a survival demo as successful while post-restore readiness stays in `ssh-timeout`.
+If `status` reports `ssh-timeout`, ADP could open a bounded SSH probe but could not classify the guest as reachable before the hard timeout. This can happen after snapshot restore while VMware reports the VM as running but the guest SSH/control plane is still settling. Rerun `adpos status <runtime>` after a short wait; if the VM is stopped, run `adpos up <runtime> -NoBootstrap` first. Do not treat a survival demo as successful while post-restore readiness stays in `ssh-timeout`.
 
 ## SSH Access
 
@@ -255,11 +255,11 @@ The `%USERPROFILE%\.ssh\adp-os\` directory is created on first use. The key pair
 
 ### Key Lifecycle
 
-**First-time creation** — ADP creates the key automatically when it first needs SSH access. This happens during `adp up`, `adp status`, `adp doctor`, or any command that connects to a runtime. If the key directory does not exist, ADP creates `%USERPROFILE%\.ssh\adp-os\` and generates a new ed25519 key pair. The public key is injected into runtime VMs during bootstrap, so VMs created before the key exists will not have it.
+**First-time creation** — ADP creates the key automatically when it first needs SSH access. This happens during `adpos up`, `adpos status`, `adpos doctor`, or any command that connects to a runtime. If the key directory does not exist, ADP creates `%USERPROFILE%\.ssh\adp-os\` and generates a new ed25519 key pair. The public key is injected into runtime VMs during bootstrap, so VMs created before the key exists will not have it.
 
 **Key already exists** — If the key pair already exists, ADP uses it without modification. The key is shared across all ADP runtimes created from the same host user profile. Moving or copying the same key to another machine is not supported and would require re-creating affected VMs.
 
-**Checking key status** — Run `adp status <runtime>` and look at the SSH state. A `key-missing` state means the key pair has not been created. This is normal on a fresh installation before the first `adp up` or SSH operation.
+**Checking key status** — Run `adpos status <runtime>` and look at the SSH state. A `key-missing` state means the key pair has not been created. This is normal on a fresh installation before the first `adpos up` or SSH operation.
 
 **Regenerating keys** — ADP does not automatically regenerate keys. If you need a new key pair:
 
@@ -273,7 +273,7 @@ The `%USERPROFILE%\.ssh\adp-os\` directory is created on first use. The key pair
    ```
 3. ADP will generate a new key on the next SSH operation.
 
-**⚠️ Important**: Regenerating the key invalidates SSH access to all existing runtimes. The old public key is no longer accepted, and you must recreate affected VMs with `adp destroy <runtime>` followed by `adp up <runtime>`.
+**⚠️ Important**: Regenerating the key invalidates SSH access to all existing runtimes. The old public key is no longer accepted, and you must recreate affected VMs with `adpos destroy <runtime>` followed by `adpos up <runtime>`.
 
 ### Key Security
 
@@ -290,7 +290,7 @@ Connect to a runtime:
 ssh -i $env:USERPROFILE\.ssh\adp-os\adp-os adp@192.168.242.131
 ```
 
-Default addresses are documented in `docs\networking.md`. If you use `configs\local.json` to override `topology.<runtime>.static_ip`, use `.\cli\adp.ps1 status <runtime>` after startup and connect to the address shown there.
+Default addresses are documented in `docs\networking.md`. If you use `configs\local.json` to override `topology.<runtime>.static_ip`, use `adpos status <runtime>` after startup and connect to the address shown there.
 
 Copy files to a runtime with `scp`:
 
@@ -304,18 +304,18 @@ Run a command over SSH:
 ssh -i $env:USERPROFILE\.ssh\adp-os\adp-os adp@192.168.242.131 "ls /home/adp/workspace"
 ```
 
-Snapshot restore or VM recreation can make a runtime present a different SSH host key to direct OpenSSH. ADP-managed readiness probes use bounded non-interactive SSH checks for the configured runtime target, but a manual `ssh` command may still read your normal `%USERPROFILE%\.ssh\known_hosts` file and report a stale host-key entry. If that happens, refresh only the ADP runtime alias or IP entry, then rerun `.\cli\adp.ps1 status <runtime>` before continuing.
+Snapshot restore or VM recreation can make a runtime present a different SSH host key to direct OpenSSH. ADP-managed readiness probes use bounded non-interactive SSH checks for the configured runtime target, but a manual `ssh` command may still read your normal `%USERPROFILE%\.ssh\known_hosts` file and report a stale host-key entry. If that happens, refresh only the ADP runtime alias or IP entry, then rerun `adpos status <runtime>` before continuing.
 
 ### Troubleshooting SSH Keys
 
 | Symptom | Likely cause | Action |
 |---|---|---|
-| `status` reports `key-missing` | Key not yet created | Run `adp up <runtime>` or any SSH operation; ADP creates the key automatically. |
+| `status` reports `key-missing` | Key not yet created | Run `adpos up <runtime>` or any SSH operation; ADP creates the key automatically. |
 | `status` reports `auth-pending` | Key exists but guest is not ready | Wait for VM bootstrap to complete. This is normal during first-time autoinstall. |
 | `status` reports `ssh-timeout` | Guest SSH/control plane did not settle within the bounded probe | Wait briefly, rerun `status`, and use `up <runtime> -NoBootstrap` if restore left the VM stopped. |
 | `status` reports `unreachable` | SSH port closed or wrong IP | Check VM is running, verify the static IP matches host `VMnet8` subnet. |
 | `ssh` command fails with `Permission denied` | Key does not match guest authorized_keys | VM was created with a different key. Recreate the VM. |
-| `ssh` reports `REMOTE HOST IDENTIFICATION HAS CHANGED` | Direct OpenSSH has a stale `known_hosts` entry after restore or VM recreation | Refresh only the ADP runtime alias/IP entry, then rerun `adp status <runtime>`. |
+| `ssh` reports `REMOTE HOST IDENTIFICATION HAS CHANGED` | Direct OpenSSH has a stale `known_hosts` entry after restore or VM recreation | Refresh only the ADP runtime alias/IP entry, then rerun `adpos status <runtime>`. |
 | `ssh` command fails with `bad permissions` | Key file permissions too open | Windows OpenSSH may reject keys with inherited broad permissions. See [Microsoft OpenSSH key permissions](https://learn.microsoft.com/en-us/windows-server/administration/openssh/openssh_keymanagement). |
 | Key was accidentally deleted | `adp-os` private key missing | Delete `adp-os.pub` too, recreate affected VMs. ADP will regenerate the key pair. |
 | Multiple users on same machine | Each Windows profile has its own key | ADP keys are per-user-profile. Each user's `%USERPROFILE%\.ssh\adp-os\` is independent. |
@@ -327,28 +327,28 @@ Place target project clones under the matching Windows workspace root before sta
 Start sync:
 
 ```powershell
-.\cli\adp.ps1 sync start frontend
+adpos sync start frontend
 ```
 
 Check sync:
 
 ```powershell
-.\cli\adp.ps1 sync status
+adpos sync status
 ```
 
 `sync status` prints an ADP runtime summary before the raw Mutagen session list. The summary compares each `adp-<runtime>` session with the current checkout's expected local workspace path and SSH alias. A session can exist but still be unusable for this checkout, for example when it points at an older workspace, a different remote alias, or Mutagen reports a halted/error state. For a runtime that already exists in the current checkout, ADP reports `wrong-local`, `wrong-remote`, or `unhealthy` and prints the explicit recovery command:
 
 ```powershell
-.\cli\adp.ps1 sync stop agent
-.\cli\adp.ps1 sync start agent
+adpos sync stop agent
+adpos sync start agent
 ```
 
 If the runtime has not been created in the current checkout yet, ADP reports the stale same-name session as cleanup guidance instead of a current platform-health failure. Stop the old session first, then create the runtime before starting sync:
 
 ```powershell
-.\cli\adp.ps1 sync stop frontend
-.\cli\adp.ps1 up frontend
-.\cli\adp.ps1 sync start frontend
+adpos sync stop frontend
+adpos up frontend
+adpos sync start frontend
 ```
 
 `sync start <runtime>` will not treat an unusable same-name session as success. It prints a calm, actionable note explaining why the session doesn't match the current checkout, reassures that stopping a stale session is safe (workspace files are not deleted), and asks you to explicitly stop and recreate the session.
@@ -356,7 +356,7 @@ If the runtime has not been created in the current checkout yet, ADP reports the
 Stop sync:
 
 ```powershell
-.\cli\adp.ps1 sync stop frontend
+adpos sync stop frontend
 ```
 
 Mutagen sessions are named:
@@ -399,13 +399,13 @@ Browser downloads stay inside the VM user cache. Generated reports such as `play
 Create a baseline snapshot:
 
 ```powershell
-.\cli\adp.ps1 snapshot create frontend clean
+adpos snapshot create frontend clean
 ```
 
 Restore:
 
 ```powershell
-.\cli\adp.ps1 restore frontend clean
+adpos restore frontend clean
 ```
 
 Snapshots are VMware snapshots and may take several minutes on running VMs. ADP verifies snapshot existence after timeout to avoid false failures.
@@ -413,7 +413,7 @@ Snapshots are VMware snapshots and may take several minutes on running VMs. ADP 
 ## Destroy a Runtime
 
 ```powershell
-.\cli\adp.ps1 destroy frontend
+adpos destroy frontend
 ```
 
 Destroying a runtime removes the VM files for that runtime. Workspace data under `%USERPROFILE%\adp-workspaces` is separate.
@@ -421,13 +421,13 @@ Destroying a runtime removes the VM files for that runtime. Workspace data under
 Preview the deletion first:
 
 ```powershell
-.\cli\adp.ps1 destroy frontend -Plan
+adpos destroy frontend -Plan
 ```
 
 ## Re-apply Networking
 
 ```powershell
-.\cli\adp.ps1 network apply all
+adpos network apply all
 ```
 
 Use this after editing `configs\platform.json`, `configs\topology.json`, or the supported `platform`/`topology` sections in `configs\local.json`.
@@ -435,8 +435,8 @@ Use this after editing `configs\platform.json`, `configs\topology.json`, or the 
 Before any VM exists, use this to align local NAT settings with host `VMnet8` without touching VMs:
 
 ```powershell
-.\cli\adp.ps1 network configure-local -Plan
-.\cli\adp.ps1 network configure-local -Apply
+adpos network configure-local -Plan
+adpos network configure-local -Apply
 ```
 
 `configure-local -Plan` previews the detected host NAT subnet, target gateway/DNS, derived runtime static IPs, and field-level local config changes. A bare `configure-local` is also non-mutating. Use `-Apply` only after reviewing the plan; it writes only `configs\local.json` and backs up an existing file as `configs\local.json.bak.<timestamp>`. If you want to keep ADP's configured subnet instead, change VMware `VMnet8` in Virtual Network Editor rather than applying the local override.
@@ -444,7 +444,7 @@ Before any VM exists, use this to align local NAT settings with host `VMnet8` wi
 Preview the guest networking changes first:
 
 ```powershell
-.\cli\adp.ps1 network apply all -Plan
+adpos network apply all -Plan
 ```
 
 When `network apply -Plan` detects seed-network drift, it prints the same remediation split: rebuild path, in-place guest netplan path, and administrator-only host-route workaround. The command only manages guest netplan files over SSH; it does not recreate VMs and does not change host routes.

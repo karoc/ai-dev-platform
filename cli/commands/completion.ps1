@@ -9,11 +9,11 @@ param(
 $ErrorActionPreference = "Stop"
 
 if (-not $Shell -or $Shell -notin @("powershell", "bash")) {
-    Write-ErrorLog -Message (Get-UIText -English "Usage: adp completion <powershell|bash>" -Chinese "用法: adp completion <powershell|bash>") -Component "cli.completion"
+    Write-ErrorLog -Message (Get-UIText -English "Usage: adpos completion <powershell|bash>" -Chinese "用法: adpos completion <powershell|bash>") -Component "cli.completion"
     exit 1
 }
 
-$validCommands = @("init", "up", "run", "status", "stop", "sync", "snapshot", "restore", "logs", "doctor", "destroy", "network", "workspace", "capabilities", "validate", "help", "completion")
+$validCommands = @("setup", "init", "up", "run", "status", "stop", "sync", "snapshot", "restore", "logs", "doctor", "destroy", "network", "workspace", "capabilities", "validate", "help", "completion", "version", "iso", "quickstart", "precheck", "sandbox", "serve", "uninstall")
 
 if ($Shell -eq "powershell") {
     # PowerShell Register-ArgumentCompleter script
@@ -22,15 +22,16 @@ if ($Shell -eq "powershell") {
 # Source this in your $PROFILE:
 #   . .\cli\commands\completion.ps1 powershell | Out-String | Invoke-Expression
 # Or install permanently:
-#   adp completion powershell >> $PROFILE
+#   adpos completion powershell >> $PROFILE
 
-Register-ArgumentCompleter -CommandName adp.ps1 -ParameterName Command -ScriptBlock {
+Register-ArgumentCompleter -CommandName adpos,adpos.cmd,adp,adp.cmd,adp.ps1 -ParameterName Command -ScriptBlock {
     param($wordToComplete, $commandAst, $cursorPosition)
     $commands = @(
-        "init", "up", "run", "status", "stop", "sync",
+        "setup", "init", "up", "run", "status", "stop", "sync",
         "snapshot", "restore", "logs", "doctor", "destroy",
         "network", "workspace", "capabilities", "validate",
-        "help", "completion"
+        "help", "completion", "version", "iso", "quickstart",
+        "precheck", "sandbox", "serve", "uninstall"
     )
     $commands | Where-Object { $_ -like "$wordToComplete*" } | ForEach-Object {
         [System.Management.Automation.CompletionResult]::new($_, $_, "ParameterValue", $_)
@@ -38,24 +39,24 @@ Register-ArgumentCompleter -CommandName adp.ps1 -ParameterName Command -ScriptBl
 }
 '@
 } elseif ($Shell -eq "bash") {
-    # Bash completion script (for WSL users who invoke adp via bash)
+# Bash completion script (for WSL users who invoke adpos via bash)
     @'
 # ADP-OS Bash Tab Completion
 # Source this in your .bashrc to enable tab completion when
-# invoking adp.ps1 from WSL:
-#   eval "$(pwsh.exe -NoProfile -Command ". .\cli\adp.ps1 completion bash")"
+# invoking adpos from WSL:
+#   eval "$(pwsh.exe -NoProfile -Command ". adpos completion bash")"
 # Or install permanently:
-#   adp completion bash >> ~/.bashrc
+#   adpos completion bash >> ~/.bashrc
 
-_adp_completion() {
+_adpos_completion() {
     local cur="${COMP_WORDS[COMP_CWORD]}"
-    local commands="init up run status stop sync snapshot restore logs doctor destroy network workspace capabilities validate help completion"
+    local commands="setup init up run status stop sync snapshot restore logs doctor destroy network workspace capabilities validate help completion version iso quickstart precheck sandbox serve uninstall"
 
     if [ "$COMP_CWORD" -eq 1 ]; then
         COMPREPLY=($(compgen -W "$commands" -- "$cur"))
         return
     fi
 }
-complete -F _adp_completion adp
+complete -F _adpos_completion adpos adpos.cmd adp adp.cmd
 '@
 }

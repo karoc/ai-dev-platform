@@ -19,16 +19,16 @@ ADP-OS 证据链为工作区快照元数据和操作日志提供了防篡改、�
 
 ```powershell
 # 1. 签署当前工作区快照元数据
-adp workspace evidence -Snapshot -ManifestPath configs\workspace.recipes.example.json
+adpos workspace evidence -Snapshot -ManifestPath configs\workspace.recipes.example.json
 
 # 2. 记录操作日志条目
-adp workspace evidence -Log -Operation sync -Details "为 UI 修复启动了前端同步"
+adpos workspace evidence -Log -Operation sync -Details "为 UI 修复启动了前端同步"
 
 # 3. 将所有证据导出为 ZIP 包
-adp workspace evidence -Export
+adpos workspace evidence -Export
 
 # 4. 声明 AI 辅助开发
-adp workspace declare -AiAssisted -Reviewer "human-reviewer" -Notes "由 Claude 生成，逐行审查"
+adpos workspace declare -AiAssisted -Reviewer "human-reviewer" -Notes "由 Claude 生成，逐行审查"
 ```
 
 所有证据存储在 `<workspace_root>/.evidence/` 中：
@@ -40,7 +40,7 @@ adp workspace declare -AiAssisted -Reviewer "human-reviewer" -Notes "由 Claude 
 
 ## 快照签名
 
-`adp workspace evidence -Snapshot` 创建快照签名条目。每个条目包含：
+`adpos workspace evidence -Snapshot` 创建快照签名条目。每个条目包含：
 
 - `snapshot_id` — 唯一标识符（例如 `snap-1749244800`）
 - `timestamp` — UTC ISO 8601 时间戳
@@ -82,7 +82,7 @@ $hash -eq "a1b2c3..."  # 应为 $true
 
 ## 操作日志链
 
-`adp workspace evidence -Log -Operation <op> [-Details <text>]` 记录操作日志条目。每个条目包含：
+`adpos workspace evidence -Log -Operation <op> [-Details <text>]` 记录操作日志条目。每个条目包含：
 
 - `operation` — 操作类型（`create`、`sync`、`start`、`stop`、`validate`、`declare`、`snapshot`、`export`）
 - `timestamp` — UTC ISO 8601 时间戳
@@ -104,7 +104,7 @@ $log.entries | Select-Object timestamp, operation, user, details
 
 ## 证据导出
 
-`adp workspace evidence -Export [-Path <path>]` 将所有证据打包为 ZIP 文件。
+`adpos workspace evidence -Export [-Path <path>]` 将所有证据打包为 ZIP 文件。
 
 ZIP 包含：
 
@@ -120,7 +120,7 @@ ZIP 包含：
 
 ## AI 开发声明
 
-`adp workspace declare -AiAssisted [-Reviewer <name>] [-Notes "..."]` 在证据链中记录一条正式声明，表明某段代码是 AI 辅助开发的。
+`adpos workspace declare -AiAssisted [-Reviewer <name>] [-Notes "..."]` 在证据链中记录一条正式声明，表明某段代码是 AI 辅助开发的。
 
 声明以 `DECLARE` 操作日志条目附加，详情包含：
 
@@ -130,10 +130,10 @@ ZIP 包含：
 
 ```powershell
 # 最少参数：仅声明 AI 辅助
-adp workspace declare -AiAssisted
+adpos workspace declare -AiAssisted
 
 # 带审查者和备注
-adp workspace declare -AiAssisted -Reviewer "alice" -Notes "Claude 生成了初始实现；alice 审查了所有逻辑路径"
+adpos workspace declare -AiAssisted -Reviewer "alice" -Notes "Claude 生成了初始实现；alice 审查了所有逻辑路径"
 ```
 
 这将创建一个可审计的记录，表明 AI 参与了开发、谁进行了审查以及关于 AI 角色的任何上下文。
@@ -203,5 +203,5 @@ $computed = (Get-FileHash -InputStream ([System.IO.MemoryStream]::new([System.Te
 **问：可以使用 JSON 输出来编写脚本吗？**
 答：可以。使用 `-Json` 开关：
 ```powershell
-adp workspace evidence -Snapshot -Json -ManifestPath ... | ConvertFrom-Json
+adpos workspace evidence -Snapshot -Json -ManifestPath ... | ConvertFrom-Json
 ```

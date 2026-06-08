@@ -184,7 +184,7 @@ adp_exec agent "python3 --version"  # Execute code inside VM
 adp_stop agent                  # Graceful shutdown
 ```
 
-These are MCP tool names, not local shell executables. For local PowerShell CLI verification, use `pwsh -File cli/adp.ps1 up agent`, `pwsh -File cli/adp.ps1 status agent`, and `pwsh -File cli/adp.ps1 stop agent`.
+These are MCP tool names, not local shell executables. For local PowerShell CLI verification, use `adpos up agent`, `adpos status agent`, and `adpos stop agent`.
 
 > For detailed MCP setup including environment variables, troubleshooting, and platform-specific examples, see the [MCP Server Setup Guide](deer-flow-mcp-setup.md).
 
@@ -351,7 +351,7 @@ This section documents practical constraints that integrators should be aware of
 
 | Limitation | Impact | Mitigation |
 |-----------|--------|------------|
-| **Cold start: 15–45 minutes** | First-time VM creation runs Ubuntu autoinstall from ISO — ~15-45 minutes depending on hardware. | **Direct Adapter path**: Use `VMPool` pre-warming (`pool_size=N` + `warm_pool()`). **MCP Server path**: invoke `adp_up` from the MCP client, or run `pwsh -File cli/adp.ps1 up agent` locally before agent sessions begin. Subsequent boots are ~30 seconds. |
+| **Cold start: 15–45 minutes** | First-time VM creation runs Ubuntu autoinstall from ISO — ~15-45 minutes depending on hardware. | **Direct Adapter path**: Use `VMPool` pre-warming (`pool_size=N` + `warm_pool()`). **MCP Server path**: invoke `adp_up` from the MCP client, or run `adpos up agent` locally before agent sessions begin. Subsequent boots are ~30 seconds. |
 | **No suspend/resume** | VMs must be fully shut down (`adp_stop`) or destroyed (`adp_down`). No VMware suspend/snapshot support in MCP tools. | Use `adp_stop` for graceful shutdown (~5s). ADP-OS has snapshot infrastructure but it is not yet exposed as MCP tools (P2-2). |
 
 ### Isolation
@@ -368,7 +368,7 @@ This section documents practical constraints that integrators should be aware of
 |-----------|--------|------------|
 | **Static SSH credentials** | Default VM SSH credentials are `adp`/`adp`. Anyone with network access to the VMware NAT subnet can connect. | Change SSH password after first boot: `adp_exec agent "echo 'adp:NEW_PASSWORD' | sudo chpasswd"`. Set via `ADP_SSH_USER`/`ADP_SSH_PASSWORD` env vars. For production, use SSH keys. |
 | **Single host** | All VMs run on the same VMware host. No distributed VM scheduling. | For multi-host scaling, deploy multiple ADP-OS instances and route deer-flow threads to them via the adapter's `thread_id→runtime` mapping. |
-| **No snapshot/rollback in MCP** | ADP-OS has VM snapshot infrastructure but it is not exposed as MCP tools. Cannot checkpoint and restore VM state from deer-flow agents. | Snapshot exposure is a P2 roadmap item. Current workaround: manage snapshots manually via `adp.ps1 workspace task snapshot`. |
+| **No snapshot/rollback in MCP** | ADP-OS has VM snapshot infrastructure but it is not exposed as MCP tools. Cannot checkpoint and restore VM state from deer-flow agents. | Snapshot exposure is a P2 roadmap item. Current workaround: manage snapshots manually via `adpos workspace task snapshot`. |
 | **Linux guest only** | ADP-OS VMs currently run Ubuntu 26.04 (autoinstalled from ISO). No Windows or macOS guest support. | This matches deer-flow's expectations — all deer-flow sandbox tools (bash, ls, glob, grep) assume Linux. |
 
 ### Performance
@@ -516,9 +516,9 @@ class DeerFlowADPSandboxProvider(SandboxProvider):
 
 ### Post-Integration Health
 
-- [ ] ADP-OS CLI healthy: `pwsh -File cli/adp.ps1 doctor`
-- [ ] At least one VM runtime configured: `pwsh -File cli/adp.ps1 status`
-- [ ] No orphaned VMs after agent sessions: `pwsh -File cli/adp.ps1 status` shows expected runtimes only
+- [ ] ADP-OS CLI healthy: `adpos doctor`
+- [ ] At least one VM runtime configured: `adpos status`
+- [ ] No orphaned VMs after agent sessions: `adpos status` shows expected runtimes only
 - [ ] Mutagen sync healthy (if using workspace tools): `adp_sync_status`
 - [ ] SSH credentials changed from defaults (production)
 

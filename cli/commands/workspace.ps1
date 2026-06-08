@@ -30,39 +30,39 @@ param(
 $ErrorActionPreference = "Stop"
 
 function Show-WorkspaceUsage {
-    Write-ErrorLog -Message "Usage: adp workspace <command> [-ManifestPath <path>]" -Component "cli.workspace"
+    Write-ErrorLog -Message "Usage: adpos workspace <command> [-ManifestPath <path>]" -Component "cli.workspace"
     Write-Host ""
 
     Write-UIHost -English "Inspect:" -Chinese "查看:" -ForegroundColor Yellow
-    Write-UIHost -English "  adp workspace show [-ManifestPath <path>]          Show workspace manifest details" -Chinese "  adp workspace show [-ManifestPath <path>]          显示工作区 manifest 详情" -ForegroundColor DarkGray
-    Write-UIHost -English "  adp workspace plan [-ManifestPath <path>]          Preview workspace plan" -Chinese "  adp workspace plan [-ManifestPath <path>]          预览工作区计划" -ForegroundColor DarkGray
-    Write-UIHost -English "  adp workspace status [project-name] [-ManifestPath <path>]   Show workspace task status" -Chinese "  adp workspace status [project-name] [-ManifestPath <path>]   显示工作区任务状态" -ForegroundColor DarkGray
-    Write-UIHost -English "  adp workspace dashboard [-ManifestPath <path>]      Show workspace health dashboard" -Chinese "  adp workspace dashboard [-ManifestPath <path>]      显示工作区健康仪表板" -ForegroundColor DarkGray
-    Write-UIHost -English "  adp workspace report [-Markdown] [-Terse] [-ManifestPath <path>]   Generate workspace report" -Chinese "  adp workspace report [-Markdown] [-Terse] [-ManifestPath <path>]   生成工作区报告" -ForegroundColor DarkGray
-    Write-UIHost -English "  adp workspace recipes [-ManifestPath <path>]        Show workspace recipes" -Chinese "  adp workspace recipes [-ManifestPath <path>]        显示工作区配方" -ForegroundColor DarkGray
+    Write-UIHost -English "  adpos workspace show [-ManifestPath <path>]          Show workspace manifest details" -Chinese "  adpos workspace show [-ManifestPath <path>]          显示工作区 manifest 详情" -ForegroundColor DarkGray
+    Write-UIHost -English "  adpos workspace plan [-ManifestPath <path>]          Preview workspace plan" -Chinese "  adpos workspace plan [-ManifestPath <path>]          预览工作区计划" -ForegroundColor DarkGray
+    Write-UIHost -English "  adpos workspace status [project-name] [-ManifestPath <path>]   Show workspace task status" -Chinese "  adpos workspace status [project-name] [-ManifestPath <path>]   显示工作区任务状态" -ForegroundColor DarkGray
+    Write-UIHost -English "  adpos workspace dashboard [-ManifestPath <path>]      Show workspace health dashboard" -Chinese "  adpos workspace dashboard [-ManifestPath <path>]      显示工作区健康仪表板" -ForegroundColor DarkGray
+    Write-UIHost -English "  adpos workspace report [-Markdown] [-Terse] [-ManifestPath <path>]   Generate workspace report" -Chinese "  adpos workspace report [-Markdown] [-Terse] [-ManifestPath <path>]   生成工作区报告" -ForegroundColor DarkGray
+    Write-UIHost -English "  adpos workspace recipes [-ManifestPath <path>]        Show workspace recipes" -Chinese "  adpos workspace recipes [-ManifestPath <path>]        显示工作区配方" -ForegroundColor DarkGray
     Write-Host ""
     Write-UIHost -English "Manage:" -Chinese "管理:" -ForegroundColor Yellow
-    Write-UIHost -English "  adp workspace init [-ManifestPath <path>]           Initialize workspace manifest" -Chinese "  adp workspace init [-ManifestPath <path>]           初始化工作区 manifest" -ForegroundColor DarkGray
-    Write-UIHost -English "  adp workspace create [-Plan] [-ManifestPath <path>]  Create workspace projects" -Chinese "  adp workspace create [-Plan] [-ManifestPath <path>]  创建工作区项目" -ForegroundColor DarkGray
-    Write-UIHost -English "  adp workspace open [project-name] [-ManifestPath <path>]   Show open guide for a project" -Chinese "  adp workspace open [project-name] [-ManifestPath <path>]   显示项目打开指南" -ForegroundColor DarkGray
-    Write-UIHost -English "  adp workspace sync [project-name] [-ManifestPath <path>]   Show sync guide for a project" -Chinese "  adp workspace sync [project-name] [-ManifestPath <path>]   显示项目同步指南" -ForegroundColor DarkGray
-    Write-UIHost -English "  adp workspace project [project-name] [-ManifestPath <path>]  Show project lifecycle" -Chinese "  adp workspace project [project-name] [-ManifestPath <path>]  显示项目生命周期" -ForegroundColor DarkGray
-    Write-UIHost -English "  adp workspace task <prepare|snapshot|run|validate|review|rollback|commit> <task-name> [-ManifestPath <path>]  Manage workspace tasks" -Chinese "  adp workspace task <prepare|snapshot|run|validate|review|rollback|commit> <task-name> [-ManifestPath <path>]  管理工作区任务" -ForegroundColor DarkGray
+    Write-UIHost -English "  adpos workspace init [-ManifestPath <path>]           Initialize workspace manifest" -Chinese "  adpos workspace init [-ManifestPath <path>]           初始化工作区 manifest" -ForegroundColor DarkGray
+    Write-UIHost -English "  adpos workspace create [-Plan] [-ManifestPath <path>]  Create workspace projects" -Chinese "  adpos workspace create [-Plan] [-ManifestPath <path>]  创建工作区项目" -ForegroundColor DarkGray
+    Write-UIHost -English "  adpos workspace open [project-name] [-ManifestPath <path>]   Show open guide for a project" -Chinese "  adpos workspace open [project-name] [-ManifestPath <path>]   显示项目打开指南" -ForegroundColor DarkGray
+    Write-UIHost -English "  adpos workspace sync [project-name] [-ManifestPath <path>]   Show sync guide for a project" -Chinese "  adpos workspace sync [project-name] [-ManifestPath <path>]   显示项目同步指南" -ForegroundColor DarkGray
+    Write-UIHost -English "  adpos workspace project [project-name] [-ManifestPath <path>]  Show project lifecycle" -Chinese "  adpos workspace project [project-name] [-ManifestPath <path>]  显示项目生命周期" -ForegroundColor DarkGray
+    Write-UIHost -English "  adpos workspace task <prepare|snapshot|run|validate|review|rollback|commit> <task-name> [-ManifestPath <path>]  Manage workspace tasks" -Chinese "  adpos workspace task <prepare|snapshot|run|validate|review|rollback|commit> <task-name> [-ManifestPath <path>]  管理工作区任务" -ForegroundColor DarkGray
     Write-UIHost -English "    validate supports -Execute (SSH), -Local (host), -Plan (preview)" -Chinese "    validate 支持 -Execute (SSH), -Local (本地), -Plan (预览)" -ForegroundColor DarkGray
-    Write-UIHost -English "  adp workspace task mark <task-name> <state> [-StatePath <path>]  Mark task state" -Chinese "  adp workspace task mark <task-name> <state> [-StatePath <path>]  标记任务状态" -ForegroundColor DarkGray
+    Write-UIHost -English "  adpos workspace task mark <task-name> <state> [-StatePath <path>]  Mark task state" -Chinese "  adpos workspace task mark <task-name> <state> [-StatePath <path>]  标记任务状态" -ForegroundColor DarkGray
     Write-Host ""
     Write-UIHost -English "Evidence:" -Chinese "证据:" -ForegroundColor Yellow
-    Write-UIHost -English "  adp workspace evidence -Snapshot [-ManifestPath <path>]   Sign current snapshot metadata" -Chinese "  adp workspace evidence -Snapshot [-ManifestPath <path>]   签署当前快照元数据" -ForegroundColor DarkGray
-    Write-UIHost -English "  adp workspace evidence -Log -Operation <op> [-Details <text>]   Record operation log entry" -Chinese "  adp workspace evidence -Log -Operation <op> [-Details <text>]   记录操作日志条目" -ForegroundColor DarkGray
-    Write-UIHost -English "  adp workspace evidence -Export [-Path <path>]             Export evidence as ZIP" -Chinese "  adp workspace evidence -Export [-Path <path>]             导出证据为 ZIP" -ForegroundColor DarkGray
-    Write-UIHost -English "  adp workspace declare -AiAssisted [-Reviewer <name>] [-Notes ""...""]   Declare AI-assisted development" -Chinese "  adp workspace declare -AiAssisted [-Reviewer <name>] [-Notes ""...""]   声明 AI 辅助开发" -ForegroundColor DarkGray
+    Write-UIHost -English "  adpos workspace evidence -Snapshot [-ManifestPath <path>]   Sign current snapshot metadata" -Chinese "  adpos workspace evidence -Snapshot [-ManifestPath <path>]   签署当前快照元数据" -ForegroundColor DarkGray
+    Write-UIHost -English "  adpos workspace evidence -Log -Operation <op> [-Details <text>]   Record operation log entry" -Chinese "  adpos workspace evidence -Log -Operation <op> [-Details <text>]   记录操作日志条目" -ForegroundColor DarkGray
+    Write-UIHost -English "  adpos workspace evidence -Export [-Path <path>]             Export evidence as ZIP" -Chinese "  adpos workspace evidence -Export [-Path <path>]             导出证据为 ZIP" -ForegroundColor DarkGray
+    Write-UIHost -English "  adpos workspace declare -AiAssisted [-Reviewer <name>] [-Notes ""...""]   Declare AI-assisted development" -Chinese "  adpos workspace declare -AiAssisted [-Reviewer <name>] [-Notes ""...""]   声明 AI 辅助开发" -ForegroundColor DarkGray
 }
 
 function Read-WorkspaceManifest {
     param([string]$Path)
 
     if (-not (Test-Path -LiteralPath $Path)) {
-        throw "Workspace manifest not found: $Path. Run: adp workspace init"
+        throw "Workspace manifest not found: $Path. Run: adpos workspace init"
     }
 
     $raw = Get-Content -LiteralPath $Path -Raw
@@ -288,7 +288,7 @@ function Get-WorkspaceSnapshotGate {
     return [pscustomobject]@{
         Level    = "WARN"
         Status   = "blocked"
-        Detail   = "create checkpoint first: adp snapshot create $($Task.runtime) $($Task.snapshot)"
+        Detail   = "create checkpoint first: adpos snapshot create $($Task.runtime) $($Task.snapshot)"
         Blocking = $true
     }
 }
@@ -864,7 +864,7 @@ function Set-WorkspaceTaskExternalValidation {
         status       = $ValidationStatus
         completed_at = $timestamp
         source       = "external"
-        note         = "marked manually via adp workspace task mark — validation was run outside ADP-OS"
+        note         = "marked manually via adpos workspace task mark — validation was run outside ADP-OS"
     }
 
     foreach ($taskState in (Get-WorkspaceArray $State.tasks)) {
@@ -1061,7 +1061,7 @@ function Get-WorkspaceReviewDecision {
                 Level    = "WARN"
                 Verdict  = "validation result missing"
                 Detail   = "no executed validation result is recorded in local workspace state"
-                NextStep = "run adp workspace task validate $($Task.name) -Execute or explicitly review outside ADP-OS"
+                NextStep = "run adpos workspace task validate $($Task.name) -Execute or explicitly review outside ADP-OS"
             }
         }
     }
@@ -1135,7 +1135,7 @@ function Get-WorkspaceCommitDecision {
             Level    = "WARN"
             Verdict  = "validation result missing"
             Detail   = "no passing validation result is recorded in local workspace state"
-            NextStep = "run adp workspace task validate $($Task.name) -Execute before commit"
+            NextStep = "run adpos workspace task validate $($Task.name) -Execute before commit"
         }
     }
 
@@ -1162,7 +1162,7 @@ function Get-WorkspaceCommitDecision {
         Level    = "WARN"
         Verdict  = "review not recorded"
         Detail   = "validation passed, but the task is not marked reviewed"
-        NextStep = "run adp workspace task review $($Task.name), then mark reviewed when accepted"
+        NextStep = "run adpos workspace task review $($Task.name), then mark reviewed when accepted"
     }
 }
 
@@ -1426,8 +1426,8 @@ function Write-WorkspaceCreate {
     foreach ($entry in $entries) {
         Write-WorkspaceCheck -Level $entry.Level -Name $entry.ProjectName -Detail "(runtime: $($entry.RuntimeName); status: $($entry.Status); path: $(if ($entry.FullPath) { $entry.FullPath } else { 'not available' }); detail: $($entry.Detail))"
         if ($entry.Valid) {
-            Write-UIHost -English "       open:      adp workspace open $($entry.ProjectName) -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -Chinese "       打开:      adp workspace open $($entry.ProjectName) -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
-            Write-UIHost -English "       lifecycle: adp workspace project $($entry.ProjectName) -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -Chinese "       生命周期:  adp workspace project $($entry.ProjectName) -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
+            Write-UIHost -English "       open:      adpos workspace open $($entry.ProjectName) -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -Chinese "       打开:      adpos workspace open $($entry.ProjectName) -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
+            Write-UIHost -English "       lifecycle: adpos workspace project $($entry.ProjectName) -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -Chinese "       生命周期:  adpos workspace project $($entry.ProjectName) -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
         }
     }
 
@@ -1458,8 +1458,8 @@ function Write-WorkspaceCreate {
     Write-UIHost -English "  already existed: $($existingEntries.Count)" -Chinese "  已存在: $($existingEntries.Count)" -ForegroundColor DarkGray
     Write-UIHost -English "" -Chinese ""
     Write-UIHost -English "Next:" -Chinese "下一步:" -ForegroundColor Yellow
-    Write-UIHost -English "  adp workspace status -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -Chinese "  adp workspace status -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
-    Write-UIHost -English "  adp workspace dashboard -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -Chinese "  adp workspace dashboard -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
+    Write-UIHost -English "  adpos workspace status -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -Chinese "  adpos workspace status -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
+    Write-UIHost -English "  adpos workspace dashboard -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -Chinese "  adpos workspace dashboard -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
 }
 
 function Get-WorkspaceDevContainerStatus {
@@ -1742,7 +1742,7 @@ function Get-WorkspaceRuntimeStatus {
         return [pscustomobject]@{
             Level  = "WARN"
             Status = "not created"
-            Detail = "Run: adp up $RuntimeName -Plan"
+            Detail = "Run: adpos up $RuntimeName -Plan"
         }
     }
 
@@ -1825,7 +1825,7 @@ function Get-WorkspaceSyncStatus {
         return [pscustomobject]@{
             Level  = "WARN"
             Status = "not started"
-            Detail = "Run: adp sync start $RuntimeName"
+            Detail = "Run: adpos sync start $RuntimeName"
         }
     } catch {
         return [pscustomobject]@{
@@ -1881,7 +1881,7 @@ function Get-WorkspaceSnapshotStatus {
         return [pscustomobject]@{
             Level  = "WARN"
             Status = "recommended"
-            Detail = "Run: adp snapshot create $RuntimeName $SnapshotName"
+            Detail = "Run: adpos snapshot create $RuntimeName $SnapshotName"
         }
     } catch {
         return [pscustomobject]@{
@@ -2179,9 +2179,9 @@ function Write-WorkspaceDashboard {
         $validationStateText = Format-WorkspaceValidationState -RecordedState $recordedState
 
         Write-WorkspaceCheck -Level $taskLevel -Name $taskName -Detail "(state: $recordedStateText; milestone: $milestoneText; evaluation: $evaluationText; risk: $risk; snapshot required: $requiresSnapshot; snapshot naming: $($snapshotNaming.Status); checkpoint: $($snapshotGate.Status); runtime: $($runtimeStatus.Status); execution: $executionState; sync hygiene: $($syncHygiene.Status); validation: $($validationCommands.Count); validation result: $validationStateText; review: gated; rollback: $rollbackState; commit: $commitState)"
-        Write-UIHost -English "      prepare: adp workspace task prepare $taskName -ManifestPath $ManifestPath" -Chinese "      准备: adp workspace task prepare $taskName -ManifestPath $ManifestPath" -ForegroundColor DarkGray
-        Write-UIHost -English "      run:     adp workspace task run $taskName -ManifestPath $ManifestPath" -Chinese "      运行:   adp workspace task run $taskName -ManifestPath $ManifestPath" -ForegroundColor DarkGray
-        Write-UIHost -English "      review:  adp workspace task review $taskName -ManifestPath $ManifestPath" -Chinese "      审查:   adp workspace task review $taskName -ManifestPath $ManifestPath" -ForegroundColor DarkGray
+        Write-UIHost -English "      prepare: adpos workspace task prepare $taskName -ManifestPath $ManifestPath" -Chinese "      准备: adpos workspace task prepare $taskName -ManifestPath $ManifestPath" -ForegroundColor DarkGray
+        Write-UIHost -English "      run:     adpos workspace task run $taskName -ManifestPath $ManifestPath" -Chinese "      运行:   adpos workspace task run $taskName -ManifestPath $ManifestPath" -ForegroundColor DarkGray
+        Write-UIHost -English "      review:  adpos workspace task review $taskName -ManifestPath $ManifestPath" -Chinese "      审查:   adpos workspace task review $taskName -ManifestPath $ManifestPath" -ForegroundColor DarkGray
     }
 }
 
@@ -2457,7 +2457,7 @@ function Write-WorkspaceMilestoneCheckpoints {
             Write-UIHost -English "       description: $($milestone.description)" -Chinese "       描述: $($milestone.description)" -ForegroundColor DarkGray
         }
         if ($status.RuntimeName -ne "not configured") {
-            Write-UIHost -English "       checkpoint command: adp snapshot create $($status.RuntimeName) $($status.SnapshotName)" -Chinese "       检查点命令: adp snapshot create $($status.RuntimeName) $($status.SnapshotName)" -ForegroundColor DarkGray
+            Write-UIHost -English "       checkpoint command: adpos snapshot create $($status.RuntimeName) $($status.SnapshotName)" -Chinese "       检查点命令: adpos snapshot create $($status.RuntimeName) $($status.SnapshotName)" -ForegroundColor DarkGray
         } else {
             Write-UIHost -English "       checkpoint command: set milestones[].runtime or use tasks from a single runtime first" -Chinese "       检查点命令: 先设置 milestones[].runtime 或使用同一运行时的任务" -ForegroundColor DarkGray
         }
@@ -2562,7 +2562,7 @@ function Get-WorkspaceValidationQueueItems {
             "FAIL"
         }
 
-        $base = "adp workspace task validate $($item.TaskName) -ManifestPath $ManifestPath"
+        $base = "adpos workspace task validate $($item.TaskName) -ManifestPath $ManifestPath"
         $queue.Add([pscustomobject]@{
                 TaskName       = $item.TaskName
                 Level          = $level
@@ -2571,8 +2571,8 @@ function Get-WorkspaceValidationQueueItems {
                 Readiness      = $readiness
                 Blockers       = @($blockers)
                 PlanCommand    = $base
-                ExecutePreview = "adp workspace task validate $($item.TaskName) -Execute -Plan -ManifestPath $ManifestPath"
-                ExecuteCommand = "adp workspace task validate $($item.TaskName) -Execute -ManifestPath $ManifestPath"
+                ExecutePreview = "adpos workspace task validate $($item.TaskName) -Execute -Plan -ManifestPath $ManifestPath"
+                ExecuteCommand = "adpos workspace task validate $($item.TaskName) -Execute -ManifestPath $ManifestPath"
             }) | Out-Null
     }
 
@@ -2612,7 +2612,7 @@ function Get-WorkspaceEvaluationQueueItems {
     $queue = [System.Collections.Generic.List[object]]::new()
     foreach ($evaluation in (Get-WorkspaceEvaluations -Manifest $Manifest)) {
         $status = Get-WorkspaceEvaluationStatus -Manifest $Manifest -Evaluation $evaluation
-        $base = "adp workspace report -ManifestPath $ManifestPath"
+        $base = "adpos workspace report -ManifestPath $ManifestPath"
         $queue.Add([pscustomobject]@{
                 Name          = $status.Name
                 Level         = $status.Level
@@ -2714,9 +2714,9 @@ function Write-WorkspaceRecipes {
         } else {
             Write-UIHost -English "       validation recipe: none configured" -Chinese "       验证食谱: 未配置" -ForegroundColor Yellow
         }
-        Write-UIHost -English "       next: adp workspace open $projectName -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -Chinese "       下一步: adp workspace open $projectName -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
-        Write-UIHost -English "       sync: adp workspace sync $projectName -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -Chinese "       同步: adp workspace sync $projectName -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
-        Write-UIHost -English "       lifecycle: adp workspace project $projectName -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -Chinese "       生命周期: adp workspace project $projectName -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
+        Write-UIHost -English "       next: adpos workspace open $projectName -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -Chinese "       下一步: adpos workspace open $projectName -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
+        Write-UIHost -English "       sync: adpos workspace sync $projectName -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -Chinese "       同步: adpos workspace sync $projectName -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
+        Write-UIHost -English "       lifecycle: adpos workspace project $projectName -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -Chinese "       生命周期: adpos workspace project $projectName -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
     }
 
     Write-UIHost -English "" -Chinese ""
@@ -2738,17 +2738,17 @@ function Write-WorkspaceRecipes {
         foreach ($command in $validationCommands) {
             Write-UIHost -English "         - $command" -Chinese "         - $command" -ForegroundColor DarkGray
         }
-        Write-UIHost -English "       prepare: adp workspace task prepare $($item.TaskName) -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -Chinese "       准备: adp workspace task prepare $($item.TaskName) -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
+        Write-UIHost -English "       prepare: adpos workspace task prepare $($item.TaskName) -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -Chinese "       准备: adpos workspace task prepare $($item.TaskName) -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
         if ($item.RequiresSnapshot) {
             if ($item.SnapshotName -ne "not configured") {
-                Write-UIHost -English "       checkpoint: adp snapshot create $($item.RuntimeName) $($item.SnapshotName)" -Chinese "       检查点: adp snapshot create $($item.RuntimeName) $($item.SnapshotName)" -ForegroundColor DarkGray
+                Write-UIHost -English "       checkpoint: adpos snapshot create $($item.RuntimeName) $($item.SnapshotName)" -Chinese "       检查点: adpos snapshot create $($item.RuntimeName) $($item.SnapshotName)" -ForegroundColor DarkGray
             } else {
                 Write-UIHost -English "       checkpoint: set tasks[].snapshot before creating a task checkpoint" -Chinese "       检查点: 在创建任务检查点之前设置 tasks[].snapshot" -ForegroundColor Yellow
             }
         }
-        Write-UIHost -English "       validate plan: adp workspace task validate $($item.TaskName) -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -Chinese "       验证计划: adp workspace task validate $($item.TaskName) -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
-        Write-UIHost -English "       execute preview: adp workspace task validate $($item.TaskName) -Execute -Plan -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -Chinese "       执行预览: adp workspace task validate $($item.TaskName) -Execute -Plan -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
-        Write-UIHost -English "       review: adp workspace task review $($item.TaskName) -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -Chinese "       审查: adp workspace task review $($item.TaskName) -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
+        Write-UIHost -English "       validate plan: adpos workspace task validate $($item.TaskName) -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -Chinese "       验证计划: adpos workspace task validate $($item.TaskName) -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
+        Write-UIHost -English "       execute preview: adpos workspace task validate $($item.TaskName) -Execute -Plan -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -Chinese "       执行预览: adpos workspace task validate $($item.TaskName) -Execute -Plan -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
+        Write-UIHost -English "       review: adpos workspace task review $($item.TaskName) -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -Chinese "       审查: adpos workspace task review $($item.TaskName) -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
     }
 
     Write-UIHost -English "" -Chinese ""
@@ -2759,7 +2759,7 @@ function Write-WorkspaceRecipes {
     foreach ($milestone in $milestones) {
         $status = Get-WorkspaceMilestoneStatus -Manifest $Manifest -Milestone $milestone
         Write-WorkspaceCheck -Level $status.Level -Name $status.Name -ChineseName $status.Name -Detail "(runtime: $($status.RuntimeName); snapshot: $($status.SnapshotName); tasks: $(if ($status.TaskNames.Count -gt 0) { $status.TaskNames -join ', ' } else { 'none' }))" -ChineseDetail "(运行时: $($status.RuntimeName); 快照: $($status.SnapshotName); 任务: $(if ($status.TaskNames.Count -gt 0) { $status.TaskNames -join ', ' } else { '无' }))"
-        Write-UIHost -English "       checkpoint command: adp snapshot create $($status.RuntimeName) $($status.SnapshotName)" -Chinese "       检查点命令: adp snapshot create $($status.RuntimeName) $($status.SnapshotName)" -ForegroundColor DarkGray
+        Write-UIHost -English "       checkpoint command: adpos snapshot create $($status.RuntimeName) $($status.SnapshotName)" -Chinese "       检查点命令: adpos snapshot create $($status.RuntimeName) $($status.SnapshotName)" -ForegroundColor DarkGray
     }
 
     Write-UIHost -English "" -Chinese ""
@@ -2777,9 +2777,9 @@ function Write-WorkspaceRecipes {
 
     Write-UIHost -English "" -Chinese ""
     Write-UIHost -English "Evidence commands:" -Chinese "证据命令:" -ForegroundColor Yellow
-    Write-UIHost -English "  adp workspace dashboard -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -Chinese "  adp workspace dashboard -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
-    Write-UIHost -English "  adp workspace report -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -Chinese "  adp workspace report -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
-    Write-UIHost -English "  adp workspace report -Markdown -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -Chinese "  adp workspace report -Markdown -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
+    Write-UIHost -English "  adpos workspace dashboard -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -Chinese "  adpos workspace dashboard -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
+    Write-UIHost -English "  adpos workspace report -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -Chinese "  adpos workspace report -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
+    Write-UIHost -English "  adpos workspace report -Markdown -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -Chinese "  adpos workspace report -Markdown -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
 }
 
 function Write-WorkspaceReleasePolicy {
@@ -2937,11 +2937,11 @@ function Write-WorkspaceOpen {
 
     Write-UIHost -English "" -Chinese ""
     Write-UIHost -English "Next:" -Chinese "下一步:" -ForegroundColor Yellow
-    Write-UIHost -English "  adp workspace status -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -Chinese "  adp workspace status -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
+    Write-UIHost -English "  adpos workspace status -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -Chinese "  adpos workspace status -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
     if ($runtimeName) {
-        Write-UIHost -English "  adp up $runtimeName -Plan" -Chinese "  adp up $runtimeName -Plan" -ForegroundColor DarkGray
+        Write-UIHost -English "  adpos up $runtimeName -Plan" -Chinese "  adpos up $runtimeName -Plan" -ForegroundColor DarkGray
         if ($syncExpected) {
-            Write-UIHost -English "  adp sync start $runtimeName" -Chinese "  adp sync start $runtimeName" -ForegroundColor DarkGray
+            Write-UIHost -English "  adpos sync start $runtimeName" -Chinese "  adpos sync start $runtimeName" -ForegroundColor DarkGray
         }
     }
 }
@@ -2996,13 +2996,13 @@ function Write-WorkspaceSyncGuide {
     Write-UIHost -English "" -Chinese ""
     Write-UIHost -English "Runtime sync commands:" -Chinese "运行时同步命令:" -ForegroundColor Yellow
     if ($runtimeName -and (Test-RuntimeExists $runtimeName)) {
-        Write-UIHost -English "  adp sync status" -Chinese "  adp sync status" -ForegroundColor DarkGray
+        Write-UIHost -English "  adpos sync status" -Chinese "  adpos sync status" -ForegroundColor DarkGray
         if ($syncExpected) {
-            Write-UIHost -English "  adp sync start $runtimeName" -Chinese "  adp sync start $runtimeName" -ForegroundColor DarkGray
-            Write-UIHost -English "  adp sync stop $runtimeName" -Chinese "  adp sync stop $runtimeName" -ForegroundColor DarkGray
+            Write-UIHost -English "  adpos sync start $runtimeName" -Chinese "  adpos sync start $runtimeName" -ForegroundColor DarkGray
+            Write-UIHost -English "  adpos sync stop $runtimeName" -Chinese "  adpos sync stop $runtimeName" -ForegroundColor DarkGray
         } else {
             Write-UIHost -English "  projects[].sync is false; set it to true before treating sync as expected for this project." -Chinese "  projects[].sync 为 false；在将同步视为该项目预期行为之前，请将其设为 true。" -ForegroundColor Yellow
-            Write-UIHost -English "  adp sync start $runtimeName" -Chinese "  adp sync start $runtimeName" -ForegroundColor DarkGray
+            Write-UIHost -English "  adpos sync start $runtimeName" -Chinese "  adpos sync start $runtimeName" -ForegroundColor DarkGray
         }
     } else {
         Write-UIHost -English "  Set a known projects[].runtime before using runtime sync for this project." -Chinese "  在为此项目使用运行时同步之前，请先设置已知的 projects[].runtime。" -ForegroundColor Yellow
@@ -3010,9 +3010,9 @@ function Write-WorkspaceSyncGuide {
 
     Write-UIHost -English "" -Chinese ""
     Write-UIHost -English "Project commands:" -Chinese "项目命令:" -ForegroundColor Yellow
-    Write-UIHost -English "  adp workspace open $projectName -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -Chinese "  adp workspace open $projectName -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
-    Write-UIHost -English "  adp workspace status -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -Chinese "  adp workspace status -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
-    Write-UIHost -English "  adp workspace dashboard -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -Chinese "  adp workspace dashboard -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
+    Write-UIHost -English "  adpos workspace open $projectName -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -Chinese "  adpos workspace open $projectName -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
+    Write-UIHost -English "  adpos workspace status -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -Chinese "  adpos workspace status -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
+    Write-UIHost -English "  adpos workspace dashboard -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -Chinese "  adpos workspace dashboard -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
 }
 
 function Write-WorkspaceProjectLifecycle {
@@ -3082,10 +3082,10 @@ function Write-WorkspaceProjectLifecycle {
 
     Write-UIHost -English "" -Chinese ""
     Write-UIHost -English "Operational flow:" -Chinese "操作流程:" -ForegroundColor Yellow
-    Write-UIHost -English "  1. Open:      adp workspace open $projectName -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -Chinese "  1. 打开:      adp workspace open $projectName -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
+    Write-UIHost -English "  1. Open:      adpos workspace open $projectName -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -Chinese "  1. 打开:      adpos workspace open $projectName -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
     if ($runtimeName) {
-        Write-UIHost -English "  2. Runtime:   adp up $runtimeName -Plan" -Chinese "  2. 运行时:    adp up $runtimeName -Plan" -ForegroundColor DarkGray
-        Write-UIHost -English "  3. Sync:      adp workspace sync $projectName -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -Chinese "  3. 同步:      adp workspace sync $projectName -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
+        Write-UIHost -English "  2. Runtime:   adpos up $runtimeName -Plan" -Chinese "  2. 运行时:    adpos up $runtimeName -Plan" -ForegroundColor DarkGray
+        Write-UIHost -English "  3. Sync:      adpos workspace sync $projectName -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -Chinese "  3. 同步:      adpos workspace sync $projectName -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
     } else {
         Write-UIHost -English "  2. Runtime:   set projects[].runtime before planning runtime startup" -Chinese "  2. 运行时:    在规划运行时启动之前设置 projects[].runtime" -ForegroundColor Yellow
         Write-UIHost -English "  3. Sync:      set projects[].runtime before planning sync" -Chinese "  3. 同步:      在规划同步之前设置 projects[].runtime" -ForegroundColor Yellow
@@ -3095,7 +3095,7 @@ function Write-WorkspaceProjectLifecycle {
     } else {
         Write-UIHost -English "  4. Validate:  add projects[].validation or task validation commands" -Chinese "  4. 验证:      添加 projects[].validation 或任务验证命令" -ForegroundColor Yellow
     }
-    Write-UIHost -English "  5. Evidence:  adp workspace report -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -Chinese "  5. 证据:      adp workspace report -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
+    Write-UIHost -English "  5. Evidence:  adpos workspace report -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -Chinese "  5. 证据:      adpos workspace report -ManifestPath $(Quote-WorkspacePowerShellArgument $ManifestPath)" -ForegroundColor DarkGray
 
     Write-UIHost -English "" -Chinese ""
     Write-UIHost -English "Project validation commands:" -Chinese "项目验证命令:" -ForegroundColor Yellow
@@ -3132,9 +3132,9 @@ function Write-WorkspaceProjectLifecycle {
         Write-UIHost -English "      milestone: $milestoneText" -Chinese "      里程碑: $milestoneText" -ForegroundColor DarkGray
         Write-UIHost -English "      risk: $risk; snapshot required: $requiresSnapshot; snapshot naming: $($snapshotNaming.Status); snapshot gate: $($snapshotGate.Status)" -Chinese "      风险: $risk; 快照必需: $requiresSnapshot; 快照命名: $($snapshotNaming.Status); 快照门控: $($snapshotGate.Status)" -ForegroundColor DarkGray
         Write-UIHost -English "      validation: $validationState; commit: $($commitDecision.Verdict)" -Chinese "      验证: $validationState; 提交: $($commitDecision.Verdict)" -ForegroundColor DarkGray
-        Write-UIHost -English "      prepare:  adp workspace task prepare $taskName -ManifestPath $ManifestPath" -Chinese "      准备:  adp workspace task prepare $taskName -ManifestPath $ManifestPath" -ForegroundColor DarkGray
-        Write-UIHost -English "      validate: adp workspace task validate $taskName -ManifestPath $ManifestPath" -Chinese "      验证: adp workspace task validate $taskName -ManifestPath $ManifestPath" -ForegroundColor DarkGray
-        Write-UIHost -English "      review:   adp workspace task review $taskName -ManifestPath $ManifestPath" -Chinese "      审查:   adp workspace task review $taskName -ManifestPath $ManifestPath" -ForegroundColor DarkGray
+        Write-UIHost -English "      prepare:  adpos workspace task prepare $taskName -ManifestPath $ManifestPath" -Chinese "      准备:  adpos workspace task prepare $taskName -ManifestPath $ManifestPath" -ForegroundColor DarkGray
+        Write-UIHost -English "      validate: adpos workspace task validate $taskName -ManifestPath $ManifestPath" -Chinese "      验证: adpos workspace task validate $taskName -ManifestPath $ManifestPath" -ForegroundColor DarkGray
+        Write-UIHost -English "      review:   adpos workspace task review $taskName -ManifestPath $ManifestPath" -Chinese "      审查:   adpos workspace task review $taskName -ManifestPath $ManifestPath" -ForegroundColor DarkGray
     }
 }
 
@@ -3463,9 +3463,9 @@ function Write-WorkspaceReportMarkdown {
             Write-Output "Handoff commands:"
             Write-Output ""
             Write-Output '```powershell'
-            Write-Output "adp workspace task review $($item.TaskName) -ManifestPath $ManifestPath"
-            Write-Output "adp workspace task rollback $($item.TaskName) -ManifestPath $ManifestPath"
-            Write-Output "adp workspace task commit $($item.TaskName) -ManifestPath $ManifestPath"
+            Write-Output "adpos workspace task review $($item.TaskName) -ManifestPath $ManifestPath"
+            Write-Output "adpos workspace task rollback $($item.TaskName) -ManifestPath $ManifestPath"
+            Write-Output "adpos workspace task commit $($item.TaskName) -ManifestPath $ManifestPath"
             Write-Output '```'
         }
     }
@@ -3557,9 +3557,9 @@ function Write-WorkspaceReport {
         Write-UIHost -English "       rollback: confirm the VM checkpoint and Git rollback path before accepting risky work" -Chinese "       回滚: 在接受高风险工作前确认 VM 检查点和 Git 回滚路径" -ForegroundColor DarkGray
         Write-UIHost -English "       commit: commit only after sync hygiene, validation, and human review are all accepted" -Chinese "       提交: 仅在同步卫生、验证和人工审查全部通过后提交" -ForegroundColor DarkGray
         Write-UIHost -English "     handoff:" -Chinese "     交接:" -ForegroundColor DarkGray
-        Write-UIHost -English "       review:   adp workspace task review $($item.TaskName) -ManifestPath $ManifestPath" -Chinese "       审查:   adp workspace task review $($item.TaskName) -ManifestPath $ManifestPath" -ForegroundColor DarkGray
-        Write-UIHost -English "       rollback: adp workspace task rollback $($item.TaskName) -ManifestPath $ManifestPath" -Chinese "       回滚:   adp workspace task rollback $($item.TaskName) -ManifestPath $ManifestPath" -ForegroundColor DarkGray
-        Write-UIHost -English "       commit:   adp workspace task commit $($item.TaskName) -ManifestPath $ManifestPath" -Chinese "       提交:   adp workspace task commit $($item.TaskName) -ManifestPath $ManifestPath" -ForegroundColor DarkGray
+        Write-UIHost -English "       review:   adpos workspace task review $($item.TaskName) -ManifestPath $ManifestPath" -Chinese "       审查:   adpos workspace task review $($item.TaskName) -ManifestPath $ManifestPath" -ForegroundColor DarkGray
+        Write-UIHost -English "       rollback: adpos workspace task rollback $($item.TaskName) -ManifestPath $ManifestPath" -Chinese "       回滚:   adpos workspace task rollback $($item.TaskName) -ManifestPath $ManifestPath" -ForegroundColor DarkGray
+        Write-UIHost -English "       commit:   adpos workspace task commit $($item.TaskName) -ManifestPath $ManifestPath" -Chinese "       提交:   adpos workspace task commit $($item.TaskName) -ManifestPath $ManifestPath" -ForegroundColor DarkGray
         Write-UIHost -English "       inspect:  git status --short; git diff --stat; git diff" -Chinese "       检查:   git status --short; git diff --stat; git diff" -ForegroundColor DarkGray
     }
 }
@@ -3571,7 +3571,7 @@ function Find-WorkspaceTask {
     )
 
     if ([string]::IsNullOrWhiteSpace($Name)) {
-        throw "Task name is required. Usage: adp workspace task <prepare|snapshot|run|validate|review|rollback|commit> <task-name>"
+        throw "Task name is required. Usage: adpos workspace task <prepare|snapshot|run|validate|review|rollback|commit> <task-name>"
     }
 
     $tasks = Get-WorkspaceArray $Manifest.tasks
@@ -3661,20 +3661,20 @@ function Write-WorkspaceTaskPrepare {
     Write-UIHost -English "" -Chinese ""
     Write-UIHost -English "Preparation checklist:" -Chinese "准备清单:" -ForegroundColor Yellow
     Write-UIHost -English "  1. Check workspace readiness:" -Chinese "  1. 检查工作区就绪状态:" -ForegroundColor DarkGray
-    Write-UIHost -English "     adp workspace status -ManifestPath $ManifestPath" -Chinese "     adp workspace status -ManifestPath $ManifestPath" -ForegroundColor DarkGray
+    Write-UIHost -English "     adpos workspace status -ManifestPath $ManifestPath" -Chinese "     adpos workspace status -ManifestPath $ManifestPath" -ForegroundColor DarkGray
 
     if ($Task.runtime) {
         Write-UIHost -English "  2. Preview runtime startup:" -Chinese "  2. 预览运行时启动:" -ForegroundColor DarkGray
-        Write-UIHost -English "     adp up $($Task.runtime) -Plan" -Chinese "     adp up $($Task.runtime) -Plan" -ForegroundColor DarkGray
+        Write-UIHost -English "     adpos up $($Task.runtime) -Plan" -Chinese "     adpos up $($Task.runtime) -Plan" -ForegroundColor DarkGray
         Write-UIHost -English "  3. Confirm sync when the runtime is ready:" -Chinese "  3. 运行时就绪后确认同步:" -ForegroundColor DarkGray
-        Write-UIHost -English "     adp sync start $($Task.runtime)" -Chinese "     adp sync start $($Task.runtime)" -ForegroundColor DarkGray
+        Write-UIHost -English "     adpos sync start $($Task.runtime)" -Chinese "     adpos sync start $($Task.runtime)" -ForegroundColor DarkGray
     } else {
         Write-UIHost -English "  2. Add tasks[].runtime before preparing runtime and sync commands." -Chinese "  2. 在准备运行时和同步命令之前添加 tasks[].runtime。" -ForegroundColor DarkGray
     }
 
     if ($Task.snapshot -and $Task.runtime) {
         Write-UIHost -English "  4. Plan the checkpoint:" -Chinese "  4. 规划检查点:" -ForegroundColor DarkGray
-        Write-UIHost -English "     adp workspace task snapshot $($Task.name) -ManifestPath $ManifestPath" -Chinese "     adp workspace task snapshot $($Task.name) -ManifestPath $ManifestPath" -ForegroundColor DarkGray
+        Write-UIHost -English "     adpos workspace task snapshot $($Task.name) -ManifestPath $ManifestPath" -Chinese "     adpos workspace task snapshot $($Task.name) -ManifestPath $ManifestPath" -ForegroundColor DarkGray
     } else {
         $recommendedSnapshot = Get-WorkspaceRecommendedSnapshotName -Task $Task
         Write-UIHost -English "  4. Add tasks[].snapshot before planning checkpoint commands." -Chinese "  4. 在规划检查点命令之前添加 tasks[].snapshot。" -ForegroundColor DarkGray
@@ -3682,7 +3682,7 @@ function Write-WorkspaceTaskPrepare {
     }
 
     Write-UIHost -English "  5. Review validation expectations:" -Chinese "  5. 审查验证预期:" -ForegroundColor DarkGray
-    Write-UIHost -English "     adp workspace task validate $($Task.name) -ManifestPath $ManifestPath" -Chinese "     adp workspace task validate $($Task.name) -ManifestPath $ManifestPath" -ForegroundColor DarkGray
+    Write-UIHost -English "     adpos workspace task validate $($Task.name) -ManifestPath $ManifestPath" -Chinese "     adpos workspace task validate $($Task.name) -ManifestPath $ManifestPath" -ForegroundColor DarkGray
 }
 
 function Write-WorkspaceTaskSnapshot {
@@ -3711,9 +3711,9 @@ function Write-WorkspaceTaskSnapshot {
     if ($Task.runtime -and $Task.snapshot) {
         Write-UIHost -English "" -Chinese ""
         Write-UIHost -English "Explicit command to create the checkpoint when ready:" -Chinese "准备就绪后创建检查点的显式命令:" -ForegroundColor Yellow
-        Write-UIHost -English "  adp snapshot create $($Task.runtime) $($Task.snapshot)" -Chinese "  adp snapshot create $($Task.runtime) $($Task.snapshot)" -ForegroundColor DarkGray
+        Write-UIHost -English "  adpos snapshot create $($Task.runtime) $($Task.snapshot)" -Chinese "  adpos snapshot create $($Task.runtime) $($Task.snapshot)" -ForegroundColor DarkGray
         Write-UIHost -English "  If the human reviewer intentionally accepts missing snapshot protection:" -Chinese "  如果人工审查者有意接受缺少快照保护:" -ForegroundColor Yellow
-        Write-UIHost -English "  adp workspace task mark $($Task.name) checkpoint-waived" -Chinese "  adp workspace task mark $($Task.name) checkpoint-waived" -ForegroundColor DarkGray
+        Write-UIHost -English "  adpos workspace task mark $($Task.name) checkpoint-waived" -Chinese "  adpos workspace task mark $($Task.name) checkpoint-waived" -ForegroundColor DarkGray
     } else {
         Write-UIHost -English "" -Chinese ""
         Write-UIHost -English "Add tasks[].runtime and tasks[].snapshot before creating a checkpoint." -Chinese "在创建检查点之前添加 tasks[].runtime 和 tasks[].snapshot。" -ForegroundColor Yellow
@@ -3754,8 +3754,8 @@ function Write-WorkspaceTaskValidate {
 
         Write-UIHost -English "" -Chinese ""
         Write-UIHost -English "To execute validation explicitly:" -Chinese "显式执行验证:" -ForegroundColor Yellow
-        Write-UIHost -English "  adp workspace task validate $($Task.name) -Execute -ManifestPath <manifest>" -Chinese "  adp workspace task validate $($Task.name) -Execute -ManifestPath <manifest>" -ForegroundColor DarkGray
-        Write-UIHost -English "  adp workspace task validate $($Task.name) -Execute -Local -ManifestPath <manifest>  (run locally, no VM required)" -Chinese "  adp workspace task validate $($Task.name) -Execute -Local -ManifestPath <manifest>  (本地执行，无需 VM)" -ForegroundColor DarkGray
+        Write-UIHost -English "  adpos workspace task validate $($Task.name) -Execute -ManifestPath <manifest>" -Chinese "  adpos workspace task validate $($Task.name) -Execute -ManifestPath <manifest>" -ForegroundColor DarkGray
+        Write-UIHost -English "  adpos workspace task validate $($Task.name) -Execute -Local -ManifestPath <manifest>  (run locally, no VM required)" -Chinese "  adpos workspace task validate $($Task.name) -Execute -Local -ManifestPath <manifest>  (本地执行，无需 VM)" -ForegroundColor DarkGray
         Write-UIHost -English "  Add -Plan to preview commands without running them." -Chinese "  添加 -Plan 来预览命令而不实际运行它们。" -ForegroundColor DarkGray
         return
     }
@@ -3918,7 +3918,7 @@ function Write-WorkspaceTaskRun {
     Write-UIHost -English "Execution boundary:" -Chinese "执行边界:" -ForegroundColor Yellow
     Write-UIHost -English "  Manual execution only: this command does not start an agent, approve broad agent work, record task state, run validation, or make the task commit-ready." -Chinese "  仅手动执行: 此命令不会启动 agent、批准广泛的 agent 工作、记录任务状态、运行验证或使任务达到提交就绪状态。" -ForegroundColor DarkGray
     Write-UIHost -English "  1. Confirm readiness:" -Chinese "  1. 确认就绪状态:" -ForegroundColor DarkGray
-    Write-UIHost -English "     adp workspace status -ManifestPath $ManifestPath" -Chinese "     adp workspace status -ManifestPath $ManifestPath" -ForegroundColor DarkGray
+    Write-UIHost -English "     adpos workspace status -ManifestPath $ManifestPath" -Chinese "     adpos workspace status -ManifestPath $ManifestPath" -ForegroundColor DarkGray
 
     $resolvedStatePath = Resolve-WorkspaceStatePath -Path $StatePath
     $state = Read-WorkspaceState -Path $resolvedStatePath
@@ -3927,24 +3927,24 @@ function Write-WorkspaceTaskRun {
     $snapshotGate = Get-WorkspaceSnapshotGate -Task $Task -SnapshotStatus $snapshotStatus -RecordedState $recordedState
     if ($Task.runtime -and $Task.snapshot) {
         Write-UIHost -English "  2. Snapshot-first gate before broad agent work:" -Chinese "  2. 广泛 agent 工作之前的快照优先门控:" -ForegroundColor DarkGray
-        Write-UIHost -English "     adp workspace task snapshot $($Task.name) -ManifestPath $ManifestPath" -Chinese "     adp workspace task snapshot $($Task.name) -ManifestPath $ManifestPath" -ForegroundColor DarkGray
+        Write-UIHost -English "     adpos workspace task snapshot $($Task.name) -ManifestPath $ManifestPath" -Chinese "     adpos workspace task snapshot $($Task.name) -ManifestPath $ManifestPath" -ForegroundColor DarkGray
         if ($snapshotGate.Blocking) {
             Write-UIHost -English "     BLOCKED: $($snapshotGate.Detail)" -Chinese "     已阻塞: $($snapshotGate.Detail)" -ForegroundColor Yellow
             Write-UIHost -English "     Do not start broad agent work until this gate is ready or explicitly waived in local ADP-OS state." -Chinese "     在此门控就绪或在本地 ADP-OS 状态中显式豁免之前，不要开始广泛的 agent 工作。" -ForegroundColor Yellow
             Write-UIHost -English "     Waive only after human acceptance of the missing checkpoint risk:" -Chinese "     仅在人工接受缺少检查点风险后才豁免:" -ForegroundColor Yellow
-            Write-UIHost -English "     adp workspace task mark $($Task.name) checkpoint-waived -ManifestPath $ManifestPath" -Chinese "     adp workspace task mark $($Task.name) checkpoint-waived -ManifestPath $ManifestPath" -ForegroundColor DarkGray
+            Write-UIHost -English "     adpos workspace task mark $($Task.name) checkpoint-waived -ManifestPath $ManifestPath" -Chinese "     adpos workspace task mark $($Task.name) checkpoint-waived -ManifestPath $ManifestPath" -ForegroundColor DarkGray
         } else {
             Write-UIHost -English "     READY: $($snapshotGate.Detail)" -Chinese "     就绪: $($snapshotGate.Detail)" -ForegroundColor DarkGray
         }
-        Write-UIHost -English "     adp workspace task mark $($Task.name) checkpointed" -Chinese "     adp workspace task mark $($Task.name) checkpointed" -ForegroundColor DarkGray
+        Write-UIHost -English "     adpos workspace task mark $($Task.name) checkpointed" -Chinese "     adpos workspace task mark $($Task.name) checkpointed" -ForegroundColor DarkGray
     } else {
         Write-UIHost -English "  2. Add tasks[].runtime and tasks[].snapshot before using rollback-capable agent task execution." -Chinese "  2. 在使用可回滚的 agent 任务执行之前添加 tasks[].runtime 和 tasks[].snapshot。" -ForegroundColor DarkGray
     }
 
     if ($Task.runtime) {
         Write-UIHost -English "  3. Enter or target the runtime explicitly:" -Chinese "  3. 显式进入或目标运行时:" -ForegroundColor DarkGray
-        Write-UIHost -English "     adp up $($Task.runtime) -Plan" -Chinese "     adp up $($Task.runtime) -Plan" -ForegroundColor DarkGray
-        Write-UIHost -English "     adp sync start $($Task.runtime)" -Chinese "     adp sync start $($Task.runtime)" -ForegroundColor DarkGray
+        Write-UIHost -English "     adpos up $($Task.runtime) -Plan" -Chinese "     adpos up $($Task.runtime) -Plan" -ForegroundColor DarkGray
+        Write-UIHost -English "     adpos sync start $($Task.runtime)" -Chinese "     adpos sync start $($Task.runtime)" -ForegroundColor DarkGray
         Write-UIHost -English "     ssh adp-os-adp-$($Task.runtime)" -Chinese "     ssh adp-os-adp-$($Task.runtime)" -ForegroundColor DarkGray
     } else {
         Write-UIHost -English "  3. Add tasks[].runtime before selecting an execution runtime." -Chinese "  3. 在选择执行运行时之前添加 tasks[].runtime。" -ForegroundColor DarkGray
@@ -3952,11 +3952,11 @@ function Write-WorkspaceTaskRun {
 
     Write-UIHost -English "  4. Run the agent or task command manually inside the selected workspace." -Chinese "  4. 在选定的工作区内手动运行 agent 或任务命令。" -ForegroundColor DarkGray
     Write-UIHost -English "     After manual execution starts, mark running only as local state:" -Chinese "     手动执行开始后，仅将运行状态标记为本地状态:" -ForegroundColor DarkGray
-    Write-UIHost -English "     adp workspace task mark $($Task.name) running -ManifestPath $ManifestPath" -Chinese "     adp workspace task mark $($Task.name) running -ManifestPath $ManifestPath" -ForegroundColor DarkGray
+    Write-UIHost -English "     adpos workspace task mark $($Task.name) running -ManifestPath $ManifestPath" -Chinese "     adpos workspace task mark $($Task.name) running -ManifestPath $ManifestPath" -ForegroundColor DarkGray
     Write-UIHost -English "  5. Validate before review:" -Chinese "  5. 审查前验证:" -ForegroundColor DarkGray
-    Write-UIHost -English "     adp workspace task validate $($Task.name) -ManifestPath $ManifestPath" -Chinese "     adp workspace task validate $($Task.name) -ManifestPath $ManifestPath" -ForegroundColor DarkGray
+    Write-UIHost -English "     adpos workspace task validate $($Task.name) -ManifestPath $ManifestPath" -Chinese "     adpos workspace task validate $($Task.name) -ManifestPath $ManifestPath" -ForegroundColor DarkGray
     Write-UIHost -English "  6. Move to review:" -Chinese "  6. 进入审查:" -ForegroundColor DarkGray
-    Write-UIHost -English "     adp workspace task review $($Task.name) -ManifestPath $ManifestPath" -Chinese "     adp workspace task review $($Task.name) -ManifestPath $ManifestPath" -ForegroundColor DarkGray
+    Write-UIHost -English "     adpos workspace task review $($Task.name) -ManifestPath $ManifestPath" -Chinese "     adpos workspace task review $($Task.name) -ManifestPath $ManifestPath" -ForegroundColor DarkGray
 }
 
 function Write-WorkspaceTaskReview {
@@ -3990,15 +3990,15 @@ function Write-WorkspaceTaskReview {
         Write-UIHost -English "     Review should not accept the task until sync hygiene is reviewed or the runtime sync profile is updated." -Chinese "     在同步卫生经过审查或运行时同步配置文件更新之前，审查不应接受该任务。" -ForegroundColor Yellow
     }
     Write-UIHost -English "  2. Confirm readiness before review:" -Chinese "  2. 审查前确认就绪状态:" -ForegroundColor DarkGray
-    Write-UIHost -English "     adp workspace status -ManifestPath $ManifestPath" -Chinese "     adp workspace status -ManifestPath $ManifestPath" -ForegroundColor DarkGray
+    Write-UIHost -English "     adpos workspace status -ManifestPath $ManifestPath" -Chinese "     adpos workspace status -ManifestPath $ManifestPath" -ForegroundColor DarkGray
     Write-UIHost -English "  3. Confirm checkpoint state:" -Chinese "  3. 确认检查点状态:" -ForegroundColor DarkGray
-    Write-UIHost -English "     adp workspace task snapshot $($Task.name) -ManifestPath $ManifestPath" -Chinese "     adp workspace task snapshot $($Task.name) -ManifestPath $ManifestPath" -ForegroundColor DarkGray
+    Write-UIHost -English "     adpos workspace task snapshot $($Task.name) -ManifestPath $ManifestPath" -Chinese "     adpos workspace task snapshot $($Task.name) -ManifestPath $ManifestPath" -ForegroundColor DarkGray
     if (Test-WorkspaceTaskRequiresSnapshot -Task $Task) {
         Write-UIHost -English "     Review should not accept broad agent work until the snapshot-first gate is ready or explicitly waived in local ADP-OS state." -Chinese "     在快照优先门控就绪或在本地 ADP-OS 状态中显式豁免之前，审查不应接受广泛的 agent 工作。" -ForegroundColor DarkGray
-        Write-UIHost -English "     waiver: adp workspace task mark $($Task.name) checkpoint-waived -ManifestPath $ManifestPath" -Chinese "     豁免: adp workspace task mark $($Task.name) checkpoint-waived -ManifestPath $ManifestPath" -ForegroundColor DarkGray
+        Write-UIHost -English "     waiver: adpos workspace task mark $($Task.name) checkpoint-waived -ManifestPath $ManifestPath" -Chinese "     豁免: adpos workspace task mark $($Task.name) checkpoint-waived -ManifestPath $ManifestPath" -ForegroundColor DarkGray
     }
     Write-UIHost -English "  4. Run or inspect validation commands:" -Chinese "  4. 运行或检查验证命令:" -ForegroundColor DarkGray
-    Write-UIHost -English "     adp workspace task validate $($Task.name) -ManifestPath $ManifestPath" -Chinese "     adp workspace task validate $($Task.name) -ManifestPath $ManifestPath" -ForegroundColor DarkGray
+    Write-UIHost -English "     adpos workspace task validate $($Task.name) -ManifestPath $ManifestPath" -Chinese "     adpos workspace task validate $($Task.name) -ManifestPath $ManifestPath" -ForegroundColor DarkGray
     Write-UIHost -English "     recorded validation: $validationStateText" -Chinese "     已记录的验证: $validationStateText" -ForegroundColor DarkGray
     Write-WorkspaceValidationDetailLines -RecordedState $recordedState
     Write-UIHost -English "     state file: $resolvedStatePath" -Chinese "     状态文件: $resolvedStatePath" -ForegroundColor DarkGray
@@ -4007,11 +4007,11 @@ function Write-WorkspaceTaskReview {
     Write-UIHost -English "     git diff --stat" -Chinese "     git diff --stat" -ForegroundColor DarkGray
     Write-UIHost -English "     git diff" -Chinese "     git diff" -ForegroundColor DarkGray
     Write-UIHost -English "  6. Decide explicitly:" -Chinese "  6. 显式决策:" -ForegroundColor DarkGray
-    Write-UIHost -English "     rollback: adp workspace task rollback $($Task.name) -ManifestPath $ManifestPath" -Chinese "     回滚: adp workspace task rollback $($Task.name) -ManifestPath $ManifestPath" -ForegroundColor DarkGray
+    Write-UIHost -English "     rollback: adpos workspace task rollback $($Task.name) -ManifestPath $ManifestPath" -Chinese "     回滚: adpos workspace task rollback $($Task.name) -ManifestPath $ManifestPath" -ForegroundColor DarkGray
     Write-UIHost -English "     revise:   fix the task result and re-run validation" -Chinese "     修订:   修正任务结果并重新运行验证" -ForegroundColor DarkGray
-    Write-UIHost -English "     commit:   adp workspace task commit $($Task.name) -ManifestPath $ManifestPath" -Chinese "     提交:   adp workspace task commit $($Task.name) -ManifestPath $ManifestPath" -ForegroundColor DarkGray
+    Write-UIHost -English "     commit:   adpos workspace task commit $($Task.name) -ManifestPath $ManifestPath" -Chinese "     提交:   adpos workspace task commit $($Task.name) -ManifestPath $ManifestPath" -ForegroundColor DarkGray
     if ($reviewDecision.Verdict -eq "validation passed") {
-        Write-UIHost -English "     accept:   adp workspace task mark $($Task.name) reviewed -ManifestPath $ManifestPath" -Chinese "     接受:   adp workspace task mark $($Task.name) reviewed -ManifestPath $ManifestPath" -ForegroundColor DarkGray
+        Write-UIHost -English "     accept:   adpos workspace task mark $($Task.name) reviewed -ManifestPath $ManifestPath" -Chinese "     接受:   adpos workspace task mark $($Task.name) reviewed -ManifestPath $ManifestPath" -ForegroundColor DarkGray
     } else {
         Write-UIHost -English "     accept:   withheld until review decision gate is OK" -Chinese "     接受:   暂缓，直到审查决策门控就绪" -ForegroundColor Yellow
         Write-UIHost -English "     resolve:  $($reviewDecision.NextStep)" -Chinese "     解决:  $($reviewDecision.NextStep)" -ForegroundColor DarkGray
@@ -4059,7 +4059,7 @@ function Write-WorkspaceTaskRollback {
             Write-UIHost -English "     No VM restore command is printed because no checkpoint was confirmed." -Chinese "     未打印 VM 恢复命令，因为没有确认检查点。" -ForegroundColor DarkGray
         } else {
             Write-UIHost -English "  VM snapshot rollback command:" -Chinese "  VM 快照回滚命令:" -ForegroundColor DarkGray
-            Write-UIHost -English "     adp restore $($Task.runtime) $($Task.snapshot)" -Chinese "     adp restore $($Task.runtime) $($Task.snapshot)" -ForegroundColor DarkGray
+            Write-UIHost -English "     adpos restore $($Task.runtime) $($Task.snapshot)" -Chinese "     adpos restore $($Task.runtime) $($Task.snapshot)" -ForegroundColor DarkGray
         }
     } else {
         Write-UIHost -English "  Add tasks[].runtime and tasks[].snapshot before planning VM snapshot rollback." -Chinese "  在规划 VM 快照回滚之前添加 tasks[].runtime 和 tasks[].snapshot。" -ForegroundColor DarkGray
@@ -4071,7 +4071,7 @@ function Write-WorkspaceTaskRollback {
     Write-UIHost -English "     git restore <paths>" -Chinese "     git restore <paths>" -ForegroundColor DarkGray
     Write-UIHost -English "  Do not run restore commands until the human reviewer has chosen rollback." -Chinese "  在人工审查者选择回滚之前，不要运行恢复命令。" -ForegroundColor DarkGray
     Write-UIHost -English "  After rollback is completed manually, record local rollback state:" -Chinese "  手动完成回滚后，记录本地回滚状态:" -ForegroundColor DarkGray
-    Write-UIHost -English "     adp workspace task mark $($Task.name) rollback -ManifestPath $ManifestPath" -Chinese "     adp workspace task mark $($Task.name) rollback -ManifestPath $ManifestPath" -ForegroundColor DarkGray
+    Write-UIHost -English "     adpos workspace task mark $($Task.name) rollback -ManifestPath $ManifestPath" -Chinese "     adpos workspace task mark $($Task.name) rollback -ManifestPath $ManifestPath" -ForegroundColor DarkGray
 }
 
 function Write-WorkspaceTaskCommit {
@@ -4106,9 +4106,9 @@ function Write-WorkspaceTaskCommit {
     Write-WorkspaceValidationDetailLines -RecordedState $recordedState
     Write-UIHost -English "     state file: $resolvedStatePath" -Chinese "     状态文件: $resolvedStatePath" -ForegroundColor DarkGray
     Write-UIHost -English "  1. Confirm review bundle:" -Chinese "  1. 确认审查包:" -ForegroundColor DarkGray
-    Write-UIHost -English "     adp workspace task review $($Task.name) -ManifestPath $ManifestPath" -Chinese "     adp workspace task review $($Task.name) -ManifestPath $ManifestPath" -ForegroundColor DarkGray
+    Write-UIHost -English "     adpos workspace task review $($Task.name) -ManifestPath $ManifestPath" -Chinese "     adpos workspace task review $($Task.name) -ManifestPath $ManifestPath" -ForegroundColor DarkGray
     Write-UIHost -English "  2. Confirm validation expectations:" -Chinese "  2. 确认验证预期:" -ForegroundColor DarkGray
-    Write-UIHost -English "     adp workspace task validate $($Task.name) -ManifestPath $ManifestPath" -Chinese "     adp workspace task validate $($Task.name) -ManifestPath $ManifestPath" -ForegroundColor DarkGray
+    Write-UIHost -English "     adpos workspace task validate $($Task.name) -ManifestPath $ManifestPath" -Chinese "     adpos workspace task validate $($Task.name) -ManifestPath $ManifestPath" -ForegroundColor DarkGray
     Write-UIHost -English "  3. Inspect source changes in the target project:" -Chinese "  3. 检查目标项目中的源更改:" -ForegroundColor DarkGray
     Write-UIHost -English "     git status --short" -Chinese "     git status --short" -ForegroundColor DarkGray
     Write-UIHost -English "     git diff --stat" -Chinese "     git diff --stat" -ForegroundColor DarkGray
@@ -4118,7 +4118,7 @@ function Write-WorkspaceTaskCommit {
         Write-UIHost -English "     git add <paths>" -Chinese "     git add <paths>" -ForegroundColor DarkGray
         Write-UIHost -English "     git commit -m ""<message>""" -Chinese "     git commit -m ""<message>""" -ForegroundColor DarkGray
         Write-UIHost -English "  5. After the commit is created manually, record local committed state:" -Chinese "  5. 手动创建提交后，记录本地已提交状态:" -ForegroundColor DarkGray
-        Write-UIHost -English "     adp workspace task mark $($Task.name) committed -ManifestPath $ManifestPath" -Chinese "     adp workspace task mark $($Task.name) committed -ManifestPath $ManifestPath" -ForegroundColor DarkGray
+        Write-UIHost -English "     adpos workspace task mark $($Task.name) committed -ManifestPath $ManifestPath" -Chinese "     adpos workspace task mark $($Task.name) committed -ManifestPath $ManifestPath" -ForegroundColor DarkGray
     } else {
         Write-UIHost -English "  4. Commit commands withheld until commit readiness is OK." -Chinese "  4. 提交命令暂缓，直到提交就绪状态正常。" -ForegroundColor Yellow
         Write-UIHost -English "     Resolve gate first: $($commitDecision.NextStep)" -Chinese "     先解决门控: $($commitDecision.NextStep)" -ForegroundColor DarkGray
@@ -4169,7 +4169,7 @@ function Write-WorkspaceTaskMark {
             Write-UIHost -English "  Boundary: running means manual execution began or was attempted; ADP-OS did not start the agent, approve execution, validate output, or satisfy review/commit readiness." -Chinese "  边界: running 表示人工执行已开始或已尝试；ADP-OS 并未启动 agent、未批准执行、未验证输出、也未满足审查/提交就绪条件。" -ForegroundColor Yellow
         }
         "validated" {
-            Write-UIHost -English "  Boundary: validated records an external validation result (status: passed). Validation was run outside ADP-OS; the recorded result satisfies review/commit readiness gates. Use 'adp workspace task validate <task> -Execute' to record executable validation evidence from inside ADP-OS." -Chinese "  边界: validated 记录了外部验证结果（状态: 通过）。验证在 ADP-OS 外运行；记录的结果满足审查/提交就绪门控。使用 'adp workspace task validate <task> -Execute' 从 ADP-OS 内记录可执行验证证据。" -ForegroundColor Yellow
+            Write-UIHost -English "  Boundary: validated records an external validation result (status: passed). Validation was run outside ADP-OS; the recorded result satisfies review/commit readiness gates. Use 'adpos workspace task validate <task> -Execute' to record executable validation evidence from inside ADP-OS." -Chinese "  边界: validated 记录了外部验证结果（状态: 通过）。验证在 ADP-OS 外运行；记录的结果满足审查/提交就绪门控。使用 'adpos workspace task validate <task> -Execute' 从 ADP-OS 内记录可执行验证证据。" -ForegroundColor Yellow
         }
         "validation_failed" {
             Write-UIHost -English "  Boundary: validation_failed records an external validation result (status: failed). Validation was run outside ADP-OS. The recorded failure blocks review/commit readiness until a passing result is recorded." -Chinese "  边界: validation_failed 记录了外部验证结果（状态: 失败）。验证在 ADP-OS 外运行。记录的失败会阻塞审查/提交就绪，直到记录通过结果。" -ForegroundColor Yellow
@@ -4595,7 +4595,7 @@ Files included:
    an append-only, tamper-evident chain.
 
 3. workspace-report.md (if present)
-   Human-readable workspace report generated by 'adp workspace report'.
+   Human-readable workspace report generated by 'adpos workspace report'.
 
 4. adp-workspace.json
    The workspace manifest at the time of export.
@@ -4694,16 +4694,16 @@ function Invoke-EvidenceDeclare {
 }
 
 function Show-EvidenceUsage {
-    Write-ErrorLog -Message "Usage: adp workspace evidence -Snapshot | -Log | -Export [-Path <path>]" -Component "cli.workspace.evidence"
+    Write-ErrorLog -Message "Usage: adpos workspace evidence -Snapshot | -Log | -Export [-Path <path>]" -Component "cli.workspace.evidence"
     Write-Host ""
 
     Write-UIHost -English "Evidence Chain Commands:" -Chinese "证据链命令:" -ForegroundColor Yellow
-    Write-UIHost -English "  adp workspace evidence -Snapshot                     Sign current snapshot metadata (SHA-256 chain)" -Chinese "  adp workspace evidence -Snapshot                     签署当前快照元数据 (SHA-256 链)" -ForegroundColor DarkGray
-    Write-UIHost -English "  adp workspace evidence -Log -Operation <op> [-Details <text>]   Record an operation log entry (hash chain)" -Chinese "  adp workspace evidence -Log -Operation <op> [-Details <text>]   记录操作日志条目 (哈希链)" -ForegroundColor DarkGray
-    Write-UIHost -English "  adp workspace evidence -Export [-Path <path>]        Export all evidence as ZIP" -Chinese "  adp workspace evidence -Export [-Path <path>]        导出所有证据为 ZIP" -ForegroundColor DarkGray
+    Write-UIHost -English "  adpos workspace evidence -Snapshot                     Sign current snapshot metadata (SHA-256 chain)" -Chinese "  adpos workspace evidence -Snapshot                     签署当前快照元数据 (SHA-256 链)" -ForegroundColor DarkGray
+    Write-UIHost -English "  adpos workspace evidence -Log -Operation <op> [-Details <text>]   Record an operation log entry (hash chain)" -Chinese "  adpos workspace evidence -Log -Operation <op> [-Details <text>]   记录操作日志条目 (哈希链)" -ForegroundColor DarkGray
+    Write-UIHost -English "  adpos workspace evidence -Export [-Path <path>]        Export all evidence as ZIP" -Chinese "  adpos workspace evidence -Export [-Path <path>]        导出所有证据为 ZIP" -ForegroundColor DarkGray
     Write-Host ""
     Write-UIHost -English "AI Declaration:" -Chinese "AI 开发声明:" -ForegroundColor Yellow
-    Write-UIHost -English "  adp workspace declare -AiAssisted [-Reviewer <name>] [-Notes ""...""]   Declare AI-assisted development" -Chinese "  adp workspace declare -AiAssisted [-Reviewer <name>] [-Notes ""...""]   声明 AI 辅助开发" -ForegroundColor DarkGray
+    Write-UIHost -English "  adpos workspace declare -AiAssisted [-Reviewer <name>] [-Notes ""...""]   Declare AI-assisted development" -Chinese "  adpos workspace declare -AiAssisted [-Reviewer <name>] [-Notes ""...""]   声明 AI 辅助开发" -ForegroundColor DarkGray
     Write-Host ""
     Write-UIHost -English "Operations for -Log: create, sync, start, stop, validate, declare, snapshot, export" -Chinese "-Log 支持的操作: create, sync, start, stop, validate, declare, snapshot, export" -ForegroundColor DarkGray
     Write-UIHost -English "Evidence files are stored in <workspace_root>/.evidence/" -Chinese "证据文件存储在 <workspace_root>/.evidence/" -ForegroundColor DarkGray
@@ -4729,7 +4729,7 @@ function Invoke-WorkspaceTask {
     }
 
     if (($ExecuteValidation -or $PlanOnly -or $LocalExecution) -and $Command -ne "validate") {
-        Write-ErrorLog -Message "-Execute, -Local, and -Plan are only supported with: adp workspace task validate <task-name>" -Component "cli.workspace"
+        Write-ErrorLog -Message "-Execute, -Local, and -Plan are only supported with: adpos workspace task validate <task-name>" -Component "cli.workspace"
         exit 1
     }
 
@@ -4807,22 +4807,22 @@ switch ($SubCommand) {
         Write-UIHost -English "Suggested next steps:" -Chinese "建议的后续步骤:" -ForegroundColor Yellow
         foreach ($project in (Get-WorkspaceArray $manifest.projects)) {
             if ($project.runtime) {
-                Write-UIHost -English "  - Preview runtime: adp up $($project.runtime) -Plan" -Chinese "  - 预览运行时: adp up $($project.runtime) -Plan" -ForegroundColor DarkGray
+                Write-UIHost -English "  - Preview runtime: adpos up $($project.runtime) -Plan" -Chinese "  - 预览运行时: adpos up $($project.runtime) -Plan" -ForegroundColor DarkGray
                 if ($project.sync) {
-                    Write-UIHost -English "  - Start sync when ready: adp sync start $($project.runtime)" -Chinese "  - 准备好后启动同步: adp sync start $($project.runtime)" -ForegroundColor DarkGray
+                    Write-UIHost -English "  - Start sync when ready: adpos sync start $($project.runtime)" -Chinese "  - 准备好后启动同步: adpos sync start $($project.runtime)" -ForegroundColor DarkGray
                 }
             }
         }
         foreach ($task in (Get-WorkspaceArray $manifest.tasks)) {
             if ($task.runtime -and $task.snapshot) {
                 $snapshotNaming = Get-WorkspaceSnapshotNamingStatus -Task $task
-                Write-UIHost -English "  - Snapshot before task '$($task.name)' (naming: $($snapshotNaming.Status)): adp snapshot create $($task.runtime) $($task.snapshot)" -Chinese "  - 任务 '$($task.name)' 之前的快照 (命名: $($snapshotNaming.Status)): adp snapshot create $($task.runtime) $($task.snapshot)" -ForegroundColor DarkGray
+                Write-UIHost -English "  - Snapshot before task '$($task.name)' (naming: $($snapshotNaming.Status)): adpos snapshot create $($task.runtime) $($task.snapshot)" -Chinese "  - 任务 '$($task.name)' 之前的快照 (命名: $($snapshotNaming.Status)): adpos snapshot create $($task.runtime) $($task.snapshot)" -ForegroundColor DarkGray
             }
         }
         foreach ($milestone in (Get-WorkspaceMilestones -Manifest $manifest)) {
             $milestoneStatus = Get-WorkspaceMilestoneStatus -Manifest $manifest -Milestone $milestone
             if ($milestoneStatus.RuntimeName -ne "not configured") {
-                Write-UIHost -English "  - Milestone checkpoint '$($milestoneStatus.Name)' (naming: $($milestoneStatus.SnapshotNaming.Status)): adp snapshot create $($milestoneStatus.RuntimeName) $($milestoneStatus.SnapshotName)" -Chinese "  - 里程碑检查点 '$($milestoneStatus.Name)' (命名: $($milestoneStatus.SnapshotNaming.Status)): adp snapshot create $($milestoneStatus.RuntimeName) $($milestoneStatus.SnapshotName)" -ForegroundColor DarkGray
+                Write-UIHost -English "  - Milestone checkpoint '$($milestoneStatus.Name)' (naming: $($milestoneStatus.SnapshotNaming.Status)): adpos snapshot create $($milestoneStatus.RuntimeName) $($milestoneStatus.SnapshotName)" -Chinese "  - 里程碑检查点 '$($milestoneStatus.Name)' (命名: $($milestoneStatus.SnapshotNaming.Status)): adpos snapshot create $($milestoneStatus.RuntimeName) $($milestoneStatus.SnapshotName)" -ForegroundColor DarkGray
             }
         }
     }
@@ -4860,9 +4860,9 @@ switch ($SubCommand) {
     }
     "task" {
         if ([string]::IsNullOrWhiteSpace($TaskCommand)) {
-            Write-ErrorLog -Message (Get-UIText -English "Usage: adp workspace task <prepare|snapshot|run|validate|review|rollback|commit|mark> <task-name>" -Chinese "用法: adp workspace task <prepare|snapshot|run|validate|review|rollback|commit|mark> <task-name>") -Component "cli.workspace"
-            Write-UIHost -English "  adp workspace task validate <task-name> [-Execute] [-Local] [-Plan] [-ManifestPath <path>]" -Chinese "  adp workspace task validate <task-name> [-Execute] [-Local] [-Plan] [-ManifestPath <path>]" -ForegroundColor DarkGray
-            Write-UIHost -English "  adp workspace task mark <task-name> <state> [-StatePath <path>]" -Chinese "  adp workspace task mark <task-name> <state> [-StatePath <path>]" -ForegroundColor DarkGray
+            Write-ErrorLog -Message (Get-UIText -English "Usage: adpos workspace task <prepare|snapshot|run|validate|review|rollback|commit|mark> <task-name>" -Chinese "用法: adpos workspace task <prepare|snapshot|run|validate|review|rollback|commit|mark> <task-name>") -Component "cli.workspace"
+            Write-UIHost -English "  adpos workspace task validate <task-name> [-Execute] [-Local] [-Plan] [-ManifestPath <path>]" -Chinese "  adpos workspace task validate <task-name> [-Execute] [-Local] [-Plan] [-ManifestPath <path>]" -ForegroundColor DarkGray
+            Write-UIHost -English "  adpos workspace task mark <task-name> <state> [-StatePath <path>]" -Chinese "  adpos workspace task mark <task-name> <state> [-StatePath <path>]" -ForegroundColor DarkGray
             exit 1
         }
         $manifest = Read-WorkspaceManifest -Path $ManifestPath
@@ -4891,14 +4891,14 @@ switch ($SubCommand) {
     "declare" {
         if (-not $AiAssisted) {
             Write-UIHost -English "Use -AiAssisted to declare AI-assisted development." -Chinese "使用 -AiAssisted 声明 AI 辅助开发。" -ForegroundColor Yellow
-            Write-UIHost -English "  adp workspace declare -AiAssisted [-Reviewer <name>] [-Notes ""...""]" -Chinese "  adp workspace declare -AiAssisted [-Reviewer <name>] [-Notes ""...""]" -ForegroundColor DarkGray
+            Write-UIHost -English "  adpos workspace declare -AiAssisted [-Reviewer <name>] [-Notes ""...""]" -Chinese "  adpos workspace declare -AiAssisted [-Reviewer <name>] [-Notes ""...""]" -ForegroundColor DarkGray
             exit 1
         }
 
         Invoke-EvidenceDeclare -ManifestPath $ManifestPath -AiAssisted:$AiAssisted -Reviewer $Reviewer -Notes $Notes -JsonOutput:$Json
     }
     default {
-        Write-ErrorLog -Message (Get-UIText -English "Unknown workspace command: $SubCommand. Use 'adp workspace help' to see grouped subcommands." -Chinese "未知工作区命令: $SubCommand。使用 'adp workspace help' 查看分组子命令。") -Component "cli.workspace"
+        Write-ErrorLog -Message (Get-UIText -English "Unknown workspace command: $SubCommand. Use 'adpos workspace help' to see grouped subcommands." -Chinese "未知工作区命令: $SubCommand。使用 'adpos workspace help' 查看分组子命令。") -Component "cli.workspace"
         exit 1
     }
 }
