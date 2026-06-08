@@ -4,7 +4,8 @@
 # the command shim should not require the ADP-OS PowerShell 7 control plane.
 
 param(
-    [switch]$NonInteractive
+    [switch]$NonInteractive,
+    [switch]$Force
 )
 
 $ErrorActionPreference = "Stop"
@@ -20,7 +21,7 @@ if (-not $NonInteractive) {
     Write-Host ""
 }
 
-$result = Uninstall-ADPOSCommandRegistration
+$result = Uninstall-ADPOSCommandRegistration -ProjectRoot $script:ProjectRoot -Force:$Force
 
 if (-not $NonInteractive) {
     if ($result.RemovedShim) {

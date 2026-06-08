@@ -112,6 +112,21 @@ Assert-FunctionBodyNotContains -Name "registration pure decision helper" -Ast $r
     '\bRemove-ADPOSPathEntry\b',
     '\bGet-ADPOSExistingRegistration\b'
 )
+Assert-FunctionBodyNotContains -Name "uninstall pure decision helper" -Ast $registrationAst -FunctionName "Get-ADPOSUninstallDecision" -ForbiddenPatterns @(
+    '\[System\.Environment\]::SetEnvironmentVariable',
+    '\[System\.Environment\]::GetEnvironmentVariable',
+    '\bSet-Item\b',
+    '\bRemove-Item\b',
+    '\bNew-Item\b',
+    '\bSet-Content\b',
+    '\bRead-Host\b',
+    '\bTest-Path\b',
+    '\bGet-Content\b',
+    '\$env:Path',
+    '\bAdd-ADPOSPathEntry\b',
+    '\bRemove-ADPOSPathEntry\b',
+    '\bGet-ADPOSExistingRegistration\b'
+)
 
 Assert-Contains -Name "registration resolves LOCALAPPDATA before USERPROFILE fallback" -Text $registration -Pattern 'function\s+Get-ADPOSLocalAppData[\s\S]*\$env:LOCALAPPDATA[\s\S]*return\s+\$env:LOCALAPPDATA[\s\S]*\$env:USERPROFILE[\s\S]*"AppData\\Local"'
 Assert-Contains -Name "registration uses dedicated ADP-OS user bin directory" -Text $registration -Pattern 'function\s+Get-ADPOSCommandBinPath[\s\S]*Join-Path\s+\(Get-ADPOSLocalAppData\)\s+"ADP-OS\\bin"'
@@ -121,6 +136,7 @@ Assert-Contains -Name "registration detects existing ADPOS_HOME and PATH command
 Assert-Contains -Name "registration prompts before replacing another checkout" -Text $registration -Pattern 'function\s+Confirm-ADPOSRegistrationReplacement[\s\S]*Existing:[\s\S]*This one:[\s\S]*Read-Host "Replace the global adpos binding'
 Assert-Contains -Name "registration exposes multi-checkout isolation guidance" -Text $registration -Pattern 'function\s+Get-ADPOSMultiCheckoutGuidance[\s\S]*configs\\local\.json[\s\S]*platform\.runtime_namespace[\s\S]*platform\.paths\.workspace_root[\s\S]*platform\.paths\.vm_store[\s\S]*topology\.<runtime>\.static_ip[\s\S]*doctor[\s\S]*status agent[\s\S]*sync status[\s\S]*up agent -Plan'
 Assert-Contains -Name "registration exposes pure decision helper" -Text $registration -Pattern 'function\s+Get-ADPOSRegistrationDecision[\s\S]*RequiresConfirmation[\s\S]*Effects[\s\S]*kept-existing-global'
+Assert-Contains -Name "registration exposes pure uninstall decision helper" -Text $registration -Pattern 'function\s+Get-ADPOSUninstallDecision[\s\S]*non-adp-shim[\s\S]*different-home[\s\S]*remove-user-path[\s\S]*not-registered'
 Assert-Contains -Name "registration can skip a different global binding" -Text $registration -Pattern 'Install-ADPOSCommandRegistration[\s\S]*\[switch\]\$NonInteractive[\s\S]*\[switch\]\$Force[\s\S]*Get-ADPOSRegistrationDecision[\s\S]*RequiresConfirmation[\s\S]*Confirm-ADPOSRegistrationReplacement[\s\S]*Get-ADPOSRegistrationDecision[\s\S]*if\s*\(\$decision\.Skipped\)'
 Assert-Contains -Name "registration shim identifies ADP ownership" -Text $registration -Pattern 'REM ADP-OS global command shim'
 Assert-Contains -Name "registration writes project home to user environment" -Text $registration -Pattern 'SetEnvironmentVariable\(\$homeVariableName, \$resolvedProjectRoot, "User"\)[\s\S]*Set-Item -Path "Env:\$homeVariableName"'
@@ -133,8 +149,9 @@ Assert-Contains -Name "unregistration normalizes target PATH entry" -Text $regis
 Assert-Contains -Name "registration adds only command bin path" -Text $registration -Pattern 'Install-ADPOSCommandRegistration[\s\S]*Add-ADPOSPathEntry -Path \$binPath'
 Assert-NotContains -Name "registration does not add project root to PATH" -Text $registration -Pattern 'Add-ADPOSPathEntry\s+-Path\s+\$resolvedProjectRoot|SetEnvironmentVariable\("Path", [^\r\n]*ProjectRoot'
 Assert-Contains -Name "unregistration refuses non-ADP shim files" -Text $registration -Pattern 'Refusing to remove non-ADP file'
+Assert-Contains -Name "unregistration refuses different checkout by default" -Text $registration -Pattern 'Uninstall-ADPOSCommandRegistration[\s\S]*\[switch\]\$Force[\s\S]*Get-ADPOSExistingRegistration[\s\S]*Get-ADPOSUninstallDecision[\s\S]*Refusing to uninstall global adpos registered for another ADP-OS checkout'
 Assert-Contains -Name "unregistration removes the command bin from PATH" -Text $registration -Pattern 'Uninstall-ADPOSCommandRegistration[\s\S]*Remove-ADPOSPathEntry -Path \$binPath'
-Assert-Contains -Name "unregistration removes ADPOS_HOME" -Text $registration -Pattern 'Uninstall-ADPOSCommandRegistration[\s\S]*SetEnvironmentVariable\(\$homeVariableName, \$null, "User"\)'
+Assert-Contains -Name "unregistration removes ADPOS_HOME only for this checkout or force" -Text $registration -Pattern 'Uninstall-ADPOSCommandRegistration[\s\S]*\$userHome[\s\S]*\$Force[\s\S]*SetEnvironmentVariable\(\$homeVariableName, \$null, "User"\)'
 
 Assert-Contains -Name "install registers adpos by default" -Text $install -Pattern 'if\s*\(-not\s+\$NoRegisterCommand\)\s*\{[\s\S]*Install-ADPOSCommandRegistration'
 Assert-Contains -Name "install passes non-interactive and force registration switches" -Text $install -Pattern '\[switch\]\$NonInteractive[\s\S]*\[switch\]\$RegisterCommandForce[\s\S]*Install-ADPOSCommandRegistration[\s\S]*-NonInteractive:\$NonInteractive[\s\S]*-Force:\$RegisterCommandForce'
@@ -143,7 +160,7 @@ Assert-Contains -Name "install guides kept global binding to local multi-checkou
 Assert-Contains -Name "quickstart propagates NoRegisterCommand to install" -Text $quickstart -Pattern '\[switch\]\$NoRegisterCommand[\s\S]*\$installArgs\s*\+=\s*"-NoRegisterCommand"'
 Assert-Contains -Name "quickstart passes setup mode to registration" -Text $quickstart -Pattern '\$installArgs\s*\+=\s*"-NonInteractive"[\s\S]*\$installArgs\s*\+=\s*"-RegisterCommandForce"[\s\S]*Install-ADPOSCommandRegistration[\s\S]*-NonInteractive:\$NonInteractive[\s\S]*-Force:\$Force'
 Assert-Contains -Name "quickstart guides kept global binding to local multi-checkout validation" -Text $quickstart -Pattern 'if\s*\(\$Registration\.Skipped\)[\s\S]*Use this checkout locally: \.\\adpos\.cmd[\s\S]*Write-QuickstartMultiCheckoutGuidance[\s\S]*Get-ADPOSMultiCheckoutGuidance[\s\S]*Multi-checkout isolation[\s\S]*Validate this checkout'
-Assert-Contains -Name "uninstall script delegates to registration uninstaller" -Text $uninstall -Pattern 'scripts\\adpos-registration\.ps1[\s\S]*Uninstall-ADPOSCommandRegistration'
+Assert-Contains -Name "uninstall script delegates to registration uninstaller" -Text $uninstall -Pattern 'scripts\\adpos-registration\.ps1[\s\S]*Uninstall-ADPOSCommandRegistration[\s\S]*-ProjectRoot \$script:ProjectRoot[\s\S]*-Force:\$Force'
 Assert-Contains -Name "uninstall default is non-destructive" -Text $uninstall -Pattern 'No VMs, workspace files, ISO cache, local tools, logs, or repository files were removed'
 
 Write-Output "adpos registration contract tests OK"

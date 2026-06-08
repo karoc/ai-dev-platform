@@ -368,11 +368,11 @@ adpos workspace task validate frontend-browser-acceptance -Execute -ManifestPath
 
 本节使用 `adpos`，也就是 `.\setup.cmd` 安装后注册的正式命令。若当前 shell 尚未刷新 `PATH`，可在仓库根目录使用 `.\adpos.cmd ...`。MCP 工具名（例如 `adp_status`）是稳定协议标识，保持不变。
 
-`adpos uninstall` 只移除全局命令注册。Runtime 数据、workspace 数据、缓存、工具、日志和仓库文件都会保留。
+`adpos uninstall` 只移除属于当前 checkout 的全局命令注册。Runtime 数据、workspace 数据、缓存、工具、日志和仓库文件都会保留。如果全局 `adpos` 属于另一个 checkout，默认会拒绝卸载；请到所属 checkout 中执行卸载，或在确认要移除该全局绑定时使用 `-Force`。
 
 ```powershell
 adpos setup [-IsoPath <path>] [-SkipIsoDownload] [-NonInteractive] [-Force]
-adpos uninstall
+adpos uninstall [-Force]
 adpos iso [ubuntu|almalinux|rocky|debian] [-Url <url>] [-Force] [-NonInteractive]
 adpos quickstart [-Distro <name>] [-IsoPath <path>] [-SkipIsoDownload] [-SkipDoctor] [-Force] [-NonInteractive]
 adpos init

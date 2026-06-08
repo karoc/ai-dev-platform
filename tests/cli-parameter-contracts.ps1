@@ -228,6 +228,7 @@ Assert-Contains -Name "setup forwards NoRegisterCommand to quickstart" -Text $se
 Assert-Contains -Name "setup command supports NoRegisterCommand parameter" -Text $setupCommand -Pattern 'param\([\s\S]*\[switch\]\$NoRegisterCommand'
 Assert-Contains -Name "setup command forwards NoRegisterCommand to setup script" -Text $setupCommand -Pattern 'if\s*\(\$NoRegisterCommand\)\s*\{[\s\S]*\$setupArgs\s*\+=\s*"-NoRegisterCommand"'
 Assert-Contains -Name "uninstall command delegates to uninstall script" -Text $uninstallCommand -Pattern 'uninstall\.ps1[\s\S]*-NonInteractive'
+Assert-Contains -Name "uninstall command supports force owner override" -Text $uninstallCommand -Pattern 'param\([\s\S]*\[switch\]\$Force[\s\S]*if\s*\(\$Force\)\s*\{[\s\S]*\$uninstallArgs\s*\+=\s*"-Force"'
 Assert-Contains -Name "setup cmd bootstraps missing PowerShell 7 with winget" -Text $setupCmd -Pattern ':InstallPowerShell7WithWinget[\s\S]*winget install --id Microsoft\.PowerShell --source winget --accept-package-agreements --accept-source-agreements --silent'
 Assert-Contains -Name "uninstall cmd falls back to Windows PowerShell 5.1" -Text $uninstallCmd -Pattern 'UseWindowsPowerShell[\s\S]*WindowsPowerShell\\v1\.0\\powershell\.exe[\s\S]*uninstall\.ps1'
 Assert-Contains -Name "adpos cmd allows uninstall without PowerShell 7" -Text $adposCmd -Pattern 'if /i "%~1"=="uninstall"[\s\S]*uninstall\.cmd'

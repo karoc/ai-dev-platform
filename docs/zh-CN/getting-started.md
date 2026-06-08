@@ -366,6 +366,8 @@ adpos uninstall
 
 这只会移除当前用户级别的 `adpos` PATH shim，不会删除 VM、workspace 文件、ISO cache、本地工具、日志或仓库文件。
 
+如果全局 `adpos` 属于另一个 checkout，默认会拒绝卸载。请到所属 checkout 中执行卸载，或在确认要移除该全局绑定时使用 `-Force`。
+
 如果当前 shell 中无法使用 `adpos`，可以在仓库根目录使用 wrapper：
 
 ```powershell

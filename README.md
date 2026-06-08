@@ -402,11 +402,11 @@ adpos workspace task validate frontend-browser-acceptance -Execute -ManifestPath
 
 The reference uses `adpos`, the formal command installed by `.\setup.cmd`. From the repository root, `.\adpos.cmd ...` is the local wrapper if your current shell has not refreshed `PATH`. MCP tool names such as `adp_status` stay unchanged protocol identifiers.
 
-`adpos uninstall` removes only the global command registration. Runtime data, workspace data, caches, tools, logs, and repository files remain untouched.
+`adpos uninstall` removes only the global command registration owned by the current checkout. Runtime data, workspace data, caches, tools, logs, and repository files remain untouched. If global `adpos` belongs to another checkout, uninstall refuses by default; run uninstall from the owning checkout, or use `-Force` only when you intend to remove that global binding.
 
 ```powershell
 adpos setup [-IsoPath <path>] [-SkipIsoDownload] [-NonInteractive] [-Force]
-adpos uninstall
+adpos uninstall [-Force]
 adpos iso [ubuntu|almalinux|rocky|debian] [-Url <url>] [-Force] [-NonInteractive]
 adpos quickstart [-Distro <name>] [-IsoPath <path>] [-SkipIsoDownload] [-SkipDoctor] [-Force] [-NonInteractive]
 adpos init

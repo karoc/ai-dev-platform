@@ -9,12 +9,26 @@ $projectRoot = Split-Path $PSScriptRoot -Parent
 function New-TestRegistration {
     param(
         [string]$RegistrationHome = "",
-        [bool]$IsDifferentHome = $false
+        [bool]$IsDifferentHome = $false,
+        [bool]$ShimExists = $true,
+        [bool]$ShimOwned = $true,
+        [bool]$UserPathHasBin = $true,
+        [string]$UserHome = "",
+        [string]$ProcessHome = ""
     )
 
+    if ([string]::IsNullOrWhiteSpace($UserHome)) {
+        $UserHome = $RegistrationHome
+    }
+
     return [pscustomobject]@{
-        Home            = $RegistrationHome
+        Home           = $RegistrationHome
         IsDifferentHome = $IsDifferentHome
+        ShimExists     = $ShimExists
+        ShimOwned      = $ShimOwned
+        UserPathHasBin = $UserPathHasBin
+        UserHome       = $UserHome
+        ProcessHome    = $ProcessHome
     }
 }
 
@@ -77,6 +91,22 @@ function Assert-RegistersWithEffects {
     )
 }
 
+function Assert-UninstallsWithEffects {
+    param(
+        [string]$Name,
+        [object]$Decision,
+        [bool]$Forced,
+        [string[]]$Effects,
+        [string]$Reason = ""
+    )
+
+    Assert-Equal -Name "$Name should uninstall" -Actual $Decision.ShouldUninstall -Expected $true
+    Assert-Equal -Name "$Name refused flag" -Actual $Decision.Refused -Expected $false
+    Assert-Equal -Name "$Name forced flag" -Actual $Decision.Forced -Expected $Forced
+    Assert-Equal -Name "$Name reason" -Actual $Decision.Reason -Expected $Reason
+    Assert-SequenceEqual -Name "$Name effects" -Actual $Decision.Effects -Expected $Effects
+}
+
 $currentHome = "D:\adp-os\v2"
 $previousHome = "D:\adp-os\v1"
 
@@ -134,6 +164,56 @@ $sameForceDecision = Get-ADPOSRegistrationDecision `
     -ProjectRoot $currentHome `
     -Force
 Assert-RegistersWithEffects -Name "same checkout force" -Decision $sameForceDecision -Replaced $false
+
+$sameUninstallDecision = Get-ADPOSUninstallDecision `
+    -ExistingRegistration (New-TestRegistration -RegistrationHome $currentHome -ProcessHome $currentHome) `
+    -ProjectRoot $currentHome
+Assert-UninstallsWithEffects -Name "same checkout uninstall" -Decision $sameUninstallDecision -Forced $false -Effects @(
+    "remove-shim",
+    "remove-user-path",
+    "remove-user-home",
+    "remove-process-home"
+)
+
+$otherUninstallDecision = Get-ADPOSUninstallDecision `
+    -ExistingRegistration (New-TestRegistration -RegistrationHome $previousHome -IsDifferentHome $true) `
+    -ProjectRoot $currentHome
+Assert-Equal -Name "different checkout uninstall should not uninstall" -Actual $otherUninstallDecision.ShouldUninstall -Expected $false
+Assert-Equal -Name "different checkout uninstall should refuse" -Actual $otherUninstallDecision.Refused -Expected $true
+Assert-Equal -Name "different checkout uninstall reason" -Actual $otherUninstallDecision.Reason -Expected "different-home"
+Assert-EmptySequence -Name "different checkout uninstall effects" -Actual $otherUninstallDecision.Effects
+
+$forceUninstallDecision = Get-ADPOSUninstallDecision `
+    -ExistingRegistration (New-TestRegistration -RegistrationHome $previousHome -IsDifferentHome $true -ProcessHome $previousHome) `
+    -ProjectRoot $currentHome `
+    -Force
+Assert-UninstallsWithEffects -Name "forced different checkout uninstall" -Decision $forceUninstallDecision -Forced $true -Effects @(
+    "remove-shim",
+    "remove-user-path",
+    "remove-user-home",
+    "remove-process-home"
+)
+
+$nonAdpShimDecision = Get-ADPOSUninstallDecision `
+    -ExistingRegistration (New-TestRegistration -RegistrationHome $currentHome -ShimExists $true -ShimOwned $false) `
+    -ProjectRoot $currentHome
+Assert-Equal -Name "non-ADP shim uninstall should refuse" -Actual $nonAdpShimDecision.Refused -Expected $true
+Assert-Equal -Name "non-ADP shim uninstall reason" -Actual $nonAdpShimDecision.Reason -Expected "non-adp-shim"
+Assert-EmptySequence -Name "non-ADP shim uninstall effects" -Actual $nonAdpShimDecision.Effects
+
+$staleUninstallDecision = Get-ADPOSUninstallDecision `
+    -ExistingRegistration (New-TestRegistration -RegistrationHome $currentHome -ShimExists $false -ShimOwned $false -ProcessHome $currentHome) `
+    -ProjectRoot $currentHome
+Assert-UninstallsWithEffects -Name "stale missing shim uninstall" -Decision $staleUninstallDecision -Forced $false -Effects @(
+    "remove-user-path",
+    "remove-user-home",
+    "remove-process-home"
+)
+
+$emptyUninstallDecision = Get-ADPOSUninstallDecision `
+    -ExistingRegistration (New-TestRegistration -RegistrationHome "" -ShimExists $false -ShimOwned $false -UserPathHasBin $false -UserHome "" -ProcessHome "") `
+    -ProjectRoot $currentHome
+Assert-UninstallsWithEffects -Name "empty uninstall" -Decision $emptyUninstallDecision -Forced $false -Effects @() -Reason "not-registered"
 
 $guidance = Get-ADPOSMultiCheckoutGuidance -LocalCommand ".\adpos.cmd"
 Assert-Equal -Name "guidance config path" -Actual $guidance.ConfigPath -Expected "configs\local.json"

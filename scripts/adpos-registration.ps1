@@ -227,6 +227,82 @@ function Get-ADPOSRegistrationDecision {
     }
 }
 
+function Get-ADPOSUninstallDecision {
+    param(
+        [Parameter(Mandatory = $true)]
+        [object]$ExistingRegistration,
+
+        [Parameter(Mandatory = $true)]
+        [string]$ProjectRoot,
+
+        [switch]$Force
+    )
+
+    $resolvedProjectRoot = Normalize-ADPOSPath -Path ([System.IO.Path]::GetFullPath($ProjectRoot))
+    $existingHome = Normalize-ADPOSPath -Path $ExistingRegistration.Home
+    $differentHome = $false
+    if (-not [string]::IsNullOrWhiteSpace($existingHome)) {
+        $differentHome = -not [string]::Equals($existingHome, $resolvedProjectRoot, [System.StringComparison]::OrdinalIgnoreCase)
+    }
+
+    if ([bool]$ExistingRegistration.ShimExists -and -not [bool]$ExistingRegistration.ShimOwned) {
+        return [pscustomobject]@{
+            Home            = $resolvedProjectRoot
+            RegisteredHome  = $existingHome
+            ShouldUninstall = $false
+            Refused         = $true
+            Forced          = [bool]$Force
+            Reason          = "non-adp-shim"
+            Effects         = @()
+        }
+    }
+
+    if ($differentHome -and -not $Force) {
+        return [pscustomobject]@{
+            Home            = $resolvedProjectRoot
+            RegisteredHome  = $existingHome
+            ShouldUninstall = $false
+            Refused         = $true
+            Forced          = $false
+            Reason          = "different-home"
+            Effects         = @()
+        }
+    }
+
+    $effects = @()
+    if ([bool]$ExistingRegistration.ShimExists -and [bool]$ExistingRegistration.ShimOwned) {
+        $effects += "remove-shim"
+    }
+    if ([bool]$ExistingRegistration.UserPathHasBin) {
+        $effects += "remove-user-path"
+    }
+
+    $userHome = Normalize-ADPOSPath -Path $ExistingRegistration.UserHome
+    if (-not [string]::IsNullOrWhiteSpace($userHome) -and ($Force -or [string]::Equals($userHome, $resolvedProjectRoot, [System.StringComparison]::OrdinalIgnoreCase))) {
+        $effects += "remove-user-home"
+    }
+
+    $processHome = Normalize-ADPOSPath -Path $ExistingRegistration.ProcessHome
+    if (-not [string]::IsNullOrWhiteSpace($processHome) -and ($Force -or [string]::Equals($processHome, $resolvedProjectRoot, [System.StringComparison]::OrdinalIgnoreCase))) {
+        $effects += "remove-process-home"
+    }
+
+    $reason = ""
+    if ($effects.Count -eq 0) {
+        $reason = "not-registered"
+    }
+
+    return [pscustomobject]@{
+        Home            = $resolvedProjectRoot
+        RegisteredHome  = $existingHome
+        ShouldUninstall = $true
+        Refused         = $false
+        Forced          = [bool]$Force
+        Reason          = $reason
+        Effects         = $effects
+    }
+}
+
 function Add-ADPOSPathEntry {
     param([string]$Path)
 
@@ -357,9 +433,30 @@ function Install-ADPOSCommandRegistration {
 }
 
 function Uninstall-ADPOSCommandRegistration {
+    param(
+        [string]$ProjectRoot = (Split-Path $PSScriptRoot -Parent),
+        [switch]$Force
+    )
+
+    $resolvedProjectRoot = [System.IO.Path]::GetFullPath($ProjectRoot)
     $binPath = Get-ADPOSCommandBinPath
     $shimPath = Get-ADPOSCommandShimPath
     $homeVariableName = Get-ADPOSHomeVariableName
+    $existingRegistration = Get-ADPOSExistingRegistration -ProjectRoot $resolvedProjectRoot
+    $decision = Get-ADPOSUninstallDecision -ExistingRegistration $existingRegistration -ProjectRoot $resolvedProjectRoot -Force:$Force
+
+    if ($decision.Refused) {
+        if ($decision.Reason -eq "different-home") {
+            throw "Refusing to uninstall global adpos registered for another ADP-OS checkout: $($decision.RegisteredHome). Run uninstall from that checkout, or pass -Force to remove this global binding."
+        }
+
+        if ($decision.Reason -eq "non-adp-shim") {
+            throw "Refusing to remove non-ADP file at $shimPath"
+        }
+
+        throw "Refusing to uninstall global adpos registration: $($decision.Reason)"
+    }
+
     $removedShim = $false
     $removedHome = $false
 
@@ -374,11 +471,14 @@ function Uninstall-ADPOSCommandRegistration {
     }
 
     Remove-ADPOSPathEntry -Path $binPath
-    if ([System.Environment]::GetEnvironmentVariable($homeVariableName, "User")) {
+    $userHome = Normalize-ADPOSPath -Path ([System.Environment]::GetEnvironmentVariable($homeVariableName, "User"))
+    if (-not [string]::IsNullOrWhiteSpace($userHome) -and ($Force -or [string]::Equals($userHome, (Normalize-ADPOSPath -Path $resolvedProjectRoot), [System.StringComparison]::OrdinalIgnoreCase))) {
         [System.Environment]::SetEnvironmentVariable($homeVariableName, $null, "User")
         $removedHome = $true
     }
-    if (Test-Path "Env:$homeVariableName") {
+
+    $processHome = Normalize-ADPOSPath -Path (Get-Item -Path "Env:$homeVariableName" -ErrorAction SilentlyContinue).Value
+    if (-not [string]::IsNullOrWhiteSpace($processHome) -and ($Force -or [string]::Equals($processHome, (Normalize-ADPOSPath -Path $resolvedProjectRoot), [System.StringComparison]::OrdinalIgnoreCase))) {
         Remove-Item -Path "Env:$homeVariableName" -ErrorAction SilentlyContinue
     }
 
@@ -392,5 +492,7 @@ function Uninstall-ADPOSCommandRegistration {
         ShimPath    = $shimPath
         RemovedShim = $removedShim
         RemovedHome = $removedHome
+        Forced      = [bool]$Force
+        Reason      = $decision.Reason
     }
 }

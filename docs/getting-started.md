@@ -366,6 +366,8 @@ adpos uninstall
 
 This only removes the user-level `adpos` PATH shim. It does not delete VMs, workspace files, ISO cache, local tools, logs, or repository files.
 
+If global `adpos` belongs to another checkout, uninstall refuses by default. Run uninstall from the owning checkout, or use `-Force` only when you intend to remove that global binding.
+
 If `adpos` is not available in the current shell, use the repository-root wrapper:
 
 ```powershell
