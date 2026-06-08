@@ -185,6 +185,46 @@ function Assert-NoRuntimeVmDirectories {
     }
 }
 
+function Write-BoundarySeedUserData {
+    param(
+        [string]$SandboxRoot,
+        [string]$SeedDirectoryName,
+        [string]$Address,
+        [int]$Prefix = 24,
+        [string]$Gateway = "203.0.113.2"
+    )
+
+    $seedDirectory = Join-Path (Join-Path (Join-Path $SandboxRoot ".adp-boundary-state") "vms") "seeds\$SeedDirectoryName"
+    New-Item -ItemType Directory -Path $seedDirectory -Force | Out-Null
+    $userData = @"
+#cloud-config
+network:
+  version: 2
+  ethernets:
+    ens33:
+      addresses:
+        - $Address/$Prefix
+      routes:
+        - to: default
+          via: $Gateway
+"@
+    Set-Content -LiteralPath (Join-Path $seedDirectory "user-data") -Value $userData -Encoding UTF8
+}
+
+function Write-BoundaryFakeRuntimeVm {
+    param(
+        [string]$SandboxRoot,
+        [string]$VmDirectoryName,
+        [string]$VmxFileName,
+        [string]$VmdkFileName
+    )
+
+    $vmDirectory = Join-Path (Join-Path (Join-Path $SandboxRoot ".adp-boundary-state") "vms") $VmDirectoryName
+    New-Item -ItemType Directory -Path $vmDirectory -Force | Out-Null
+    Set-Content -LiteralPath (Join-Path $vmDirectory $VmxFileName) -Value ".encoding = `"UTF-8`"" -Encoding ASCII
+    Set-Content -LiteralPath (Join-Path $vmDirectory $VmdkFileName) -Value "# boundary placeholder" -Encoding ASCII
+}
+
 function Install-BoundaryProviderStub {
     param([string]$SandboxRoot)
 
@@ -212,6 +252,23 @@ function Initialize-Provider {
 
 function Get-ProviderInfo {
     return [pscustomobject]@{ Success = $true; Data = "boundary-provider-stub"; Error = $null }
+}
+
+function Get-ProviderCapabilities {
+    return [pscustomobject]@{
+        Success = $true
+        Data = @{
+            SupportsNAT = $true
+            SupportsCloning = $false
+            SupportsLiveMigration = $false
+            SupportsSnapshots = $false
+            SupportsGuestExec = $false
+            SupportsDynamicResize = $false
+            ProviderType = "boundary-provider-stub"
+            ProviderVersion = "test"
+        }
+        Error = $null
+    }
 }
 
 function Get-VMStatus {
@@ -409,6 +466,30 @@ try {
     Assert-TextContains -Name "namespaced preflight provider resource lookup" -Text $preflightProviderLog -Pattern 'Get-VMStatus:v2-agent'
     Assert-TextNotContains -Name "namespaced preflight no legacy provider lookup" -Text $preflightProviderLog -Pattern 'Get-VMStatus:agent|Start-VM:agent'
     Assert-NoRuntimeVmDirectories -Name "namespaced up create preflight failure" -SandboxRoot $namespacedSandboxRoot
+
+    Write-BoundarySeedUserData -SandboxRoot $namespacedSandboxRoot -SeedDirectoryName "agent" -Address "203.0.113.201"
+    Write-BoundarySeedUserData -SandboxRoot $namespacedSandboxRoot -SeedDirectoryName "v2-agent" -Address "203.0.113.202"
+    Write-BoundaryFakeRuntimeVm -SandboxRoot $namespacedSandboxRoot -VmDirectoryName "adp-v2-agent" -VmxFileName "adp-v2-agent.vmx" -VmdkFileName "adp-v2-agent.vmdk"
+
+    $namespacedStatus = Assert-CommandDoesNotMutateLocalConfig `
+        -Name "namespaced status seed drift" `
+        -SandboxRoot $namespacedSandboxRoot `
+        -ScriptPath $namespacedCliScript `
+        -Arguments @("status", "agent") `
+        -AllowedExitCodes @(0)
+
+    Assert-TextContains -Name "namespaced status uses resource seed path" -Text $namespacedStatus.Output -Pattern 'network drift: seed uses 203\.0\.113\.202/24|网络漂移:\s+seed 使用 203\.0\.113\.202/24'
+    Assert-TextNotContains -Name "namespaced status does not read legacy seed path" -Text $namespacedStatus.Output -Pattern '203\.0\.113\.201'
+
+    $namespacedDoctor = Assert-CommandDoesNotMutateLocalConfig `
+        -Name "namespaced doctor seed drift" `
+        -SandboxRoot $namespacedSandboxRoot `
+        -ScriptPath $namespacedCliScript `
+        -Arguments @("doctor") `
+        -AllowedExitCodes @(0, 1)
+
+    Assert-TextContains -Name "namespaced doctor uses resource seed path" -Text $namespacedDoctor.Output -Pattern 'agent seed network drift \(seed 203\.0\.113\.202/24, configured 203\.0\.113\.135\)'
+    Assert-TextNotContains -Name "namespaced doctor does not read legacy seed path" -Text $namespacedDoctor.Output -Pattern '203\.0\.113\.201'
 } finally {
     $tempRoot = [System.IO.Path]::GetTempPath()
     foreach ($path in @($namespacedSandboxRoot)) {

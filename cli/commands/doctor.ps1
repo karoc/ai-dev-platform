@@ -126,7 +126,8 @@ function Get-DoctorSeedNetwork {
     param([string]$TargetRuntime)
 
     $vmStore = Resolve-Path "vm_store"
-    $seedUserData = Join-Path $vmStore "seeds\$TargetRuntime\user-data"
+    $resourceNames = Get-ADPRuntimeResourceNames -TargetRuntime $TargetRuntime
+    $seedUserData = Join-Path $vmStore "seeds\$($resourceNames.RuntimeResourceName)\user-data"
     if (-not (Test-Path -LiteralPath $seedUserData)) {
         return $null
     }
