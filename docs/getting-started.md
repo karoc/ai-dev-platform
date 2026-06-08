@@ -88,6 +88,25 @@ cd ai-dev-platform
 > [!TIP]
 > After setup, use `adpos` from any directory. If the current shell has not picked up the updated user `PATH` yet, open a new terminal or use `.\adpos.cmd` from the repository root. ADP-OS exposes `adpos` as the only user-facing shell command.
 
+#### Using a Second Checkout
+
+If this is a second local checkout or a different ADP-OS version on the same Windows user account, setup may detect that global `adpos` already points to another checkout. You can replace that binding, or keep it and use `.\adpos.cmd` inside this checkout.
+
+Before running the same runtime in two checkouts at the same time, isolate the new checkout in `configs\local.json`:
+
+- Use a different `platform.paths.workspace_root`.
+- Use a different `platform.paths.vm_store`.
+- Use different `topology.<runtime>.static_ip` values for concurrently running runtimes.
+
+Then check the local checkout before creating or syncing VMs:
+
+```powershell
+.\adpos.cmd doctor
+.\adpos.cmd status agent
+.\adpos.cmd sync status
+.\adpos.cmd up agent -Plan
+```
+
 ### Step 2: Run the Guided Setup
 
 **One-click:** Run `.\setup.cmd` from the repo root:

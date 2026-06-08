@@ -118,7 +118,16 @@ cd ai-dev-platform
 
 设置流程还会为当前用户注册全局 `adpos` 命令。安装完成后，可以在任意目录运行 `adpos` 操作 ADP-OS；ADP-OS 对外只暴露 `adpos` 这一个用户 shell 命令。如果当前 shell 还没有刷新用户 `PATH`，请打开一个新终端；在仓库根目录下使用 `.\adpos.cmd` 作为本地 wrapper。
 
-多个 ADP-OS checkout 可以共存，但全局 `adpos` 同一时间只能指向其中一个。setup 如果检测到已有全局绑定指向其他 checkout，会询问是否替换；如果保留现有绑定，请在新 checkout 根目录使用 `.\adpos.cmd`。如果要同时运行多个 VM 环境，请先配置不同的本机路径和网络设置，例如 workspace root、VM store、静态 IP。
+多个 ADP-OS checkout 可以共存，但全局 `adpos` 同一时间只能指向其中一个。setup 如果检测到已有全局绑定指向其他 checkout，会询问是否替换；如果保留现有绑定，请在新 checkout 根目录使用 `.\adpos.cmd`。如果要同时运行多个 VM 环境，请先在新 checkout 被忽略的 `configs\local.json` 中配置不同的本机路径和网络设置：至少包括 `platform.paths.workspace_root`、`platform.paths.vm_store`，以及每个会同时运行的 `topology.<runtime>.static_ip`。然后在新 checkout 本地检查：
+
+```powershell
+.\adpos.cmd doctor
+.\adpos.cmd status agent
+.\adpos.cmd sync status
+.\adpos.cmd up agent -Plan
+```
+
+如果已有另一个同名 VM 正在运行，ADP-OS 会报告 `duplicate VM`；在停止 stale VM 或隔离 checkout 前，`up` 和 `sync start` 会在修改 runtime state 前停止。
 
 **选项：**
 

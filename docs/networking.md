@@ -38,6 +38,8 @@ Before creating or networking runtimes, confirm that VMware Workstation's NAT ne
 4. Confirm the subnet is `192.168.242.0` with prefix `/24` and that the NAT gateway is `192.168.242.2`.
 5. Confirm the ADP runtime static IPs are inside that subnet and outside any DHCP range used by VMware.
 
+If you run multiple ADP-OS checkouts or versions on the same VMware NAT network, concurrently running runtimes must not share a `static_ip`. Set different `topology.<runtime>.static_ip` values in each checkout's ignored `configs\local.json` before creating or starting the VM.
+
 Run:
 
 ```powershell

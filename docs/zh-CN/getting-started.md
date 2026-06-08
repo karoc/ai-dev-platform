@@ -88,6 +88,25 @@ cd ai-dev-platform
 > [!TIP]
 > 安装完成后，你可以在任意目录直接使用 `adpos`。如果当前 shell 尚未刷新用户 `PATH`，请打开新终端，或在仓库根目录使用 `.\adpos.cmd`。ADP-OS 对外只暴露 `adpos` 这一个用户 shell 命令。
 
+#### 使用第二个 Checkout
+
+如果这是同一 Windows 用户账户下的第二个本地 checkout，或另一个 ADP-OS 版本，setup 可能会检测到全局 `adpos` 已经指向另一个 checkout。你可以替换该绑定，也可以保留它，并在当前 checkout 中使用 `.\adpos.cmd`。
+
+如果要让两个 checkout 同时运行同一个 runtime，请先在当前 checkout 的 `configs\local.json` 中完成隔离：
+
+- 使用不同的 `platform.paths.workspace_root`。
+- 使用不同的 `platform.paths.vm_store`。
+- 为会同时运行的 runtime 使用不同的 `topology.<runtime>.static_ip`。
+
+创建或同步 VM 前，先在当前 checkout 本地检查：
+
+```powershell
+.\adpos.cmd doctor
+.\adpos.cmd status agent
+.\adpos.cmd sync status
+.\adpos.cmd up agent -Plan
+```
+
 ### 第 2 步：运行引导式设置
 
 **一键设置：** 在仓库根目录运行 `.\setup.cmd`：

@@ -222,6 +222,8 @@ If `status` reports `duplicate VM`, another VMX with the same runtime name is ru
 
 When a duplicate is present, `status` reports SSH as `ambiguous-duplicate` because a successful connection to the configured IP does not prove that the current checkout's VMX is the guest that answered.
 
+The same duplicate-running-VM check is a preflight gate for `adpos up <runtime>` and `adpos sync start <runtime>`. Plan mode shows the conflict without changing state; non-plan runtime start/create and sync start stop before changing VMs, SSH aliases, or Mutagen sessions. For multi-checkout setup details, see [Troubleshooting](troubleshooting.md#multiple-checkouts-and-resource-conflicts) and [Configuration](configuration.md#local-overrides).
+
 If `status` reports `network drift`, the VM was created with an older seed network than the current configuration. Editing `configs\local.json` after VM creation does not rewrite guest networking. Use the remediation path that matches the situation:
 
 - Rebuild when the VM can be recreated. Preview first with `adpos destroy <runtime> -Plan`, then recreate with `adpos up <runtime>`.

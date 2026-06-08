@@ -38,6 +38,8 @@ sandbox   192.168.242.137
 4. 确认 subnet 是 `192.168.242.0`，prefix 是 `/24`，NAT gateway 是 `192.168.242.2`。
 5. 确认 ADP 运行时静态 IP 位于该子网内，并且不落在 VMware DHCP 已使用的地址范围中。
 
+如果在同一个 VMware NAT 网络中运行多个 ADP-OS checkout 或版本，同时运行的 runtimes 不能共用同一个 `static_ip`。请在创建或启动 VM 前，在每个 checkout 被忽略的 `configs\local.json` 中设置不同的 `topology.<runtime>.static_ip`。
+
 运行：
 
 ```powershell

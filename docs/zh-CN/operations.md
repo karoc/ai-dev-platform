@@ -222,6 +222,8 @@ adpos status frontend
 
 当存在 duplicate 时，`status` 会把 SSH 报告为 `ambiguous-duplicate`，因为即使连接配置 IP 成功，也不能证明响应的是当前 checkout 对应的 VMX。
 
+同一个 duplicate-running-VM 检查也是 `adpos up <runtime>` 和 `adpos sync start <runtime>` 的 preflight gate。Plan mode 会显示冲突但不修改 state；非 plan 的 runtime start/create 和 sync start 会在修改 VM、SSH alias 或 Mutagen session 前停止。多 checkout 设置细节见[排障](troubleshooting.md#多-checkout-与资源冲突)和[配置说明](configuration.md#本地覆盖)。
+
 如果 `status` 报告 `network drift`，说明该 VM 是用比当前配置更旧的 seed 网络创建的。VM 创建完成后再编辑 `configs\local.json` 不会自动重写 guest 内部网络。根据实际情况选择 remediation path：
 
 - VM 可以重建时走 rebuild path。先用 `adpos destroy <runtime> -Plan` 预览，再用 `adpos up <runtime>` 重建。
