@@ -115,7 +115,7 @@ Bootstrap scripts are idempotent and use marker files in `/home/adp`.
 
 ## Workspace Fabric
 
-Mutagen integration is implemented in `adapters\windows\mutagen\mutagen.ps1`.
+Mutagen integration is exposed through `adapters\windows\mutagen\mutagen.ps1`, with focused helper modules in the same adapter directory.
 
 ADP creates one sync session per runtime:
 

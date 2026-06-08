@@ -115,7 +115,7 @@ Bootstrap 脚本是幂等的，并使用 `/home/adp` 下的 marker 文件记录�
 
 ## 工作区 Fabric
 
-Mutagen 集成由 `adapters\windows\mutagen\mutagen.ps1` 实现。
+Mutagen 集成通过 `adapters\windows\mutagen\mutagen.ps1` 暴露，同一 adapter 目录下包含按职责拆分的辅助模块。
 
 ADP 为每个运行时创建一个同步 session：
 
