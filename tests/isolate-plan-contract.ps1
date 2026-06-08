@@ -109,6 +109,7 @@ function Assert-ProductionFileDoesNotCallCommand {
 
 $isolateCommandText = Get-Content -LiteralPath (Join-Path $projectRoot "cli\commands\isolate.ps1") -Raw -Encoding UTF8
 $isolationPlannerText = Get-Content -LiteralPath (Join-Path $projectRoot "core\diagnostics\checkout-isolation.ps1") -Raw -Encoding UTF8
+$localConfigEditText = Get-Content -LiteralPath (Join-Path $projectRoot "core\config\local-config-edit.ps1") -Raw -Encoding UTF8
 $forbiddenMutationCommands = @(
     "Set-Content",
     "Add-Content",
@@ -131,12 +132,35 @@ $forbiddenMutationCommands = @(
     "Start-VM",
     "Stop-VM"
 )
+$forbiddenLocalConfigHostMutationCommands = @(
+    "Add-Content",
+    "Out-File",
+    "New-Item",
+    "Remove-Item",
+    "Rename-Item",
+    "Move-Item",
+    "Set-Item",
+    "Set-ItemProperty",
+    "New-ItemProperty",
+    "Remove-ItemProperty",
+    "Install-ADPOSCommandRegistration",
+    "Uninstall-ADPOSCommandRegistration",
+    "Add-ADPOSPathEntry",
+    "Remove-ADPOSPathEntry",
+    "Set-LocalNetworkConfig",
+    "Initialize-VMware",
+    "Start-VM",
+    "Stop-VM"
+)
 
 Assert-ProductionFileDoesNotCallCommand -RelativePath "cli\commands\isolate.ps1" -ForbiddenCommands $forbiddenMutationCommands
 Assert-ProductionFileDoesNotCallCommand -RelativePath "core\diagnostics\checkout-isolation.ps1" -ForbiddenCommands $forbiddenMutationCommands
+Assert-ProductionFileDoesNotCallCommand -RelativePath "core\config\local-config-edit.ps1" -ForbiddenCommands $forbiddenLocalConfigHostMutationCommands
 Assert-NotContains -Name "isolate command does not source VMware adapter" -Text $isolateCommandText -Pattern 'adapters\\windows\\vmware\\vmware\.ps1|Initialize-VMware'
 Assert-NotContains -Name "isolate command does not register global command" -Text $isolateCommandText -Pattern 'SetEnvironmentVariable|ADPOS_HOME|Install-ADPOSCommandRegistration'
 Assert-NotContains -Name "isolation planner does not register global command" -Text $isolationPlannerText -Pattern 'SetEnvironmentVariable|ADPOS_HOME|Install-ADPOSCommandRegistration'
+Assert-NotContains -Name "local config edit helper does not mutate host state" -Text $localConfigEditText -Pattern 'SetEnvironmentVariable|ADPOS_HOME|Install-ADPOSCommandRegistration|Initialize-VMware|Start-VM|Stop-VM|mutagen|ssh'
+Assert-Contains -Name "local config edit helper scopes writes to local config" -Text $localConfigEditText -Pattern 'function\s+Backup-ADPLocalConfig[\s\S]*Copy-Item[\s\S]*function\s+Set-ADPCheckoutIsolationLocalConfig[\s\S]*Set-Content'
 
 $pwsh = Get-TestPwshPath
 $beforeHash = Get-OptionalFileHash -Path $localConfigPath
@@ -162,6 +186,7 @@ Assert-Contains -Name "isolate plan JSON snippet" -Text $output -Pattern '"runti
 Assert-Contains -Name "isolate plan validation commands" -Text $output -Pattern "up agent -Plan"
 Assert-Contains -Name "isolate plan no mutation statement" -Text $output -Pattern "Plan only: configs\\\\local\.json will not be changed"
 Assert-Contains -Name "isolate plan no host mutation statement" -Text $output -Pattern "No files, VMs, SSH aliases, sync sessions, PATH entries, or global adpos bindings were changed"
+Assert-Contains -Name "isolate plan apply guidance" -Text $output -Pattern "isolate -Apply -Namespace v2"
 
 $global:LASTEXITCODE = 0
 $invalidNamespaceOutput = & $pwsh -NoProfile -ExecutionPolicy Bypass -File $cliPath isolate -Plan -Namespace default 2>&1 | Out-String

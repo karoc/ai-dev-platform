@@ -119,6 +119,14 @@ Sync profiles 配置 Mutagen 行为和忽略列表。
 .\adpos.cmd isolate -Plan -Namespace v2
 ```
 
+确认预览后，可以直接应用这份被忽略的本机覆盖：
+
+```powershell
+.\adpos.cmd isolate -Apply -Namespace v2
+```
+
+`-Apply` 只写入当前 checkout 的 `configs\local.json`，并把已有文件备份为 `configs\local.json.bak.<timestamp>`。它不会修改 VM、SSH alias、sync session、`PATH` 或全局 `adpos` 绑定。
+
 至少要为当前 checkout 计划检查或运行的 runtime 配置不同的 `runtime_namespace`、`workspace_root`、`vm_store`、provider `vm_store` 和 `topology.<runtime>.static_ip`：
 
 ```json

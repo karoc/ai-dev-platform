@@ -106,6 +106,12 @@ cd ai-dev-platform
 - 使用匹配的 `platform.provider.config.vm_store`。
 - 为可能从不同 checkout 激活的 runtime 使用不同的 `topology.<runtime>.static_ip`。
 
+如果希望 ADP-OS 只写入被忽略的本机覆盖文件并自动备份，运行：
+
+```powershell
+.\adpos.cmd isolate -Apply -Namespace v2
+```
+
 创建或同步 VM 前，先在当前 checkout 本地检查：
 
 ```powershell

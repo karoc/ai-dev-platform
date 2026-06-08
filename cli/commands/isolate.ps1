@@ -9,13 +9,14 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-if ($Apply) {
-    Write-ErrorLog -Message (Get-UIText -English "-Apply is not implemented for isolate yet. Use: adpos isolate -Plan" -Chinese "isolate 暂不支持 -Apply。请使用: adpos isolate -Plan") -Component "cli.isolate"
+if ($Plan -and $Apply) {
+    Write-ErrorLog -Message (Get-UIText -English "Use either -Plan or -Apply, not both." -Chinese "-Plan 与 -Apply 只能二选一。") -Component "cli.isolate"
     exit 1
 }
 
 . (Join-Path (Get-ProjectRoot) "core\diagnostics\resource-conflicts.ps1")
 . (Join-Path (Get-ProjectRoot) "core\diagnostics\checkout-isolation.ps1")
+. (Join-Path (Get-ProjectRoot) "core\config\local-config-edit.ps1")
 
 $isolationPlan = Get-ADPCheckoutIsolationPlan -RequestedNamespace $Namespace
 $commandContext = Get-ADPCheckoutCommandContext
@@ -55,13 +56,32 @@ Write-UIHost -English "configs\\local.json snippet:" -Chinese "configs\\local.js
 ConvertTo-ADPCheckoutIsolationLocalJson -IsolationPlan $isolationPlan
 
 Write-Host ""
-Write-UIHost -English "Validation commands after editing configs\\local.json:" -Chinese "编辑 configs\\local.json 后的验收命令:" -ForegroundColor Yellow
+Write-UIHost -English "Validation commands after the local override is in place:" -Chinese "本机覆盖配置就绪后的验收命令:" -ForegroundColor Yellow
 Write-Host "  $commandPrefix doctor" -ForegroundColor DarkGray
 Write-Host "  $commandPrefix status $validationRuntime" -ForegroundColor DarkGray
 Write-Host "  $commandPrefix sync status" -ForegroundColor DarkGray
 Write-Host "  $commandPrefix up $validationRuntime -Plan" -ForegroundColor DarkGray
 
 Write-Host ""
-Write-UIHost -English "Plan only: configs\\local.json will not be changed." -Chinese "仅预览：不会修改 configs\\local.json。" -ForegroundColor Cyan
-Write-UIHost -English "No files, VMs, SSH aliases, sync sessions, PATH entries, or global adpos bindings were changed." -Chinese "未修改任何文件、VM、SSH alias、sync session、PATH 项或全局 adpos 绑定。" -ForegroundColor Cyan
+if ($Apply) {
+    $applyResult = Set-ADPCheckoutIsolationLocalConfig -IsolationPlan $isolationPlan
+    if ($applyResult.Changed) {
+        Write-UIHost -English "Applied: updated configs\\local.json with checkout isolation overrides." -Chinese "已应用：已用 checkout 隔离覆盖配置更新 configs\\local.json。" -ForegroundColor Green
+        if ($applyResult.BackupPath) {
+            Write-UIHost -English "Backup:  $($applyResult.BackupPath)" -Chinese "备份:    $($applyResult.BackupPath)" -ForegroundColor DarkGray
+        } else {
+            Write-UIHost -English "Backup:  none; configs\\local.json did not exist before apply." -Chinese "备份:    无；apply 前 configs\\local.json 不存在。" -ForegroundColor DarkGray
+        }
+    } else {
+        Write-UIHost -English "Already isolated: configs\\local.json was not changed." -Chinese "已隔离：configs\\local.json 未发生变化。" -ForegroundColor Green
+        Write-UIHost -English "Backup:  none; no write was needed." -Chinese "备份:    无；无需写入。" -ForegroundColor DarkGray
+    }
+
+    Write-UIHost -English "Preserved: unrelated configs\\local.json fields were left unchanged." -Chinese "保留:    configs\\local.json 中无关字段保持不变。" -ForegroundColor DarkGray
+    Write-UIHost -English "Not changed: VMs, SSH aliases, sync sessions, PATH entries, or global adpos bindings." -Chinese "未修改:  VM、SSH alias、sync session、PATH 项或全局 adpos 绑定。" -ForegroundColor Cyan
+} else {
+    Write-UIHost -English "Plan only: configs\\local.json will not be changed." -Chinese "仅预览：不会修改 configs\\local.json。" -ForegroundColor Cyan
+    Write-UIHost -English "No files, VMs, SSH aliases, sync sessions, PATH entries, or global adpos bindings were changed." -Chinese "未修改任何文件、VM、SSH alias、sync session、PATH 项或全局 adpos 绑定。" -ForegroundColor Cyan
+    Write-UIHost -English "To apply this local override: $commandPrefix isolate -Apply -Namespace $($isolationPlan.Namespace)" -Chinese "如要应用该本机覆盖: $commandPrefix isolate -Apply -Namespace $($isolationPlan.Namespace)" -ForegroundColor DarkGray
+}
 Write-Host ""

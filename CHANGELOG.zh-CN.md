@@ -18,6 +18,7 @@
 - 新增一键安全卸载入口：`adpos uninstall` 以及仓库根目录的 `uninstall.cmd` wrapper。默认卸载只移除全局 `adpos` 命令注册，不删除 VM、workspace、ISO 缓存、本地工具、日志或仓库文件。
 - 改进 stock Windows shell 的一键 bootstrap 行为。缺少 `pwsh.exe` 时，`setup.cmd`、`setup.ps1` 和 `install.ps1` 现在会尝试用 `winget` 安装 PowerShell 7，然后继续用 PowerShell 7 执行 setup。PowerShell 7 不可用时，`uninstall.cmd` 也可以通过 Windows PowerShell 5.1 移除命令注册。
 - 新增 `adpos isolate -Plan [-Namespace <name>]`，用于预览多 checkout 的本机隔离覆盖配置，并且不会修改 `configs\local.json`、VM、SSH alias、sync session、`PATH` 或全局 `adpos` 绑定。
+- 新增 `adpos isolate -Apply [-Namespace <name>]`，可安全地把预览出的 checkout 隔离覆盖配置写入当前 checkout 被忽略的 `configs\local.json`，保留无关本机字段，并在已有文件时先创建备份。
 
 ### 变更
 

@@ -119,6 +119,14 @@ For a second checkout or a parallel local version, configure isolation before cr
 .\adpos.cmd isolate -Plan -Namespace v2
 ```
 
+After reviewing the preview, you can apply the ignored local override directly:
+
+```powershell
+.\adpos.cmd isolate -Apply -Namespace v2
+```
+
+`-Apply` writes only `configs\local.json` in the current checkout and backs up an existing file as `configs\local.json.bak.<timestamp>`. It does not change VMs, SSH aliases, sync sessions, `PATH`, or the global `adpos` binding.
+
 At minimum, use a different `runtime_namespace`, `workspace_root`, `vm_store`, provider `vm_store`, and `topology.<runtime>.static_ip` for the runtime you plan to inspect or run from that checkout:
 
 ```json

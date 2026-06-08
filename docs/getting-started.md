@@ -106,6 +106,12 @@ Copy or adapt the suggested `configs\local.json` snippet so the new checkout is 
 - Use a matching `platform.provider.config.vm_store`.
 - Use different `topology.<runtime>.static_ip` values for runtimes that may be active from different checkouts.
 
+To let ADP-OS write only the ignored local override with a backup, run:
+
+```powershell
+.\adpos.cmd isolate -Apply -Namespace v2
+```
+
 Then check the local checkout before creating or syncing VMs:
 
 ```powershell

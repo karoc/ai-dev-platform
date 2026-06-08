@@ -81,7 +81,13 @@ Runtime 不会按版本号自动隔离。可能冲突的资源包括：
 .\adpos.cmd isolate -Plan -Namespace v2
 ```
 
-复制并按需调整建议的、被忽略的 `configs\local.json` 覆盖配置。保持 `runtime_namespace`、`workspace_root`、`vm_store`、provider `vm_store` 和每个活跃 runtime 的 `static_ip` 互不相同，然后运行：
+复制并按需调整建议的、被忽略的 `configs\local.json` 覆盖配置，或让 ADP-OS 应用并自动备份：
+
+```powershell
+.\adpos.cmd isolate -Apply -Namespace v2
+```
+
+保持 `runtime_namespace`、`workspace_root`、`vm_store`、provider `vm_store` 和每个活跃 runtime 的 `static_ip` 互不相同，然后运行：
 
 ```powershell
 .\adpos.cmd doctor

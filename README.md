@@ -140,7 +140,13 @@ Before using a second checkout, preview the local isolation plan from that check
 .\adpos.cmd isolate -Plan -Namespace v2
 ```
 
-Copy or adapt the suggested ignored `configs\local.json` snippet so the checkout uses distinct local paths and network settings: at minimum `platform.runtime_namespace`, `platform.paths.workspace_root`, `platform.paths.vm_store`, `platform.provider.config.vm_store`, and each relevant `topology.<runtime>.static_ip`. With `platform.runtime_namespace` such as `v2`, `adpos up agent` targets resource `v2-agent` and VM `adp-v2-agent` for first creation instead of the legacy `adp-agent`. Then check the new checkout locally:
+After reviewing the preview, either copy or adapt the suggested ignored `configs\local.json` snippet, or let ADP-OS write only that ignored local file with a backup:
+
+```powershell
+.\adpos.cmd isolate -Apply -Namespace v2
+```
+
+The isolated checkout should use distinct local paths and network settings: at minimum `platform.runtime_namespace`, `platform.paths.workspace_root`, `platform.paths.vm_store`, `platform.provider.config.vm_store`, and each relevant `topology.<runtime>.static_ip`. With `platform.runtime_namespace` such as `v2`, `adpos up agent` targets resource `v2-agent` and VM `adp-v2-agent` for first creation instead of the legacy `adp-agent`. Then check the new checkout locally:
 
 ```powershell
 .\adpos.cmd doctor

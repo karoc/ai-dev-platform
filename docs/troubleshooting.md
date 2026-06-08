@@ -83,7 +83,13 @@ Before using the second checkout for runtime work, preview the local isolation s
 .\adpos.cmd isolate -Plan -Namespace v2
 ```
 
-Copy and adapt the suggested ignored `configs\local.json` overrides. Keep `runtime_namespace`, `workspace_root`, `vm_store`, provider `vm_store`, and each active runtime's `static_ip` distinct, then run:
+Copy and adapt the suggested ignored `configs\local.json` overrides, or apply them with a local backup:
+
+```powershell
+.\adpos.cmd isolate -Apply -Namespace v2
+```
+
+Keep `runtime_namespace`, `workspace_root`, `vm_store`, provider `vm_store`, and each active runtime's `static_ip` distinct, then run:
 
 ```powershell
 .\adpos.cmd doctor

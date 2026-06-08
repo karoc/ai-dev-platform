@@ -56,10 +56,12 @@ $cli = Read-Text "cli\adp.ps1"
 $cliHelp = Read-Text "cli\lib\help.ps1"
 $suggestions = Read-Text "cli\lib\suggestions.ps1"
 $configModule = Read-Text "core\config\config.ps1"
+$localConfigEdit = Read-Text "core\config\local-config-edit.ps1"
 $logger = Read-Text "core\logging\logger.ps1"
 $logs = Read-Text "cli\commands\logs.ps1"
 $sync = Read-Text "cli\commands\sync.ps1"
 $network = Read-Text "cli\commands\network.ps1"
+$isolate = Read-Text "cli\commands\isolate.ps1"
 $doctor = Read-Text "cli\commands\doctor.ps1"
 $status = Read-Text "cli\commands\status.ps1"
 $sshAdapter = Read-Text "adapters\windows\ssh\ssh.ps1"
@@ -113,6 +115,7 @@ Assert-Contains -Name "shared validation checks Mutagen remediation behavior" -T
 Assert-Contains -Name "shared validation checks adpos registration contract" -Text $validate -Pattern '\.\\tests\\adpos-registration-contract\.ps1'
 Assert-Contains -Name "shared validation checks adpos registration decisions" -Text $validate -Pattern '\.\\tests\\adpos-registration-decision\.ps1'
 Assert-Contains -Name "shared validation checks checkout isolation plan" -Text $validate -Pattern '\.\\tests\\isolate-plan-contract\.ps1'
+Assert-Contains -Name "shared validation checks checkout isolation apply" -Text $validate -Pattern '\.\\tests\\isolate-apply-contract\.ps1'
 Assert-Contains -Name "shared validation checks resource conflict contracts" -Text $validate -Pattern '\.\\tests\\resource-conflicts-contract\.ps1'
 Assert-Contains -Name "shared validation checks VMware runtime layout contracts" -Text $validate -Pattern '\.\\tests\\vmware-runtime-layout-contract\.ps1'
 Assert-Contains -Name "shared validation checks SSH alias ownership contracts" -Text $validate -Pattern '\.\\tests\\ssh-alias-contract\.ps1'
@@ -151,13 +154,16 @@ Assert-Contains -Name "CLI help includes status command" -Text $cliHelp -Pattern
 Assert-Contains -Name "CLI help includes workspace command" -Text $cliHelp -Pattern 'adpos workspace <command> \[-ManifestPath <path>\] \[-Plan\] \[-Markdown\]'
 Assert-Contains -Name "CLI help includes sandbox command" -Text $cliHelp -Pattern 'adpos sandbox <command\.\.\.> \[-Distro <name>\] \[-IsoPath <path>\]'
 Assert-Contains -Name "CLI help includes capabilities command" -Text $cliHelp -Pattern 'adpos capabilities \[-Json\]"; Summary = "Show supported and planned runtime capabilities'
-Assert-Contains -Name "CLI help includes isolate command" -Text $cliHelp -Pattern 'adpos isolate \[-Plan\] \[-Namespace <name>\]"; Summary = "Plan multi-checkout local isolation settings'
+Assert-Contains -Name "CLI help includes isolate command" -Text $cliHelp -Pattern 'adpos isolate \[-Plan\|-Apply\] \[-Namespace <name>\]"; Summary = "Plan or apply multi-checkout local isolation settings'
 Assert-Contains -Name "CLI help includes local network configuration command" -Text $cliHelp -Pattern 'adpos network configure-local \[-Plan\|-Apply\]"; Summary = "Plan or apply local VMnet8 overrides'
 Assert-Contains -Name "CLI help includes uninstall command in English" -Text $cliHelp -Pattern 'adpos uninstall"; Summary = "One-click uninstall of global adpos registration; VMs/workspaces stay untouched'
 Assert-Contains -Name "CLI help includes uninstall command in Chinese" -Text $cliHelp -Pattern 'adpos uninstall"; Summary = "一键卸载全局 adpos 命令注册，不删除 VM 或 workspace'
 Assert-Contains -Name "completion registers only adpos user commands" -Text $completion -Pattern 'Register-ArgumentCompleter -CommandName adpos,adpos\.cmd'
 Assert-Contains -Name "completion includes setup isolate and uninstall commands" -Text $completion -Pattern '"setup"[\s\S]*"isolate"[\s\S]*"uninstall"[\s\S]*complete -F _adpos_completion adpos adpos\.cmd'
 Assert-NotContains -Name "completion does not expose retired adp shell aliases" -Text $completion -Pattern 'adp,adp\.cmd|adp\.ps1|complete -F _adpos_completion[^\r\n]*\sadp(\.cmd)?(\s|$)'
+Assert-Contains -Name "isolate command supports explicit apply only for local config" -Text $isolate -Pattern 'Use either -Plan or -Apply, not both[\s\S]*Set-ADPCheckoutIsolationLocalConfig[\s\S]*Applied: updated configs\\\\local\.json[\s\S]*Not changed: VMs, SSH aliases, sync sessions, PATH entries, or global adpos bindings'
+Assert-Contains -Name "local config edit helper preserves and backs up local config" -Text $localConfigEdit -Pattern 'function\s+Backup-ADPLocalConfig[\s\S]*Copy-Item[\s\S]*function\s+Set-ADPCheckoutIsolationLocalConfig[\s\S]*ChangedFields[\s\S]*Set-Content'
+Assert-NotContains -Name "local config edit helper avoids host state mutation" -Text $localConfigEdit -Pattern 'SetEnvironmentVariable|Install-ADPOSCommandRegistration|Uninstall-ADPOSCommandRegistration|Initialize-VMware|Start-VM|Stop-VM|mutagen|ssh'
 Assert-Contains -Name "configuration supports UI language preference" -Text $configModule -Pattern 'function\s+Get-UILanguage[\s\S]*ADP_LANG[\s\S]*config\.ui\.language[\s\S]*return "en"'
 Assert-Contains -Name "configuration normalizes Simplified Chinese language aliases" -Text $configModule -Pattern 'function\s+Normalize-UILanguage[\s\S]*"zh"\s*\{\s*return "zh-CN"[\s\S]*"zh-cn"\s*\{\s*return "zh-CN"[\s\S]*"zh_cn"\s*\{\s*return "zh-CN"'
 Assert-Contains -Name "configuration exposes shared localized UI helpers" -Text $configModule -Pattern 'function\s+Get-UIText[\s\S]*Get-UILanguage[\s\S]*zh-CN[\s\S]*function\s+Write-UIHost[\s\S]*Get-UIText'

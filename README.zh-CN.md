@@ -124,7 +124,13 @@ cd ai-dev-platform
 .\adpos.cmd isolate -Plan -Namespace v2
 ```
 
-复制或调整输出的 `configs\local.json` 片段，让该 checkout 使用不同的本机路径和网络设置：至少包括 `platform.runtime_namespace`、`platform.paths.workspace_root`、`platform.paths.vm_store`、`platform.provider.config.vm_store`，以及每个会同时运行的 `topology.<runtime>.static_ip`。设置 `platform.runtime_namespace` 为 `v2` 后，`adpos up agent` 首次创建会指向资源 `v2-agent` 和 VM `adp-v2-agent`，而不是旧的 `adp-agent`。然后在新 checkout 本地检查：
+确认预览后，可以复制或调整输出的 `configs\local.json` 片段，也可以让 ADP-OS 只写入这个被忽略的本机文件并自动备份：
+
+```powershell
+.\adpos.cmd isolate -Apply -Namespace v2
+```
+
+隔离后的 checkout 应使用不同的本机路径和网络设置：至少包括 `platform.runtime_namespace`、`platform.paths.workspace_root`、`platform.paths.vm_store`、`platform.provider.config.vm_store`，以及每个会同时运行的 `topology.<runtime>.static_ip`。设置 `platform.runtime_namespace` 为 `v2` 后，`adpos up agent` 首次创建会指向资源 `v2-agent` 和 VM `adp-v2-agent`，而不是旧的 `adp-agent`。然后在新 checkout 本地检查：
 
 ```powershell
 .\adpos.cmd doctor

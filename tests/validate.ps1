@@ -116,6 +116,10 @@ Invoke-ValidationStep -Name "Check checkout isolation plan" -ScriptBlock {
     & ".\tests\isolate-plan-contract.ps1"
 }
 
+Invoke-ValidationStep -Name "Check checkout isolation apply" -ScriptBlock {
+    & ".\tests\isolate-apply-contract.ps1"
+}
+
 Invoke-ValidationStep -Name "Check resource conflict contracts" -ScriptBlock {
     & ".\tests\resource-conflicts-contract.ps1"
 }
