@@ -58,6 +58,7 @@ $doctor = Read-Text "cli\commands\doctor.ps1"
 $status = Read-Text "cli\commands\status.ps1"
 $sshAdapter = Read-Text "adapters\windows\ssh\ssh.ps1"
 $runtimeModule = Read-Text "core\runtime\runtime.ps1"
+$resourceConflicts = Read-Text "core\diagnostics\resource-conflicts.ps1"
 $workspace = Read-Text "cli\commands\workspace.ps1"
 $destroy = Read-Text "cli\commands\destroy.ps1"
 $stop = Read-Text "cli\commands\stop.ps1"
@@ -100,6 +101,7 @@ Assert-Contains -Name "shared validation runs artifact hygiene checks" -Text $va
 Assert-Contains -Name "shared validation checks local config mutation boundaries" -Text $validate -Pattern '\.\\tests\\local-config-boundary\.ps1'
 Assert-Contains -Name "shared validation checks Mutagen remediation behavior" -Text $validate -Pattern '\.\\tests\\mutagen-remediation\.ps1'
 Assert-Contains -Name "shared validation checks adpos registration contract" -Text $validate -Pattern '\.\\tests\\adpos-registration-contract\.ps1'
+Assert-Contains -Name "shared validation checks resource conflict contracts" -Text $validate -Pattern '\.\\tests\\resource-conflicts-contract\.ps1'
 Assert-Contains -Name "shared validation checks bounded SSH probe handling" -Text $validate -Pattern '\.\\tests\\ssh-timeout\.ps1'
 Assert-Contains -Name "documentation language checks enforce translated doc pairs" -Text (Read-Text "tests\docs-language-links.ps1") -Pattern 'Assert-TranslatedDocPair[\s\S]*README[\s\S]*CHANGELOG[\s\S]*build[\s\S]*docs/zh-CN'
 Assert-Contains -Name "shared validation parses workspace recipes example" -Text $validate -Pattern 'configs\\workspace\.recipes\.example\.json'
@@ -251,6 +253,11 @@ Assert-Contains -Name "bounded SSH helper does not leak SSH exit code" -Text $ss
 Assert-Contains -Name "status uses bounded SSH reachability helper" -Text $status -Pattern 'adapters\\windows\\ssh\\ssh\.ps1[\s\S]*function\s+Test-StatusSSHReachable[\s\S]*Test-AdpSshReachability[\s\S]*-TimeoutSeconds 12[\s\S]*ssh-timeout'
 Assert-Contains -Name "up uses bounded SSH provision marker helper" -Text $up -Pattern 'adapters\\windows\\ssh\\ssh\.ps1[\s\S]*function\s+Test-RuntimeConnectionProvisionMarkerViaSSH[\s\S]*Invoke-AdpSshCommand[\s\S]*/home/adp/\.adp-provisioned[\s\S]*-TimeoutSeconds 12[\s\S]*ssh-timeout'
 Assert-Contains -Name "status reports duplicate running runtime VMs" -Text (Read-Text "cli\commands\status.ps1") -Pattern 'ambiguous-duplicate[\s\S]*duplicate VM:[\s\S]*running ADP runtime name also found outside this checkout[\s\S]*other checkout or stale VM'
+Assert-Contains -Name "resource conflict helper defines runtime profiles and duplicate VM gates" -Text $resourceConflicts -Pattern 'function\s+Get-ADPRuntimeResourceProfile[\s\S]*Resolve-Path "workspace_root"[\s\S]*Resolve-Path "vm_store"[\s\S]*SshAlias[\s\S]*MutagenSession[\s\S]*function\s+Get-ADPRuntimeDuplicateConflict[\s\S]*BlocksRuntimeMutation'
+Assert-Contains -Name "status JSON exposes duplicate running VM details" -Text $status -Pattern 'DuplicateRunningVms[\s\S]*ConvertTo-ADPDuplicateVmJson[\s\S]*ResourceProfile'
+Assert-Contains -Name "up blocks duplicate running VM before runtime mutation" -Text $up -Pattern 'Get-ADPRuntimeDuplicateConflict[\s\S]*HasDuplicateRunningVm[\s\S]*up runtime start/create[\s\S]*exit 1'
+Assert-Contains -Name "sync start blocks duplicate running VM before creating session" -Text $sync -Pattern 'Get-ADPRuntimeDuplicateConflict[\s\S]*HasDuplicateRunningVm[\s\S]*Action "sync start"[\s\S]*New-SyncSession'
+Assert-Contains -Name "doctor treats duplicate running VM as a failing check" -Text $doctor -Pattern 'Get-ADPRuntimeDuplicateConflict[\s\S]*Test-Check -Name "\$name duplicate running VM" -Condition \(-not \$hasDuplicateRunningVm\)'
 Assert-Contains -Name "status reports unhealthy sync sessions" -Text (Read-Text "cli\commands\status.ps1") -Pattern 'wrong-local[\s\S]*wrong-remote[\s\S]*unhealthy[\s\S]*Get-SyncSessionRecoveryInfo[\s\S]*sync recovery:[\s\S]*sync step:[\s\S]*sync safety:'
 Assert-Contains -Name "status distinguishes stale session before runtime creation" -Text (Read-Text "cli\commands\status.ps1") -Pattern '\$RuntimeCreated[\s\S]*stale-session[\s\S]*Get-SyncSessionRecoveryInfo[\s\S]*sync recovery:[\s\S]*sync step:[\s\S]*sync safety:'
 Assert-Contains -Name "doctor reports seed network drift" -Text $doctor -Pattern 'seed network drift[\s\S]*Write-NetworkDriftRemediation'
@@ -287,6 +294,10 @@ Assert-Contains -Name "operations docs explain stale networking remediation path
 Assert-Contains -Name "Chinese operations docs explain stale networking remediation paths" -Text (Read-Text "docs\zh-CN\operations.md") -Pattern 'network drift[\s\S]*rebuild path[\s\S]*in-place guest netplan fix[\s\S]*administrator-only temporary host-route workaround[\s\S]*ADP 不会自动添加、修改或删除 host routes'
 Assert-Contains -Name "troubleshooting docs mention duplicate runtime symptom" -Text $troubleshootingDocs -Pattern 'duplicate VM[\s\S]*same runtime name'
 Assert-Contains -Name "Chinese troubleshooting docs mention duplicate runtime symptom" -Text $troubleshootingDocsZh -Pattern 'duplicate VM[\s\S]*同名 runtime'
+Assert-Contains -Name "troubleshooting docs explain multi-checkout resource conflicts" -Text $troubleshootingDocs -Pattern 'Multiple Checkouts and Resource Conflicts[\s\S]*global `adpos`[\s\S]*workspace_root[\s\S]*vm_store[\s\S]*topology\.<runtime>\.static_ip[\s\S]*`up` and `sync start` stop'
+Assert-Contains -Name "Chinese troubleshooting docs explain multi-checkout resource conflicts" -Text $troubleshootingDocsZh -Pattern '多 Checkout 与资源冲突[\s\S]*全局 `adpos`[\s\S]*workspace_root[\s\S]*vm_store[\s\S]*topology\.<runtime>\.static_ip[\s\S]*`up` 和 `sync start`'
+Assert-Contains -Name "configuration docs explain second-checkout local override isolation" -Text $configurationDocs -Pattern 'second checkout[\s\S]*different `workspace_root`, `vm_store`, and `topology\.<runtime>\.static_ip`[\s\S]*global `adpos` command can point to only one checkout'
+Assert-Contains -Name "Chinese configuration docs explain second-checkout local override isolation" -Text $configurationDocsZh -Pattern '第二个 checkout[\s\S]*不同的 `workspace_root`、`vm_store` 和 `topology\.<runtime>\.static_ip`[\s\S]*全局 `adpos` 命令同一时间只能指向一个 checkout'
 Assert-Contains -Name "operations docs explain localized install monitor and indeterminate progress" -Text (Read-Text "docs\operations.md") -Pattern '\[install monitor\] INSTALLING Ubuntu in VM[\s\S]*\[安装监视器\] 正在 VM 中安装 Ubuntu[\s\S]*PowerShell `Write-Progress`[\s\S]*does not show a percentage progress bar[\s\S]*stable diagnostic terms'
 Assert-Contains -Name "Chinese operations docs explain localized install monitor and indeterminate progress" -Text (Read-Text "docs\zh-CN\operations.md") -Pattern '\[install monitor\] INSTALLING Ubuntu in VM[\s\S]*\[安装监视器\] 正在 VM 中安装 Ubuntu[\s\S]*PowerShell `Write-Progress`[\s\S]*不会显示百分比进度条[\s\S]*稳定诊断术语'
 Assert-Contains -Name "troubleshooting docs explain install monitor stuck symptom" -Text $troubleshootingDocs -Pattern 'Runtime creation looks stuck[\s\S]*\[install monitor\] INSTALLING Ubuntu[\s\S]*Ubuntu autoinstall'

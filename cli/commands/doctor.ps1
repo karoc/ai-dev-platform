@@ -12,6 +12,7 @@ Write-InfoLog -Message (Get-UIText -English "Running: adpos doctor" -Chinese "�
 . (Join-Path (Get-ProjectRoot) "runtimes\vmware\os-profiles.ps1")
 . (Join-Path (Get-ProjectRoot) "runtimes\vmware\vm-factory.ps1")
 . (Join-Path (Get-ProjectRoot) "adapters\windows\mutagen\mutagen.ps1")
+. (Join-Path (Get-ProjectRoot) "core\diagnostics\resource-conflicts.ps1")
 
 if ($Plan -and -not $FixMutagen) {
     Write-ErrorLog -Message (Get-UIText -English "-Plan is only supported with -FixMutagen." -Chinese "-Plan 仅支持与 -FixMutagen 一起使用。") -Component "cli.doctor"
@@ -228,6 +229,14 @@ if ($localConfigStatus.Exists -and -not $localConfigStatus.Empty) {
 
 $config = Get-PlatformConfig
 $topology = Get-TopologyConfig
+$commandContext = Get-ADPCheckoutCommandContext
+if ($commandContext.BindingStatus -eq "current-checkout") {
+    Test-Check -Name "global adpos binding" -Condition $true -Detail "(current checkout)"
+} elseif ($commandContext.BindingStatus -eq "different-checkout") {
+    Write-InfoCheck -Name "global adpos binding" -Detail "(points to another checkout: $($commandContext.GlobalHome); use .\adpos.cmd here)"
+} else {
+    Write-InfoCheck -Name "global adpos binding" -Detail "($($commandContext.BindingStatus); local command: .\adpos.cmd)"
+}
 Test-Check -Name "platform paths" -Condition ($config.paths.workspace_root -and $config.paths.iso_cache -and $config.paths.vm_store) -Detail "(workspace_root, iso_cache, vm_store)"
 Test-Check -Name "platform defaults" -Condition ($config.defaults.ubuntu_iso -and $config.defaults.admin_user -and $config.defaults.admin_password) -Detail "(ubuntu_iso, admin_user, admin_password)"
 Test-Check -Name "network mode" -Condition ($config.network.mode -eq "static") -Detail "($($config.network.mode))"
@@ -445,19 +454,15 @@ foreach ($name in (Get-AllRuntimeNames)) {
     }
 
     if ($vmwareOk) {
-        $adpRunningVms = @(Get-ADPRunningRuntimeVMs -RunningVmxPaths $runningVmxPaths -RuntimeName $name -ManagedVmxPath $vmxPath)
-        $duplicateRunningVms = @($adpRunningVms | Where-Object { -not $_.IsManagedByCurrentCheckout })
-        $hasDuplicateRunningVm = ($adpRunningVms.Count -gt 1 -or $duplicateRunningVms.Count -gt 0)
-        if ($hasCurrentRuntimeVm) {
-            Test-Check -Name "$name duplicate running VM" -Condition (-not $hasDuplicateRunningVm) -Detail "$(if ($hasDuplicateRunningVm) { '(' + ($duplicateRunningVms.NormalizedVmxPath -join '; ') + ')' } else { '(none)' })"
-        } elseif ($hasDuplicateRunningVm) {
-            Write-InfoCheck -Name "$name duplicate running VM" -Detail "(same runtime name is running outside this checkout: $($duplicateRunningVms.NormalizedVmxPath -join '; '))"
-        } else {
-            Test-Check -Name "$name duplicate running VM" -Condition $true -Detail "(none)"
-        }
-        if ($hasDuplicateRunningVm -and $hasCurrentRuntimeVm) {
+        $resourceProfile = Get-ADPRuntimeResourceProfile -TargetRuntime $name -VmxPath $vmxPath
+        $resourceConflict = Get-ADPRuntimeDuplicateConflict -TargetRuntime $name -ManagedVmxPath $vmxPath -RunningVmxPaths $runningVmxPaths
+        $duplicateRunningVms = @($resourceConflict.DuplicateVms)
+        $hasDuplicateRunningVm = $resourceConflict.HasDuplicateRunningVm
+        Test-Check -Name "$name duplicate running VM" -Condition (-not $hasDuplicateRunningVm) -Detail "$(if ($hasDuplicateRunningVm) { '(' + ($duplicateRunningVms.NormalizedVmxPath -join '; ') + ')' } else { '(none)' })"
+        if ($hasDuplicateRunningVm) {
             Write-UIHost -English "  [INFO]  Stop or rename stale duplicate ADP VMs before diagnosing SSH or network issues." -Chinese "  [INFO]  排查 SSH 或网络前，请先停止或重命名 stale duplicate ADP VM。" -ForegroundColor DarkGray
             Write-UIHost -English "  [INFO]  Current checkout VMX: $vmxPath" -Chinese "  [INFO]  当前 checkout VMX: $vmxPath" -ForegroundColor DarkGray
+            Write-ADPRuntimeResourceConflictGuidance -Profile $resourceProfile -Conflict $resourceConflict -CommandContext $commandContext -Action "doctor diagnosis"
         }
     }
 

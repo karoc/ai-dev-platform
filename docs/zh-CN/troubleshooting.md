@@ -49,7 +49,7 @@ adpos sync status
 | `status` 报告 `key-missing` | 运行任意 `adpos up` 或 SSH 操作 | SSH 密钥对尚未创建 | [操作指南](operations.md#ssh-密钥故障排除) |
 | SSH 密钥被意外删除 | 运行任意 SSH 操作后会重新生成 | `%USERPROFILE%\\.ssh\\adp-os\\` 密钥对缺失 | [操作指南](operations.md#ssh-密钥故障排除) |
 | `up` 因 VMware NAT mismatch 停止 | `adpos network configure-local -Plan` | host VMnet8 与 local config 不一致 | [网络说明](networking.md#前置条件)、[配置说明](configuration.md#本地覆盖) |
-| `status` 报告 `duplicate VM` | `adpos doctor` | 另一个 checkout 或 stale VM store 中有同名 runtime 正在运行 | [操作指南](operations.md#运行时状态) |
+| `status`、`up` 或 `sync start` 报告 `duplicate VM` | `adpos doctor` 和 `adpos status <runtime>` | 另一个 checkout 或 stale VM store 中有同名 runtime 正在运行 | [操作指南](operations.md#运行时状态)、[配置说明](configuration.md#本地覆盖) |
 | `status` 报告 network drift | `adpos doctor` 和 `adpos network apply <runtime> -Plan` | 已有 VM seed 网络与当前配置不一致；rebuild、guest netplan fix 或 host-route workaround | [操作指南](operations.md#运行时状态)、[网络说明](networking.md#新-vm-的静态网络) |
 | VMware IP 与配置的 static IP 不同 | `adpos status <runtime>` | static networking、local NAT overrides | [网络说明](networking.md#前置条件) |
 | Static IP 不在 NAT subnet 内 | `adpos doctor` | topology 和 platform config | [配置说明](configuration.md#本地覆盖)、[网络说明](networking.md) |
@@ -60,6 +60,36 @@ adpos sync status
 | `snapshot create` 看起来卡住 | 继续运行或重新演示前，先确认 snapshot 是否已经存在 | VMware snapshot command return、rollback checkpoint | [生存验证](survival-validation.md#demo-就绪清单) |
 | 仓库验证失败 | 先运行 `.\tests\validate.ps1 -Quick`，再运行 targeted checks | parser、config schema、artifact hygiene、docs、issue templates、smoke tests | [操作指南](operations.md#健康检查) |
 | 需要创建公开 issue | `adpos doctor` 和相关 status output | support routing | [支持说明](../../SUPPORT.zh-CN.md) |
+
+## 多 Checkout 与资源冲突
+
+ADP-OS 支持多个本地 checkout 并存，但同一时间全局 `adpos` 命令只能绑定到一个 checkout。如果 setup 保留了已有全局绑定，请在第二个 checkout 的仓库根目录使用 `.\adpos.cmd`。
+
+Runtime 不会按版本号自动隔离。可能冲突的资源包括：
+
+- VMware runtime 名称和 VMX path，例如 `adp-agent`。
+- `platform.paths.workspace_root`。
+- `platform.paths.vm_store`。
+- `topology.<runtime>.static_ip`。
+- SSH alias，例如 `adp-os-adp-agent`。
+- Mutagen session 名称，例如 `adp-agent`。
+
+如果要让两个 checkout 同时保持活跃，请先在第二个 checkout 被忽略的 `configs\local.json` 中配置不同的 `workspace_root`、`vm_store` 和 `static_ip`，然后运行：
+
+```powershell
+.\adpos.cmd doctor
+.\adpos.cmd status agent
+.\adpos.cmd sync status
+.\adpos.cmd up agent -Plan
+```
+
+如果已有另一个同名 VM 正在运行，ADP-OS 会把它视为阻塞性冲突。`status` 会把 SSH 报告为 `ambiguous-duplicate`；`up` 和 `sync start` 会在修改 runtime state 或 Mutagen session 前停止。诊断输出会列出当前 checkout、全局 `adpos` 绑定、workspace root、VM store、static IP、SSH alias、SSH key、Mutagen session、预期 VMX，以及所有正在运行的同名 VMX 路径。
+
+选择一种恢复路径：
+
+- 如果另一个 VM 已 stale，请从其所属 checkout 或 VMware UI 停止它，然后重新运行 `adpos status <runtime>`。
+- 如果另一个 checkout 必须继续活跃，请先保留它，并在当前 checkout 中修改 `workspace_root`、`vm_store` 和 `topology.<runtime>.static_ip` 完成隔离，再运行 `up`。
+- 如果全局 `adpos` 指向另一个 checkout，在你有意替换全局绑定前，请在当前仓库中使用 `.\adpos.cmd`。
 
 ## 安全预览命令
 

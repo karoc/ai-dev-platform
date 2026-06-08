@@ -221,6 +221,7 @@ function Assert-PlatformConfig {
 function Assert-TopologyConfig {
     param([object]$Config)
 
+    $staticIpOwners = @{}
     foreach ($runtimeName in $runtimeNames) {
         Assert-Property -Name "topology.json" -Object $Config -Property $runtimeName
         $runtime = $Config.$runtimeName
@@ -233,6 +234,14 @@ function Assert-TopologyConfig {
             Assert-PositiveIntProperty -Name "topology.json.$runtimeName" -Object $runtime -Property $field
         }
         Assert-BooleanProperty -Name "topology.json.$runtimeName" -Object $runtime -Property "danger"
+
+        $staticIp = [string]$runtime.static_ip
+        if ($staticIp) {
+            if ($staticIpOwners.ContainsKey($staticIp)) {
+                throw "topology.json.$runtimeName.static_ip duplicates $($staticIpOwners[$staticIp]): $staticIp"
+            }
+            $staticIpOwners[$staticIp] = $runtimeName
+        }
     }
 }
 

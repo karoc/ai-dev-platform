@@ -34,6 +34,7 @@ $vmxPath = Join-Path $vmStore "$vmName\$vmName.vmx"
 . (Join-Path (Get-ProjectRoot) "runtimes\vmware\os-profiles.ps1")
 . (Join-Path (Get-ProjectRoot) "runtimes\vmware\vm-factory.ps1")
 . (Join-Path (Get-ProjectRoot) "adapters\windows\ssh\ssh.ps1")
+. (Join-Path (Get-ProjectRoot) "core\diagnostics\resource-conflicts.ps1")
 Initialize-VmFactory -ProjectRoot (Get-ProjectRoot) -IsoCachePath $isoCache -VmStorePath $vmStore
 
 # Initialize VM provider
@@ -429,6 +430,17 @@ Write-Host ""
 
 # Check for stale Mutagen sessions before proceeding
 Check-PreRuntimeStaleSessions -TargetRuntime $RuntimeName
+
+$resourceProfile = Get-ADPRuntimeResourceProfile -TargetRuntime $RuntimeName -VmxPath $vmxPath
+$runningVmxPaths = Get-ADPRunningVmxPathsForResourceCheck
+$resourceConflict = Get-ADPRuntimeDuplicateConflict -TargetRuntime $RuntimeName -ManagedVmxPath $vmxPath -RunningVmxPaths $runningVmxPaths
+if ($resourceConflict.HasDuplicateRunningVm) {
+    Write-ADPRuntimeResourceConflictGuidance -Profile $resourceProfile -Conflict $resourceConflict -CommandContext (Get-ADPCheckoutCommandContext) -Action "$(if ($Plan) { 'up plan' } else { 'up runtime start/create' })"
+    if (-not $Plan) {
+        Write-ErrorLog -Message (Get-UIText -English "Runtime '$RuntimeName' has a duplicate running VM. Stop the stale duplicate or isolate this checkout before running up." -Chinese "运行时 '$RuntimeName' 存在重复运行的 VM。请先停止 stale duplicate，或隔离当前 checkout 后再运行 up。") -Component "cli.up"
+        exit 1
+    }
+}
 
 if ($Plan) {
     $isoName = if ($config.defaults.iso_path) { $config.defaults.iso_path } else { $config.defaults.ubuntu_iso }

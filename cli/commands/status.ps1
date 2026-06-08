@@ -20,6 +20,7 @@ if ($RuntimeName -and -not (Test-RuntimeExists $RuntimeName)) {
 
 . (Join-Path (Get-ProjectRoot) "adapters\windows\mutagen\mutagen.ps1")
 . (Join-Path (Get-ProjectRoot) "adapters\windows\ssh\ssh.ps1")
+. (Join-Path (Get-ProjectRoot) "core\diagnostics\resource-conflicts.ps1")
 
 function Get-StatusVmxPath {
     param([string]$TargetRuntime)
@@ -202,14 +203,9 @@ function Get-StatusRuntimeObject {
     $runtimeCreated = ($state.Status -ne "not-created")
     $syncState = Get-StatusSyncState -TargetRuntime $TargetRuntime -MutagenAvailable $MutagenAvailable -ExpectedLocalPath $workspacePath -ExpectedRemoteUrl $expectedRemoteUrl -RuntimeCreated $runtimeCreated
 
-    $adpRunningVms = @()
-    $duplicateRunningVms = @()
-    $hasDuplicateRunningVm = $false
-    if ($VmwareAvailable) {
-        $adpRunningVms = @(Get-ADPRunningRuntimeVMs -RunningVmxPaths $RunningVmxPaths -RuntimeName $TargetRuntime -ManagedVmxPath $state.VmxPath)
-        $duplicateRunningVms = @($adpRunningVms | Where-Object { -not $_.IsManagedByCurrentCheckout })
-        $hasDuplicateRunningVm = ($adpRunningVms.Count -gt 1 -or $duplicateRunningVms.Count -gt 0)
-    }
+    $resourceProfile = Get-ADPRuntimeResourceProfile -TargetRuntime $TargetRuntime -VmxPath $state.VmxPath
+    $resourceConflict = Get-ADPRuntimeDuplicateConflict -TargetRuntime $TargetRuntime -ManagedVmxPath $state.VmxPath -RunningVmxPaths $RunningVmxPaths
+    $hasDuplicateRunningVm = ($VmwareAvailable -and $resourceConflict.HasDuplicateRunningVm)
 
     $sshState = if ($hasDuplicateRunningVm) {
         "ambiguous-duplicate"
@@ -243,6 +239,8 @@ function Get-StatusRuntimeObject {
         Port              = $port
         NetworkDrift      = $networkDrift
         HasDuplicateVm    = $hasDuplicateRunningVm
+        DuplicateRunningVms = ConvertTo-ADPDuplicateVmJson -RunningVms $resourceConflict.RunningVms
+        ResourceProfile   = $resourceProfile
     }
     return $result
 }
@@ -269,12 +267,10 @@ function Write-StatusRuntime {
     $expectedRemoteUrl = "${alias}:/home/adp/workspace"
     $runtimeCreated = ($state.Status -ne "not-created")
     $syncState = Get-StatusSyncState -TargetRuntime $TargetRuntime -MutagenAvailable $MutagenAvailable -ExpectedLocalPath $workspacePath -ExpectedRemoteUrl $expectedRemoteUrl -RuntimeCreated $runtimeCreated
-    $adpRunningVms = @()
-    if ($VmwareAvailable) {
-        $adpRunningVms = @(Get-ADPRunningRuntimeVMs -RunningVmxPaths $RunningVmxPaths -RuntimeName $TargetRuntime -ManagedVmxPath $state.VmxPath)
-    }
-    $duplicateRunningVms = @($adpRunningVms | Where-Object { -not $_.IsManagedByCurrentCheckout })
-    $hasDuplicateRunningVm = ($adpRunningVms.Count -gt 1 -or $duplicateRunningVms.Count -gt 0)
+    $resourceProfile = Get-ADPRuntimeResourceProfile -TargetRuntime $TargetRuntime -VmxPath $state.VmxPath
+    $resourceConflict = Get-ADPRuntimeDuplicateConflict -TargetRuntime $TargetRuntime -ManagedVmxPath $state.VmxPath -RunningVmxPaths $RunningVmxPaths
+    $adpRunningVms = @($resourceConflict.RunningVms)
+    $hasDuplicateRunningVm = ($VmwareAvailable -and $resourceConflict.HasDuplicateRunningVm)
     $sshState = if ($hasDuplicateRunningVm) {
         "ambiguous-duplicate"
     } elseif ($state.Status -match "running") {
@@ -313,6 +309,7 @@ function Write-StatusRuntime {
             Write-UIHost -English "  running VMX:   $($vm.NormalizedVmxPath) [$owner]" -Chinese "  运行 VMX:      $($vm.NormalizedVmxPath) [$owner]" -ForegroundColor Yellow
         }
         Write-UIHost -English "  remediation:   stop or rename the stale duplicate before diagnosing SSH or network issues" -Chinese "  修复建议:      排查 SSH 或网络前，先停止或重命名 stale duplicate VM" -ForegroundColor Yellow
+        Write-ADPRuntimeResourceConflictGuidance -Profile $resourceProfile -Conflict $resourceConflict -CommandContext (Get-ADPCheckoutCommandContext) -Action "status diagnosis"
     }
     Write-UIHost -English "  sync:          $syncState" -Chinese "  同步:          $syncState" -ForegroundColor DarkGray
 
@@ -426,6 +423,7 @@ if ($Json) {
     }
 
     $result = [pscustomobject]@{
+        Checkout    = Get-ADPCheckoutCommandContext
         LocalConfig = $localConfig
         Network     = $network
         SshKey      = $keyPath
@@ -443,6 +441,7 @@ if ($Json) {
 
     $config = Get-PlatformConfig
     $localConfigStatus = Get-LocalConfigStatus
+    $commandContext = Get-ADPCheckoutCommandContext
     $adminUser = if ($config.defaults.admin_user) { [string]$config.defaults.admin_user } else { "adp" }
     $keyPath = Join-Path "$env:USERPROFILE\.ssh\adp-os" "adp-os"
 
@@ -457,6 +456,8 @@ if ($Json) {
     } else {
         Write-UIHost -English "Local config: not present, using committed defaults" -Chinese "本机配置: 不存在，使用仓库默认配置" -ForegroundColor DarkGray
     }
+
+    Write-ADPCheckoutBindingSummary -CommandContext $commandContext
 
     if ($config.network.vmware_nat) {
         Write-UIHost -English "Network:      $($config.network.vmware_nat.cidr), gateway $($config.network.vmware_nat.gateway)" -Chinese "网络:        $($config.network.vmware_nat.cidr), gateway $($config.network.vmware_nat.gateway)" -ForegroundColor DarkGray

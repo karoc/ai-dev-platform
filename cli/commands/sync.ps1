@@ -36,6 +36,7 @@ Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
 . (Join-Path (Get-ProjectRoot) "adapters\windows\mutagen\mutagen.ps1")
+. (Join-Path (Get-ProjectRoot) "core\diagnostics\resource-conflicts.ps1")
 
 function Get-SyncExpectedEndpoints {
     param([string]$TargetRuntime)
@@ -120,6 +121,14 @@ switch ($SubCommand) {
         $workspaceRoot = Resolve-Path "workspace_root"
         $localPath = Join-Path $workspaceRoot $rt.workspace
         $statusResult = Get-VMStatus -Name $RuntimeName
+        $resourceProfile = Get-ADPRuntimeResourceProfile -TargetRuntime $RuntimeName
+        $runningVmxPaths = Get-ADPRunningVmxPathsForResourceCheck
+        $resourceConflict = Get-ADPRuntimeDuplicateConflict -TargetRuntime $RuntimeName -ManagedVmxPath $resourceProfile.VmxPath -RunningVmxPaths $runningVmxPaths
+        if ($resourceConflict.HasDuplicateRunningVm) {
+            Write-ADPRuntimeResourceConflictGuidance -Profile $resourceProfile -Conflict $resourceConflict -CommandContext (Get-ADPCheckoutCommandContext) -Action "sync start"
+            Write-ErrorLog -Message (Get-UIText -English "Runtime '$RuntimeName' has a duplicate running VM. Stop the stale duplicate or isolate this checkout before starting sync." -Chinese "运行时 '$RuntimeName' 存在重复运行的 VM。请先停止 stale duplicate，或隔离当前 checkout 后再启动同步。") -Component "cli.sync"
+            exit 1
+        }
         $vmCreated = ($statusResult.Success -and $statusResult.Data -ne "not-created")
 
         if (-not $vmCreated) {

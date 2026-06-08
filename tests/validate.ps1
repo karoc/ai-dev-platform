@@ -100,6 +100,10 @@ Invoke-ValidationStep -Name "Check adpos registration contract" -ScriptBlock {
     & ".\tests\adpos-registration-contract.ps1"
 }
 
+Invoke-ValidationStep -Name "Check resource conflict contracts" -ScriptBlock {
+    & ".\tests\resource-conflicts-contract.ps1"
+}
+
 Invoke-ValidationStep -Name "Check up provision marker handling" -ScriptBlock {
     & ".\tests\up-provision-marker-contract.ps1"
 }

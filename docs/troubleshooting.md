@@ -50,7 +50,7 @@ Do not publish secrets, tokens, private keys, VM disks, ISO files, downloaded ar
 | `status` reports `key-missing` | run any `adpos up` or SSH operation | SSH key pair not yet created | [Operations](operations.md#troubleshooting-ssh-keys) |
 | SSH key was accidentally deleted | regenerate by running any SSH operation | `%USERPROFILE%\\.ssh\\adp-os\\` key pair missing | [Operations](operations.md#troubleshooting-ssh-keys) |
 | `up` stops with VMware NAT mismatch | `adpos network configure-local -Plan` | host VMnet8 versus local config | [Networking](networking.md#prerequisites), [Configuration](configuration.md#local-overrides) |
-| `status` reports `duplicate VM` | `adpos doctor` | same runtime name running from another checkout or stale VM store | [Operations](operations.md#runtime-status) |
+| `status`, `up`, or `sync start` reports `duplicate VM` | `adpos doctor` and `adpos status <runtime>` | same runtime name running from another checkout or stale VM store | [Operations](operations.md#runtime-status), [Configuration](configuration.md#local-overrides) |
 | `status` reports network drift | `adpos doctor` and `adpos network apply <runtime> -Plan` | existing VM seed network versus current config; rebuild, guest netplan fix, or host-route workaround | [Operations](operations.md#runtime-status), [Networking](networking.md#static-networking-for-new-vms) |
 | VMware IP differs from configured static IP | `adpos status <runtime>` | static networking, local NAT overrides | [Networking](networking.md#prerequisites) |
 | Static IP is outside the NAT subnet | `adpos doctor` | topology and platform config | [Configuration](configuration.md#local-overrides), [Networking](networking.md) |
@@ -62,6 +62,36 @@ Do not publish secrets, tokens, private keys, VM disks, ISO files, downloaded ar
 | Repository validation fails | `.\tests\validate.ps1 -Quick` then targeted checks | parser, config schema, artifact hygiene, docs, issue templates, smoke tests | [Operations](operations.md#health-checks) |
 | One-click uninstall is needed | `adpos uninstall`, or `.\uninstall.cmd` from the repo root | user command registration | [Getting Started](getting-started.md) |
 | Public issue is needed | `adpos doctor` and relevant status output | support routing | [Support](../SUPPORT.md) |
+
+## Multiple Checkouts and Resource Conflicts
+
+ADP-OS supports more than one local checkout, but only one checkout can own the global `adpos` command at a time. If setup keeps an existing global binding, run the second checkout from its repository root with `.\adpos.cmd`.
+
+Runtimes are not isolated by version number. The resource names that can collide are:
+
+- The VMware runtime name and VMX path, for example `adp-agent`.
+- `platform.paths.workspace_root`.
+- `platform.paths.vm_store`.
+- `topology.<runtime>.static_ip`.
+- The SSH alias, for example `adp-os-adp-agent`.
+- The Mutagen session name, for example `adp-agent`.
+
+Before keeping two checkouts active at the same time, set distinct `workspace_root`, `vm_store`, and `static_ip` values in the second checkout's ignored `configs\local.json`, then run:
+
+```powershell
+.\adpos.cmd doctor
+.\adpos.cmd status agent
+.\adpos.cmd sync status
+.\adpos.cmd up agent -Plan
+```
+
+If another same-name VM is already running, ADP-OS treats that as a blocking conflict. `status` reports SSH as `ambiguous-duplicate`; `up` and `sync start` stop before changing runtime state or Mutagen sessions. The diagnostic output includes the current checkout, global `adpos` binding, workspace root, VM store, static IP, SSH alias, SSH key, Mutagen session, expected VMX, and all running same-name VMX paths.
+
+Choose one recovery path:
+
+- If the other VM is stale, stop it from its owning checkout or VMware UI, then rerun `adpos status <runtime>`.
+- If the other checkout must remain active, keep it running and isolate this checkout first by changing `workspace_root`, `vm_store`, and `topology.<runtime>.static_ip` before running `up`.
+- If global `adpos` points to another checkout, use `.\adpos.cmd` in the current repository until you intentionally replace the global binding.
 
 ## Safe Preview Commands
 
