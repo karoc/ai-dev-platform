@@ -49,6 +49,19 @@ function Get-ADPArgumentValue {
     return [string]$RawArguments[$Index]
 }
 
+function Resolve-ADPArgumentAlias {
+    param([string]$Argument)
+
+    if ([string]::IsNullOrWhiteSpace($Argument)) {
+        return $Argument
+    }
+
+    switch ($Argument.ToLowerInvariant()) {
+        "--help-prereqs" { return "-HelpPrereqs" }
+        default { return $Argument }
+    }
+}
+
 function Test-ADPArgumentSwitchPresent {
     param(
         [string[]]$RawArguments,
@@ -58,7 +71,7 @@ function Test-ADPArgumentSwitchPresent {
     $shortName = "-$Name".ToLowerInvariant()
     $longName = "--$Name".ToLowerInvariant()
     foreach ($argument in @($RawArguments)) {
-        $normalizedArgument = ([string]$argument).ToLowerInvariant()
+        $normalizedArgument = (Resolve-ADPArgumentAlias -Argument ([string]$argument)).ToLowerInvariant()
         if ($normalizedArgument -eq $shortName -or $normalizedArgument -eq $longName) {
             return $true
         }
@@ -151,6 +164,7 @@ function Invoke-CommandFile {
 
     $parts = @(". $(Quote-PowerShellArgument $Path)")
     foreach ($arg in $RawArguments) {
+        $arg = Resolve-ADPArgumentAlias -Argument $arg
         if ($arg -match '^-{1,2}[A-Za-z][A-Za-z0-9_-]*$') {
             $parts += $arg
         } else {

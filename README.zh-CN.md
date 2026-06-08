@@ -150,23 +150,15 @@ cd ai-dev-platform
 .\setup.cmd -Force                        # 跳过前提条件检查
 ```
 
-**开始前，检查前提条件：**
+**可选：如果已安装 PowerShell 7，可先预览前提条件：**
 
 ```powershell
 .\adpos.cmd precheck
 ```
 
-`adpos precheck` 扫描全部 6 项前提条件（Windows 11、PowerShell 7+、VMware Workstation Pro、WSL+xorriso、Mutagen 0.18.x、OpenSSH），以状态表格显示每项的修复命令。在运行 `setup.cmd` 或 `install.ps1` 之前使用它以查看需要什么。使用 `.\adpos.cmd precheck --help-prereqs` 查看带安装命令的完整需求列表。
+如果还没有 PowerShell 7，请直接从 `.\setup.cmd` 开始；它会先引导获得 `pwsh.exe`，然后执行同一套 precheck。`adpos precheck` 会扫描全部 6 项前提条件（Windows 11、PowerShell 7+、VMware Workstation Pro、WSL+xorriso、Mutagen 0.18.x、OpenSSH），以状态表格显示每项的修复命令。使用 `.\adpos.cmd precheck --help-prereqs` 查看带安装命令的完整需求列表。
 
-**或者，手动分步：**
-
-克隆仓库并安装平台：
-
-```powershell
-git clone https://github.com/karoc/ai-dev-platform.git
-cd ai-dev-platform
-pwsh.exe -ExecutionPolicy Bypass -File .\install.ps1
-```
+**setup 后常用的后续命令：**
 
 下载 Ubuntu Server ISO（使用 BITS 传输，支持断点续传）：
 
@@ -238,7 +230,7 @@ adpos doctor -FixMutagen -Plan
 adpos sync status
 ```
 
-`install.ps1` 和 `doctor` 会检查 VMware 工具、`vmware-vdiskmanager.exe`、WSL、WSL `xorriso`、Mutagen 0.18.x、OpenSSH、ISO 是否存在以及 ISO 基本形态。它们会输出修复命令或放置路径提示，但默认不会下载大型二进制文件。如需安装经过测试的本地 Mutagen binary，先运行 `doctor -FixMutagen -Plan` 预览，再运行 `doctor -FixMutagen`；archive 和解压后的 binary 会保留在已忽略的 `.tools\mutagen` 下。如果 GitHub release 下载很慢或不可达，可以把 `mutagen_windows_amd64_v0.18.1.zip` 放到 `.tools\mutagen`，或在 `configs\local.json` 中设置 `platform.tools.mutagen.archive_path`；设置 `platform.tools.mutagen.sha256` 后会强制校验 archive hash。
+`setup`、`precheck` 和 `doctor` 会检查 VMware 工具、`vmware-vdiskmanager.exe`、WSL、WSL `xorriso`、Mutagen 0.18.x、OpenSSH、ISO 是否存在以及 ISO 基本形态。它们会输出修复命令或放置路径提示。如需安装经过测试的本地 Mutagen binary，先运行 `doctor -FixMutagen -Plan` 预览，再运行 `doctor -FixMutagen`；archive 和解压后的 binary 会保留在已忽略的 `.tools\mutagen` 下。如果 GitHub release 下载很慢或不可达，可以把 `mutagen_windows_amd64_v0.18.1.zip` 放到 `.tools\mutagen`，或在 `configs\local.json` 中设置 `platform.tools.mutagen.archive_path`；设置 `platform.tools.mutagen.sha256` 后会强制校验 archive hash。
 
 运行非破坏性验证：
 

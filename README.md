@@ -166,29 +166,15 @@ If another VM with the same runtime resource name is already running, ADP-OS rep
 .\setup.cmd -Force                        # Skip precheck, proceed anyway
 ```
 
-**Before you start, check prerequisites:**
+**Optional prerequisite preview, if PowerShell 7 is already available:**
 
 ```powershell
 .\adpos.cmd precheck
 ```
 
-`adpos precheck` scans all 6 prerequisites (Windows 11, PowerShell 7+, VMware Workstation Pro, WSL+xorriso, Mutagen 0.18.x, OpenSSH) and prints a status table with specific remediation commands for each missing item. Run it before `setup.cmd` or `install.ps1` to see what you need. Use `.\adpos.cmd precheck --help-prereqs` for the full requirements list with OS-specific install commands.
+If PowerShell 7 is not available yet, start with `.\setup.cmd`; it performs the same precheck after bootstrapping `pwsh.exe`. `adpos precheck` scans all 6 prerequisites (Windows 11, PowerShell 7+, VMware Workstation Pro, WSL+xorriso, Mutagen 0.18.x, OpenSSH) and prints a status table with specific remediation commands for each missing item. Use `.\adpos.cmd precheck --help-prereqs` for the full requirements list with OS-specific install commands.
 
-**Alternatively, step-by-step:**
-
-Clone the repository and install the platform:
-
-```powershell
-git clone https://github.com/karoc/ai-dev-platform.git
-cd ai-dev-platform
-pwsh.exe -ExecutionPolicy Bypass -File .\install.ps1
-```
-
-Check what you need before continuing:
-
-```powershell
-.\adpos.cmd precheck
-```
+**Useful follow-up commands after setup:**
 
 Download the Ubuntu Server ISO:
 
@@ -222,7 +208,7 @@ See [Configuration](docs/configuration.md#local-overrides) for supported local o
 Initialize your first runtime:
 
 ```powershell
-adpos init           # or: adpos init -Quick (skip redundant dep re-checks since install.ps1 already ran)
+adpos init           # or: adpos init -Quick (skip redundant dep re-checks since setup already ran)
 ```
 
 > [!NOTE]
@@ -270,7 +256,7 @@ adpos doctor -FixMutagen -Plan
 adpos sync status
 ```
 
-`install.ps1` and `doctor` check VMware tooling, `vmware-vdiskmanager.exe`, WSL, WSL `xorriso`, Mutagen 0.18.x, OpenSSH, ISO presence, and basic ISO shape. They print remediation commands or placement guidance, but do not download large binaries by default. To install the tested local Mutagen binary, preview first with `adpos doctor -FixMutagen -Plan`, then run `adpos doctor -FixMutagen`; the archive and extracted binary stay under ignored `.tools\mutagen`. If GitHub release downloads are slow or blocked, place `mutagen_windows_amd64_v0.18.1.zip` under `.tools\mutagen` or set `platform.tools.mutagen.archive_path` in `configs\local.json`; set `platform.tools.mutagen.sha256` to enforce archive hash verification.
+`setup`, `precheck`, and `doctor` check VMware tooling, `vmware-vdiskmanager.exe`, WSL, WSL `xorriso`, Mutagen 0.18.x, OpenSSH, ISO presence, and basic ISO shape. They print remediation commands or placement guidance. To install the tested local Mutagen binary, preview first with `adpos doctor -FixMutagen -Plan`, then run `adpos doctor -FixMutagen`; the archive and extracted binary stay under ignored `.tools\mutagen`. If GitHub release downloads are slow or blocked, place `mutagen_windows_amd64_v0.18.1.zip` under `.tools\mutagen` or set `platform.tools.mutagen.archive_path` in `configs\local.json`; set `platform.tools.mutagen.sha256` to enforce archive hash verification.
 
 Run non-destructive validation:
 

@@ -55,6 +55,7 @@ $iso = Read-Text "cli\commands\iso.ps1"
 $install = Read-Text "install.ps1"
 $setupScript = Read-Text "setup.ps1"
 $quickstart = Read-Text "cli\commands\quickstart.ps1"
+$precheck = Read-Text "cli\commands\precheck.ps1"
 $setupCommand = Read-Text "cli\commands\setup.ps1"
 $uninstallCommand = Read-Text "cli\commands\uninstall.ps1"
 $setupCmd = Read-Text "setup.cmd"
@@ -136,6 +137,10 @@ $releaseProcessDocs = Read-Text "docs\release-process.md"
 $releaseProcessDocsZh = Read-Text "docs\zh-CN\release-process.md"
 $contributorWorkflowDocs = Read-Text "docs\contributor-workflows.md"
 $contributorWorkflowDocsZh = Read-Text "docs\zh-CN\contributor-workflows.md"
+$readme = Read-Text "README.md"
+$readmeZh = Read-Text "README.zh-CN.md"
+$gettingStartedDocs = Read-Text "docs\getting-started.md"
+$gettingStartedDocsZh = Read-Text "docs\zh-CN\getting-started.md"
 $pullRequestTemplate = Read-Text ".github\pull_request_template.md"
 
 Assert-Contains -Name "CLI loads help module before use" -Text $cli -Pattern 'cli\\lib\\help\.ps1[\s\S]*if\s*\(-not\s+\$Command\s+-or\s+\$Command\s+-eq\s+"help"\)'
@@ -228,6 +233,11 @@ Assert-Contains -Name "setup supports NoRegisterCommand parameter" -Text $setupS
 Assert-Contains -Name "setup forwards NoRegisterCommand to quickstart" -Text $setupScript -Pattern 'if\s*\(\$NoRegisterCommand\)\s*\{[\s\S]*\$quickstartArgs\.NoRegisterCommand\s*=\s*\$true'
 Assert-Contains -Name "setup command supports NoRegisterCommand parameter" -Text $setupCommand -Pattern 'param\([\s\S]*\[switch\]\$NoRegisterCommand'
 Assert-Contains -Name "setup command forwards NoRegisterCommand to setup script" -Text $setupCommand -Pattern 'if\s*\(\$NoRegisterCommand\)\s*\{[\s\S]*\$setupArgs\s*\+=\s*"-NoRegisterCommand"'
+Assert-Contains -Name "precheck help requires Windows 11" -Text $precheck -Pattern 'Requires: Windows 11'
+Assert-Contains -Name "precheck uses Windows 11 build gate" -Text $precheck -Pattern '\$winVersion\.Build -ge 22000'
+Assert-NotContains -Name "precheck does not advertise Windows 10 support" -Text $precheck -Pattern 'Windows 10 or newer|Upgrade to Windows 10|Windows 10 或'
+Assert-NotContains -Name "first-user English docs avoid install script path" -Text "$readme`n$gettingStartedDocs" -Pattern 'install\.ps1'
+Assert-NotContains -Name "first-user Chinese docs avoid install script path" -Text "$readmeZh`n$gettingStartedDocsZh" -Pattern 'install\.ps1'
 Assert-Contains -Name "uninstall command delegates to uninstall script" -Text $uninstallCommand -Pattern 'uninstall\.ps1[\s\S]*-NonInteractive'
 Assert-Contains -Name "uninstall command supports force owner override" -Text $uninstallCommand -Pattern 'param\([\s\S]*\[switch\]\$Force[\s\S]*if\s*\(\$Force\)\s*\{[\s\S]*\$uninstallArgs\s*\+=\s*"-Force"'
 Assert-Contains -Name "setup cmd bootstraps missing PowerShell 7 with winget" -Text $setupCmd -Pattern ':InstallPowerShell7WithWinget[\s\S]*winget install --id Microsoft\.PowerShell --source winget --accept-package-agreements --accept-source-agreements --silent'

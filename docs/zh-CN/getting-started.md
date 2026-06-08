@@ -66,7 +66,7 @@ ADP-OS 不会替代 Docker。它提供可运行 Docker 的虚拟机，并在此�
 |------|------|------|
 | 克隆仓库 | < 1 分钟 | `git clone` — 几 MB 大小 |
 | 下载 Ubuntu ISO | 5–15 分钟 | ~2.6 GB 下载。速度取决于你的网络和 [Ubuntu 镜像](https://releases.ubuntu.com/26.04/) 的可达性 |
-| `setup.cmd`（安装 + 初始化） | 5–10 分钟 | 安装平台、注册全局 `adpos` 命令、重制 ISO、创建 VM 模板 |
+| `setup.cmd`（设置 + 初始化） | 5–10 分钟 | 运行引导式设置、注册全局 `adpos` 命令、重制 ISO、创建 VM 模板 |
 | `adpos up frontend`（首次 VM） | 15–45 分钟 | 创建并启动你的第一个 VM，运行引导脚本 |
 | 之后 warm start | 约 30 秒 | 启动已经完成 provisioning 的既有 VM |
 | 用 `adpos status` 验证 | < 1 分钟 | 确认一切正常运行 |
@@ -135,7 +135,7 @@ runtime gate 会阻止相同 runtime resource name 的重复运行 VM。如果 `
 
 1. **前提条件扫描** — 检查全部 6 项前提条件，显示每项的修复步骤。
 2. **ISO 下载** — 下载 Ubuntu Server 26.04（约 2.6 GB）。显示百分比和速度。
-3. **安装** — 运行 `install.ps1`，设置目录、注册 `adpos`、生成 seed ISO 并创建 VM 模板。
+3. **引导** — 设置目录、注册 `adpos`、生成 seed ISO 并创建 VM 模板。
 4. **初始化** — setup 链路会运行 `adpos init -Quick` 完成平台配置。
 5. **诊断** — setup 链路会运行 `adpos doctor` 验证所有前置条件是否就绪。
 
@@ -270,7 +270,7 @@ vmrun.exe list
 
 ### ISO 下载失败或速度很慢
 
-**症状：** `quickstart` 在 ISO 下载阶段卡住，或 `Invoke-WebRequest` 超时。
+**症状：** `setup` 在 ISO 下载阶段卡住，或下载超时。
 
 **修复：** 通过浏览器手动下载 ISO（浏览器可能更好地处理断点续传），然后传入路径：
 
@@ -309,23 +309,22 @@ wsl -u root bash -lc "apt-get update && DEBIAN_FRONTEND=noninteractive apt-get i
 
 **症状：** PowerShell 显示红色的执行策略错误。
 
-**修复：** ADP-OS 脚本不需要修改系统执行策略。通过将脚本路径传给 PowerShell 7 的 `pwsh.exe` 来运行：
+**修复：** ADP-OS 脚本不需要修改系统执行策略。从普通 Windows shell 运行 bootstrap wrapper：
 
 ```powershell
-pwsh.exe -ExecutionPolicy Bypass -File .\install.ps1
+.\setup.cmd
 ```
 
-如果缺少 `pwsh.exe`，正常路径是运行 `.\setup.cmd`；它会尝试自动安装 PowerShell 7。手动 fallback：
+如果缺少 `pwsh.exe`，`.\setup.cmd` 会尝试自动安装 PowerShell 7。手动 fallback：
 
 ```powershell
 winget install --id Microsoft.PowerShell --source winget
 ```
 
-或者使用 `.cmd` 封装脚本；它们也会在运行 ADP-OS 前检查 PowerShell 7：
+PowerShell 7 可用后，也可以在仓库根目录通过本地 `.cmd` wrapper 运行同一个 setup 命令：
 
 ```powershell
-.\setup.cmd
-.\adpos.cmd quickstart
+.\adpos.cmd setup
 ```
 
 ### "Mutagen 0.18.x not found"

@@ -66,7 +66,7 @@ Before you start, make sure you have:
 |------|------|-------------|
 | Clone the repo | < 1 min | `git clone` — a few megabytes |
 | Download Ubuntu ISO | 5–15 min | ~2.6 GB download. Speed depends on your connection and [Ubuntu mirror](https://releases.ubuntu.com/26.04/) reachability |
-| `setup.cmd` (install + init) | 5–10 min | Installs platform, registers the global `adpos` command, remasters ISO, creates VM templates |
+| `setup.cmd` (setup + init) | 5–10 min | Runs guided setup, registers the global `adpos` command, remasters ISO, creates VM templates |
 | `adpos up frontend` (first VM) | 15–45 min | Provisions and boots your first VM, runs bootstrap scripts |
 | Later warm start | ~30s | Starts an existing VM after it has already been provisioned |
 | Verify with `adpos status` | < 1 min | Confirms everything is running |
@@ -135,7 +135,7 @@ This single command handles ISO download, platform installation, initialization,
 
 1. **Prerequisite Scan** — Checks all 6 prerequisites and shows remediation for any missing items.  
 2. **ISO Download** — Downloads Ubuntu Server 26.04 (~2.6 GB). Progress shown with percentage and speed.
-3. **Install** — Runs `install.ps1` which sets up directories, registers `adpos`, generates seed ISO, and creates VM templates.
+3. **Bootstrap** — Sets up directories, registers `adpos`, generates seed ISO, and creates VM templates.
 4. **Init** — Runs `adpos init -Quick` through the setup chain to finalize platform configuration.
 5. **Doctor** — Runs `adpos doctor` through the setup chain to verify all prerequisites are in place.
 
@@ -270,7 +270,7 @@ vmrun.exe list
 
 ### ISO download fails or is very slow
 
-**Symptom:** `quickstart` hangs during ISO download, or `Invoke-WebRequest` times out.
+**Symptom:** `setup` hangs during ISO download, or the download times out.
 
 **Fix:** Download the ISO manually through a browser (which may handle resuming better), then pass the path:
 
@@ -309,23 +309,22 @@ wsl -u root bash -lc "apt-get update && DEBIAN_FRONTEND=noninteractive apt-get i
 
 **Symptom:** PowerShell shows red error text about execution policy.
 
-**Fix:** ADP-OS scripts don't require changing your system execution policy. Run them with PowerShell 7 by passing the script path to `pwsh.exe`:
+**Fix:** ADP-OS scripts don't require changing your system execution policy. From a stock Windows shell, run the bootstrap wrapper:
 
 ```powershell
-pwsh.exe -ExecutionPolicy Bypass -File .\install.ps1
+.\setup.cmd
 ```
 
-If `pwsh.exe` is missing, the normal path is to run `.\setup.cmd`; it attempts the PowerShell 7 install automatically. Manual fallback:
+If `pwsh.exe` is missing, `.\setup.cmd` attempts the PowerShell 7 install automatically. Manual fallback:
 
 ```powershell
 winget install --id Microsoft.PowerShell --source winget
 ```
 
-Or use the `.cmd` wrappers; they also check for PowerShell 7 before running ADP-OS:
+After PowerShell 7 is available, the local `.cmd` wrapper can run the same setup command from the repository root:
 
 ```powershell
-.\setup.cmd
-.\adpos.cmd quickstart
+.\adpos.cmd setup
 ```
 
 ### "Mutagen 0.18.x not found"

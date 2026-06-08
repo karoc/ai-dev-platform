@@ -49,6 +49,15 @@ Assert-Contains -Name "adpos help includes setup" -Text $help.Output -Pattern "a
 Assert-Contains -Name "adpos help includes isolate" -Text $help.Output -Pattern "adpos isolate"
 Assert-Contains -Name "adpos help includes uninstall" -Text $help.Output -Pattern "adpos uninstall"
 
+$precheckHelp = Invoke-AdposCli -Arguments @("precheck", "--help-prereqs")
+Assert-ExitCode -Name "adpos precheck --help-prereqs" -Actual $precheckHelp.ExitCode -Expected 0
+Assert-Contains -Name "precheck help-prereqs shows prerequisites" -Text $precheckHelp.Output -Pattern "ADP-OS Prerequisites"
+Assert-Contains -Name "precheck help-prereqs requires Windows 11" -Text $precheckHelp.Output -Pattern "Requires: Windows 11"
+
+$quickstartHelp = Invoke-AdposCli -Arguments @("quickstart", "--help-prereqs")
+Assert-ExitCode -Name "adpos quickstart --help-prereqs" -Actual $quickstartHelp.ExitCode -Expected 0
+Assert-Contains -Name "quickstart help-prereqs delegates to prerequisites" -Text $quickstartHelp.Output -Pattern "ADP-OS Prerequisites"
+
 $topLevelTypo = Invoke-AdposCli -Arguments @("hepl")
 Assert-ExitCode -Name "adpos hepl" -Actual $topLevelTypo.ExitCode -Expected 1
 Assert-Contains -Name "adpos hepl reports unknown command" -Text $topLevelTypo.Output -Pattern "Unknown command: hepl"

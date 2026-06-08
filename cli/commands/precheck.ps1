@@ -1,5 +1,5 @@
 # ADP-OS Precheck Command
-# Lightweight prerequisite scan — runs BEFORE quickstart/install
+# Lightweight prerequisite scan.
 # Checks all prerequisites and prints a table with status and remediation
 # Non-blocking by default: reports results but doesn't exit with error
 
@@ -7,10 +7,6 @@ param(
     [switch]$Json,
     [switch]$HelpPrereqs
 )
-
-# --- Load helpers ---
-. (Join-Path (Get-ProjectRoot) "adapters\windows\mutagen\mutagen.ps1")
-. (Join-Path (Get-ProjectRoot) "adapters\windows\vmware\vmware.ps1")
 
 Write-InfoLog -Message (Get-UIText -English "Running: adpos precheck" -Chinese "正在运行: adpos precheck") -Component "cli.precheck"
 
@@ -25,7 +21,7 @@ if ($HelpPrereqs) {
         Write-Host "ADP-OS 需要以下工具才能运行:" -ForegroundColor Yellow
         Write-Host ""
         Write-Host "  1. Windows 11" -ForegroundColor White
-        Write-Host "     需要: Windows 10 或更新版本 (推荐 Windows 11)"
+        Write-Host "     需要: Windows 11"
         Write-Host ""
         Write-Host "  2. PowerShell 7+" -ForegroundColor White
         Write-Host "     安装: winget install --id Microsoft.PowerShell --source winget"
@@ -53,7 +49,7 @@ if ($HelpPrereqs) {
         Write-Host "ADP-OS requires the following tools to run:" -ForegroundColor Yellow
         Write-Host ""
         Write-Host "  1. Windows 11" -ForegroundColor White
-        Write-Host "     Requires: Windows 10 or newer (Windows 11 recommended)"
+        Write-Host "     Requires: Windows 11"
         Write-Host ""
         Write-Host "  2. PowerShell 7+" -ForegroundColor White
         Write-Host "     Install: winget install --id Microsoft.PowerShell --source winget"
@@ -81,6 +77,10 @@ if ($HelpPrereqs) {
     Write-Host ""
     exit 0
 }
+
+# --- Load helpers ---
+. (Join-Path (Get-ProjectRoot) "adapters\windows\mutagen\mutagen.ps1")
+. (Join-Path (Get-ProjectRoot) "adapters\windows\vmware\vmware.ps1")
 
 # --- Platform check ---
 $platform = Get-Platform
@@ -147,12 +147,13 @@ $projectRoot = Get-ProjectRoot
 # 1. Windows Version
 $osInfo = Get-CimInstance Win32_OperatingSystem
 $winVersion = [Version]$osInfo.Version
-if ($winVersion.Major -ge 10) {
+$isWindows11 = $winVersion.Major -gt 10 -or ($winVersion.Major -eq 10 -and $winVersion.Build -ge 22000)
+if ($isWindows11) {
     Add-PrecheckResult -Name "Windows 11" -Status "OK" -Detail $osInfo.Caption
 } else {
     Add-PrecheckResult -Name "Windows 11" -Status "MISSING" `
         -Detail $osInfo.Caption `
-        -Remediation (Get-UIText -English "Upgrade to Windows 10 or 11." -Chinese "升级到 Windows 10 或 11。")
+        -Remediation (Get-UIText -English "Upgrade to Windows 11." -Chinese "升级到 Windows 11。")
 }
 
 # 2. PowerShell 7+
