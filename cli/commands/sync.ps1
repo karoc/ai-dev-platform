@@ -37,6 +37,7 @@ Write-Host ""
 
 . (Join-Path (Get-ProjectRoot) "adapters\windows\mutagen\mutagen.ps1")
 . (Join-Path (Get-ProjectRoot) "core\diagnostics\resource-conflicts.ps1")
+. (Join-Path (Get-ProjectRoot) "core\diagnostics\ssh-alias.ps1")
 
 function Get-SyncExpectedEndpoints {
     param([string]$TargetRuntime)
@@ -53,10 +54,28 @@ function Get-SyncExpectedEndpoints {
     }
 }
 
+function Test-SyncAliasNeedsAttention {
+    param([object]$AliasStatus)
+
+    return ($AliasStatus.HasConflict -or $AliasStatus.Status -in @("missing-config", "missing-alias"))
+}
+
+function Format-SyncAliasDetail {
+    param([object]$AliasStatus)
+
+    if ($AliasStatus.Status -in @("missing-config", "missing-alias")) {
+        return "$($AliasStatus.Status), expected $($AliasStatus.ExpectedHost):$($AliasStatus.ExpectedPort)"
+    }
+
+    return "$($AliasStatus.Status) ($($AliasStatus.ActualHost):$($AliasStatus.ActualPort), expected $($AliasStatus.ExpectedHost):$($AliasStatus.ExpectedPort))"
+}
+
 function Write-SyncRuntimeSummary {
     param([string]$TargetRuntime)
 
     $expected = Get-SyncExpectedEndpoints -TargetRuntime $TargetRuntime
+    $resourceProfile = Get-ADPRuntimeResourceProfile -TargetRuntime $TargetRuntime
+    $aliasStatus = Get-ADPSshAliasOwnershipStatus -Profile $resourceProfile -ExpectedHost $resourceProfile.StaticIp -ExpectedUser $resourceProfile.SshUser -ExpectedPort $resourceProfile.SshPort -ExpectedKeyPath $resourceProfile.SshKeyPath
     $statusResult = Get-VMStatus -Name $TargetRuntime
     $runtimeCreated = ($statusResult.Success -and $statusResult.Data -ne "not-created")
     try {
@@ -75,6 +94,9 @@ function Write-SyncRuntimeSummary {
         Write-UIHost -English "  ${TargetRuntime}: stale-session — existing session was found before this runtime was created in the current checkout" -Chinese "  ${TargetRuntime}: 陈旧会话 — 在当前检出中创建此运行时之前已存在该会话" -ForegroundColor Yellow
         Write-Host "    local:  $($session.AlphaUrl)" -ForegroundColor DarkGray
         Write-Host "    remote: $($session.BetaUrl)" -ForegroundColor DarkGray
+        if (Test-SyncAliasNeedsAttention -AliasStatus $aliasStatus) {
+            Write-Host "    alias:  $(Format-SyncAliasDetail -AliasStatus $aliasStatus)" -ForegroundColor Yellow
+        }
         Write-Host "    cleanup: adpos sync stop $TargetRuntime" -ForegroundColor Yellow
         Write-Host "    next:    adpos up $TargetRuntime; adpos sync start $TargetRuntime" -ForegroundColor DarkGray
         return
@@ -84,6 +106,9 @@ function Write-SyncRuntimeSummary {
     Write-Host "  ${TargetRuntime}: $($session.Health) — $($session.Detail)" -ForegroundColor $color
     Write-Host "    local:  $($session.AlphaUrl)" -ForegroundColor DarkGray
     Write-Host "    remote: $($session.BetaUrl)" -ForegroundColor DarkGray
+    if (Test-SyncAliasNeedsAttention -AliasStatus $aliasStatus) {
+        Write-Host "    alias:  $(Format-SyncAliasDetail -AliasStatus $aliasStatus)" -ForegroundColor Yellow
+    }
     if ($session.Health -notin @("healthy", "present")) {
         Write-Host "    fix:    adpos sync stop $TargetRuntime; adpos sync start $TargetRuntime" -ForegroundColor Yellow
     }
@@ -160,6 +185,20 @@ switch ($SubCommand) {
 
         $sessionName = "adp-$RuntimeName"
         $sshKeyPath = Join-Path "$env:USERPROFILE\.ssh\adp-os" "adp-os"
+        $expectedRemoteUrl = "adp-os-$sessionName`:/home/adp/workspace"
+        $existingSession = Get-SyncSessionInfo -SessionName $sessionName -ExpectedLocalPath $localPath -ExpectedRemoteUrl $expectedRemoteUrl
+        $aliasStatus = Get-ADPSshAliasOwnershipStatus -Profile $resourceProfile -ExpectedHost $ip -ExpectedUser $resourceProfile.SshUser -ExpectedPort $resourceProfile.SshPort -ExpectedKeyPath $sshKeyPath
+        if ($existingSession.Exists -and $existingSession.Health -in @("healthy", "present")) {
+            if ($aliasStatus.HasConflict) {
+                Write-ADPSshAliasOwnershipGuidance -AliasStatus $aliasStatus -CommandContext (Get-ADPCheckoutCommandContext) -Action "sync start"
+                Write-ErrorLog -Message (Get-UIText -English "Existing sync session '$sessionName' uses an SSH alias that points to a different target. Stop/recreate the session or run sync start from the checkout that should own it." -Chinese "现有同步会话 '$sessionName' 使用的 SSH alias 指向不同目标。请停止并重建该会话，或从应该拥有它的 checkout 运行 sync start。") -Component "cli.sync"
+                exit 1
+            }
+            if ($aliasStatus.Status -in @("missing-config", "missing-alias")) {
+                Set-MutagenSSHHostConfig -HostAlias $resourceProfile.SshAlias -SSHHost $ip -SSHUser $resourceProfile.SshUser -SSHPort $resourceProfile.SshPort -SSHKeyPath $sshKeyPath | Out-Null
+                Write-UIHost -English "  SSH alias refreshed: $($resourceProfile.SshAlias) -> $ip" -Chinese "  SSH alias 已刷新: $($resourceProfile.SshAlias) -> $ip" -ForegroundColor Green
+            }
+        }
         New-SyncSession `
             -SessionName $sessionName `
             -LocalPath $localPath `

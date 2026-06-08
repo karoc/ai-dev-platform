@@ -213,6 +213,7 @@ adpos status frontend
 - VMware 中是否有其他 `adp-<runtime>.vmx` 从当前 checkout 外部运行，造成 duplicate running ADP runtime。
 - 已有 autoinstall seed 仍包含旧 static IP 时的 network drift。
 - 运行中 VM 的 SSH 状态：`reachable`、`auth-pending`、`ssh-timeout`、`unreachable`、`ambiguous-duplicate`，或 `key-missing` 等本地前置条件状态。
+- 用户 SSH config 中该 runtime alias 的实际目标，包括 `HostName`、`User`、`Port`、`IdentityFile` 是否符合当前 checkout 的预期 runtime target。
 - Mutagen sync session 是否存在。
 - 具体 SSH 命令、SSH alias、workspace path 和下一步命令。
 
@@ -223,6 +224,8 @@ adpos status frontend
 当存在 duplicate 时，`status` 会把 SSH 报告为 `ambiguous-duplicate`，因为即使连接配置 IP 成功，也不能证明响应的是当前 checkout 对应的 VMX。
 
 同一个 duplicate-running-VM 检查也是 `adpos up <runtime>` 和 `adpos sync start <runtime>` 的 preflight gate。Plan mode 会显示冲突但不修改 state；非 plan 的 runtime start/create 和 sync start 会在修改 VM、SSH alias 或 Mutagen session 前停止。多 checkout 设置细节见[排障](troubleshooting.md#多-checkout-与资源冲突)和[配置说明](configuration.md#本地覆盖)。
+
+如果 `status` 报告 SSH alias mismatch，说明用户级 SSH config 中类似 `adp-os-adp-agent` 的 alias 指向了与当前 checkout 预期不同的 host、port、user 或 identity file。这可能发生在切换 checkout、重建 runtime，或保留第二个已安装版本之后。先运行 `adpos sync status` 检查 sync session，再从应该拥有该 alias 的 checkout 运行 `adpos sync start <runtime>`。如果另一个 checkout 仍然拥有同名 runtime，请先隔离当前 checkout，不要静默复用这个 alias。
 
 如果 `status` 报告 `network drift`，说明该 VM 是用比当前配置更旧的 seed 网络创建的。VM 创建完成后再编辑 `configs\local.json` 不会自动重写 guest 内部网络。根据实际情况选择 remediation path：
 

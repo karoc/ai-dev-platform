@@ -51,6 +51,7 @@ Do not publish secrets, tokens, private keys, VM disks, ISO files, downloaded ar
 | SSH key was accidentally deleted | regenerate by running any SSH operation | `%USERPROFILE%\\.ssh\\adp-os\\` key pair missing | [Operations](operations.md#troubleshooting-ssh-keys) |
 | `up` stops with VMware NAT mismatch | `adpos network configure-local -Plan` | host VMnet8 versus local config | [Networking](networking.md#prerequisites), [Configuration](configuration.md#local-overrides) |
 | `status`, `up`, or `sync start` reports `duplicate VM` | `adpos doctor` and `adpos status <runtime>` | same runtime name running from another checkout or stale VM store | [Operations](operations.md#runtime-status), [Configuration](configuration.md#local-overrides) |
+| `status` reports SSH alias mismatch | `adpos sync status` and `adpos status <runtime>` | user SSH config alias points to another host, port, user, or key | [Operations](operations.md#runtime-status) |
 | `status` reports network drift | `adpos doctor` and `adpos network apply <runtime> -Plan` | existing VM seed network versus current config; rebuild, guest netplan fix, or host-route workaround | [Operations](operations.md#runtime-status), [Networking](networking.md#static-networking-for-new-vms) |
 | VMware IP differs from configured static IP | `adpos status <runtime>` | static networking, local NAT overrides | [Networking](networking.md#prerequisites) |
 | Static IP is outside the NAT subnet | `adpos doctor` | topology and platform config | [Configuration](configuration.md#local-overrides), [Networking](networking.md) |
@@ -87,11 +88,14 @@ Before keeping two checkouts active at the same time, set distinct `workspace_ro
 
 If another same-name VM is already running, ADP-OS treats that as a blocking conflict. `status` reports SSH as `ambiguous-duplicate`; `up` and `sync start` stop before changing runtime state or Mutagen sessions. The diagnostic output includes the current checkout, global `adpos` binding, workspace root, VM store, static IP, SSH alias, SSH key, Mutagen session, expected VMX, and all running same-name VMX paths.
 
+SSH aliases and Mutagen session names are also user-global resources. `status` now reads the user SSH config entry for aliases such as `adp-os-adp-agent` and reports whether it matches the current checkout's expected host, port, user, and identity file. `sync status` reports the same alias mismatch alongside the Mutagen endpoint summary. A Mutagen session whose local and remote endpoint strings look compatible is still only compatible with current expectations; without persistent owner metadata, ADP-OS does not claim it can prove the original checkout owner.
+
 Choose one recovery path:
 
 - If the other VM is stale, stop it from its owning checkout or VMware UI, then rerun `adpos status <runtime>`.
 - If the other checkout must remain active, keep it running and isolate this checkout first by changing `workspace_root`, `vm_store`, and `topology.<runtime>.static_ip` before running `up`.
 - If global `adpos` points to another checkout, use `.\adpos.cmd` in the current repository until you intentionally replace the global binding.
+- If a stale Mutagen session or stale SSH alias belongs to a checkout you no longer use, stop and recreate the session from the checkout that should own it. Stopping a Mutagen session removes the session definition; it does not delete workspace files on either side.
 
 ## Safe Preview Commands
 

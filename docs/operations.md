@@ -213,6 +213,7 @@ adpos status frontend
 - Duplicate running ADP runtime names when VMware has another `adp-<runtime>.vmx` running outside the current checkout.
 - Network drift when an existing autoinstall seed still contains an older static IP than the current merged configuration.
 - SSH state for running VMs: `reachable`, `auth-pending`, `ssh-timeout`, `unreachable`, `ambiguous-duplicate`, or a local prerequisite state such as `key-missing`.
+- The user SSH config target for the runtime alias, including whether `HostName`, `User`, `Port`, and `IdentityFile` match the current checkout's expected runtime target.
 - Mutagen sync session presence.
 - The exact SSH command, SSH alias, workspace path, and next commands.
 
@@ -223,6 +224,8 @@ If `status` reports `duplicate VM`, another VMX with the same runtime name is ru
 When a duplicate is present, `status` reports SSH as `ambiguous-duplicate` because a successful connection to the configured IP does not prove that the current checkout's VMX is the guest that answered.
 
 The same duplicate-running-VM check is a preflight gate for `adpos up <runtime>` and `adpos sync start <runtime>`. Plan mode shows the conflict without changing state; non-plan runtime start/create and sync start stop before changing VMs, SSH aliases, or Mutagen sessions. For multi-checkout setup details, see [Troubleshooting](troubleshooting.md#multiple-checkouts-and-resource-conflicts) and [Configuration](configuration.md#local-overrides).
+
+If `status` reports an SSH alias mismatch, the global user SSH config entry for an alias such as `adp-os-adp-agent` points to a different host, port, user, or identity file than the current checkout expects. This can happen after switching checkouts, recreating runtimes, or preserving a second installed version. Run `adpos sync status` to inspect the sync session, then run `adpos sync start <runtime>` from the checkout that should own the alias. If another checkout still owns that same runtime name, isolate the checkout first instead of silently reusing the alias.
 
 If `status` reports `network drift`, the VM was created with an older seed network than the current configuration. Editing `configs\local.json` after VM creation does not rewrite guest networking. Use the remediation path that matches the situation:
 

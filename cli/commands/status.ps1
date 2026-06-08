@@ -21,6 +21,7 @@ if ($RuntimeName -and -not (Test-RuntimeExists $RuntimeName)) {
 . (Join-Path (Get-ProjectRoot) "adapters\windows\mutagen\mutagen.ps1")
 . (Join-Path (Get-ProjectRoot) "adapters\windows\ssh\ssh.ps1")
 . (Join-Path (Get-ProjectRoot) "core\diagnostics\resource-conflicts.ps1")
+. (Join-Path (Get-ProjectRoot) "core\diagnostics\ssh-alias.ps1")
 
 function Get-StatusVmxPath {
     param([string]$TargetRuntime)
@@ -206,6 +207,7 @@ function Get-StatusRuntimeObject {
     $resourceProfile = Get-ADPRuntimeResourceProfile -TargetRuntime $TargetRuntime -VmxPath $state.VmxPath
     $resourceConflict = Get-ADPRuntimeDuplicateConflict -TargetRuntime $TargetRuntime -ManagedVmxPath $state.VmxPath -RunningVmxPaths $RunningVmxPaths
     $hasDuplicateRunningVm = ($VmwareAvailable -and $resourceConflict.HasDuplicateRunningVm)
+    $sshAliasStatus = Get-ADPSshAliasOwnershipStatus -Profile $resourceProfile -ExpectedHost $connectIp -ExpectedUser $AdminUser -ExpectedPort $port -ExpectedKeyPath $KeyPath
 
     $sshState = if ($hasDuplicateRunningVm) {
         "ambiguous-duplicate"
@@ -241,6 +243,7 @@ function Get-StatusRuntimeObject {
         HasDuplicateVm    = $hasDuplicateRunningVm
         DuplicateRunningVms = ConvertTo-ADPDuplicateVmJson -RunningVms $resourceConflict.RunningVms
         ResourceProfile   = $resourceProfile
+        SshAliasDiagnostic = ConvertTo-ADPSshAliasOwnershipJson -AliasStatus $sshAliasStatus
     }
     return $result
 }
@@ -271,6 +274,7 @@ function Write-StatusRuntime {
     $resourceConflict = Get-ADPRuntimeDuplicateConflict -TargetRuntime $TargetRuntime -ManagedVmxPath $state.VmxPath -RunningVmxPaths $RunningVmxPaths
     $adpRunningVms = @($resourceConflict.RunningVms)
     $hasDuplicateRunningVm = ($VmwareAvailable -and $resourceConflict.HasDuplicateRunningVm)
+    $sshAliasStatus = Get-ADPSshAliasOwnershipStatus -Profile $resourceProfile -ExpectedHost $connectIp -ExpectedUser $AdminUser -ExpectedPort $port -ExpectedKeyPath $KeyPath
     $sshState = if ($hasDuplicateRunningVm) {
         "ambiguous-duplicate"
     } elseif ($state.Status -match "running") {
@@ -295,6 +299,13 @@ function Write-StatusRuntime {
         Write-StatusNetworkDriftRemediation -TargetRuntime $TargetRuntime -SeedNetwork $seedNetwork -ConfiguredIp $configuredIp
     }
     Write-UIHost -English "  ssh:           $sshState" -Chinese "  SSH:           $sshState" -ForegroundColor DarkGray
+    Write-UIHost -English "  ssh alias:     $($sshAliasStatus.Status) ($($sshAliasStatus.HostAlias))" -Chinese "  SSH alias:     $($sshAliasStatus.Status) ($($sshAliasStatus.HostAlias))" -ForegroundColor $(if ($sshAliasStatus.HasConflict) { "Red" } elseif ($sshAliasStatus.Status -in @("missing-config", "missing-alias")) { "Yellow" } else { "DarkGray" })
+    if ($sshAliasStatus.Status -notin @("missing-config", "missing-alias")) {
+        Write-UIHost -English "  alias target:  $($sshAliasStatus.ActualUser)@$($sshAliasStatus.ActualHost):$($sshAliasStatus.ActualPort)" -Chinese "  alias target:  $($sshAliasStatus.ActualUser)@$($sshAliasStatus.ActualHost):$($sshAliasStatus.ActualPort)" -ForegroundColor DarkGray
+    }
+    if ($sshAliasStatus.HasConflict) {
+        Write-ADPSshAliasOwnershipGuidance -AliasStatus $sshAliasStatus -CommandContext (Get-ADPCheckoutCommandContext) -Action "status diagnosis"
+    }
     if ($sshState -eq "auth-pending") {
         Write-UIHost -English "  note:          SSH port is open, but the ADP key is not accepted yet. During autoinstall this usually means the installer or first boot is still preparing the target user." -Chinese "  说明:          SSH 端口已打开，但 ADP key 还未被接受。autoinstall 期间这通常表示安装器或首次启动仍在准备目标用户。" -ForegroundColor Yellow
     }

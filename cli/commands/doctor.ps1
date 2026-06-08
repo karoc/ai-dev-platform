@@ -13,6 +13,7 @@ Write-InfoLog -Message (Get-UIText -English "Running: adpos doctor" -Chinese "�
 . (Join-Path (Get-ProjectRoot) "runtimes\vmware\vm-factory.ps1")
 . (Join-Path (Get-ProjectRoot) "adapters\windows\mutagen\mutagen.ps1")
 . (Join-Path (Get-ProjectRoot) "core\diagnostics\resource-conflicts.ps1")
+. (Join-Path (Get-ProjectRoot) "core\diagnostics\ssh-alias.ps1")
 
 if ($Plan -and -not $FixMutagen) {
     Write-ErrorLog -Message (Get-UIText -English "-Plan is only supported with -FixMutagen." -Chinese "-Plan 仅支持与 -FixMutagen 一起使用。") -Component "cli.doctor"
@@ -425,6 +426,8 @@ foreach ($name in (Get-AllRuntimeNames)) {
     $vmxPath = Join-Path $vmPath "$vmName.vmx"
     $vmdkPath = Join-Path $vmPath "$vmName.vmdk"
     $hasCurrentRuntimeVm = Test-Path -LiteralPath $vmPath
+    $resourceProfile = Get-ADPRuntimeResourceProfile -TargetRuntime $name -VmxPath $vmxPath
+    $hasDuplicateRunningVm = $false
 
     $topologyOk = ($profile.seedType -eq "cloud-init" -and $rt.ssh_port -eq 22 -and $rt.cpu -gt 0 -and $rt.memory -gt 0 -and $rt.disk -gt 0 -and $rt.workspace -and $rt.sync_profile -and $rt.bootstrap_profile)
     Test-Check -Name "$name topology" -Condition $topologyOk -Detail "($($rt.os), cpu:$($rt.cpu), memory:$($rt.memory), disk:$($rt.disk), ssh:$($rt.ssh_port))"
@@ -454,7 +457,6 @@ foreach ($name in (Get-AllRuntimeNames)) {
     }
 
     if ($vmwareOk) {
-        $resourceProfile = Get-ADPRuntimeResourceProfile -TargetRuntime $name -VmxPath $vmxPath
         $resourceConflict = Get-ADPRuntimeDuplicateConflict -TargetRuntime $name -ManagedVmxPath $vmxPath -RunningVmxPaths $runningVmxPaths
         $duplicateRunningVms = @($resourceConflict.DuplicateVms)
         $hasDuplicateRunningVm = $resourceConflict.HasDuplicateRunningVm
@@ -463,6 +465,16 @@ foreach ($name in (Get-AllRuntimeNames)) {
             Write-UIHost -English "  [INFO]  Stop or rename stale duplicate ADP VMs before diagnosing SSH or network issues." -Chinese "  [INFO]  排查 SSH 或网络前，请先停止或重命名 stale duplicate ADP VM。" -ForegroundColor DarkGray
             Write-UIHost -English "  [INFO]  Current checkout VMX: $vmxPath" -Chinese "  [INFO]  当前 checkout VMX: $vmxPath" -ForegroundColor DarkGray
             Write-ADPRuntimeResourceConflictGuidance -Profile $resourceProfile -Conflict $resourceConflict -CommandContext $commandContext -Action "doctor diagnosis"
+        }
+    }
+
+    $aliasStatus = Get-ADPSshAliasOwnershipStatus -Profile $resourceProfile -ExpectedHost $rt.static_ip -ExpectedUser $config.defaults.admin_user -ExpectedPort $rt.ssh_port -ExpectedKeyPath $resourceProfile.SshKeyPath
+    if ($aliasStatus.Status -in @("missing-config", "missing-alias")) {
+        Write-InfoCheck -Name "$name SSH alias" -Detail "($($aliasStatus.Status): $($aliasStatus.HostAlias); sync start creates or refreshes it)"
+    } else {
+        Test-Check -Name "$name SSH alias target" -Condition (-not $aliasStatus.HasConflict) -Detail "($($aliasStatus.Status), $($aliasStatus.ActualHost):$($aliasStatus.ActualPort))"
+        if ($aliasStatus.HasConflict) {
+            Write-ADPSshAliasOwnershipGuidance -AliasStatus $aliasStatus -CommandContext $commandContext -Action "doctor diagnosis"
         }
     }
 
@@ -482,7 +494,11 @@ foreach ($name in (Get-AllRuntimeNames)) {
         $status = if ($statusResult.Success) { $statusResult.Data } else { "unknown" }
         Test-Check -Name "$name VM status" -Condition ($status -match "running|stopped") -Detail "($status)"
         if ($status -match "running" -and $rt.static_ip) {
-            Test-Check -Name "$name SSH reachable" -Condition (Test-RuntimeSSHReachable -HostAddress $rt.static_ip -Port $rt.ssh_port) -Detail "($($rt.static_ip):$($rt.ssh_port))"
+            if ($hasDuplicateRunningVm) {
+                Write-InfoCheck -Name "$name SSH reachable" -Detail "(skipped: duplicate running VM makes SSH target ambiguous)"
+            } else {
+                Test-Check -Name "$name SSH reachable" -Condition (Test-RuntimeSSHReachable -HostAddress $rt.static_ip -Port $rt.ssh_port) -Detail "($($rt.static_ip):$($rt.ssh_port))"
+            }
         } else {
             Write-InfoCheck -Name "$name SSH reachable" -Detail "(skipped, VM status: $status)"
         }

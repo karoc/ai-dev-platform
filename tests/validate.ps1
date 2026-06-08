@@ -104,6 +104,10 @@ Invoke-ValidationStep -Name "Check resource conflict contracts" -ScriptBlock {
     & ".\tests\resource-conflicts-contract.ps1"
 }
 
+Invoke-ValidationStep -Name "Check SSH alias ownership contracts" -ScriptBlock {
+    & ".\tests\ssh-alias-contract.ps1"
+}
+
 Invoke-ValidationStep -Name "Check up provision marker handling" -ScriptBlock {
     & ".\tests\up-provision-marker-contract.ps1"
 }

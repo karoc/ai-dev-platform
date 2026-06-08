@@ -59,6 +59,7 @@ $status = Read-Text "cli\commands\status.ps1"
 $sshAdapter = Read-Text "adapters\windows\ssh\ssh.ps1"
 $runtimeModule = Read-Text "core\runtime\runtime.ps1"
 $resourceConflicts = Read-Text "core\diagnostics\resource-conflicts.ps1"
+$sshAliasDiagnostics = Read-Text "core\diagnostics\ssh-alias.ps1"
 $workspace = Read-Text "cli\commands\workspace.ps1"
 $destroy = Read-Text "cli\commands\destroy.ps1"
 $stop = Read-Text "cli\commands\stop.ps1"
@@ -71,6 +72,8 @@ $ci = Read-Text ".github\workflows\ci.yml"
 $validate = Read-Text "tests\validate.ps1"
 $networkingDocs = Read-Text "docs\networking.md"
 $networkingDocsZh = Read-Text "docs\zh-CN\networking.md"
+$operationsDocs = Read-Text "docs\operations.md"
+$operationsDocsZh = Read-Text "docs\zh-CN\operations.md"
 $configurationDocs = Read-Text "docs\configuration.md"
 $configurationDocsZh = Read-Text "docs\zh-CN\configuration.md"
 $workspaceDocs = Read-Text "docs\workspaces.md"
@@ -102,6 +105,7 @@ Assert-Contains -Name "shared validation checks local config mutation boundaries
 Assert-Contains -Name "shared validation checks Mutagen remediation behavior" -Text $validate -Pattern '\.\\tests\\mutagen-remediation\.ps1'
 Assert-Contains -Name "shared validation checks adpos registration contract" -Text $validate -Pattern '\.\\tests\\adpos-registration-contract\.ps1'
 Assert-Contains -Name "shared validation checks resource conflict contracts" -Text $validate -Pattern '\.\\tests\\resource-conflicts-contract\.ps1'
+Assert-Contains -Name "shared validation checks SSH alias ownership contracts" -Text $validate -Pattern '\.\\tests\\ssh-alias-contract\.ps1'
 Assert-Contains -Name "shared validation checks bounded SSH probe handling" -Text $validate -Pattern '\.\\tests\\ssh-timeout\.ps1'
 Assert-Contains -Name "documentation language checks enforce translated doc pairs" -Text (Read-Text "tests\docs-language-links.ps1") -Pattern 'Assert-TranslatedDocPair[\s\S]*README[\s\S]*CHANGELOG[\s\S]*build[\s\S]*docs/zh-CN'
 Assert-Contains -Name "shared validation parses workspace recipes example" -Text $validate -Pattern 'configs\\workspace\.recipes\.example\.json'
@@ -113,6 +117,10 @@ Assert-Contains -Name "contributing shell syntax docs include common bootstrap s
 Assert-Contains -Name "Chinese contributing shell syntax docs include common bootstrap script" -Text (Read-Text "CONTRIBUTING.zh-CN.md") -Pattern 'bootstrap/common/common\.sh'
 Assert-Contains -Name "troubleshooting validation scope includes artifact hygiene" -Text $troubleshootingDocs -Pattern 'Repository validation fails[\s\S]*artifact hygiene'
 Assert-Contains -Name "Chinese troubleshooting validation scope includes artifact hygiene" -Text $troubleshootingDocsZh -Pattern '仓库验证失败[\s\S]*artifact hygiene'
+Assert-Contains -Name "operations docs explain SSH alias target diagnostics" -Text $operationsDocs -Pattern 'user SSH config target[\s\S]*SSH alias mismatch[\s\S]*adpos sync status'
+Assert-Contains -Name "Chinese operations docs explain SSH alias target diagnostics" -Text $operationsDocsZh -Pattern '用户 SSH config[\s\S]*SSH alias mismatch[\s\S]*adpos sync status'
+Assert-Contains -Name "troubleshooting docs explain global SSH alias and Mutagen session limits" -Text $troubleshootingDocs -Pattern 'SSH aliases and Mutagen session names are also user-global resources[\s\S]*does not claim it can prove the original checkout owner'
+Assert-Contains -Name "Chinese troubleshooting docs explain global SSH alias and Mutagen session limits" -Text $troubleshootingDocsZh -Pattern 'SSH alias 和 Mutagen session 名称也是用户级全局资源[\s\S]*不会声称能证明原始 checkout owner'
 Assert-Contains -Name "shared validation supports quick local validation" -Text $validate -Pattern '\[switch\]\$Quick[\s\S]*if\s*\(\$Quick\)[\s\S]*\$SkipCliSmoke\s*=\s*\$true[\s\S]*\$SkipInstallerSmoke\s*=\s*\$true'
 Assert-Contains -Name "shared validation supports local skip switches" -Text $validate -Pattern '\[switch\]\$SkipCliSmoke[\s\S]*\[switch\]\$SkipInstallerSmoke[\s\S]*\[switch\]\$SkipShellSyntax'
 Assert-Contains -Name "CLI registers setup command" -Text $cli -Pattern '\$validCommands\s*=\s*@\([\s\S]*"setup"'
@@ -254,10 +262,14 @@ Assert-Contains -Name "status uses bounded SSH reachability helper" -Text $statu
 Assert-Contains -Name "up uses bounded SSH provision marker helper" -Text $up -Pattern 'adapters\\windows\\ssh\\ssh\.ps1[\s\S]*function\s+Test-RuntimeConnectionProvisionMarkerViaSSH[\s\S]*Invoke-AdpSshCommand[\s\S]*/home/adp/\.adp-provisioned[\s\S]*-TimeoutSeconds 12[\s\S]*ssh-timeout'
 Assert-Contains -Name "status reports duplicate running runtime VMs" -Text (Read-Text "cli\commands\status.ps1") -Pattern 'ambiguous-duplicate[\s\S]*duplicate VM:[\s\S]*running ADP runtime name also found outside this checkout[\s\S]*other checkout or stale VM'
 Assert-Contains -Name "resource conflict helper defines runtime profiles and duplicate VM gates" -Text $resourceConflicts -Pattern 'function\s+Get-ADPRuntimeResourceProfile[\s\S]*Resolve-Path "workspace_root"[\s\S]*Resolve-Path "vm_store"[\s\S]*SshAlias[\s\S]*MutagenSession[\s\S]*function\s+Get-ADPRuntimeDuplicateConflict[\s\S]*BlocksRuntimeMutation'
+Assert-Contains -Name "SSH alias diagnostics parse user SSH config without mutating it" -Text $sshAliasDiagnostics -Pattern 'function\s+Get-ADPSshHostBlock[\s\S]*ADP-OS \$HostAlias[\s\S]*function\s+Get-ADPSshAliasOwnershipStatus[\s\S]*alias-mismatch[\s\S]*function\s+ConvertTo-ADPSshAliasOwnershipJson'
 Assert-Contains -Name "status JSON exposes duplicate running VM details" -Text $status -Pattern 'DuplicateRunningVms[\s\S]*ConvertTo-ADPDuplicateVmJson[\s\S]*ResourceProfile'
+Assert-Contains -Name "status exposes SSH alias diagnostics" -Text $status -Pattern 'SshAliasDiagnostic[\s\S]*ConvertTo-ADPSshAliasOwnershipJson[\s\S]*ssh alias:[\s\S]*Write-ADPSshAliasOwnershipGuidance'
 Assert-Contains -Name "up blocks duplicate running VM before runtime mutation" -Text $up -Pattern 'Get-ADPRuntimeDuplicateConflict[\s\S]*HasDuplicateRunningVm[\s\S]*up runtime start/create[\s\S]*exit 1'
 Assert-Contains -Name "sync start blocks duplicate running VM before creating session" -Text $sync -Pattern 'Get-ADPRuntimeDuplicateConflict[\s\S]*HasDuplicateRunningVm[\s\S]*Action "sync start"[\s\S]*New-SyncSession'
+Assert-Contains -Name "sync reports and blocks stale SSH alias targets around existing sessions" -Text $sync -Pattern 'Get-ADPSshAliasOwnershipStatus[\s\S]*alias:\s+[\s\S]*existingSession\.Exists[\s\S]*Write-ADPSshAliasOwnershipGuidance[\s\S]*New-SyncSession'
 Assert-Contains -Name "doctor treats duplicate running VM as a failing check" -Text $doctor -Pattern 'Get-ADPRuntimeDuplicateConflict[\s\S]*Test-Check -Name "\$name duplicate running VM" -Condition \(-not \$hasDuplicateRunningVm\)'
+Assert-Contains -Name "doctor skips SSH reachability when duplicate VM makes target ambiguous" -Text $doctor -Pattern 'SSH alias target[\s\S]*duplicate running VM makes SSH target ambiguous'
 Assert-Contains -Name "status reports unhealthy sync sessions" -Text (Read-Text "cli\commands\status.ps1") -Pattern 'wrong-local[\s\S]*wrong-remote[\s\S]*unhealthy[\s\S]*Get-SyncSessionRecoveryInfo[\s\S]*sync recovery:[\s\S]*sync step:[\s\S]*sync safety:'
 Assert-Contains -Name "status distinguishes stale session before runtime creation" -Text (Read-Text "cli\commands\status.ps1") -Pattern '\$RuntimeCreated[\s\S]*stale-session[\s\S]*Get-SyncSessionRecoveryInfo[\s\S]*sync recovery:[\s\S]*sync step:[\s\S]*sync safety:'
 Assert-Contains -Name "doctor reports seed network drift" -Text $doctor -Pattern 'seed network drift[\s\S]*Write-NetworkDriftRemediation'
