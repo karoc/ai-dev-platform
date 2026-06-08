@@ -111,6 +111,7 @@ Assert-Contains -Name "shared validation runs artifact hygiene checks" -Text $va
 Assert-Contains -Name "shared validation checks local config mutation boundaries" -Text $validate -Pattern '\.\\tests\\local-config-boundary\.ps1'
 Assert-Contains -Name "shared validation checks Mutagen remediation behavior" -Text $validate -Pattern '\.\\tests\\mutagen-remediation\.ps1'
 Assert-Contains -Name "shared validation checks adpos registration contract" -Text $validate -Pattern '\.\\tests\\adpos-registration-contract\.ps1'
+Assert-Contains -Name "shared validation checks adpos registration decisions" -Text $validate -Pattern '\.\\tests\\adpos-registration-decision\.ps1'
 Assert-Contains -Name "shared validation checks resource conflict contracts" -Text $validate -Pattern '\.\\tests\\resource-conflicts-contract\.ps1'
 Assert-Contains -Name "shared validation checks VMware runtime layout contracts" -Text $validate -Pattern '\.\\tests\\vmware-runtime-layout-contract\.ps1'
 Assert-Contains -Name "shared validation checks SSH alias ownership contracts" -Text $validate -Pattern '\.\\tests\\ssh-alias-contract\.ps1'

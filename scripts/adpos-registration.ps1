@@ -168,6 +168,65 @@ function Get-ADPOSMultiCheckoutGuidance {
     }
 }
 
+function Get-ADPOSRegistrationDecision {
+    param(
+        [Parameter(Mandatory = $true)]
+        [object]$ExistingRegistration,
+
+        [Parameter(Mandatory = $true)]
+        [string]$ProjectRoot,
+
+        [switch]$NonInteractive,
+        [switch]$Force,
+        [object]$ReplacementAccepted = $null
+    )
+
+    $resolvedProjectRoot = [System.IO.Path]::GetFullPath($ProjectRoot)
+    $previousHome = $ExistingRegistration.Home
+    $isDifferentHome = [bool]$ExistingRegistration.IsDifferentHome
+    $registrationEffects = @("create-bin", "write-shim", "set-user-home", "set-process-home", "add-user-path")
+
+    if ($isDifferentHome -and -not $Force -and -not $NonInteractive -and $null -eq $ReplacementAccepted) {
+        return [pscustomobject]@{
+            Home                 = $resolvedProjectRoot
+            PreviousHome         = $previousHome
+            ShouldRegister       = $false
+            Registered           = $false
+            RequiresConfirmation = $true
+            Replaced             = $false
+            Skipped              = $false
+            Reason               = "requires-confirmation"
+            Effects              = @()
+        }
+    }
+
+    if ($isDifferentHome -and -not $Force -and ($NonInteractive -or -not [bool]$ReplacementAccepted)) {
+        return [pscustomobject]@{
+            Home                 = $resolvedProjectRoot
+            PreviousHome         = $previousHome
+            ShouldRegister       = $false
+            Registered           = $false
+            RequiresConfirmation = $false
+            Replaced             = $false
+            Skipped              = $true
+            Reason               = "kept-existing-global"
+            Effects              = @()
+        }
+    }
+
+    return [pscustomobject]@{
+        Home                 = $resolvedProjectRoot
+        PreviousHome         = $previousHome
+        ShouldRegister       = $true
+        Registered           = $true
+        RequiresConfirmation = $false
+        Replaced             = $isDifferentHome
+        Skipped              = $false
+        Reason               = ""
+        Effects              = $registrationEffects
+    }
+}
+
 function Add-ADPOSPathEntry {
     param([string]$Path)
 
@@ -223,26 +282,24 @@ function Install-ADPOSCommandRegistration {
     $shimPath = Get-ADPOSCommandShimPath
     $homeVariableName = Get-ADPOSHomeVariableName
     $existingRegistration = Get-ADPOSExistingRegistration -ProjectRoot $resolvedProjectRoot
-    $previousHome = $existingRegistration.Home
+    $decision = Get-ADPOSRegistrationDecision -ExistingRegistration $existingRegistration -ProjectRoot $resolvedProjectRoot -NonInteractive:$NonInteractive -Force:$Force
 
-    if ($existingRegistration.IsDifferentHome -and -not $Force) {
-        $replace = $false
-        if (-not $NonInteractive) {
-            $replace = Confirm-ADPOSRegistrationReplacement -ExistingRegistration $existingRegistration -ProjectRoot $resolvedProjectRoot
-        }
+    if ($decision.RequiresConfirmation) {
+        $replacementAccepted = Confirm-ADPOSRegistrationReplacement -ExistingRegistration $existingRegistration -ProjectRoot $resolvedProjectRoot
+        $decision = Get-ADPOSRegistrationDecision -ExistingRegistration $existingRegistration -ProjectRoot $resolvedProjectRoot -NonInteractive:$NonInteractive -Force:$Force -ReplacementAccepted $replacementAccepted
+    }
 
-        if (-not $replace) {
-            return [pscustomobject]@{
-                Command      = "adpos"
-                BinPath      = $binPath
-                ShimPath     = $shimPath
-                Home         = $resolvedProjectRoot
-                PreviousHome = $previousHome
-                Registered   = $false
-                Replaced     = $false
-                Skipped      = $true
-                Reason       = "kept-existing-global"
-            }
+    if ($decision.Skipped) {
+        return [pscustomobject]@{
+            Command      = "adpos"
+            BinPath      = $binPath
+            ShimPath     = $shimPath
+            Home         = $decision.Home
+            PreviousHome = $decision.PreviousHome
+            Registered   = $false
+            Replaced     = $decision.Replaced
+            Skipped      = $true
+            Reason       = $decision.Reason
         }
     }
 
@@ -291,9 +348,9 @@ function Install-ADPOSCommandRegistration {
         BinPath      = $binPath
         ShimPath     = $shimPath
         Home         = $resolvedProjectRoot
-        PreviousHome = $previousHome
+        PreviousHome = $decision.PreviousHome
         Registered   = $true
-        Replaced     = $existingRegistration.IsDifferentHome
+        Replaced     = $decision.Replaced
         Skipped      = $false
         Reason       = ""
     }
