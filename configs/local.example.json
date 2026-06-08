@@ -1,5 +1,6 @@
 {
   "platform": {
+    "runtime_namespace": null,
     "paths": {
       "workspace_root": "${env:USERPROFILE}\\adp-workspaces",
       "iso_cache": "${env:USERPROFILE}\\adp-iso",

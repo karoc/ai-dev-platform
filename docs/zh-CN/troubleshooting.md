@@ -75,7 +75,7 @@ Runtime 不会按版本号自动隔离。可能冲突的资源包括：
 - SSH alias，例如 `adp-os-adp-agent`。
 - Mutagen session 名称，例如 `adp-agent`。
 
-如果要让两个 checkout 同时保持活跃，请先在第二个 checkout 被忽略的 `configs\local.json` 中配置不同的 `workspace_root`、`vm_store` 和 `static_ip`，然后运行：
+在第二个 checkout 中进行 runtime 操作前，请先在该 checkout 被忽略的 `configs\local.json` 中配置不同的 `workspace_root`、`vm_store` 和 `static_ip`，然后运行：
 
 ```powershell
 .\adpos.cmd doctor
@@ -86,12 +86,14 @@ Runtime 不会按版本号自动隔离。可能冲突的资源包括：
 
 如果已有另一个同名 VM 正在运行，ADP-OS 会把它视为阻塞性冲突。`status` 会把 SSH 报告为 `ambiguous-duplicate`；`up` 和 `sync start` 会在修改 runtime state 或 Mutagen session 前停止。诊断输出会列出当前 checkout、全局 `adpos` 绑定、workspace root、VM store、static IP、SSH alias、SSH key、Mutagen session、预期 VMX，以及所有正在运行的同名 VMX 路径。
 
+ADP-OS 已经加入 `platform.runtime_namespace` 资源身份基础，可生成 VM `adp-v2-agent`、SSH alias `adp-os-adp-v2-agent`、Mutagen session `adp-v2-agent` 这样的名称。配置后，`status`、`doctor`、`sync` 和 `up -Plan` 会使用 namespaced profile。Namespaced VM 的首次创建仍是 VM factory 迁移阶段，因此在配置 namespace 时，`up` 会主动停止，而不是静默创建默认 `adp-<runtime>` VM。
+
 SSH alias 和 Mutagen session 名称也是用户级全局资源。`status` 现在会读取类似 `adp-os-adp-agent` 的用户 SSH config 条目，并报告它是否符合当前 checkout 期望的 host、port、user 和 identity file。`sync status` 会在 Mutagen endpoint 摘要旁边报告同样的 alias mismatch。即使某个 Mutagen session 的本地和远端 endpoint 字符串与当前期望兼容，也只能说明它“符合当前期望”；在没有持久 owner metadata 的前提下，ADP-OS 不会声称能证明原始 checkout owner。
 
 选择一种恢复路径：
 
 - 如果另一个 VM 已 stale，请从其所属 checkout 或 VMware UI 停止它，然后重新运行 `adpos status <runtime>`。
-- 如果另一个 checkout 必须继续活跃，请先保留它，并在当前 checkout 中修改 `workspace_root`、`vm_store` 和 `topology.<runtime>.static_ip` 完成隔离，再运行 `up`。
+- 如果另一个 checkout 必须继续活跃，请先保留它，并在当前 checkout 中修改 `workspace_root`、`vm_store` 和 `topology.<runtime>.static_ip` 完成隔离。如果同时设置了 `platform.runtime_namespace`，请用 `up -Plan`、`status` 和 `doctor` 检查 namespaced resource profile；在 VM factory 迁移完成前，不要期待 namespaced VM 能完成首次创建。
 - 如果全局 `adpos` 指向另一个 checkout，在你有意替换全局绑定前，请在当前仓库中使用 `.\adpos.cmd`。
 - 如果 stale Mutagen session 或 stale SSH alias 属于你不再使用的 checkout，请从应该拥有它的 checkout 停止并重建 session。停止 Mutagen session 只删除 session 定义，不会删除任一侧的 workspace 文件。
 

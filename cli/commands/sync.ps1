@@ -42,15 +42,11 @@ Write-Host ""
 function Get-SyncExpectedEndpoints {
     param([string]$TargetRuntime)
 
-    $rt = Get-RuntimeConfig $TargetRuntime
-    $workspaceRoot = Resolve-Path "workspace_root"
-    $localPath = Join-Path $workspaceRoot $rt.workspace
-    $sessionName = "adp-$TargetRuntime"
-    $remoteUrl = "adp-os-$sessionName`:/home/adp/workspace"
+    $resourceProfile = Get-ADPRuntimeResourceProfile -TargetRuntime $TargetRuntime
     return [pscustomobject]@{
-        SessionName = $sessionName
-        LocalPath   = $localPath
-        RemoteUrl   = $remoteUrl
+        SessionName = $resourceProfile.MutagenSession
+        LocalPath   = $resourceProfile.WorkspacePath
+        RemoteUrl   = $resourceProfile.ExpectedRemoteUrl
     }
 }
 
@@ -76,7 +72,7 @@ function Write-SyncRuntimeSummary {
     $expected = Get-SyncExpectedEndpoints -TargetRuntime $TargetRuntime
     $resourceProfile = Get-ADPRuntimeResourceProfile -TargetRuntime $TargetRuntime
     $aliasStatus = Get-ADPSshAliasOwnershipStatus -Profile $resourceProfile -ExpectedHost $resourceProfile.StaticIp -ExpectedUser $resourceProfile.SshUser -ExpectedPort $resourceProfile.SshPort -ExpectedKeyPath $resourceProfile.SshKeyPath
-    $statusResult = Get-VMStatus -Name $TargetRuntime
+    $statusResult = Get-VMStatus -Name $resourceProfile.RuntimeResourceName
     $runtimeCreated = ($statusResult.Success -and $statusResult.Data -ne "not-created")
     try {
         $session = Get-SyncSessionInfo -SessionName $expected.SessionName -ExpectedLocalPath $expected.LocalPath -ExpectedRemoteUrl $expected.RemoteUrl
@@ -143,10 +139,9 @@ switch ($SubCommand) {
         Write-UIHost -English "Starting sync for: $RuntimeName" -Chinese "正在启动同步: $RuntimeName" -ForegroundColor Yellow
         $rt = Get-RuntimeConfig $RuntimeName
         $profile = Get-SyncProfile $rt.sync_profile
-        $workspaceRoot = Resolve-Path "workspace_root"
-        $localPath = Join-Path $workspaceRoot $rt.workspace
-        $statusResult = Get-VMStatus -Name $RuntimeName
         $resourceProfile = Get-ADPRuntimeResourceProfile -TargetRuntime $RuntimeName
+        $localPath = $resourceProfile.WorkspacePath
+        $statusResult = Get-VMStatus -Name $resourceProfile.RuntimeResourceName
         $runningVmxPaths = Get-ADPRunningVmxPathsForResourceCheck
         $resourceConflict = Get-ADPRuntimeDuplicateConflict -TargetRuntime $RuntimeName -ManagedVmxPath $resourceProfile.VmxPath -RunningVmxPaths $runningVmxPaths
         if ($resourceConflict.HasDuplicateRunningVm) {
@@ -169,7 +164,7 @@ switch ($SubCommand) {
 
         $ip = Get-RuntimeStaticIP $RuntimeName
         if (-not $ip) {
-            $ipResult = Get-VMIP -Name $RuntimeName
+            $ipResult = Get-VMIP -Name $resourceProfile.RuntimeResourceName
             if ($ipResult.Success) {
                 $ip = $ipResult.Data
             }
@@ -183,9 +178,9 @@ switch ($SubCommand) {
         Write-Host "  Remote: adp@${ip}:/home/adp/workspace" -ForegroundColor DarkGray
         Write-Host "  Mode:   $($profile.mode)" -ForegroundColor DarkGray
 
-        $sessionName = "adp-$RuntimeName"
-        $sshKeyPath = Join-Path "$env:USERPROFILE\.ssh\adp-os" "adp-os"
-        $expectedRemoteUrl = "adp-os-$sessionName`:/home/adp/workspace"
+        $sessionName = $resourceProfile.MutagenSession
+        $sshKeyPath = $resourceProfile.SshKeyPath
+        $expectedRemoteUrl = $resourceProfile.ExpectedRemoteUrl
         $existingSession = Get-SyncSessionInfo -SessionName $sessionName -ExpectedLocalPath $localPath -ExpectedRemoteUrl $expectedRemoteUrl
         $aliasStatus = Get-ADPSshAliasOwnershipStatus -Profile $resourceProfile -ExpectedHost $ip -ExpectedUser $resourceProfile.SshUser -ExpectedPort $resourceProfile.SshPort -ExpectedKeyPath $sshKeyPath
         if ($existingSession.Exists -and $existingSession.Health -in @("healthy", "present")) {
@@ -210,7 +205,7 @@ switch ($SubCommand) {
             -SSHKeyPath $sshKeyPath
     }
     "stop" {
-        $sessionName = "adp-$RuntimeName"
+        $sessionName = (Get-ADPRuntimeResourceProfile -TargetRuntime $RuntimeName).MutagenSession
         Write-UIHost -English "Stopping sync for: $RuntimeName" -Chinese "正在停止同步: $RuntimeName" -ForegroundColor Yellow
         Stop-SyncSession -SessionName $sessionName
     }

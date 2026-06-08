@@ -92,11 +92,11 @@ cd ai-dev-platform
 
 如果这是同一 Windows 用户账户下的第二个本地 checkout，或另一个 ADP-OS 版本，setup 可能会检测到全局 `adpos` 已经指向另一个 checkout。你可以替换该绑定，也可以保留它，并在当前 checkout 中使用 `.\adpos.cmd`。
 
-如果要让两个 checkout 同时运行同一个 runtime，请先在当前 checkout 的 `configs\local.json` 中完成隔离：
+在第二个 checkout 中创建、启动或同步 runtime 前，请先在当前 checkout 的 `configs\local.json` 中完成隔离：
 
 - 使用不同的 `platform.paths.workspace_root`。
 - 使用不同的 `platform.paths.vm_store`。
-- 为会同时运行的 runtime 使用不同的 `topology.<runtime>.static_ip`。
+- 为可能从不同 checkout 激活的 runtime 使用不同的 `topology.<runtime>.static_ip`。
 
 创建或同步 VM 前，先在当前 checkout 本地检查：
 
@@ -106,6 +106,8 @@ cd ai-dev-platform
 .\adpos.cmd sync status
 .\adpos.cmd up agent -Plan
 ```
+
+当前公开 runtime gate 仍会阻止两个同名 runtime VM 同时运行。如果 `status` 报告 `duplicate VM`，请先从其所属 checkout 或 VMware UI 停止 stale VM，再从当前 checkout 运行 `up` 或 `sync start`。Namespaced runtime resource names 正在引入，但 namespaced VM 的首次创建仍属于单独的 VM factory 迁移阶段。
 
 ### 第 2 步：运行引导式设置
 

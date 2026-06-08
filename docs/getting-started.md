@@ -92,11 +92,11 @@ cd ai-dev-platform
 
 If this is a second local checkout or a different ADP-OS version on the same Windows user account, setup may detect that global `adpos` already points to another checkout. You can replace that binding, or keep it and use `.\adpos.cmd` inside this checkout.
 
-Before running the same runtime in two checkouts at the same time, isolate the new checkout in `configs\local.json`:
+Before creating, starting, or syncing runtimes from the second checkout, isolate the new checkout in `configs\local.json`:
 
 - Use a different `platform.paths.workspace_root`.
 - Use a different `platform.paths.vm_store`.
-- Use different `topology.<runtime>.static_ip` values for concurrently running runtimes.
+- Use different `topology.<runtime>.static_ip` values for runtimes that may be active from different checkouts.
 
 Then check the local checkout before creating or syncing VMs:
 
@@ -106,6 +106,8 @@ Then check the local checkout before creating or syncing VMs:
 .\adpos.cmd sync status
 .\adpos.cmd up agent -Plan
 ```
+
+The current public runtime gate still blocks two same-name runtime VMs from running concurrently. If `status` reports `duplicate VM`, stop the stale VM from its owning checkout or VMware UI before running `up` or `sync start` from this checkout. Namespaced runtime resource names are being introduced, but first creation of namespaced VMs is still a separate VM factory migration stage.
 
 ### Step 2: Run the Guided Setup
 

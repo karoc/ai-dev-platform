@@ -1,6 +1,8 @@
 # ADP-OS resource conflict diagnostics.
 # Shared read-only helpers for multi-checkout runtime safety.
 
+. (Join-Path (Split-Path $PSScriptRoot -Parent) "runtime\runtime-identity.ps1")
+
 function Normalize-ADPResourcePath {
     param([string]$Path)
 
@@ -122,10 +124,8 @@ function Get-ADPRuntimeResourceProfile {
     $platformConfig = Get-PlatformConfig
     $workspaceRoot = Resolve-Path "workspace_root"
     $vmStore = Resolve-Path "vm_store"
-    $vmName = "adp-$TargetRuntime"
-    $resolvedVmxPath = if ($VmxPath) { $VmxPath } else { Join-Path $vmStore "$vmName\$vmName.vmx" }
-    $sshAlias = "adp-os-$vmName"
-    $sessionName = $vmName
+    $resourceNames = Get-ADPRuntimeResourceNames -TargetRuntime $TargetRuntime
+    $resolvedVmxPath = if ($VmxPath) { $VmxPath } else { Join-Path $vmStore "$($resourceNames.VmDirectoryName)\$($resourceNames.VmxFileName)" }
     $userProfile = Get-ADPUserProfilePath
     $sshKeyPath = if ($userProfile) { Join-Path "$userProfile\.ssh\adp-os" "adp-os" } else { "" }
     $sshPort = if ($rt.PSObject.Properties.Name -contains "ssh_port" -and $rt.ssh_port) { [int]$rt.ssh_port } else { 22 }
@@ -133,18 +133,24 @@ function Get-ADPRuntimeResourceProfile {
 
     return [pscustomobject]@{
         Runtime           = $TargetRuntime
+        RuntimeNamespace  = $resourceNames.RuntimeNamespace
+        RuntimeResourceName = $resourceNames.RuntimeResourceName
         ProjectRoot       = Get-ProjectRoot
         WorkspaceRoot     = $workspaceRoot
         WorkspacePath     = Join-Path $workspaceRoot $rt.workspace
         VmStore           = $vmStore
+        VmName            = $resourceNames.VmName
+        VmDirectoryName   = $resourceNames.VmDirectoryName
+        VmxFileName       = $resourceNames.VmxFileName
+        VmdkFileName      = $resourceNames.VmdkFileName
         VmxPath           = $resolvedVmxPath
         StaticIp          = Get-RuntimeStaticIP $TargetRuntime
-        SshAlias          = $sshAlias
+        SshAlias          = $resourceNames.SshAlias
         SshUser           = $sshUser
         SshPort           = $sshPort
         SshKeyPath        = $sshKeyPath
-        MutagenSession    = $sessionName
-        ExpectedRemoteUrl = "${sshAlias}:/home/adp/workspace"
+        MutagenSession    = $resourceNames.MutagenSession
+        ExpectedRemoteUrl = "$($resourceNames.SshAlias):/home/adp/workspace"
     }
 }
 
@@ -229,6 +235,7 @@ function Write-ADPRuntimeResourceConflictGuidance {
     } else {
         Write-UIHost -English "  command prefix:    $($CommandContext.CommandPrefix)" -Chinese "  命令前缀:        $($CommandContext.CommandPrefix)" -ForegroundColor DarkGray
     }
+    Write-UIHost -English "  namespace:         $(if ($Profile.RuntimeNamespace) { $Profile.RuntimeNamespace } else { 'default' })" -Chinese "  namespace:         $(if ($Profile.RuntimeNamespace) { $Profile.RuntimeNamespace } else { '默认' })" -ForegroundColor DarkGray
     Write-UIHost -English "  workspace_root:    $($Profile.WorkspaceRoot)" -Chinese "  workspace_root:    $($Profile.WorkspaceRoot)" -ForegroundColor DarkGray
     Write-UIHost -English "  vm_store:          $($Profile.VmStore)" -Chinese "  vm_store:          $($Profile.VmStore)" -ForegroundColor DarkGray
     Write-UIHost -English "  static_ip:         $(if ($Profile.StaticIp) { $Profile.StaticIp } else { 'not configured' })" -Chinese "  static_ip:         $(if ($Profile.StaticIp) { $Profile.StaticIp } else { '未配置' })" -ForegroundColor DarkGray
@@ -248,6 +255,6 @@ function Write-ADPRuntimeResourceConflictGuidance {
 
     Write-UIHost -English "  next:" -Chinese "  下一步:" -ForegroundColor Yellow
     Write-UIHost -English "    - If the other VM is stale, stop it from its owning checkout or VMware UI, then rerun: $statusCommand" -Chinese "    - 如果另一个 VM 已 stale，请从其所属 checkout 或 VMware UI 停止它，然后重新运行: $statusCommand" -ForegroundColor Yellow
-    Write-UIHost -English "    - If both checkouts must stay active, configure distinct workspace_root, vm_store, and topology.$($Profile.Runtime).static_ip before starting this runtime." -Chinese "    - 如果两个 checkout 都要保留运行，请先为当前 checkout 配置不同的 workspace_root、vm_store 和 topology.$($Profile.Runtime).static_ip。" -ForegroundColor Yellow
+    Write-UIHost -English "    - If both checkouts must stay active, isolate workspace_root, vm_store, and topology.$($Profile.Runtime).static_ip first. platform.runtime_namespace can preview namespaced resource identities; first namespaced VM creation still requires the VM factory migration." -Chinese "    - 如果两个 checkout 都要保留运行，请先隔离 workspace_root、vm_store 和 topology.$($Profile.Runtime).static_ip。platform.runtime_namespace 可预览 namespaced resource identity；namespaced VM 首次创建仍需等待 VM factory 迁移。" -ForegroundColor Yellow
     Write-UIHost -English "    - Recheck with: $doctorCommand; $syncStatusCommand; $upPlanCommand" -Chinese "    - 重新检查: $doctorCommand; $syncStatusCommand; $upPlanCommand" -ForegroundColor DarkGray
 }

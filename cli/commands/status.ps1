@@ -27,8 +27,8 @@ function Get-StatusVmxPath {
     param([string]$TargetRuntime)
 
     $vmStore = Resolve-Path "vm_store"
-    $vmName = "adp-$TargetRuntime"
-    return (Join-Path $vmStore "$vmName\$vmName.vmx")
+    $resourceNames = Get-ADPRuntimeResourceNames -TargetRuntime $TargetRuntime
+    return (Join-Path $vmStore "$($resourceNames.VmDirectoryName)\$($resourceNames.VmxFileName)")
 }
 
 function Get-StatusRuntimeState {
@@ -41,7 +41,8 @@ function Get-StatusRuntimeState {
     $vmxPath = Get-StatusVmxPath -TargetRuntime $TargetRuntime
     if ($VmwareAvailable) {
         # Use Provider for status and IP detection
-        $statusResult = Get-VMStatus -Name $TargetRuntime
+        $resourceNames = Get-ADPRuntimeResourceNames -TargetRuntime $TargetRuntime
+        $statusResult = Get-VMStatus -Name $resourceNames.RuntimeResourceName
         $vmStatus = if ($statusResult.Success) { $statusResult.Data } else { "unknown" }
 
         if ($vmStatus -eq "not-created") {
@@ -54,7 +55,7 @@ function Get-StatusRuntimeState {
 
         $detectedIp = ""
         try {
-            $ipResult = Get-VMIP -Name $TargetRuntime
+            $ipResult = Get-VMIP -Name $resourceNames.RuntimeResourceName
             if ($ipResult.Success) {
                 $detectedIp = $ipResult.Data
             }
@@ -109,7 +110,7 @@ function Get-StatusSyncState {
         return "mutagen-unavailable"
     }
 
-    $sessionName = "adp-$TargetRuntime"
+    $sessionName = (Get-ADPRuntimeResourceNames -TargetRuntime $TargetRuntime).MutagenSession
     try {
         $session = Get-SyncSessionInfo -SessionName $sessionName -ExpectedLocalPath $ExpectedLocalPath -ExpectedRemoteUrl $ExpectedRemoteUrl
         if (-not $session.Exists) {
@@ -197,14 +198,13 @@ function Get-StatusRuntimeObject {
     $connectIp = if ($configuredIp) { $configuredIp } else { $state.DetectedIp }
     $port = if ($rt.PSObject.Properties.Name -contains "ssh_port" -and $rt.ssh_port) { [int]$rt.ssh_port } else { 22 }
     $seedNetwork = Get-StatusSeedNetwork -TargetRuntime $TargetRuntime
-    $alias = "adp-os-adp-$TargetRuntime"
-    $workspaceRoot = Resolve-Path "workspace_root"
-    $workspacePath = Join-Path $workspaceRoot $rt.workspace
-    $expectedRemoteUrl = "${alias}:/home/adp/workspace"
+    $resourceProfile = Get-ADPRuntimeResourceProfile -TargetRuntime $TargetRuntime -VmxPath $state.VmxPath
+    $alias = $resourceProfile.SshAlias
+    $workspacePath = $resourceProfile.WorkspacePath
+    $expectedRemoteUrl = $resourceProfile.ExpectedRemoteUrl
     $runtimeCreated = ($state.Status -ne "not-created")
     $syncState = Get-StatusSyncState -TargetRuntime $TargetRuntime -MutagenAvailable $MutagenAvailable -ExpectedLocalPath $workspacePath -ExpectedRemoteUrl $expectedRemoteUrl -RuntimeCreated $runtimeCreated
 
-    $resourceProfile = Get-ADPRuntimeResourceProfile -TargetRuntime $TargetRuntime -VmxPath $state.VmxPath
     $resourceConflict = Get-ADPRuntimeDuplicateConflict -TargetRuntime $TargetRuntime -ManagedVmxPath $state.VmxPath -RunningVmxPaths $RunningVmxPaths
     $hasDuplicateRunningVm = ($VmwareAvailable -and $resourceConflict.HasDuplicateRunningVm)
     $sshAliasStatus = Get-ADPSshAliasOwnershipStatus -Profile $resourceProfile -ExpectedHost $connectIp -ExpectedUser $AdminUser -ExpectedPort $port -ExpectedKeyPath $KeyPath
@@ -264,13 +264,12 @@ function Write-StatusRuntime {
     $connectIp = if ($configuredIp) { $configuredIp } else { $state.DetectedIp }
     $port = if ($rt.PSObject.Properties.Name -contains "ssh_port" -and $rt.ssh_port) { [int]$rt.ssh_port } else { 22 }
     $seedNetwork = Get-StatusSeedNetwork -TargetRuntime $TargetRuntime
-    $alias = "adp-os-adp-$TargetRuntime"
-    $workspaceRoot = Resolve-Path "workspace_root"
-    $workspacePath = Join-Path $workspaceRoot $rt.workspace
-    $expectedRemoteUrl = "${alias}:/home/adp/workspace"
+    $resourceProfile = Get-ADPRuntimeResourceProfile -TargetRuntime $TargetRuntime -VmxPath $state.VmxPath
+    $alias = $resourceProfile.SshAlias
+    $workspacePath = $resourceProfile.WorkspacePath
+    $expectedRemoteUrl = $resourceProfile.ExpectedRemoteUrl
     $runtimeCreated = ($state.Status -ne "not-created")
     $syncState = Get-StatusSyncState -TargetRuntime $TargetRuntime -MutagenAvailable $MutagenAvailable -ExpectedLocalPath $workspacePath -ExpectedRemoteUrl $expectedRemoteUrl -RuntimeCreated $runtimeCreated
-    $resourceProfile = Get-ADPRuntimeResourceProfile -TargetRuntime $TargetRuntime -VmxPath $state.VmxPath
     $resourceConflict = Get-ADPRuntimeDuplicateConflict -TargetRuntime $TargetRuntime -ManagedVmxPath $state.VmxPath -RunningVmxPaths $RunningVmxPaths
     $adpRunningVms = @($resourceConflict.RunningVms)
     $hasDuplicateRunningVm = ($VmwareAvailable -and $resourceConflict.HasDuplicateRunningVm)
@@ -285,6 +284,9 @@ function Write-StatusRuntime {
 
     Write-Host "$TargetRuntime" -ForegroundColor Yellow
     Write-UIHost -English "  status:        $($state.Status)" -Chinese "  状态:          $($state.Status)" -ForegroundColor DarkGray
+    if ($resourceProfile.RuntimeNamespace) {
+        Write-UIHost -English "  namespace:     $($resourceProfile.RuntimeNamespace) (resource: $($resourceProfile.RuntimeResourceName))" -Chinese "  namespace:     $($resourceProfile.RuntimeNamespace) (资源: $($resourceProfile.RuntimeResourceName))" -ForegroundColor DarkGray
+    }
     Write-UIHost -English "  configured IP: $(if ($configuredIp) { $configuredIp } else { 'not configured' })" -Chinese "  配置 IP:       $(if ($configuredIp) { $configuredIp } else { '未配置' })" -ForegroundColor DarkGray
     if ($state.DetectedIp) {
         Write-UIHost -English "  detected IP:   $($state.DetectedIp)" -Chinese "  探测 IP:       $($state.DetectedIp)" -ForegroundColor DarkGray
@@ -327,7 +329,7 @@ function Write-StatusRuntime {
     # Use recovery diagnostics for detailed stale/unhealthy session guidance
     if ($syncState -in @("wrong-local", "wrong-remote", "unhealthy", "stale-session")) {
         $recovery = Get-SyncSessionRecoveryInfo `
-            -SessionName "adp-$TargetRuntime" `
+            -SessionName $resourceProfile.MutagenSession `
             -ExpectedLocalPath $workspacePath `
             -ExpectedRemoteUrl $expectedRemoteUrl `
             -RuntimeCreated $runtimeCreated `

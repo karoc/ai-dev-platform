@@ -27,14 +27,15 @@ $rt = Get-RuntimeConfig $RuntimeName
 $config = Get-PlatformConfig
 $vmStore = Resolve-Path "vm_store"
 $isoCache = Resolve-Path "iso_cache"
-$vmName = "adp-$RuntimeName"
-$vmxPath = Join-Path $vmStore "$vmName\$vmName.vmx"
 
 # Load vm-factory (still uses .vmx paths internally — NOT part of Provider migration)
 . (Join-Path (Get-ProjectRoot) "runtimes\vmware\os-profiles.ps1")
 . (Join-Path (Get-ProjectRoot) "runtimes\vmware\vm-factory.ps1")
 . (Join-Path (Get-ProjectRoot) "adapters\windows\ssh\ssh.ps1")
 . (Join-Path (Get-ProjectRoot) "core\diagnostics\resource-conflicts.ps1")
+$resourceProfile = Get-ADPRuntimeResourceProfile -TargetRuntime $RuntimeName
+$vmName = $resourceProfile.VmName
+$vmxPath = $resourceProfile.VmxPath
 Initialize-VmFactory -ProjectRoot (Get-ProjectRoot) -IsoCachePath $isoCache -VmStorePath $vmStore
 
 # Initialize VM provider
@@ -53,7 +54,8 @@ function Get-RuntimeConnectionIP {
         return $staticIp
     }
 
-    $ipResult = Get-VMIP -Name $TargetRuntime
+    $resourceNames = Get-ADPRuntimeResourceNames -TargetRuntime $TargetRuntime
+    $ipResult = Get-VMIP -Name $resourceNames.RuntimeResourceName
     if ($ipResult.Success) { return $ipResult.Data }
     return $null
 }
@@ -67,19 +69,19 @@ function Write-RuntimeConnectionSummary {
     $rtConfig = Get-RuntimeConfig $TargetRuntime
     $config = Get-PlatformConfig
     $staticIp = Get-RuntimeStaticIP $TargetRuntime
+    $resourceProfile = Get-ADPRuntimeResourceProfile -TargetRuntime $TargetRuntime -VmxPath $TargetVmxPath
     $detectedIp = $null
     try {
-        $ipResult = Get-VMIP -Name $TargetRuntime
+        $ipResult = Get-VMIP -Name $resourceProfile.RuntimeResourceName
         if ($ipResult.Success) { $detectedIp = $ipResult.Data }
     } catch {}
 
     $ip = if ($staticIp) { $staticIp } else { $detectedIp }
     $port = if ($rtConfig.PSObject.Properties.Name -contains "ssh_port" -and $rtConfig.ssh_port) { [int]$rtConfig.ssh_port } else { 22 }
     $user = if ($config.defaults.admin_user) { [string]$config.defaults.admin_user } else { "adp" }
-    $keyPath = Join-Path "$env:USERPROFILE\.ssh\adp-os" "adp-os"
-    $workspaceRoot = Resolve-Path "workspace_root"
-    $workspacePath = Join-Path $workspaceRoot $rtConfig.workspace
-    $alias = "adp-os-adp-$TargetRuntime"
+    $keyPath = $resourceProfile.SshKeyPath
+    $workspacePath = $resourceProfile.WorkspacePath
+    $alias = $resourceProfile.SshAlias
 
     Write-Host ""
     Write-UIHost -English "Connection details:" -Chinese "连接信息:" -ForegroundColor Cyan
@@ -311,11 +313,10 @@ function Check-PreRuntimeStaleSessions {
         return
     }
 
-    $sessionName = "adp-$TargetRuntime"
-    $workspaceRoot = Resolve-Path "workspace_root"
-    $rtConfig = Get-RuntimeConfig $TargetRuntime
-    $expectedLocalPath = Join-Path $workspaceRoot $rtConfig.workspace
-    $expectedRemoteUrl = "adp-os-$sessionName`:/home/adp/workspace"
+    $resourceProfile = Get-ADPRuntimeResourceProfile -TargetRuntime $TargetRuntime
+    $sessionName = $resourceProfile.MutagenSession
+    $expectedLocalPath = $resourceProfile.WorkspacePath
+    $expectedRemoteUrl = $resourceProfile.ExpectedRemoteUrl
 
     $session = Get-SyncSessionInfo -SessionName $sessionName -ExpectedLocalPath $expectedLocalPath -ExpectedRemoteUrl $expectedRemoteUrl
     if (-not $session.Exists) {
@@ -431,7 +432,6 @@ Write-Host ""
 # Check for stale Mutagen sessions before proceeding
 Check-PreRuntimeStaleSessions -TargetRuntime $RuntimeName
 
-$resourceProfile = Get-ADPRuntimeResourceProfile -TargetRuntime $RuntimeName -VmxPath $vmxPath
 $runningVmxPaths = Get-ADPRunningVmxPathsForResourceCheck
 $resourceConflict = Get-ADPRuntimeDuplicateConflict -TargetRuntime $RuntimeName -ManagedVmxPath $vmxPath -RunningVmxPaths $runningVmxPaths
 if ($resourceConflict.HasDuplicateRunningVm) {
@@ -445,10 +445,13 @@ if ($resourceConflict.HasDuplicateRunningVm) {
 if ($Plan) {
     $isoName = if ($config.defaults.iso_path) { $config.defaults.iso_path } else { $config.defaults.ubuntu_iso }
     $plannedIsoPath = if ($IsoPath) { $IsoPath } else { Join-Path $isoCache $isoName }
-    $statusResult = Get-VMStatus -Name $RuntimeName
+    $statusResult = Get-VMStatus -Name $resourceProfile.RuntimeResourceName
     $status = if ($statusResult.Success) { $statusResult.Data } else { "unknown" }
     Write-UIHost -English "Plan only: no VM will be created, started, provisioned, or bootstrapped." -Chinese "仅预览：不会创建、启动、provision 或 bootstrap 任何 VM。" -ForegroundColor Cyan
     Write-UIHost -English "  Runtime:      $RuntimeName" -Chinese "  运行时:      $RuntimeName" -ForegroundColor DarkGray
+    if ($resourceProfile.RuntimeNamespace) {
+        Write-UIHost -English "  Namespace:    $($resourceProfile.RuntimeNamespace) (resource: $($resourceProfile.RuntimeResourceName))" -Chinese "  Namespace:    $($resourceProfile.RuntimeNamespace) (资源: $($resourceProfile.RuntimeResourceName))" -ForegroundColor DarkGray
+    }
     Write-UIHost -English "  VMX:          $vmxPath" -Chinese "  VMX:          $vmxPath" -ForegroundColor DarkGray
     Write-UIHost -English "  Current:      $status" -Chinese "  当前状态:    $status" -ForegroundColor DarkGray
     Write-UIHost -English "  ISO:          $plannedIsoPath" -Chinese "  ISO:          $plannedIsoPath" -ForegroundColor DarkGray
@@ -465,7 +468,7 @@ if ($Plan) {
 }
 
 # --- Case 1: VM exists ---
-$statusResult = Get-VMStatus -Name $RuntimeName
+$statusResult = Get-VMStatus -Name $resourceProfile.RuntimeResourceName
 $vmExists = ($statusResult.Success -and $statusResult.Data -ne "not-created")
 $status = if ($statusResult.Success) { $statusResult.Data } else { "unknown" }
 
@@ -484,7 +487,7 @@ if ($vmExists) {
     }
 
     Write-UIHost -English "VM exists (status: $status). Starting..." -Chinese "VM 已存在（状态: $status）。正在启动..." -ForegroundColor Yellow
-    $startResult = Start-VM -Name $RuntimeName -Mode "nogui"
+    $startResult = Start-VM -Name $resourceProfile.RuntimeResourceName -Mode "nogui"
     if (-not $startResult.Success) {
         Write-ErrorLog -Message "Failed to start VM: $($startResult.Error)" -Component "cli.up"
         exit 1
@@ -500,6 +503,12 @@ if ($vmExists) {
 # --- Case 2: VM doesn't exist — auto-create with Phase 2 VM Factory ---
 Write-UIHost -English "VM does not exist. Phase 2: Auto-provisioning from ISO..." -Chinese "VM 不存在。阶段 2：将从 ISO 自动 provisioning..." -ForegroundColor Yellow
 Write-Host ""
+if ($resourceProfile.RuntimeNamespace) {
+    Write-ErrorLog -Message (Get-UIText -English "runtime_namespace '$($resourceProfile.RuntimeNamespace)' is configured, but first VM creation has not been migrated to namespaced VM factory yet." -Chinese "已配置 runtime_namespace '$($resourceProfile.RuntimeNamespace)'，但首次 VM 创建尚未迁移到 namespaced VM factory。") -Component "cli.up"
+    Write-UIHost -English "  This checkout will not create the default '$RuntimeName' VM while a namespace is configured." -Chinese "  配置 namespace 后，当前 checkout 不会创建默认 '$RuntimeName' VM。" -ForegroundColor Yellow
+    Write-UIHost -English "  For now, clear platform.runtime_namespace to create the default VM, or wait for the VM factory migration stage before creating a namespaced runtime." -Chinese "  当前阶段请先清空 platform.runtime_namespace 来创建默认 VM，或等待 VM factory 迁移阶段后再创建 namespaced runtime。" -ForegroundColor DarkGray
+    exit 1
+}
 Assert-VMwareNatReadyForRuntimeCreate -TargetRuntime $RuntimeName
 
 # Check ISO

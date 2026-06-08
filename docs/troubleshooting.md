@@ -77,7 +77,7 @@ Runtimes are not isolated by version number. The resource names that can collide
 - The SSH alias, for example `adp-os-adp-agent`.
 - The Mutagen session name, for example `adp-agent`.
 
-Before keeping two checkouts active at the same time, set distinct `workspace_root`, `vm_store`, and `static_ip` values in the second checkout's ignored `configs\local.json`, then run:
+Before using the second checkout for runtime work, set distinct `workspace_root`, `vm_store`, and `static_ip` values in the second checkout's ignored `configs\local.json`, then run:
 
 ```powershell
 .\adpos.cmd doctor
@@ -88,12 +88,14 @@ Before keeping two checkouts active at the same time, set distinct `workspace_ro
 
 If another same-name VM is already running, ADP-OS treats that as a blocking conflict. `status` reports SSH as `ambiguous-duplicate`; `up` and `sync start` stop before changing runtime state or Mutagen sessions. The diagnostic output includes the current checkout, global `adpos` binding, workspace root, VM store, static IP, SSH alias, SSH key, Mutagen session, expected VMX, and all running same-name VMX paths.
 
+ADP-OS has a `platform.runtime_namespace` resource identity foundation for names such as VM `adp-v2-agent`, SSH alias `adp-os-adp-v2-agent`, and Mutagen session `adp-v2-agent`. `status`, `doctor`, `sync`, and `up -Plan` use that namespaced profile when configured. First creation of namespaced VMs is still a VM factory migration stage, so `up` intentionally stops instead of silently creating the default `adp-<runtime>` VM while a namespace is configured.
+
 SSH aliases and Mutagen session names are also user-global resources. `status` now reads the user SSH config entry for aliases such as `adp-os-adp-agent` and reports whether it matches the current checkout's expected host, port, user, and identity file. `sync status` reports the same alias mismatch alongside the Mutagen endpoint summary. A Mutagen session whose local and remote endpoint strings look compatible is still only compatible with current expectations; without persistent owner metadata, ADP-OS does not claim it can prove the original checkout owner.
 
 Choose one recovery path:
 
 - If the other VM is stale, stop it from its owning checkout or VMware UI, then rerun `adpos status <runtime>`.
-- If the other checkout must remain active, keep it running and isolate this checkout first by changing `workspace_root`, `vm_store`, and `topology.<runtime>.static_ip` before running `up`.
+- If the other checkout must remain active, keep it running and isolate this checkout first by changing `workspace_root`, `vm_store`, and `topology.<runtime>.static_ip`. If you also set `platform.runtime_namespace`, use `up -Plan`, `status`, and `doctor` to inspect the namespaced resource profile; do not expect first creation of a namespaced VM until the VM factory migration lands.
 - If global `adpos` points to another checkout, use `.\adpos.cmd` in the current repository until you intentionally replace the global binding.
 - If a stale Mutagen session or stale SSH alias belongs to a checkout you no longer use, stop and recreate the session from the checkout that should own it. Stopping a Mutagen session removes the session definition; it does not delete workspace files on either side.
 

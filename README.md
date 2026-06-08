@@ -132,7 +132,9 @@ Both entries guide you through the entire setup in one pass: prerequisite scanni
 
 Setup also registers the global `adpos` command for your user account, so after installation you can run ADP-OS from any directory. ADP-OS exposes `adpos` as the only user-facing shell command. Open a new terminal if the current shell has not picked up the updated user `PATH` yet; from the repository root, use `.\adpos.cmd` as the local wrapper.
 
-Multiple ADP-OS checkouts can coexist. The global `adpos` command can point to only one checkout at a time; if setup detects an existing global binding to another checkout, it asks whether to replace it. If you keep the existing binding, use `.\adpos.cmd` from the new checkout. Before running multiple VM environments side by side, configure distinct local paths and network settings in the new checkout's ignored `configs\local.json`: at minimum `platform.paths.workspace_root`, `platform.paths.vm_store`, and each concurrently running `topology.<runtime>.static_ip`. Then check the new checkout locally:
+Multiple ADP-OS checkouts can coexist. The global `adpos` command can point to only one checkout at a time; if setup detects an existing global binding to another checkout, it asks whether to replace it. If you keep the existing binding, use `.\adpos.cmd` from the new checkout.
+
+Before using a second checkout, configure distinct local paths and network settings in its ignored `configs\local.json`: at minimum `platform.paths.workspace_root`, `platform.paths.vm_store`, and each relevant `topology.<runtime>.static_ip`. The current public runtime gate still blocks two same-name runtime VMs from running concurrently; this prevents accidental SSH/Mutagen ownership collisions until namespaced first-VM creation is fully migrated. Then check the new checkout locally:
 
 ```powershell
 .\adpos.cmd doctor
@@ -141,7 +143,7 @@ Multiple ADP-OS checkouts can coexist. The global `adpos` command can point to o
 .\adpos.cmd up agent -Plan
 ```
 
-If another same-name VM is already running, ADP-OS reports `duplicate VM`; `up` and `sync start` stop before changing runtime state until you stop the stale VM or isolate the checkout.
+If another same-name VM is already running, ADP-OS reports `duplicate VM`; `up` and `sync start` stop before changing runtime state until you stop the stale VM or complete the VM factory migration for a fully isolated namespaced runtime path.
 
 **Options:**
 

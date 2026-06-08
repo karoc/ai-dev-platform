@@ -58,6 +58,7 @@ $doctor = Read-Text "cli\commands\doctor.ps1"
 $status = Read-Text "cli\commands\status.ps1"
 $sshAdapter = Read-Text "adapters\windows\ssh\ssh.ps1"
 $runtimeModule = Read-Text "core\runtime\runtime.ps1"
+$runtimeIdentity = Read-Text "core\runtime\runtime-identity.ps1"
 $resourceConflicts = Read-Text "core\diagnostics\resource-conflicts.ps1"
 $sshAliasDiagnostics = Read-Text "core\diagnostics\ssh-alias.ps1"
 $workspace = Read-Text "cli\commands\workspace.ps1"
@@ -262,11 +263,15 @@ Assert-Contains -Name "status uses bounded SSH reachability helper" -Text $statu
 Assert-Contains -Name "up uses bounded SSH provision marker helper" -Text $up -Pattern 'adapters\\windows\\ssh\\ssh\.ps1[\s\S]*function\s+Test-RuntimeConnectionProvisionMarkerViaSSH[\s\S]*Invoke-AdpSshCommand[\s\S]*/home/adp/\.adp-provisioned[\s\S]*-TimeoutSeconds 12[\s\S]*ssh-timeout'
 Assert-Contains -Name "status reports duplicate running runtime VMs" -Text (Read-Text "cli\commands\status.ps1") -Pattern 'ambiguous-duplicate[\s\S]*duplicate VM:[\s\S]*running ADP runtime name also found outside this checkout[\s\S]*other checkout or stale VM'
 Assert-Contains -Name "resource conflict helper defines runtime profiles and duplicate VM gates" -Text $resourceConflicts -Pattern 'function\s+Get-ADPRuntimeResourceProfile[\s\S]*Resolve-Path "workspace_root"[\s\S]*Resolve-Path "vm_store"[\s\S]*SshAlias[\s\S]*MutagenSession[\s\S]*function\s+Get-ADPRuntimeDuplicateConflict[\s\S]*BlocksRuntimeMutation'
+Assert-Contains -Name "runtime identity helper defines runtime namespace resource names" -Text $runtimeIdentity -Pattern 'function\s+Normalize-ADPRuntimeNamespace[\s\S]*platform\.runtime_namespace[\s\S]*function\s+Get-ADPRuntimeResourceNames[\s\S]*RuntimeResourceName[\s\S]*VmName[\s\S]*SshAlias[\s\S]*MutagenSession'
+Assert-Contains -Name "resource conflict diagnostics consume runtime identity helper" -Text $resourceConflicts -Pattern 'runtime\\runtime-identity\.ps1[\s\S]*Get-ADPRuntimeResourceNames[\s\S]*RuntimeNamespace[\s\S]*RuntimeResourceName'
 Assert-Contains -Name "SSH alias diagnostics parse user SSH config without mutating it" -Text $sshAliasDiagnostics -Pattern 'function\s+Get-ADPSshHostBlock[\s\S]*ADP-OS \$HostAlias[\s\S]*function\s+Get-ADPSshAliasOwnershipStatus[\s\S]*alias-mismatch[\s\S]*function\s+ConvertTo-ADPSshAliasOwnershipJson'
 Assert-Contains -Name "status JSON exposes duplicate running VM details" -Text $status -Pattern 'DuplicateRunningVms[\s\S]*ConvertTo-ADPDuplicateVmJson[\s\S]*ResourceProfile'
 Assert-Contains -Name "status exposes SSH alias diagnostics" -Text $status -Pattern 'SshAliasDiagnostic[\s\S]*ConvertTo-ADPSshAliasOwnershipJson[\s\S]*ssh alias:[\s\S]*Write-ADPSshAliasOwnershipGuidance'
 Assert-Contains -Name "up blocks duplicate running VM before runtime mutation" -Text $up -Pattern 'Get-ADPRuntimeDuplicateConflict[\s\S]*HasDuplicateRunningVm[\s\S]*up runtime start/create[\s\S]*exit 1'
+Assert-Contains -Name "up does not silently create default VM when namespace is configured" -Text $up -Pattern 'RuntimeNamespace[\s\S]*first VM creation has not been migrated to namespaced VM factory yet[\s\S]*will not create the default'
 Assert-Contains -Name "sync start blocks duplicate running VM before creating session" -Text $sync -Pattern 'Get-ADPRuntimeDuplicateConflict[\s\S]*HasDuplicateRunningVm[\s\S]*Action "sync start"[\s\S]*New-SyncSession'
+Assert-Contains -Name "sync uses resource profile session and remote endpoint names" -Text $sync -Pattern 'Get-SyncExpectedEndpoints[\s\S]*Get-ADPRuntimeResourceProfile[\s\S]*MutagenSession[\s\S]*WorkspacePath[\s\S]*ExpectedRemoteUrl'
 Assert-Contains -Name "sync reports and blocks stale SSH alias targets around existing sessions" -Text $sync -Pattern 'Get-ADPSshAliasOwnershipStatus[\s\S]*alias:\s+[\s\S]*existingSession\.Exists[\s\S]*Write-ADPSshAliasOwnershipGuidance[\s\S]*New-SyncSession'
 Assert-Contains -Name "doctor treats duplicate running VM as a failing check" -Text $doctor -Pattern 'Get-ADPRuntimeDuplicateConflict[\s\S]*Test-Check -Name "\$name duplicate running VM" -Condition \(-not \$hasDuplicateRunningVm\)'
 Assert-Contains -Name "doctor skips SSH reachability when duplicate VM makes target ambiguous" -Text $doctor -Pattern 'SSH alias target[\s\S]*duplicate running VM makes SSH target ambiguous'

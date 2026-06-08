@@ -111,13 +111,14 @@ Supported sync modes depend on the installed Mutagen version. The project has be
 
 ## Local Overrides
 
-`configs\local.json` is an ignored, machine-local override file. Use it for host paths, the ISO filename used inside the ISO cache, local VM sizing, static IPs, credentials for local bootstrap, local tool acquisition settings such as Mutagen archive mirrors, and sync ignore changes that should not be committed.
+`configs\local.json` is an ignored, machine-local override file. Use it for host paths, the ISO filename used inside the ISO cache, local VM sizing, static IPs, credentials for local bootstrap, local tool acquisition settings such as Mutagen archive mirrors, runtime resource namespace experiments, and sync ignore changes that should not be committed.
 
-For a second checkout or a parallel local version, configure isolation before creating or starting a runtime. At minimum, use a different `workspace_root`, `vm_store`, and `topology.<runtime>.static_ip` for every runtime you plan to run at the same time:
+For a second checkout or a parallel local version, configure isolation before creating or starting a runtime. At minimum, use a different `workspace_root`, `vm_store`, and `topology.<runtime>.static_ip` for the runtime you plan to inspect or run from that checkout:
 
 ```json
 {
   "platform": {
+    "runtime_namespace": "v2",
     "paths": {
       "workspace_root": "D:\\ADP-v2\\workspaces",
       "vm_store": "D:\\ADP-v2\\vms"
@@ -130,6 +131,10 @@ For a second checkout or a parallel local version, configure isolation before cr
   }
 }
 ```
+
+`platform.runtime_namespace` is optional and defaults to `null`, which preserves the legacy resource names: VM `adp-agent`, SSH alias `adp-os-adp-agent`, and Mutagen session `adp-agent`. When set to a value such as `v2`, the runtime resource profile expects names such as VM `adp-v2-agent`, SSH alias `adp-os-adp-v2-agent`, and Mutagen session `adp-v2-agent`.
+
+The namespace is currently a resource identity foundation, not a complete first-VM creation path. `status`, `doctor`, `sync`, and `up -Plan` use the namespaced profile, and `sync start`/`sync stop` use the namespaced Mutagen session. If a namespaced VM already exists, `up` can inspect/start it through the namespaced provider name. If it does not exist yet, `up` stops instead of silently creating the default `adp-<runtime>` VM while a namespace is configured; first creation of namespaced VMs is the next VM factory migration stage.
 
 The global `adpos` command can point to only one checkout. If another checkout owns it, run local diagnostics from the second checkout with `.\adpos.cmd doctor`, `.\adpos.cmd status agent`, and `.\adpos.cmd up agent -Plan`.
 

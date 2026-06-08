@@ -111,13 +111,14 @@ Sync profiles 配置 Mutagen 行为和忽略列表。
 
 ## 本地覆盖
 
-`configs\local.json` 是已被忽略的本机覆盖文件。它适合存放主机路径、ISO cache 中使用的 ISO 文件名、本机 VM 规格、静态 IP、本地 bootstrap 凭据、Mutagen archive mirror 等本机工具获取设置，以及不应该提交的同步忽略规则调整。
+`configs\local.json` 是已被忽略的本机覆盖文件。它适合存放主机路径、ISO cache 中使用的 ISO 文件名、本机 VM 规格、静态 IP、本地 bootstrap 凭据、Mutagen archive mirror 等本机工具获取设置、runtime resource namespace 实验，以及不应该提交的同步忽略规则调整。
 
-对于第二个 checkout 或并行的本地版本，请在创建或启动 runtime 前先完成隔离配置。至少要为每个计划同时运行的 runtime 配置不同的 `workspace_root`、`vm_store` 和 `topology.<runtime>.static_ip`：
+对于第二个 checkout 或并行的本地版本，请在创建或启动 runtime 前先完成隔离配置。至少要为当前 checkout 计划检查或运行的 runtime 配置不同的 `workspace_root`、`vm_store` 和 `topology.<runtime>.static_ip`：
 
 ```json
 {
   "platform": {
+    "runtime_namespace": "v2",
     "paths": {
       "workspace_root": "D:\\ADP-v2\\workspaces",
       "vm_store": "D:\\ADP-v2\\vms"
@@ -130,6 +131,10 @@ Sync profiles 配置 Mutagen 行为和忽略列表。
   }
 }
 ```
+
+`platform.runtime_namespace` 是可选字段，默认 `null` 会保留旧资源名：VM `adp-agent`、SSH alias `adp-os-adp-agent`、Mutagen session `adp-agent`。设置为 `v2` 这类值后，runtime resource profile 会期望 VM `adp-v2-agent`、SSH alias `adp-os-adp-v2-agent`、Mutagen session `adp-v2-agent`。
+
+这个 namespace 目前是资源身份基础，不是完整的首次 VM 创建路径。`status`、`doctor`、`sync` 和 `up -Plan` 会使用 namespaced profile，`sync start`/`sync stop` 会使用 namespaced Mutagen session。如果 namespaced VM 已存在，`up` 可以通过 namespaced provider name 检查/启动它；如果它还不存在，`up` 会停止，而不是在已配置 namespace 时静默创建默认 `adp-<runtime>` VM。namespaced VM 的首次创建属于下一阶段 VM factory 迁移。
 
 全局 `adpos` 命令同一时间只能指向一个 checkout。如果它归属于另一个 checkout，请在第二个 checkout 中使用 `.\adpos.cmd doctor`、`.\adpos.cmd status agent` 和 `.\adpos.cmd up agent -Plan` 运行本地诊断。
 

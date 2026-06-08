@@ -421,16 +421,19 @@ $staticIpOwners = @{}
 foreach ($name in (Get-AllRuntimeNames)) {
     $rt = $topology.$name
     $profile = Get-OSProfile -OSName $rt.os
-    $vmName = "adp-$name"
+    $resourceProfile = Get-ADPRuntimeResourceProfile -TargetRuntime $name
+    $vmName = $resourceProfile.VmName
     $vmPath = Join-Path $vmStore $vmName
-    $vmxPath = Join-Path $vmPath "$vmName.vmx"
-    $vmdkPath = Join-Path $vmPath "$vmName.vmdk"
+    $vmxPath = $resourceProfile.VmxPath
+    $vmdkPath = Join-Path $vmPath $resourceProfile.VmdkFileName
     $hasCurrentRuntimeVm = Test-Path -LiteralPath $vmPath
-    $resourceProfile = Get-ADPRuntimeResourceProfile -TargetRuntime $name -VmxPath $vmxPath
     $hasDuplicateRunningVm = $false
 
     $topologyOk = ($profile.seedType -eq "cloud-init" -and $rt.ssh_port -eq 22 -and $rt.cpu -gt 0 -and $rt.memory -gt 0 -and $rt.disk -gt 0 -and $rt.workspace -and $rt.sync_profile -and $rt.bootstrap_profile)
     Test-Check -Name "$name topology" -Condition $topologyOk -Detail "($($rt.os), cpu:$($rt.cpu), memory:$($rt.memory), disk:$($rt.disk), ssh:$($rt.ssh_port))"
+    if ($resourceProfile.RuntimeNamespace) {
+        Write-InfoCheck -Name "$name runtime namespace" -Detail "($($resourceProfile.RuntimeNamespace), resource: $($resourceProfile.RuntimeResourceName))"
+    }
 
     if ($rt.static_ip) {
         $ipDuplicate = $staticIpOwners.ContainsKey($rt.static_ip)
@@ -490,7 +493,7 @@ foreach ($name in (Get-AllRuntimeNames)) {
         } else {
             Write-InfoCheck -Name "$name seed network drift" -Detail "(seed user-data not found or static IP missing)"
         }
-        $statusResult = Get-VMStatus -Name $name
+        $statusResult = Get-VMStatus -Name $resourceProfile.RuntimeResourceName
         $status = if ($statusResult.Success) { $statusResult.Data } else { "unknown" }
         Test-Check -Name "$name VM status" -Condition ($status -match "running|stopped") -Detail "($status)"
         if ($status -match "running" -and $rt.static_ip) {
@@ -507,10 +510,10 @@ foreach ($name in (Get-AllRuntimeNames)) {
     }
 
     if ($hasMutagen) {
-        $sessionName = "adp-$name"
+        $sessionName = $resourceProfile.MutagenSession
         try {
-            $expectedLocalPath = Join-Path $workspaceRoot $rt.workspace
-            $expectedRemoteUrl = "adp-os-$sessionName`:/home/adp/workspace"
+            $expectedLocalPath = $resourceProfile.WorkspacePath
+            $expectedRemoteUrl = $resourceProfile.ExpectedRemoteUrl
             $recovery = Get-SyncSessionRecoveryInfo `
                 -SessionName $sessionName `
                 -ExpectedLocalPath $expectedLocalPath `

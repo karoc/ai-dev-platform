@@ -115,6 +115,26 @@ function Assert-RuntimeProfileValue {
     }
 }
 
+function Assert-RuntimeNamespaceValue {
+    param(
+        [string]$Name,
+        [object]$Namespace
+    )
+
+    if ($null -eq $Namespace -or [string]::IsNullOrWhiteSpace([string]$Namespace)) {
+        return
+    }
+
+    $normalized = ([string]$Namespace).Trim().ToLowerInvariant()
+    if ($normalized -in @("default", "none")) {
+        return
+    }
+
+    if ($normalized.Length -gt 32 -or -not ($normalized -match '^[a-z0-9]([a-z0-9-]*[a-z0-9])?$')) {
+        throw "$Name must be null or 1-32 lowercase letters, numbers, or hyphens, starting and ending with a letter or number"
+    }
+}
+
 function Assert-RuntimeName {
     param(
         [string]$Name,
@@ -177,6 +197,8 @@ function Assert-PlatformConfig {
     Assert-Property -Name "platform.json" -Object $Config -Property "ui"
     Assert-Property -Name "platform.json" -Object $Config -Property "features"
     Assert-Property -Name "platform.json" -Object $Config -Property "tools"
+    Assert-Property -Name "platform.json" -Object $Config -Property "runtime_namespace"
+    Assert-RuntimeNamespaceValue -Name "platform.json.runtime_namespace" -Namespace $Config.runtime_namespace
 
     foreach ($pathKey in @("workspace_root", "iso_cache", "vm_store", "logs", "snapshots", "configs")) {
         Assert-StringProperty -Name "platform.json.paths" -Object $Config.paths -Property $pathKey
@@ -300,6 +322,10 @@ function Assert-LocalExample {
     if ($Config.PSObject.Properties.Name -contains "platform" -and $Config.platform.PSObject.Properties.Name -contains "ui") {
         Assert-StringProperty -Name "configs/local.example.json.platform.ui" -Object $Config.platform.ui -Property "language"
         Assert-LanguageValue -Name "configs/local.example.json.platform.ui.language" -Language ([string]$Config.platform.ui.language)
+    }
+
+    if ($Config.PSObject.Properties.Name -contains "platform" -and $Config.platform.PSObject.Properties.Name -contains "runtime_namespace") {
+        Assert-RuntimeNamespaceValue -Name "configs/local.example.json.platform.runtime_namespace" -Namespace $Config.platform.runtime_namespace
     }
 
     if ($Config.PSObject.Properties.Name -contains "platform" -and $Config.platform.PSObject.Properties.Name -contains "tools") {
