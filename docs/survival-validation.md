@@ -85,10 +85,12 @@ Before showing the demo to a user:
 - Confirm `adp status agent` reports the runtime as running and SSH reachable.
 - Confirm `adp sync status` reports the `agent` session as healthy or watching before the demo. Stop and recreate stale `adp-agent` sessions before starting the user-facing run.
 - Confirm the presenter script fences sync before VM mutation and rollback: stop `agent` sync before the destructive task, keep it stopped through restore, and restart it only after choosing the host or VM workspace as the source of truth.
+- Confirm post-restore readiness is observable through public ADP commands: after restore, `adp status agent` must return a bounded state; if the runtime is stopped, `adp up agent -NoBootstrap` must return and the following `adp status agent` must reach running + SSH reachable before direct SSH file checks.
 - Create or confirm the snapshot named by the demo script.
 - Confirm `workspace-report.md` is generated in the manifest workspace root before evidence export. For the public recipe manifest, that is `configs\workspace-report.md`.
 - Export a real evidence ZIP with `adp workspace evidence -Export`, then verify it contains `README.txt`, `snapshot-hashes.json`, `operation-log.json`, `workspace-report.md`, and `adp-workspace.json`.
 - Verify rollback restores `README.md`, removes `generated/output.json`, and reverts the `src/main.ts` demo mutation. If restore leaves the runtime stopped, run `adp up agent -NoBootstrap` and `adp status agent` before SSH file checks.
+- Record real restore, `up`, `status`, and SSH verification durations. If the run needs undocumented VMware intervention, private cleanup, or manual host-key surgery beyond the public troubleshooting path, it is rehearsal evidence, not valid 10-minute demo evidence.
 - Keep the actual elapsed time. Do not round away slow snapshot or restore behavior.
 
 If a pre-provisioned `agent` VM is shown as still installing, stop treating the run as a normal first install. Run `adp status agent`, `adp doctor`, and `adp network apply agent -Plan`. A common stale-VM failure is an old guest that was already provisioned but was created before static network seed injection, so it boots on an old VMware NAT address while ADP-OS targets the current static IP. That is a network drift/product-readiness issue, not valid 10-minute demo evidence.
@@ -110,6 +112,7 @@ During the demo, record whether:
 - Evidence was recorded before and after the agent-style task.
 - The task changed something Git alone would not fully clean up.
 - Rollback restored the expected runtime and workspace state; if the runtime stopped after restore, it was restarted with `adp up agent -NoBootstrap` before SSH verification.
+- Post-restore readiness completed through documented ADP commands, and any `ssh-timeout`, `auth-pending`, `unreachable`, or recovery state was recorded instead of being hidden.
 - An evidence ZIP was exported and contained the expected five entries.
 - The participant could explain the difference from Git reset, Docker, WSL2, and Dev Containers.
 - Any command output differed from the presenter script.
@@ -186,9 +189,9 @@ Consider stopping, shrinking, or pivoting when:
 | Failure type | Examples | Interpretation |
 | --- | --- | --- |
 | Environment failure | VMware missing, ISO missing, Mutagen unavailable, SSH key issue, NAT mismatch | Setup friction is real. This does not by itself prove the product thesis false. |
-| Product failure | ADP command fails, evidence hash chain breaks, restore fails while VMware is healthy | Fix the product before using the run as validation evidence. |
+| Product failure | ADP command fails, evidence hash chain breaks, restore fails while VMware is healthy, post-restore `status` cannot classify readiness, or `stop`/`status`/`up` waits without bounded output | Fix the product before using the run as validation evidence. |
 | Positioning failure | The feature works, but the participant does not understand why it matters | Improve the demo, docs, or product framing before expanding scope. |
-| Workflow failure | The participant understands the value, but the process is too slow or awkward | Reduce friction in the existing Windows + VMware path before adding new platforms. |
+| Workflow failure | The participant understands the value, but the process is too slow or awkward even though ADP reports bounded states and documented recovery paths | Reduce friction in the existing Windows + VMware path before adding new platforms. |
 | Fit failure | The participant only needs a Linux shell, normal Git rollback, or hosted cloud sandbox | Do not count this as a thesis failure for the target user group. |
 | Value failure | User says "this is just VM snapshot", cannot explain Git vs ADP rollback, or rejects evidence value | The product thesis or positioning is failing. Treat this as the most serious signal. |
 

@@ -27,7 +27,12 @@ Assert-Contains `
 Assert-Contains `
     -Name "up rechecks the ADP connection IP over SSH before declaring SSH not ready" `
     -Text $up `
-    -Pattern 'function\s+Test-RuntimeConnectionProvisionMarkerViaSSH[\s\S]*Get-RuntimeStaticIP \$TargetRuntime[\s\S]*ssh -i \$sshKeyPath[\s\S]*/home/adp/\.adp-provisioned'
+    -Pattern 'function\s+Test-RuntimeConnectionProvisionMarkerViaSSH[\s\S]*Get-RuntimeStaticIP \$TargetRuntime[\s\S]*Invoke-AdpSshCommand[\s\S]*/home/adp/\.adp-provisioned'
+
+Assert-Contains `
+    -Name "up bounds SSH provision marker probe and reports timeout" `
+    -Text $up `
+    -Pattern 'function\s+Test-RuntimeConnectionProvisionMarkerViaSSH[\s\S]*-TimeoutSeconds 12[\s\S]*ssh-timeout[\s\S]*SSH provision marker probe timed out'
 
 Assert-Contains `
     -Name "up reports provisioned network/SSH-not-ready state instead of installing" `

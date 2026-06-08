@@ -19,6 +19,7 @@ if ($RuntimeName -and -not (Test-RuntimeExists $RuntimeName)) {
 }
 
 . (Join-Path (Get-ProjectRoot) "adapters\windows\mutagen\mutagen.ps1")
+. (Join-Path (Get-ProjectRoot) "adapters\windows\ssh\ssh.ps1")
 
 function Get-StatusVmxPath {
     param([string]$TargetRuntime)
@@ -88,41 +89,9 @@ function Test-StatusSSHReachable {
         [int]$Port = 22
     )
 
-    if ([string]::IsNullOrWhiteSpace($HostAddress)) {
-        return "not-configured"
-    }
-
-    if (-not (Get-Command ssh -ErrorAction SilentlyContinue)) {
-        return "ssh-unavailable"
-    }
-
     $keyPath = Join-Path "$env:USERPROFILE\.ssh\adp-os" "adp-os"
-    if (-not (Test-Path -LiteralPath $keyPath)) {
-        return "key-missing"
-    }
-
-    $sshOutput = & ssh -i $keyPath `
-        -o StrictHostKeyChecking=no `
-        -o UserKnownHostsFile=NUL `
-        -o IdentitiesOnly=yes `
-        -o ConnectTimeout=5 `
-        -o BatchMode=yes `
-        -p $Port `
-        "adp@$HostAddress" `
-        "echo ok" 2>&1
-
-    $sshExit = $LASTEXITCODE
     $global:LASTEXITCODE = 0
-    $sshText = ($sshOutput | Where-Object { $_ }) -join "`n"
-
-    if ($sshExit -eq 0) {
-        return "reachable"
-    }
-    if ($sshExit -eq 255 -and $sshText -match "Permission denied") {
-        return "auth-pending"
-    }
-
-    return "unreachable"
+    return Test-AdpSshReachability -Host $HostAddress -Port $Port -User "adp" -KeyPath $keyPath -ConnectTimeoutSeconds 5 -TimeoutSeconds 12
 }
 
 function Get-StatusSyncState {
@@ -332,6 +301,9 @@ function Write-StatusRuntime {
     Write-UIHost -English "  ssh:           $sshState" -Chinese "  SSH:           $sshState" -ForegroundColor DarkGray
     if ($sshState -eq "auth-pending") {
         Write-UIHost -English "  note:          SSH port is open, but the ADP key is not accepted yet. During autoinstall this usually means the installer or first boot is still preparing the target user." -Chinese "  说明:          SSH 端口已打开，但 ADP key 还未被接受。autoinstall 期间这通常表示安装器或首次启动仍在准备目标用户。" -ForegroundColor Yellow
+    }
+    if ($sshState -eq "ssh-timeout") {
+        Write-UIHost -English "  note:          SSH probe timed out before ADP could classify the guest as reachable. This can happen after restore while the VM is running but the guest control plane is not ready." -Chinese "  说明:          SSH 探测在 ADP 确认 guest 可达前超时。restore 后 VM 已运行但 guest 控制面尚未就绪时可能出现。" -ForegroundColor Yellow
     }
     if ($hasDuplicateRunningVm) {
         Write-UIHost -English "  duplicate VM:  running ADP runtime name also found outside this checkout" -Chinese "  重复 VM:       当前 checkout 外也发现同名 ADP runtime 正在运行" -ForegroundColor Red

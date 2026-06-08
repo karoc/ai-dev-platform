@@ -43,7 +43,9 @@
 | Runtime 已存在但无法连接 | `.\cli\adp.ps1 status <runtime>` | VM state、static IP、SSH reachability | [操作指南](operations.md#运行时状态)、[网络说明](networking.md) |
 | Runtime 创建看起来卡住 | 只要 `[安装监视器] 正在 VM 中安装 Ubuntu` 或 `[install monitor] INSTALLING Ubuntu in VM` 心跳仍在继续，就保持 `adp up <runtime>` 运行；如果该 VM 本应已预先 provisioned，转入 `status`、`doctor` 和 network drift 检查 | Ubuntu autoinstall、first boot、IP/SSH/provision marker readiness signals、stale VM networking | [操作指南](operations.md#启动运行时) |
 | `status` 报告 `auth-pending` | 等待后再次运行 `.\\cli\\adp.ps1 status <runtime>` | SSH 端口已打开，但 ADP key/user 尚未 ready | [操作指南](operations.md#运行时状态) |
+| `status` 报告 `ssh-timeout` | 稍等后再次运行 `.\\cli\\adp.ps1 status <runtime>`；如果 restore 后 VM stopped，先运行 `.\\cli\\adp.ps1 up <runtime> -NoBootstrap` | restore 后 readiness、guest SSH/control-plane 尚未稳定 | [操作指南](operations.md#运行时状态) |
 | SSH 连接失败，提示 `Permission denied` | `.\\cli\\adp.ps1 status <runtime>` | SSH 密钥不匹配，VM 是用不同密钥创建的 | [操作指南](operations.md#ssh-密钥故障排除) |
+| 直接 `ssh` 报告 `REMOTE HOST IDENTIFICATION HAS CHANGED` | 只刷新 OpenSSH known_hosts 中 ADP runtime alias/IP 对应条目，然后重新运行 `.\\cli\\adp.ps1 status <runtime>` | restore 或 VM 重建后的 stale direct OpenSSH host-key 条目 | [操作指南](operations.md#ssh-访问) |
 | `status` 报告 `key-missing` | 运行任意 `adp up` 或 SSH 操作 | SSH 密钥对尚未创建 | [操作指南](operations.md#ssh-密钥故障排除) |
 | SSH 密钥被意外删除 | 运行任意 SSH 操作后会重新生成 | `%USERPROFILE%\\.ssh\\adp-os\\` 密钥对缺失 | [操作指南](operations.md#ssh-密钥故障排除) |
 | `up` 因 VMware NAT mismatch 停止 | `.\cli\adp.ps1 network configure-local -Plan` | host VMnet8 与 local config 不一致 | [网络说明](networking.md#前置条件)、[配置说明](configuration.md#本地覆盖) |

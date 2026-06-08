@@ -204,23 +204,25 @@ adp restore agent before-broad-agent-refactor -Force
 Expected: "Restored to snapshot 'before-broad-agent-refactor'."
 
 ```powershell
-# Step E3 — Check runtime state after restore
+# Step E3 — Post-restore readiness gate
 adp status agent
 ```
 
-Expected: the runtime may be stopped after restore. If it is stopped, restart it without bootstrapping:
+Expected: ADP returns a bounded, classified status. The runtime may be stopped after restore. If it is stopped, restart it without bootstrapping:
 
 ```powershell
 adp up agent -NoBootstrap
 adp status agent
 ```
 
-Expected: `agent: running, SSH reachable`. Keep sync stopped until host and VM workspace state are reconciled.
+Expected: `agent: running, SSH reachable`. Continue only after `adp status agent` reaches that state. If `status` reports `ssh-timeout`, `auth-pending`, `unreachable`, or any recovery state after the restart, stop the recording and treat the run as rehearsal/product-readiness evidence, not a successful public demo. Keep sync stopped until host and VM workspace state are reconciled.
 
 ```powershell
 # Step E4 — Verify restoration inside the VM (SSH)
 ssh adp-os-adp-agent "cd /home/adp/workspace/agent-workspace && test -f README.md && echo README_OK && test ! -e generated/output.json && echo GENERATED_GONE && ! grep -q 'AI-generated feature' src/main.ts && echo MAIN_TS_REVERTED"
 ```
+
+If direct OpenSSH reports a stale host-key warning after restore, refresh only the ADP runtime alias/IP entry, rerun `adp status agent`, and continue only when status is running and SSH reachable.
 
 > Narrator: "Full VM rollback in one command. Let's compare with git reset:"
 
@@ -303,7 +305,9 @@ The demo must honestly disclose:
 | `adp status agent` shows "VMware: unavailable" | VMware Workstation not running or vmrun not in PATH | Start VMware, verify `vmrun list` |
 | `adp snapshot create` hangs | VMware snapshot taking longer than expected | Wait up to 120s; large VM disks take time |
 | SSH connection refused | Agent VM IP changed or SSH service down | `adp status agent -Json` to get current IP; `adp up agent` to restart |
-| Restore succeeds but SSH fails | Restore left the VM stopped | Run `adp up agent -NoBootstrap`, then `adp status agent` |
+| Restore succeeds but readiness does not settle | Restore left the VM stopped or guest SSH/control plane is still settling | Run `adp status agent`; if stopped, run `adp up agent -NoBootstrap`; continue only after status is running and SSH reachable |
+| `status` reports `ssh-timeout` after restore | ADP bounded probe could not classify SSH readiness in time | Stop the recording, wait briefly, rerun `adp status agent`, and record this as rehearsal/product-readiness evidence if it persists |
+| Direct SSH reports host identification changed | OpenSSH has a stale `known_hosts` entry for the restored/recreated runtime | Refresh only the ADP runtime alias/IP entry, rerun `adp status agent`, then continue only when ADP reports SSH reachable |
 | VM restore reintroduces or loses unexpected files | Two-way sync was left running or restarted before reconciliation | Stop `agent` sync before mutation/restore; restart only after choosing host or VM as source of truth |
 | `workspace-report.md` is missing from the ZIP | Report was written outside the manifest workspace root | Generate the report at `configs\workspace-report.md` before export |
 | `adp workspace evidence -Export` fails | Evidence directory or required evidence files missing | Run `evidence -Snapshot`, record `evidence -Log`, and generate `configs\workspace-report.md` first |

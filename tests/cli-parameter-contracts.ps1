@@ -47,6 +47,7 @@ $sync = Read-Text "cli\commands\sync.ps1"
 $network = Read-Text "cli\commands\network.ps1"
 $doctor = Read-Text "cli\commands\doctor.ps1"
 $status = Read-Text "cli\commands\status.ps1"
+$sshAdapter = Read-Text "adapters\windows\ssh\ssh.ps1"
 $runtimeModule = Read-Text "core\runtime\runtime.ps1"
 $workspace = Read-Text "cli\commands\workspace.ps1"
 $destroy = Read-Text "cli\commands\destroy.ps1"
@@ -87,6 +88,7 @@ Assert-Contains -Name "shared validation runs configuration schema checks" -Text
 Assert-Contains -Name "shared validation runs artifact hygiene checks" -Text $validate -Pattern '\.\\tests\\artifact-hygiene\.ps1'
 Assert-Contains -Name "shared validation checks local config mutation boundaries" -Text $validate -Pattern '\.\\tests\\local-config-boundary\.ps1'
 Assert-Contains -Name "shared validation checks Mutagen remediation behavior" -Text $validate -Pattern '\.\\tests\\mutagen-remediation\.ps1'
+Assert-Contains -Name "shared validation checks bounded SSH probe handling" -Text $validate -Pattern '\.\\tests\\ssh-timeout\.ps1'
 Assert-Contains -Name "documentation language checks enforce translated doc pairs" -Text (Read-Text "tests\docs-language-links.ps1") -Pattern 'Assert-TranslatedDocPair[\s\S]*README[\s\S]*CHANGELOG[\s\S]*build[\s\S]*docs/zh-CN'
 Assert-Contains -Name "shared validation parses workspace recipes example" -Text $validate -Pattern 'configs\\workspace\.recipes\.example\.json'
 Assert-Contains -Name "shared validation checks Markdown links" -Text $validate -Pattern 'Check Markdown local links'
@@ -204,7 +206,10 @@ Assert-Contains -Name "up blocks VM creation on NAT mismatch" -Text $up -Pattern
 Assert-Contains -Name "status reports seed network drift" -Text (Read-Text "cli\commands\status.ps1") -Pattern 'network drift:[\s\S]*seed uses[\s\S]*Write-StatusNetworkDriftRemediation'
 Assert-Contains -Name "status explains stale networking remediation paths" -Text (Read-Text "cli\commands\status.ps1") -Pattern 'function\s+Write-StatusNetworkDriftRemediation[\s\S]*Rebuild when the VM can be recreated[\s\S]*In-place guest fix[\s\S]*Admin-only temporary host-route workaround'
 Assert-Contains -Name "status distinguishes SSH auth pending" -Text (Read-Text "cli\commands\status.ps1") -Pattern 'auth-pending[\s\S]*SSH port is open, but the ADP key is not accepted yet'
-Assert-Contains -Name "status does not leak SSH exit code" -Text (Read-Text "cli\commands\status.ps1") -Pattern '\$sshExit\s*=\s*\$LASTEXITCODE[\s\S]*\$global:LASTEXITCODE\s*=\s*0[\s\S]*return "unreachable"'
+Assert-Contains -Name "SSH adapter uses bounded process probes" -Text $sshAdapter -Pattern 'function\s+Invoke-AdpSshCommand[\s\S]*UserKnownHostsFile=NUL[\s\S]*ConnectionAttempts=1[\s\S]*WaitForExit\(\$TimeoutSeconds \* 1000\)[\s\S]*Kill\(\)[\s\S]*ssh-timeout'
+Assert-Contains -Name "bounded SSH helper does not leak SSH exit code" -Text $sshAdapter -Pattern 'finally\s*\{[\s\S]*\$global:LASTEXITCODE\s*=\s*0'
+Assert-Contains -Name "status uses bounded SSH reachability helper" -Text $status -Pattern 'adapters\\windows\\ssh\\ssh\.ps1[\s\S]*function\s+Test-StatusSSHReachable[\s\S]*Test-AdpSshReachability[\s\S]*-TimeoutSeconds 12[\s\S]*ssh-timeout'
+Assert-Contains -Name "up uses bounded SSH provision marker helper" -Text $up -Pattern 'adapters\\windows\\ssh\\ssh\.ps1[\s\S]*function\s+Test-RuntimeConnectionProvisionMarkerViaSSH[\s\S]*Invoke-AdpSshCommand[\s\S]*/home/adp/\.adp-provisioned[\s\S]*-TimeoutSeconds 12[\s\S]*ssh-timeout'
 Assert-Contains -Name "status reports duplicate running runtime VMs" -Text (Read-Text "cli\commands\status.ps1") -Pattern 'ambiguous-duplicate[\s\S]*duplicate VM:[\s\S]*running ADP runtime name also found outside this checkout[\s\S]*other checkout or stale VM'
 Assert-Contains -Name "status reports unhealthy sync sessions" -Text (Read-Text "cli\commands\status.ps1") -Pattern 'wrong-local[\s\S]*wrong-remote[\s\S]*unhealthy[\s\S]*Get-SyncSessionRecoveryInfo[\s\S]*sync recovery:[\s\S]*sync step:[\s\S]*sync safety:'
 Assert-Contains -Name "status distinguishes stale session before runtime creation" -Text (Read-Text "cli\commands\status.ps1") -Pattern '\$RuntimeCreated[\s\S]*stale-session[\s\S]*Get-SyncSessionRecoveryInfo[\s\S]*sync recovery:[\s\S]*sync step:[\s\S]*sync safety:'
@@ -224,6 +229,7 @@ Assert-Contains -Name "VMware adapter can derive runtime IPs in detected NAT" -T
 Assert-Contains -Name "VMware adapter documents vmrun list as running-only" -Text (Read-Text "adapters\windows\vmware\vmware.ps1") -Pattern 'vmrun list returns only running VMs'
 Assert-Contains -Name "VMware adapter classifies ADP running runtime VMs" -Text (Read-Text "adapters\windows\vmware\vmware.ps1") -Pattern 'function\s+Get-ADPRuntimeNameFromVmxPath[\s\S]*function\s+Get-ADPRunningRuntimeVMs[\s\S]*IsManagedByCurrentCheckout'
 Assert-Contains -Name "VMware adapter exposes quick IP probe for progress loops" -Text (Read-Text "adapters\windows\vmware\vmware.ps1") -Pattern 'function\s+Get-VMIPQuick[\s\S]*getGuestIPAddress[\s\S]*Get-VMIPFromDhcpLeases'
+Assert-Contains -Name "VMware adapter uses bounded default operation timeouts" -Text (Read-Text "adapters\windows\vmware\vmware.ps1") -Pattern 'TimeoutSeconds\s*=\s*0[\s\S]*TimeoutSeconds\s*=\s*120[\s\S]*Arguments\[0\]\s+-eq\s+"stop"[\s\S]*soft[\s\S]*30[\s\S]*60'
 Assert-Contains -Name "VMware snapshot create has bounded wait" -Text (Read-Text "adapters\windows\vmware\vmware.ps1") -Pattern 'function\s+Create-VMSnapshot[\s\S]*TimeoutSeconds\s*=\s*120[\s\S]*Invoke-Vmrun -Arguments @\("snapshot", \$VmxPath, \$SnapshotName\) -TimeoutSeconds \$TimeoutSeconds'
 Assert-Contains -Name "VMware snapshot list skips vmrun summary header" -Text (Read-Text "adapters\windows\vmware\vmware.ps1") -Pattern 'function\s+List-VMSnapshots[\s\S]*Total snapshots:\\s\*\\d\+'
 Assert-Contains -Name "snapshot CLI confirms existing snapshot after provider failure" -Text $snapshot -Pattern 'if\s*\(\$result\.Success\)[\s\S]*else\s*\{[\s\S]*Get-SnapshotList -Name \$RuntimeName[\s\S]*Snapshot command reported failure, but snapshot ''\$SnapshotName'' exists[\s\S]*Snapshot ''\$SnapshotName'' exists'

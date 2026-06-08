@@ -14,6 +14,8 @@
 
 ### 修复
 
+- 加固 survival demo 路径中的 restore 后 runtime readiness 检查。ADP 管理的 SSH 探测现在使用有界进程 timeout，将 `ssh-timeout` 与 `auth-pending`、`unreachable` 分开分类，readiness 检查不依赖 direct OpenSSH 的 stale known-hosts 状态，并让 VMware 控制操作保持有界，避免 `status`、`up -NoBootstrap` 和 `stop` 在 restore 后 half-ready VM 上表现为无限等待。
+
 - 修复 `adp workspace evidence -Snapshot` 和 `adp workspace evidence -Export -Path <zip>` 在 `-ManifestPath` 指向已存在 manifest 时失败的问题。workspace evidence 代码现在会显式调用 PowerShell 内置的 `Resolve-Path` 处理文件系统路径，ZIP 输入/输出使用 provider 文件系统路径，并为导出绑定文档承诺的 `-Path` 别名，避免 survival demo 记录证据时出现路径解析器或 provider-qualified 路径错误。
 
 ### 2026-06-05

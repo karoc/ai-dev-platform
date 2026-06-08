@@ -14,6 +14,8 @@ Initial public release.
 
 ### Fixed
 
+- Hardened post-restore runtime readiness checks for the survival demo path. ADP-managed SSH probes now use a bounded process timeout, classify `ssh-timeout` separately from `auth-pending` and `unreachable`, avoid stale direct OpenSSH known-hosts state for readiness checks, and keep VMware control operations bounded so `status`, `up -NoBootstrap`, and `stop` do not appear to wait indefinitely on half-ready restored VMs.
+
 - Fixed `adp workspace evidence -Snapshot` and `adp workspace evidence -Export -Path <zip>` when `-ManifestPath` points to an existing manifest. The workspace evidence code now explicitly calls PowerShell's built-in `Resolve-Path` for filesystem paths, uses provider filesystem paths for ZIP input/output, and binds the documented `-Path` alias for exports, preventing survival demo evidence recording from failing with path resolver or provider-qualified path errors.
 
 ### 2026-06-05

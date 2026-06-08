@@ -85,10 +85,12 @@
 - 确认 `adp status agent` 显示 runtime 正在运行且 SSH 可达。
 - 确认 `adp sync status` 在 demo 前显示 `agent` session healthy 或 watching。开始用户可见运行前，先停止并重建 stale `adp-agent` session。
 - 确认 presenter script 在 VM mutation 和 rollback 前设置 sync fence：破坏性任务前停止 `agent` sync，restore 期间保持 stopped，只在选定 host 或 VM workspace 作为 source of truth 并完成 reconcile 后重启。
+- 确认 restore 后 readiness 能通过公开 ADP 命令观察：restore 后 `adp status agent` 必须返回有界状态；如果 runtime stopped，`adp up agent -NoBootstrap` 必须返回，随后 `adp status agent` 必须达到 running + SSH reachable，才能继续直接 SSH 文件检查。
 - 创建或确认 demo script 中指定的 snapshot。
 - 确认 evidence export 前已经在 manifest workspace root 中生成 `workspace-report.md`。使用公开 recipe manifest 时，该路径是 `configs\workspace-report.md`。
 - 用 `adp workspace evidence -Export` 导出真实 evidence ZIP，并验证其中包含 `README.txt`、`snapshot-hashes.json`、`operation-log.json`、`workspace-report.md` 和 `adp-workspace.json`。
 - 验证 rollback 会恢复 `README.md`、移除 `generated/output.json`，并回退 `src/main.ts` 的 demo mutation。如果 restore 后 runtime 处于 stopped，先运行 `adp up agent -NoBootstrap` 和 `adp status agent`，再做 SSH 文件检查。
+- 记录真实的 restore、`up`、`status` 和 SSH verification 耗时。如果运行需要未写入公开文档的 VMware 手工介入、私有清理，或超过公开排障路径的 host-key 手工处理，这只能算 rehearsal evidence，不能算有效 10 分钟 demo evidence。
 - 保留真实耗时，不要把 snapshot 或 restore 的慢操作美化掉。
 
 如果预先创建好的 `agent` VM 仍被显示为 installing，不要继续把这次运行当作正常首次安装。运行 `adp status agent`、`adp doctor` 和 `adp network apply agent -Plan`。一种常见 stale-VM 故障是：旧 guest 已经 provisioned，但它是在静态网络 seed 注入之前创建的，因此会启动到旧 VMware NAT 地址，而 ADP-OS 目标是当前 static IP。这是 network drift / product-readiness 问题，不是有效的 10 分钟 demo 证据。
@@ -110,6 +112,7 @@ demo 过程中记录：
 - agent-style task 前后是否记录了 evidence。
 - 任务是否改变了 Git 不能完整清理的内容。
 - rollback 是否恢复预期的 runtime 和 workspace 状态；如果 restore 后 runtime stopped，是否先用 `adp up agent -NoBootstrap` 重启后再做 SSH 验证。
+- restore 后 readiness 是否通过已记录的 ADP 命令完成，是否出现 `ssh-timeout`、`auth-pending`、`unreachable` 或 recovery 状态，并且这些状态是否被记录而不是隐藏。
 - 是否导出了 evidence ZIP，且其中包含预期 5 个条目。
 - 参与者是否能解释它和 Git reset、Docker、WSL2、Dev Containers 的区别。
 - 是否有命令输出与 presenter script 不一致。
@@ -186,9 +189,9 @@ notes: "Short summary. Avoid secrets, tokens, private code, and personal data."
 | 失败类型 | 示例 | 解读 |
 | --- | --- | --- |
 | 环境失败 | VMware 缺失、ISO 缺失、Mutagen 不可用、SSH key 问题、NAT mismatch | setup 摩擦是真实问题。它本身不证明产品命题错误。 |
-| 产品失败 | ADP 命令失败、evidence hash chain 断裂、VMware 健康但 restore 失败 | 修复产品后，才能把该运行作为验证证据。 |
+| 产品失败 | ADP 命令失败、evidence hash chain 断裂、VMware 健康但 restore 失败、restore 后 `status` 无法分类 readiness，或 `stop`/`status`/`up` 没有有界输出 | 修复产品后，才能把该运行作为验证证据。 |
 | 定位失败 | 功能可以运行，但参与者不理解为什么有价值 | 先改进 demo、文档或产品表述，不要扩张范围。 |
-| 工作流失败 | 参与者理解价值，但流程太慢或太笨重 | 先降低现有 Windows + VMware 路径摩擦，不要急着新增平台。 |
+| 工作流失败 | 参与者理解价值，但即使 ADP 已返回有界状态和公开恢复路径，流程仍太慢或太笨重 | 先降低现有 Windows + VMware 路径摩擦，不要急着新增平台。 |
 | 用户匹配失败 | 参与者只需要 Linux shell、普通 Git rollback 或托管云 sandbox | 不把这类结果计为目标用户群的命题失败。 |
 | 价值失败 | 用户说“这不就是 VM snapshot 吗”、无法解释 Git 与 ADP rollback 的差异，或拒绝 evidence 价值 | 产品命题或定位失败。这是最严重的信号。 |
 

@@ -187,7 +187,7 @@ ADP 在这个阶段也会使用 PowerShell `Write-Progress` 显示不确定进�
 .\cli\adp.ps1 stop frontend
 ```
 
-该命令会先尝试 soft stop，必要时再 hard stop。
+该命令会先尝试 soft stop，必要时再 hard stop。VMware 控制操作是有界的：soft stop 使用较短 timeout，hard fallback 也有 timeout，因此 `adp stop` 应返回明确结果，而不是在 half-ready guest 上无限等待。
 
 ## 运行时状态
 
@@ -212,7 +212,7 @@ ADP 在这个阶段也会使用 PowerShell `Write-Progress` 显示不确定进�
 - VMware 可探测到的 IP（如果可用）。
 - VMware 中是否有其他 `adp-<runtime>.vmx` 从当前 checkout 外部运行，造成 duplicate running ADP runtime。
 - 已有 autoinstall seed 仍包含旧 static IP 时的 network drift。
-- 运行中 VM 的 SSH 状态：`reachable`、`auth-pending`、`unreachable`、`ambiguous-duplicate`，或 `key-missing` 等本地前置条件状态。
+- 运行中 VM 的 SSH 状态：`reachable`、`auth-pending`、`ssh-timeout`、`unreachable`、`ambiguous-duplicate`，或 `key-missing` 等本地前置条件状态。
 - Mutagen sync session 是否存在。
 - 具体 SSH 命令、SSH alias、workspace path 和下一步命令。
 
@@ -229,6 +229,8 @@ ADP 在这个阶段也会使用 PowerShell `Write-Progress` 显示不确定进�
 - 只有必须先恢复到 seed-era address 的 SSH 时，才考虑 administrator-only temporary host-route workaround。ADP 不会自动添加、修改或删除 host routes。
 
 如果 `status` 报告 `auth-pending`，说明 SSH 端口已经打开，但 ADP key 还没有被接受。首次 autoinstall 期间这通常表示 installer 或 first boot 仍在准备目标用户。请等待到 timeout，或者在该状态长时间不变化时检查 VMware console。
+
+如果 `status` 报告 `ssh-timeout`，说明 ADP 已执行有界 SSH 探测，但在 hard timeout 前无法把 guest 分类为 reachable。snapshot restore 后 VMware 已显示 VM running、但 guest SSH/control plane 尚未稳定时可能出现这种状态。请稍等后重新运行 `.\cli\adp.ps1 status <runtime>`；如果 restore 后 VM 处于 stopped，先运行 `.\cli\adp.ps1 up <runtime> -NoBootstrap`。只要 post-restore readiness 仍停在 `ssh-timeout`，就不要把 survival demo 计为成功。
 
 ## SSH 访问
 
@@ -302,14 +304,18 @@ scp -i $env:USERPROFILE\.ssh\adp-os\adp-os .\some-file adp@192.168.242.131:/home
 ssh -i $env:USERPROFILE\.ssh\adp-os\adp-os adp@192.168.242.131 "ls /home/adp/workspace"
 ```
 
+snapshot restore 或 VM 重建后，runtime 可能向 direct OpenSSH 展示不同的 SSH host key。ADP 管理的 readiness probes 会对配置的 runtime target 使用有界、非交互 SSH 检查，但手动 `ssh` 命令仍可能读取常规 `%USERPROFILE%\.ssh\known_hosts` 并报告旧 host-key 条目。如果出现这种情况，只刷新 ADP runtime alias 或 IP 对应的条目，然后重新运行 `.\cli\adp.ps1 status <runtime>` 再继续。
+
 ### SSH 密钥故障排除
 
 | 症状 | 可能原因 | 操作 |
 |---|---|---|
 | `status` 报告 `key-missing` | 密钥尚未创建 | 运行 `adp up <runtime>` 或任何 SSH 操作；ADP 会自动创建密钥。 |
 | `status` 报告 `auth-pending` | 密钥存在但 guest 尚未 ready | 等待 VM bootstrap 完成。首次 autoinstall 期间这是正常的。 |
+| `status` 报告 `ssh-timeout` | guest SSH/control plane 未在有界探测时间内稳定 | 稍等后重新运行 `status`；如果 restore 让 VM stopped，先运行 `up <runtime> -NoBootstrap`。 |
 | `status` 报告 `unreachable` | SSH 端口未开放或 IP 错误 | 检查 VM 是否运行，确认 static IP 与 host `VMnet8` 子网匹配。 |
 | `ssh` 命令失败，提示 `Permission denied` | 密钥与 guest authorized_keys 不匹配 | VM 是用不同密钥创建的。请重建 VM。 |
+| `ssh` 报告 `REMOTE HOST IDENTIFICATION HAS CHANGED` | restore 或 VM 重建后，direct OpenSSH 中有 stale `known_hosts` 条目 | 只刷新 ADP runtime alias/IP 对应条目，然后重新运行 `adp status <runtime>`。 |
 | `ssh` 命令失败，提示 `bad permissions` | 密钥文件权限过宽 | Windows OpenSSH 可能拒绝继承的宽泛权限。参见 [Microsoft OpenSSH 密钥权限](https://learn.microsoft.com/zh-cn/windows-server/administration/openssh/openssh_keymanagement)。 |
 | 密钥被意外删除 | `adp-os` 私钥丢失 | 同时删除 `adp-os.pub`，重建受影响的 VM。ADP 会重新生成密钥对。 |
 | 同一台机器上有多个用户 | 每个 Windows profile 拥有独立密钥 | ADP 密钥按用户配置文件隔离。每个用户的 `%USERPROFILE%\.ssh\adp-os\` 是独立的。 |

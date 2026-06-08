@@ -41,11 +41,19 @@ function Find-Vmrun {
 function Invoke-Vmrun {
     param(
         [string[]]$Arguments,
-        [int]$TimeoutSeconds = 300
+        [int]$TimeoutSeconds = 0
     )
 
     if (-not $script:Verified) {
         throw "VMware adapter not initialized. Call Initialize-VMware first."
+    }
+    if ($TimeoutSeconds -le 0) {
+        $TimeoutSeconds = 120
+        if ($Arguments -and $Arguments[0] -eq "stop") {
+            $TimeoutSeconds = if ($Arguments[-1] -eq "soft") { 30 } else { 60 }
+        } elseif ($Arguments -and $Arguments[0] -in @("start", "reset", "suspend", "register", "unregister", "list", "listSnapshots", "deleteSnapshot")) {
+            $TimeoutSeconds = 60
+        }
     }
 
     $outFile = [System.IO.Path]::GetTempFileName()

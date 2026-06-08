@@ -187,7 +187,7 @@ Before creating a new VM, `adp up <runtime>` compares the configured VMware NAT 
 .\cli\adp.ps1 stop frontend
 ```
 
-The command tries a soft stop first, then a hard stop if needed.
+The command tries a soft stop first, then a hard stop if needed. VMware control operations are bounded: a soft stop has a short timeout, and the hard fallback also has a timeout, so `adp stop` should report a result instead of waiting indefinitely on a half-ready guest.
 
 ## Runtime Status
 
@@ -212,7 +212,7 @@ Show one runtime:
 - The VMware-detected IP when available.
 - Duplicate running ADP runtime names when VMware has another `adp-<runtime>.vmx` running outside the current checkout.
 - Network drift when an existing autoinstall seed still contains an older static IP than the current merged configuration.
-- SSH state for running VMs: `reachable`, `auth-pending`, `unreachable`, `ambiguous-duplicate`, or a local prerequisite state such as `key-missing`.
+- SSH state for running VMs: `reachable`, `auth-pending`, `ssh-timeout`, `unreachable`, `ambiguous-duplicate`, or a local prerequisite state such as `key-missing`.
 - Mutagen sync session presence.
 - The exact SSH command, SSH alias, workspace path, and next commands.
 
@@ -229,6 +229,8 @@ If `status` reports `network drift`, the VM was created with an older seed netwo
 - Use an administrator-only temporary host-route workaround only when you must regain SSH to the seed-era address first. ADP does not add, change, or remove host routes automatically.
 
 If `status` reports `auth-pending`, the SSH port is open but the ADP key is not accepted yet. During first-time autoinstall this usually means the installer or first boot is still preparing the target user. Keep waiting until the timeout, or inspect the VMware console if the state does not change.
+
+If `status` reports `ssh-timeout`, ADP could open a bounded SSH probe but could not classify the guest as reachable before the hard timeout. This can happen after snapshot restore while VMware reports the VM as running but the guest SSH/control plane is still settling. Rerun `.\cli\adp.ps1 status <runtime>` after a short wait; if the VM is stopped, run `.\cli\adp.ps1 up <runtime> -NoBootstrap` first. Do not treat a survival demo as successful while post-restore readiness stays in `ssh-timeout`.
 
 ## SSH Access
 
@@ -302,14 +304,18 @@ Run a command over SSH:
 ssh -i $env:USERPROFILE\.ssh\adp-os\adp-os adp@192.168.242.131 "ls /home/adp/workspace"
 ```
 
+Snapshot restore or VM recreation can make a runtime present a different SSH host key to direct OpenSSH. ADP-managed readiness probes use bounded non-interactive SSH checks for the configured runtime target, but a manual `ssh` command may still read your normal `%USERPROFILE%\.ssh\known_hosts` file and report a stale host-key entry. If that happens, refresh only the ADP runtime alias or IP entry, then rerun `.\cli\adp.ps1 status <runtime>` before continuing.
+
 ### Troubleshooting SSH Keys
 
 | Symptom | Likely cause | Action |
 |---|---|---|
 | `status` reports `key-missing` | Key not yet created | Run `adp up <runtime>` or any SSH operation; ADP creates the key automatically. |
 | `status` reports `auth-pending` | Key exists but guest is not ready | Wait for VM bootstrap to complete. This is normal during first-time autoinstall. |
+| `status` reports `ssh-timeout` | Guest SSH/control plane did not settle within the bounded probe | Wait briefly, rerun `status`, and use `up <runtime> -NoBootstrap` if restore left the VM stopped. |
 | `status` reports `unreachable` | SSH port closed or wrong IP | Check VM is running, verify the static IP matches host `VMnet8` subnet. |
 | `ssh` command fails with `Permission denied` | Key does not match guest authorized_keys | VM was created with a different key. Recreate the VM. |
+| `ssh` reports `REMOTE HOST IDENTIFICATION HAS CHANGED` | Direct OpenSSH has a stale `known_hosts` entry after restore or VM recreation | Refresh only the ADP runtime alias/IP entry, then rerun `adp status <runtime>`. |
 | `ssh` command fails with `bad permissions` | Key file permissions too open | Windows OpenSSH may reject keys with inherited broad permissions. See [Microsoft OpenSSH key permissions](https://learn.microsoft.com/en-us/windows-server/administration/openssh/openssh_keymanagement). |
 | Key was accidentally deleted | `adp-os` private key missing | Delete `adp-os.pub` too, recreate affected VMs. ADP will regenerate the key pair. |
 | Multiple users on same machine | Each Windows profile has its own key | ADP keys are per-user-profile. Each user's `%USERPROFILE%\.ssh\adp-os\` is independent. |

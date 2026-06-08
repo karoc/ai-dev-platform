@@ -33,6 +33,7 @@ $vmxPath = Join-Path $vmStore "$vmName\$vmName.vmx"
 # Load vm-factory (still uses .vmx paths internally — NOT part of Provider migration)
 . (Join-Path (Get-ProjectRoot) "runtimes\vmware\os-profiles.ps1")
 . (Join-Path (Get-ProjectRoot) "runtimes\vmware\vm-factory.ps1")
+. (Join-Path (Get-ProjectRoot) "adapters\windows\ssh\ssh.ps1")
 Initialize-VmFactory -ProjectRoot (Get-ProjectRoot) -IsoCachePath $isoCache -VmStorePath $vmStore
 
 # Initialize VM provider
@@ -192,15 +193,30 @@ function Test-RuntimeConnectionProvisionMarkerViaSSH {
 
     $platformConfig = Get-PlatformConfig
     $guestUser = if ($platformConfig.defaults.admin_user) { [string]$platformConfig.defaults.admin_user } else { "adp" }
+    $runtimeConfig = Get-RuntimeConfig $TargetRuntime
+    $sshPort = if ($runtimeConfig.PSObject.Properties.Name -contains "ssh_port" -and $runtimeConfig.ssh_port) { [int]$runtimeConfig.ssh_port } else { 22 }
 
     try {
         $result.Checked = $true
-        ssh -i $sshKeyPath -o StrictHostKeyChecking=no -o IdentitiesOnly=yes -o UserKnownHostsFile=NUL -o ConnectTimeout=5 -o BatchMode=yes "$guestUser@$targetIp" "test -f /home/adp/.adp-provisioned" 2>$null | Out-Null
-        if ($LASTEXITCODE -eq 0) {
+        $probe = Invoke-AdpSshCommand `
+            -Host $targetIp `
+            -Port $sshPort `
+            -User $guestUser `
+            -KeyPath $sshKeyPath `
+            -Command "test -f /home/adp/.adp-provisioned" `
+            -ConnectTimeoutSeconds 5 `
+            -TimeoutSeconds 12
+        if ($probe.State -eq "command-success") {
             $result.Ready = $true
             $result.Detail = "/home/adp/.adp-provisioned confirmed over SSH at $targetIp"
+        } elseif ($probe.State -eq "ssh-timeout") {
+            $result.Detail = "SSH provision marker probe timed out at $targetIp (ssh-timeout)"
+        } elseif ($probe.State -eq "auth-pending") {
+            $result.Detail = "SSH auth-pending at $targetIp; ADP key is not accepted yet"
+        } elseif ($probe.State -eq "command-failed") {
+            $result.Detail = "SSH reached $targetIp but did not find /home/adp/.adp-provisioned"
         } else {
-            $result.Detail = "SSH did not confirm provision marker at $targetIp"
+            $result.Detail = "SSH did not confirm provision marker at $targetIp ($($probe.State))"
         }
     } catch {
         $result.Detail = "SSH provision marker probe failed: $_"
