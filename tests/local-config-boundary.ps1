@@ -32,31 +32,37 @@ function New-BoundarySandbox {
 }
 
 function Write-SentinelLocalConfig {
-    param([string]$SandboxRoot)
+    param(
+        [string]$SandboxRoot,
+        [string]$RuntimeNamespace = ""
+    )
 
     $stateRoot = Join-Path $SandboxRoot ".adp-boundary-state"
-    $localConfig = [ordered]@{
-        platform = [ordered]@{
-            boundary_sentinel = "preserve-platform-field"
-            paths = [ordered]@{
-                workspace_root = Join-Path $stateRoot "workspaces"
-                iso_cache      = Join-Path $stateRoot "iso"
-                vm_store       = Join-Path $stateRoot "vms"
-            }
-            defaults = [ordered]@{
-                ubuntu_iso = "missing-boundary.iso"
-            }
-            network = [ordered]@{
-                mode = "static"
-                vmware_nat = [ordered]@{
-                    cidr            = "203.0.113.0/24"
-                    prefix          = 24
-                    gateway         = "203.0.113.2"
-                    dns             = @("203.0.113.2", "1.1.1.1")
-                    interface_match = "en*"
-                }
+    $platform = [ordered]@{
+        boundary_sentinel = "preserve-platform-field"
+        runtime_namespace = if ([string]::IsNullOrWhiteSpace($RuntimeNamespace)) { $null } else { $RuntimeNamespace }
+        paths = [ordered]@{
+            workspace_root = Join-Path $stateRoot "workspaces"
+            iso_cache      = Join-Path $stateRoot "iso"
+            vm_store       = Join-Path $stateRoot "vms"
+        }
+        defaults = [ordered]@{
+            ubuntu_iso = "missing-boundary.iso"
+        }
+        network = [ordered]@{
+            mode = "static"
+            vmware_nat = [ordered]@{
+                cidr            = "203.0.113.0/24"
+                prefix          = 24
+                gateway         = "203.0.113.2"
+                dns             = @("203.0.113.2", "1.1.1.1")
+                interface_match = "en*"
             }
         }
+    }
+
+    $localConfig = [ordered]@{
+        platform = $platform
         topology = [ordered]@{
             frontend = [ordered]@{
                 static_ip = "203.0.113.131"
@@ -140,6 +146,128 @@ function Assert-LocalConfigUnchanged {
     }
 }
 
+function Assert-TextContains {
+    param(
+        [string]$Name,
+        [string]$Text,
+        [string]$Pattern
+    )
+
+    if ($Text -notmatch $Pattern) {
+        throw "$Name output did not contain expected pattern: $Pattern`n$Text"
+    }
+}
+
+function Assert-TextNotContains {
+    param(
+        [string]$Name,
+        [string]$Text,
+        [string]$Pattern
+    )
+
+    if ($Text -match $Pattern) {
+        throw "$Name output contained forbidden pattern: $Pattern`n$Text"
+    }
+}
+
+function Assert-NoRuntimeVmDirectories {
+    param(
+        [string]$Name,
+        [string]$SandboxRoot
+    )
+
+    $vmRoot = Join-Path (Join-Path $SandboxRoot ".adp-boundary-state") "vms"
+    foreach ($vmDirectoryName in @("adp-agent", "adp-v2-agent")) {
+        $vmDirectory = Join-Path $vmRoot $vmDirectoryName
+        if (Test-Path -LiteralPath $vmDirectory) {
+            throw "$Name created VM directory unexpectedly: $vmDirectory"
+        }
+    }
+}
+
+function Install-BoundaryProviderStub {
+    param([string]$SandboxRoot)
+
+    $stubPath = Join-Path $SandboxRoot "adapters\windows\vmware\vmware-provider.ps1"
+    $stubContent = @'
+function Write-BoundaryProviderCall {
+    param([string]$Message)
+
+    $stateRoot = Join-Path (Get-ProjectRoot) ".adp-boundary-state"
+    New-Item -ItemType Directory -Path $stateRoot -Force | Out-Null
+    Add-Content -LiteralPath (Join-Path $stateRoot "provider-calls.log") -Value $Message -Encoding UTF8
+}
+
+function Initialize-VMwareProvider {
+    param([string]$ProjectRoot, [hashtable]$InitArgs = @{})
+    Write-BoundaryProviderCall -Message "Initialize-VMwareProvider"
+    return $true
+}
+
+function Initialize-Provider {
+    param([string]$ProviderType, [string]$ProjectRoot, [hashtable]$InitArgs = @{})
+    Write-BoundaryProviderCall -Message "Initialize-Provider:$ProviderType"
+    return [pscustomobject]@{ Success = $true; Data = $ProviderType; Error = $null }
+}
+
+function Get-ProviderInfo {
+    return [pscustomobject]@{ Success = $true; Data = "boundary-provider-stub"; Error = $null }
+}
+
+function Get-VMStatus {
+    param([string]$Name, [string]$VmxPath)
+    if ($Name) {
+        Write-BoundaryProviderCall -Message "Get-VMStatus:$Name"
+    } elseif ($VmxPath) {
+        Write-BoundaryProviderCall -Message "Get-VMStatusPath:$VmxPath"
+    } else {
+        Write-BoundaryProviderCall -Message "Get-VMStatus"
+    }
+    return [pscustomobject]@{ Success = $true; Data = "not-created"; Error = $null }
+}
+
+function Get-RunningVMs {
+    Write-BoundaryProviderCall -Message "Get-RunningVMs"
+    return @()
+}
+
+function Start-VM {
+    param([string]$Name, [string]$VmxPath, [string]$Mode = "nogui")
+    if ($Name) { Write-BoundaryProviderCall -Message "Start-VM:$Name" }
+    return [pscustomobject]@{ Success = $false; Data = $null; Error = "boundary provider stub does not start VMs" }
+}
+
+function Test-VMwareNatConfigMatchesHost {
+    Write-BoundaryProviderCall -Message "Test-VMwareNatConfigMatchesHost"
+    return [pscustomobject]@{ Checked = $false; Matches = $true; Host = $null; Config = $null; Message = "boundary provider stub skips host NAT detection" }
+}
+'@
+
+    Set-Content -LiteralPath $stubPath -Value $stubContent -Encoding UTF8
+}
+
+function Get-BoundaryProviderCallLogPath {
+    param([string]$SandboxRoot)
+
+    return Join-Path (Join-Path $SandboxRoot ".adp-boundary-state") "provider-calls.log"
+}
+
+function Clear-BoundaryProviderCallLog {
+    param([string]$SandboxRoot)
+
+    Remove-Item -LiteralPath (Get-BoundaryProviderCallLogPath -SandboxRoot $SandboxRoot) -Force -ErrorAction SilentlyContinue
+}
+
+function Get-BoundaryProviderCallLog {
+    param([string]$SandboxRoot)
+
+    $path = Get-BoundaryProviderCallLogPath -SandboxRoot $SandboxRoot
+    if (-not (Test-Path -LiteralPath $path)) {
+        return ""
+    }
+    return Get-Content -LiteralPath $path -Raw -Encoding UTF8
+}
+
 function Assert-CommandDoesNotMutateLocalConfig {
     param(
         [string]$Name,
@@ -153,6 +281,7 @@ function Assert-CommandDoesNotMutateLocalConfig {
     $beforeHash = (Get-FileHash -LiteralPath $localConfigPath -Algorithm SHA256).Hash
     $result = Invoke-BoundaryCommand -SandboxRoot $SandboxRoot -ScriptPath $ScriptPath -Arguments $Arguments
     Assert-LocalConfigUnchanged -Name $Name -SandboxRoot $SandboxRoot -LocalConfigPath $localConfigPath -BeforeHash $beforeHash -Result $result -AllowedExitCodes $AllowedExitCodes
+    return $result
 }
 
 $sandboxRoot = New-BoundarySandbox
@@ -221,7 +350,7 @@ try {
     )
 
     foreach ($command in $commands) {
-        Assert-CommandDoesNotMutateLocalConfig `
+        $null = Assert-CommandDoesNotMutateLocalConfig `
             -Name $command.Name `
             -SandboxRoot $sandboxRoot `
             -ScriptPath $command.Script `
@@ -231,6 +360,58 @@ try {
 } finally {
     $tempRoot = [System.IO.Path]::GetTempPath()
     foreach ($path in @($sandboxRoot)) {
+        if ($path -and (Test-Path -LiteralPath $path) -and [System.IO.Path]::GetFullPath($path).StartsWith($tempRoot, [System.StringComparison]::OrdinalIgnoreCase)) {
+            Remove-Item -LiteralPath $path -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    }
+}
+
+$namespacedSandboxRoot = New-BoundarySandbox
+
+try {
+    Write-SentinelLocalConfig -SandboxRoot $namespacedSandboxRoot -RuntimeNamespace "v2" | Out-Null
+    Install-BoundaryProviderStub -SandboxRoot $namespacedSandboxRoot
+
+    $namespacedCliScript = Join-Path $namespacedSandboxRoot "cli\adp.ps1"
+
+    Clear-BoundaryProviderCallLog -SandboxRoot $namespacedSandboxRoot
+    $namespacedPlan = Assert-CommandDoesNotMutateLocalConfig `
+        -Name "namespaced up plan" `
+        -SandboxRoot $namespacedSandboxRoot `
+        -ScriptPath $namespacedCliScript `
+        -Arguments @("up", "agent", "-Plan", "-IsoPath", "Z:\adp-boundary\missing.iso") `
+        -AllowedExitCodes @(0)
+
+    Assert-TextContains -Name "namespaced up plan resource" -Text $namespacedPlan.Output -Pattern 'Namespace:\s+v2\s+\(resource:\s+v2-agent\)'
+    Assert-TextContains -Name "namespaced up plan VMX" -Text $namespacedPlan.Output -Pattern 'adp-v2-agent[\\/]adp-v2-agent\.vmx'
+    Assert-TextContains -Name "namespaced up plan create preview" -Text $namespacedPlan.Output -Pattern 'Would create VM from ISO|将从 ISO 创建 VM'
+    Assert-TextNotContains -Name "namespaced up plan no legacy blocker" -Text $namespacedPlan.Output -Pattern 'first VM creation has not been migrated|will not create the default|VM factory migration|首次 VM 创建尚未迁移'
+    Assert-TextNotContains -Name "namespaced up plan no legacy VMX" -Text $namespacedPlan.Output -Pattern 'VMX:\s+.*adp-agent[\\/]adp-agent\.vmx'
+    $planProviderLog = Get-BoundaryProviderCallLog -SandboxRoot $namespacedSandboxRoot
+    Assert-TextContains -Name "namespaced up plan provider resource lookup" -Text $planProviderLog -Pattern 'Get-VMStatus:v2-agent'
+    Assert-TextNotContains -Name "namespaced up plan no legacy provider lookup" -Text $planProviderLog -Pattern 'Get-VMStatus:agent|Start-VM:agent'
+    Assert-NoRuntimeVmDirectories -Name "namespaced up plan" -SandboxRoot $namespacedSandboxRoot
+
+    Clear-BoundaryProviderCallLog -SandboxRoot $namespacedSandboxRoot
+    $namespacedPreflight = Assert-CommandDoesNotMutateLocalConfig `
+        -Name "namespaced up create preflight failure" `
+        -SandboxRoot $namespacedSandboxRoot `
+        -ScriptPath $namespacedCliScript `
+        -Arguments @("up", "agent", "-IsoPath", "Z:\adp-boundary\missing.iso") `
+        -AllowedExitCodes @(1)
+
+    Assert-TextContains -Name "namespaced preflight resource" -Text $namespacedPreflight.Output -Pattern 'Namespace:\s+v2\s+\(resource:\s+v2-agent\)'
+    Assert-TextContains -Name "namespaced preflight VMX" -Text $namespacedPreflight.Output -Pattern 'adp-v2-agent[\\/]adp-v2-agent\.vmx'
+    Assert-TextContains -Name "namespaced preflight missing ISO" -Text $namespacedPreflight.Output -Pattern 'OS ISO not found|未找到 OS ISO'
+    Assert-TextNotContains -Name "namespaced preflight no legacy blocker" -Text $namespacedPreflight.Output -Pattern 'first VM creation has not been migrated|will not create the default|VM factory migration|首次 VM 创建尚未迁移'
+    Assert-TextNotContains -Name "namespaced preflight no legacy VMX" -Text $namespacedPreflight.Output -Pattern 'VMX:\s+.*adp-agent[\\/]adp-agent\.vmx'
+    $preflightProviderLog = Get-BoundaryProviderCallLog -SandboxRoot $namespacedSandboxRoot
+    Assert-TextContains -Name "namespaced preflight provider resource lookup" -Text $preflightProviderLog -Pattern 'Get-VMStatus:v2-agent'
+    Assert-TextNotContains -Name "namespaced preflight no legacy provider lookup" -Text $preflightProviderLog -Pattern 'Get-VMStatus:agent|Start-VM:agent'
+    Assert-NoRuntimeVmDirectories -Name "namespaced up create preflight failure" -SandboxRoot $namespacedSandboxRoot
+} finally {
+    $tempRoot = [System.IO.Path]::GetTempPath()
+    foreach ($path in @($namespacedSandboxRoot)) {
         if ($path -and (Test-Path -LiteralPath $path) -and [System.IO.Path]::GetFullPath($path).StartsWith($tempRoot, [System.StringComparison]::OrdinalIgnoreCase)) {
             Remove-Item -LiteralPath $path -Recurse -Force -ErrorAction SilentlyContinue
         }

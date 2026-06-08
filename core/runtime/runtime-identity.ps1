@@ -38,10 +38,10 @@ function Get-ADPRuntimeResourceNames {
         [string]$Namespace = $null
     )
 
-    $runtimeNamespace = if ($null -eq $Namespace) {
-        Get-ADPRuntimeNamespace
-    } else {
+    $runtimeNamespace = if ($PSBoundParameters.ContainsKey("Namespace")) {
         Normalize-ADPRuntimeNamespace -Namespace $Namespace
+    } else {
+        Get-ADPRuntimeNamespace
     }
 
     $runtimeResourceName = if ($runtimeNamespace) {
