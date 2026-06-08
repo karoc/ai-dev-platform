@@ -35,6 +35,10 @@ class TestABCs:
         from extensions.deer_flow.deerflow_adp_sandbox import Sandbox
         assert Sandbox is not None
 
+    def test_shlex_quote_reexport(self):
+        from extensions.deer_flow.deerflow_adp_sandbox import shlex_quote
+        assert shlex_quote("a b") == "'a b'"
+
     def test_sandbox_is_abstract(self):
         from extensions.deer_flow.deerflow_adp_sandbox import Sandbox
         try:

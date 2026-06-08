@@ -357,7 +357,7 @@ adp_file_upload agent "/tmp/data.bin" "SGVsbG8=" plan_only=False
 - [ ] 至少一个 VM 运行时已配置：`adpos status`
 - [ ] MCP 服务器模块可加载：`python3 -c "from cli.mcp.server import mcp; print(len(mcp._tool_manager._tools))"` → `26`
 - [ ] MCP 服务器测试通过：`python3 -m pytest tests/test-mcp-server.py tests/test-mcp-vm-tools.py -q` → `46 passed`
-- [ ] Deer-flow 适配器测试通过：`python3 -m pytest tests/test_deerflow_adp_sandbox.py -q` → `46 passed`
+- [ ] Deer-flow 适配器测试通过：`python3 -m pytest tests/test_deerflow_adp_sandbox.py -q` → `47 passed`
 - [ ] `extensions_config.json` 使用绝对路径和正确的环境变量配置
 - [ ] Deer-flow 已重启，26 个 ADP-OS 工具对 agent 可见
 - [ ] `adp_up agent` 成功（创建或启动 VM）

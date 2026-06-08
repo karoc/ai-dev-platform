@@ -426,7 +426,7 @@ class DeerFlowADPSandboxProvider(SandboxProvider):
 - **Linux 客户机支持**: Ubuntu 自动安装已可用
 - **Thread→runtime 注册表**: `ThreadRuntimeRegistry` 映射 deer-flow `thread_id` → ADP-OS `runtime` 名称（持久化到 `~/.adp-deerflow/thread_runtime_registry.json`）
 - **SSH 连接缓存**: `SSHConnection` + paramiko + subprocess-ssh 回退
-- **代码位置**: `extensions/deer_flow/deerflow_adp_sandbox.py` + `extensions/deer_flow/README.md`
+- **代码位置**: `extensions/deer_flow/deerflow_adp_sandbox.py` 兼容入口及包内辅助模块，加上 `extensions/deer_flow/README.md`
 
 ---
 
@@ -467,7 +467,7 @@ class DeerFlowADPSandboxProvider(SandboxProvider):
 - [x] 8 个 SSH 支持的 MCP 工具已在 `cli/mcp/server.py` 中实现（共 26 个）— 提交 f7453c8
 - [x] 测试套件已更新（`tests/test-mcp-server.py`、`tests/test-mcp-vm-tools.py`）覆盖新工具 — 46 个测试
 - [x] Deer-flow `SandboxProvider` 适配器类已实现 — 提交 7a976fd
-- [x] SandboxProvider 测试套件（`tests/test_deerflow_adp_sandbox.py`）— 30+ 个测试
+- [x] SandboxProvider 测试套件（`tests/test_deerflow_adp_sandbox.py`）— 47 个测试
 - [x] 启动时间已记录（冷启动 15-45 分钟 vs 热 VM ~30 秒 — 已记录于本文档及适配器 README）
 - [x] Thread→runtime 映射注册表已记录（持久化到 `~/.adp-deerflow/thread_runtime_registry.json`，已记录于本文档及适配器 README）
 
@@ -497,7 +497,7 @@ class DeerFlowADPSandboxProvider(SandboxProvider):
 
 | # | 测试项 | 预期结果 |
 |---|--------|---------|
-| 1 | 适配器测试通过 | `python3 -m pytest tests/test_deerflow_adp_sandbox.py -q` → `30+ passed` |
+| 1 | 适配器测试通过 | `python3 -m pytest tests/test_deerflow_adp_sandbox.py -q` → `47 passed` |
 | 2 | Provider 初始化 | `DeerFlowADPSandboxProvider(adp_home=...)` 创建无错误 |
 | 3 | VM 池预暖 | `provider.warm_pool()` 在后台启动池 VM |
 | 4 | Thread→runtime 映射 | `provider.acquire(thread_id="test-123")` 返回 runtime 名称 |

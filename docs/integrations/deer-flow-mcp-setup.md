@@ -359,7 +359,7 @@ Items using `adpos` are local CLI checks. Items using `adp_*` are MCP tool check
 - [ ] At least one VM runtime configured: `adpos status`
 - [ ] MCP server module loads: `python3 -c "from cli.mcp.server import mcp; print(len(mcp._tool_manager._tools))"` → `26`
 - [ ] MCP server tests pass: `python3 -m pytest tests/test-mcp-server.py tests/test-mcp-vm-tools.py -q` → `46 passed`
-- [ ] Deer-flow adapter tests pass: `python3 -m pytest tests/test_deerflow_adp_sandbox.py -q` → `46 passed`
+- [ ] Deer-flow adapter tests pass: `python3 -m pytest tests/test_deerflow_adp_sandbox.py -q` → `47 passed`
 - [ ] `extensions_config.json` configured with absolute paths and correct env vars
 - [ ] Deer-flow restarted and 26 ADP-OS tools visible to the agent
 - [ ] `adp_up agent` succeeds (creates or boots the VM)

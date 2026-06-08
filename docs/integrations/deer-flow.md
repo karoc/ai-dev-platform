@@ -426,7 +426,7 @@ class DeerFlowADPSandboxProvider(SandboxProvider):
 - **Linux guest support**: Ubuntu autoinstall already works
 - **Thread→runtime registry**: `ThreadRuntimeRegistry` maps deer-flow `thread_id` → ADP-OS `runtime` name (persisted to `~/.adp-deerflow/thread_runtime_registry.json`)
 - **SSH connection caching**: `SSHConnection` with paramiko + subprocess-ssh fallback
-- **Code location**: `extensions/deer_flow/deerflow_adp_sandbox.py` + `extensions/deer_flow/README.md`
+- **Code location**: `extensions/deer_flow/deerflow_adp_sandbox.py` compatibility entrypoint plus package helper modules, with `extensions/deer_flow/README.md`
 
 ---
 
@@ -467,7 +467,7 @@ class DeerFlowADPSandboxProvider(SandboxProvider):
 - [x] 8 SSH-backed MCP tools implemented in `cli/mcp/server.py` (26 total) — commit f7453c8
 - [x] Test suite updated (`tests/test-mcp-server.py`, `tests/test-mcp-vm-tools.py`) covering new tools — 46 tests
 - [x] Deer-flow `SandboxProvider` adapter class implemented — commit 7a976fd
-- [x] Test suite for SandboxProvider (`tests/test_deerflow_adp_sandbox.py`) — 30+ tests
+- [x] Test suite for SandboxProvider (`tests/test_deerflow_adp_sandbox.py`) — 47 tests
 - [x] Startup time documented (cold start 15-45 min vs warm VM ~30s — documented in this guide and adapter README)
 - [x] Thread→runtime mapping registry documented (persisted to `~/.adp-deerflow/thread_runtime_registry.json`, documented in this guide and adapter README)
 
@@ -497,7 +497,7 @@ class DeerFlowADPSandboxProvider(SandboxProvider):
 
 | # | Test | Expected |
 |---|------|----------|
-| 1 | Adapter tests pass | `python3 -m pytest tests/test_deerflow_adp_sandbox.py -q` → `30+ passed` |
+| 1 | Adapter tests pass | `python3 -m pytest tests/test_deerflow_adp_sandbox.py -q` → `47 passed` |
 | 2 | Provider initialization | `DeerFlowADPSandboxProvider(adp_home=...)` creates without error |
 | 3 | VM pool pre-warming | `provider.warm_pool()` boots pool VMs in background |
 | 4 | Thread→runtime mapping | `provider.acquire(thread_id="test-123")` returns runtime name |
