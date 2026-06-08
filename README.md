@@ -393,6 +393,7 @@ The reference uses `adpos`, the formal command installed by `.\setup.cmd`. From 
 ```powershell
 adpos setup [-IsoPath <path>] [-SkipIsoDownload] [-NonInteractive] [-Force]
 adpos uninstall [-Force]
+adpos help [command]
 adpos iso [ubuntu|almalinux|rocky|debian] [-Url <url>] [-Force] [-NonInteractive]
 adpos quickstart [-Distro <name>] [-IsoPath <path>] [-SkipIsoDownload] [-SkipDoctor] [-Force] [-NonInteractive]
 adpos init
@@ -427,7 +428,8 @@ adpos network apply <frontend|backend|agent|sandbox|all> [-Plan]
 adpos snapshot create <runtime> <name>
 adpos restore <runtime> <name>
 adpos logs <runtime>
-adpos doctor [-FirstRun] [-FixMutagen] [-Plan]
+adpos doctor [-FirstRun] [-Json]
+adpos doctor -FixMutagen [-Plan] [-Json]
 adpos destroy <runtime> [-Plan]
 adpos workspace evidence -Snapshot [-ManifestPath <path>]
 adpos workspace evidence -Log -Operation <op> [-Details <text>] [-ManifestPath <path>]

@@ -179,6 +179,7 @@ try {
 
     $cases = @(
         @{ Name = "help"; Args = @("help"); ExitCode = 0; Pattern = "ADP-OS CLI" },
+        @{ Name = "help doctor"; Args = @("help", "doctor"); ExitCode = 0; Pattern = "ADP-OS: adpos doctor" },
         @{ Name = "precheck help prereqs"; Args = @("precheck", "--help-prereqs"); ExitCode = 0; Pattern = "ADP-OS Prerequisites" },
         @{ Name = "unknown command"; Args = @("hepl"); ExitCode = 1; Pattern = "Unknown command: hepl" },
         @{ Name = "capabilities"; Args = @("capabilities"); ExitCode = 0; Pattern = "Capabilities only: no VMs" },

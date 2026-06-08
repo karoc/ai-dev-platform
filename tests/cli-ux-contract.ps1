@@ -8,13 +8,28 @@ $cliPath = Join-Path $projectRoot "cli\adp.ps1"
 $pwsh = (Get-Command pwsh -ErrorAction Stop).Source
 
 function Invoke-AdposCli {
-    param([string[]]$Arguments)
+    param(
+        [string[]]$Arguments,
+        [hashtable]$Environment = @{}
+    )
 
-    $global:LASTEXITCODE = 0
-    $output = & $pwsh -NoProfile -ExecutionPolicy Bypass -File $cliPath @Arguments 2>&1 | Out-String
-    return [pscustomobject]@{
-        ExitCode = $LASTEXITCODE
-        Output   = $output
+    $previousEnvironment = @{}
+    try {
+        foreach ($name in $Environment.Keys) {
+            $previousEnvironment[$name] = [System.Environment]::GetEnvironmentVariable($name, "Process")
+            [System.Environment]::SetEnvironmentVariable($name, [string]$Environment[$name], "Process")
+        }
+
+        $global:LASTEXITCODE = 0
+        $output = & $pwsh -NoProfile -ExecutionPolicy Bypass -File $cliPath @Arguments 2>&1 | Out-String
+        return [pscustomobject]@{
+            ExitCode = $LASTEXITCODE
+            Output   = $output
+        }
+    } finally {
+        foreach ($name in $Environment.Keys) {
+            [System.Environment]::SetEnvironmentVariable($name, $previousEnvironment[$name], "Process")
+        }
     }
 }
 
@@ -48,6 +63,38 @@ Assert-Contains -Name "adpos help shows command overview" -Text $help.Output -Pa
 Assert-Contains -Name "adpos help includes setup" -Text $help.Output -Pattern "adpos setup"
 Assert-Contains -Name "adpos help includes isolate" -Text $help.Output -Pattern "adpos isolate"
 Assert-Contains -Name "adpos help includes uninstall" -Text $help.Output -Pattern "adpos uninstall"
+Assert-Contains -Name "adpos help advertises command-specific help" -Text $help.Output -Pattern "adpos help <command>"
+
+$doctorHelp = Invoke-AdposCli -Arguments @("help", "doctor")
+Assert-ExitCode -Name "adpos help doctor" -Actual $doctorHelp.ExitCode -Expected 0
+Assert-Contains -Name "adpos help doctor shows command title" -Text $doctorHelp.Output -Pattern "ADP-OS: adpos doctor"
+Assert-Contains -Name "adpos help doctor shows normal diagnostic usage" -Text $doctorHelp.Output -Pattern "adpos doctor \[-FirstRun\] \[-Json\]"
+Assert-Contains -Name "adpos help doctor scopes plan to fix mutagen" -Text $doctorHelp.Output -Pattern "adpos doctor -FixMutagen \[-Plan\] \[-Json\]"
+Assert-Contains -Name "adpos help doctor explains plan scope" -Text $doctorHelp.Output -Pattern "only valid with -FixMutagen"
+
+$doctorFlagHelp = Invoke-AdposCli -Arguments @("doctor", "--help")
+Assert-ExitCode -Name "adpos doctor --help" -Actual $doctorFlagHelp.ExitCode -Expected 0
+Assert-Contains -Name "adpos doctor --help shows command title" -Text $doctorFlagHelp.Output -Pattern "ADP-OS: adpos doctor"
+Assert-Contains -Name "adpos doctor --help shows normal diagnostic usage" -Text $doctorFlagHelp.Output -Pattern "adpos doctor \[-FirstRun\] \[-Json\]"
+Assert-Contains -Name "adpos doctor --help scopes plan to fix mutagen" -Text $doctorFlagHelp.Output -Pattern "adpos doctor -FixMutagen \[-Plan\] \[-Json\]"
+Assert-Contains -Name "adpos doctor --help explains plan scope" -Text $doctorFlagHelp.Output -Pattern "only valid with -FixMutagen"
+
+$doctorHelpZh = Invoke-AdposCli -Arguments @("help", "doctor") -Environment @{ ADP_LANG = "zh-CN" }
+Assert-ExitCode -Name "adpos help doctor zh-CN" -Actual $doctorHelpZh.ExitCode -Expected 0
+Assert-Contains -Name "adpos help doctor zh-CN shows mutagen plan usage" -Text $doctorHelpZh.Output -Pattern "adpos doctor -FixMutagen \[-Plan\] \[-Json\]"
+Assert-Contains -Name "adpos help doctor zh-CN explains plan scope" -Text $doctorHelpZh.Output -Pattern "仅与 -FixMutagen 一起使用"
+
+$helpTypo = Invoke-AdposCli -Arguments @("help", "doctro")
+Assert-ExitCode -Name "adpos help doctro" -Actual $helpTypo.ExitCode -Expected 1
+Assert-Contains -Name "adpos help typo reports missing detailed help" -Text $helpTypo.Output -Pattern "Command 'doctro' has no detailed help"
+Assert-Contains -Name "adpos help typo suggests command-specific help" -Text $helpTypo.Output -Pattern "Did you mean: adpos help doctor"
+Assert-Contains -Name "adpos help typo gives help overview recovery" -Text $helpTypo.Output -Pattern "Run 'adpos help' to see all commands"
+
+$helpTypoZh = Invoke-AdposCli -Arguments @("help", "doctro") -Environment @{ ADP_LANG = "zh-CN" }
+Assert-ExitCode -Name "adpos help doctro zh-CN" -Actual $helpTypoZh.ExitCode -Expected 1
+Assert-Contains -Name "adpos help typo zh-CN reports missing detailed help" -Text $helpTypoZh.Output -Pattern "命令 'doctro' 没有详细帮助"
+Assert-Contains -Name "adpos help typo zh-CN suggests command-specific help" -Text $helpTypoZh.Output -Pattern "你是不是想运行: adpos help doctor"
+Assert-Contains -Name "adpos help typo zh-CN gives help overview recovery" -Text $helpTypoZh.Output -Pattern "运行 'adpos help' 查看所有命令"
 
 $precheckHelp = Invoke-AdposCli -Arguments @("precheck", "--help-prereqs")
 Assert-ExitCode -Name "adpos precheck --help-prereqs" -Actual $precheckHelp.ExitCode -Expected 0
@@ -63,6 +110,14 @@ Assert-ExitCode -Name "adpos hepl" -Actual $topLevelTypo.ExitCode -Expected 1
 Assert-Contains -Name "adpos hepl reports unknown command" -Text $topLevelTypo.Output -Pattern "Unknown command: hepl"
 Assert-Contains -Name "adpos hepl suggests help" -Text $topLevelTypo.Output -Pattern "Did you mean: adpos help"
 Assert-Contains -Name "adpos hepl gives recovery path" -Text $topLevelTypo.Output -Pattern "Run 'adpos help' to see full help"
+
+$doctorPlan = Invoke-AdposCli -Arguments @("doctor", "-Plan")
+Assert-ExitCode -Name "adpos doctor -Plan" -Actual $doctorPlan.ExitCode -Expected 1
+Assert-Contains -Name "doctor plan without fix mutagen explains valid pairing" -Text $doctorPlan.Output -Pattern "-Plan is only supported with -FixMutagen"
+
+$doctorPlanZh = Invoke-AdposCli -Arguments @("doctor", "-Plan") -Environment @{ ADP_LANG = "zh-CN" }
+Assert-ExitCode -Name "adpos doctor -Plan zh-CN" -Actual $doctorPlanZh.ExitCode -Expected 1
+Assert-Contains -Name "doctor plan without fix mutagen explains valid pairing zh-CN" -Text $doctorPlanZh.Output -Pattern "-Plan 仅支持与 -FixMutagen 一起使用"
 
 $syncTypo = Invoke-AdposCli -Arguments @("sync", "stats")
 Assert-ExitCode -Name "adpos sync stats" -Actual $syncTypo.ExitCode -Expected 1

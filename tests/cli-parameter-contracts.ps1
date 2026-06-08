@@ -143,7 +143,7 @@ $gettingStartedDocs = Read-Text "docs\getting-started.md"
 $gettingStartedDocsZh = Read-Text "docs\zh-CN\getting-started.md"
 $pullRequestTemplate = Read-Text ".github\pull_request_template.md"
 
-Assert-Contains -Name "CLI loads help module before use" -Text $cli -Pattern 'cli\\lib\\help\.ps1[\s\S]*if\s*\(-not\s+\$Command\s+-or\s+\$Command\s+-eq\s+"help"\)'
+Assert-Contains -Name "CLI loads help module before use" -Text $cli -Pattern 'cli\\lib\\help\.ps1[\s\S]*if\s*\(\$Command\s+-eq\s+"help"\)[\s\S]*if\s*\(-not\s+\$Command\)'
 Assert-Contains -Name "CLI help module defines Show-Help" -Text $cliHelp -Pattern 'function\s+Show-Help[\s\S]*function\s+Show-CommandHelp[\s\S]*function\s+Show-Version'
 Assert-Contains -Name "CLI propagates command exit codes" -Text $cli -Pattern 'Invoke-CommandFile[\s\S]*if\s*\(\$LASTEXITCODE\s+-gt\s+0\)\s*\{[\s\S]*exit\s+\$LASTEXITCODE'
 Assert-Contains -Name "CI runs shared validation entry" -Text $ci -Pattern '\.\\tests\\validate\.ps1'
@@ -195,6 +195,19 @@ Assert-Contains -Name "CLI help includes validate command in English" -Text $cli
 Assert-Contains -Name "CLI help includes validate command in Chinese" -Text $cliHelp -Pattern 'adpos validate \[-Quick\] \[-SkipCliSmoke\] \[-SkipInstallerSmoke\] \[-SkipShellSyntax\]"; Summary = "运行仓库验证测试'
 Assert-Contains -Name "CLI help includes status command" -Text $cliHelp -Pattern 'adpos status \[runtime\]'
 Assert-Contains -Name "CLI help includes workspace command" -Text $cliHelp -Pattern 'adpos workspace <command> \[-ManifestPath <path>\] \[-Plan\] \[-Markdown\]'
+Assert-Contains -Name "CLI help includes split doctor usage" -Text $cliHelp -Pattern 'adpos doctor \[-FirstRun\] \[-Json\] \| adpos doctor -FixMutagen \[-Plan\] \[-Json\]'
+Assert-Contains -Name "CLI help explains doctor plan scope in English" -Text $cliHelp -Pattern '-Plan\s+Preview Mutagen remediation; only valid with -FixMutagen'
+Assert-Contains -Name "CLI help explains doctor plan scope in Chinese" -Text $cliHelp -Pattern '-Plan\s+预览 Mutagen 修复；仅与 -FixMutagen 一起使用'
+Assert-Contains -Name "CLI help includes command-specific help alias in English" -Text $cliHelp -Pattern 'adpos help \[command\]"; Summary = "Show help or command-specific help'
+Assert-Contains -Name "CLI help includes command-specific help alias in Chinese" -Text $cliHelp -Pattern 'adpos help \[command\]"; Summary = "显示帮助或指定命令帮助'
+Assert-Contains -Name "CLI top-level help advertises help alias" -Text $cliHelp -Pattern "Use 'adpos help <command>' or 'adpos <command> --help'"
+Assert-Contains -Name "CLI top-level help advertises help alias in Chinese" -Text $cliHelp -Pattern "使用 'adpos help <command>' 或 'adpos <command> --help' 查看特定命令的详细帮助"
+Assert-Contains -Name "CLI routes command-specific help alias" -Text $cli -Pattern 'if\s*\(\$Command\s+-eq\s+"help"\)[\s\S]*Show-Help -CommandName \$helpCommand[\s\S]*Did you mean: adpos help \$suggestion'
+Assert-NotContains -Name "public help avoids one-line doctor plan usage" -Text "$cliHelp`n$readme`n$readmeZh`n$gettingStartedDocs`n$gettingStartedDocsZh`n$configurationDocs`n$configurationDocsZh`n$operationsDocs`n$operationsDocsZh`n$troubleshootingDocs`n$troubleshootingDocsZh" -Pattern 'adpos doctor \[-FirstRun\] \[-FixMutagen\] \[-Plan\]'
+Assert-Contains -Name "README splits doctor command reference" -Text $readme -Pattern 'adpos doctor \[-FirstRun\] \[-Json\]\s+adpos doctor -FixMutagen \[-Plan\] \[-Json\]'
+Assert-Contains -Name "Chinese README splits doctor command reference" -Text $readmeZh -Pattern 'adpos doctor \[-FirstRun\] \[-Json\]\s+adpos doctor -FixMutagen \[-Plan\] \[-Json\]'
+Assert-Contains -Name "README includes command-specific help reference" -Text $readme -Pattern 'adpos help \[command\]'
+Assert-Contains -Name "Chinese README includes command-specific help reference" -Text $readmeZh -Pattern 'adpos help \[command\]'
 Assert-Contains -Name "CLI help includes sandbox command" -Text $cliHelp -Pattern 'adpos sandbox <command\.\.\.> \[-Distro <name>\] \[-IsoPath <path>\]'
 Assert-Contains -Name "CLI help includes capabilities command" -Text $cliHelp -Pattern 'adpos capabilities \[-Json\]"; Summary = "Show supported and planned runtime capabilities'
 Assert-Contains -Name "CLI help includes isolate command" -Text $cliHelp -Pattern 'adpos isolate \[-Plan\|-Apply\] \[-Namespace <name>\]"; Summary = "Plan or apply multi-checkout local isolation settings'

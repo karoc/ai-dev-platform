@@ -298,7 +298,7 @@ if (-not $NonInteractive) {
     Write-UIHost -English "Next steps:" -Chinese "下一步:" -ForegroundColor Cyan
     Write-UIHost -English "  $nextCommand up frontend    Start your first runtime (creates VM from ISO, ~15-45 min first time)" -Chinese "  $nextCommand up frontend    启动第一个运行时（从 ISO 创建 VM，首次约 15-45 分钟）" -ForegroundColor DarkGray
     Write-UIHost -English "  $nextCommand doctor         Check platform health" -Chinese "  $nextCommand doctor         检查平台健康状态" -ForegroundColor DarkGray
-    Write-UIHost -English "  $nextCommand help           See all commands" -Chinese "  $nextCommand help           查看所有命令" -ForegroundColor DarkGray
+    Write-UIHost -English "  $nextCommand help [command] See all commands or command help" -Chinese "  $nextCommand help [command] 查看所有命令或指定命令帮助" -ForegroundColor DarkGray
     if ($currentRegistration.IsDifferentHome) {
         Write-UIHost -English "  Global adpos is unchanged; uninstall it from its owning checkout if needed." -Chinese "  全局 adpos 未改变；如需卸载，请在其所属 checkout 中执行。" -ForegroundColor DarkGray
         Write-QuickstartMultiCheckoutGuidance

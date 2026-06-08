@@ -198,7 +198,40 @@ if ($Command -and $Command -in $validCommands -and $Arguments -and ($helpFlags -
     exit 0
 }
 
-if (-not $Command -or $Command -eq "help") {
+if ($Command -eq "help") {
+    $helpCommand = ""
+    if ($Arguments -and $Arguments.Count -gt 0 -and -not ($helpFlags -contains $Arguments[0])) {
+        $helpCommand = $Arguments[0]
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($helpCommand)) {
+        if ($helpCommand -in $validCommands) {
+            Show-Help -CommandName $helpCommand
+            exit 0
+        }
+
+        $suggestion = Get-ADPCommandSuggestion -InputCommand $helpCommand -CandidateCommands $validCommands
+        if ((Get-UILanguage) -eq "zh-CN") {
+            Write-Host "命令 '$helpCommand' 没有详细帮助。" -ForegroundColor Yellow
+            if ($suggestion) {
+                Write-Host "你是不是想运行: adpos help $suggestion" -ForegroundColor Cyan
+            }
+            Write-Host "运行 'adpos help' 查看所有命令。" -ForegroundColor DarkGray
+        } else {
+            Write-Host "Command '$helpCommand' has no detailed help." -ForegroundColor Yellow
+            if ($suggestion) {
+                Write-Host "Did you mean: adpos help $suggestion" -ForegroundColor Cyan
+            }
+            Write-Host "Run 'adpos help' to see all commands." -ForegroundColor DarkGray
+        }
+        exit 1
+    }
+
+    Show-Help
+    exit 0
+}
+
+if (-not $Command) {
     Show-Help
     exit 0
 }

@@ -19,7 +19,7 @@ function Get-ADPTopLevelCommandRows {
             [pscustomobject]@{ Usage = "adpos snapshot create <runtime> <name>"; Summary = "创建运行时快照" }
             [pscustomobject]@{ Usage = "adpos restore <runtime> <name> [-Plan] [-Force]"; Summary = "恢复运行时快照" }
             [pscustomobject]@{ Usage = "adpos logs <runtime>"; Summary = "显示运行时日志" }
-            [pscustomobject]@{ Usage = "adpos doctor [-FirstRun] [-FixMutagen] [-Plan] [-Json]"; Summary = "运行诊断和可选 Mutagen 修复" }
+            [pscustomobject]@{ Usage = "adpos doctor [-FirstRun] [-Json] | adpos doctor -FixMutagen [-Plan] [-Json]"; Summary = "运行诊断和可选 Mutagen 修复" }
             [pscustomobject]@{ Usage = "adpos validate [-Quick] [-SkipCliSmoke] [-SkipInstallerSmoke] [-SkipShellSyntax]"; Summary = "运行仓库验证测试" }
             [pscustomobject]@{ Usage = "adpos destroy <runtime> [-Plan] [-Force]"; Summary = "销毁运行时" }
             [pscustomobject]@{ Usage = "adpos completion <powershell|bash>"; Summary = "生成 shell 补全脚本" }
@@ -31,7 +31,7 @@ function Get-ADPTopLevelCommandRows {
             [pscustomobject]@{ Usage = "adpos precheck --help-prereqs"; Summary = "显示完整前提条件列表和安装命令" }
             [pscustomobject]@{ Usage = "adpos uninstall"; Summary = "一键卸载全局 adpos 命令注册，不删除 VM 或 workspace" }
             [pscustomobject]@{ Usage = "adpos version"; Summary = "显示版本信息" }
-            [pscustomobject]@{ Usage = "adpos help"; Summary = "显示此帮助" }
+            [pscustomobject]@{ Usage = "adpos help [command]"; Summary = "显示帮助或指定命令帮助" }
         )
     }
 
@@ -52,7 +52,7 @@ function Get-ADPTopLevelCommandRows {
         [pscustomobject]@{ Usage = "adpos snapshot create <runtime> <name>"; Summary = "Create runtime snapshot" }
         [pscustomobject]@{ Usage = "adpos restore <runtime> <name> [-Plan] [-Force]"; Summary = "Restore runtime snapshot" }
         [pscustomobject]@{ Usage = "adpos logs <runtime>"; Summary = "Show runtime logs" }
-        [pscustomobject]@{ Usage = "adpos doctor [-FirstRun] [-FixMutagen] [-Plan] [-Json]"; Summary = "Run diagnostics and optional Mutagen remediation" }
+        [pscustomobject]@{ Usage = "adpos doctor [-FirstRun] [-Json] | adpos doctor -FixMutagen [-Plan] [-Json]"; Summary = "Run diagnostics and optional Mutagen remediation" }
         [pscustomobject]@{ Usage = "adpos validate [-Quick] [-SkipCliSmoke] [-SkipInstallerSmoke] [-SkipShellSyntax]"; Summary = "Run repository validation tests" }
         [pscustomobject]@{ Usage = "adpos destroy <runtime> [-Plan] [-Force]"; Summary = "Destroy a runtime" }
         [pscustomobject]@{ Usage = "adpos completion <powershell|bash>"; Summary = "Generate shell completion script" }
@@ -64,7 +64,7 @@ function Get-ADPTopLevelCommandRows {
         [pscustomobject]@{ Usage = "adpos precheck --help-prereqs"; Summary = "Show full prerequisite list with install commands" }
         [pscustomobject]@{ Usage = "adpos uninstall"; Summary = "One-click uninstall of global adpos registration; VMs/workspaces stay untouched" }
         [pscustomobject]@{ Usage = "adpos version"; Summary = "Show version information" }
-        [pscustomobject]@{ Usage = "adpos help"; Summary = "Show this help" }
+        [pscustomobject]@{ Usage = "adpos help [command]"; Summary = "Show help or command-specific help" }
     )
 }
 
@@ -87,7 +87,7 @@ function Get-ADPCommandHelpLines {
             "snapshot" { return @("用法:", "  adpos snapshot create <runtime> <snapshot-name>", "", "示例:", "  adpos snapshot create frontend before-update") }
             "restore" { return @("用法:", "  adpos restore <runtime> <snapshot-name> [-Plan] [-Force]", "", "参数:", "  -Plan            预览将要执行的操作", "  -Force           跳过确认提示，直接恢复", "", "示例:", "  adpos restore frontend before-update -Plan") }
             "logs" { return @("用法:", "  adpos logs <runtime>", "", "示例:", "  adpos logs frontend") }
-            "doctor" { return @("用法:", "  adpos doctor [-FirstRun] [-FixMutagen] [-Plan] [-Json]", "", "参数:", "  -FirstRun        首次运行检查模式", "  -FixMutagen      自动修复 Mutagen 配置问题", "  -Plan            仅诊断不修复", "  -Json            以 JSON 格式输出", "", "示例:", "  adpos doctor", "  adpos doctor -FixMutagen -Json") }
+            "doctor" { return @("用法:", "  adpos doctor [-FirstRun] [-Json]", "  adpos doctor -FixMutagen [-Plan] [-Json]", "", "参数:", "  -FirstRun        首次运行检查模式", "  -FixMutagen      自动修复 Mutagen 配置问题", "  -Plan            预览 Mutagen 修复；仅与 -FixMutagen 一起使用", "  -Json            以 JSON 格式输出", "", "示例:", "  adpos doctor", "  adpos doctor -FixMutagen -Plan", "  adpos doctor -FixMutagen -Json") }
             "validate" { return @("用法:", "  adpos validate [-Quick] [-SkipCliSmoke] [-SkipInstallerSmoke] [-SkipShellSyntax]", "", "说明:", "  运行仓库验证测试。-Quick 只运行快速语法/契约检查。", "", "示例:", "  adpos validate", "  adpos validate -Quick") }
             "destroy" { return @("用法:", "  adpos destroy <runtime> [-Plan] [-Force]", "", "警告:", "  此操作不可逆。销毁后 VM 和所有数据将永久丢失。", "", "示例:", "  adpos destroy frontend -Plan") }
             "completion" { return @("用法:", "  adpos completion <powershell|bash>", "", "示例:", "  adpos completion powershell", "  adpos completion bash > ~/.adp-completion.bash") }
@@ -98,7 +98,7 @@ function Get-ADPCommandHelpLines {
             "serve" { return @("用法:", "  adpos serve [-Port <port>] [-Public] [-Json]", "", "说明:", "  启动轻量 HTTP 健康检查服务；-Json 输出一次性健康报告。", "", "示例:", "  adpos serve", "  adpos serve -Json") }
             "uninstall" { return @("用法:", "  adpos uninstall [-NonInteractive] [-Force]", "", "说明:", "  一键卸载全局 adpos 命令注册。默认安全卸载：只移除属于当前 checkout 的用户 PATH 中 ADP-OS bin 和 adpos.cmd shim。", "  如果全局 adpos 属于另一个 checkout，默认会拒绝卸载；确认要移除该全局绑定时再使用 -Force。", "  不删除 VM、workspace、ISO 缓存、本地工具、日志或仓库文件。如需从仓库根目录卸载，也可运行 .\uninstall.cmd。", "", "示例:", "  adpos uninstall", "  .\uninstall.cmd", "  .\uninstall.cmd -Force") }
             "version" { return @("用法:", "  adpos version", "  adpos --version", "", "说明:", "  显示当前 ADP-OS 版本。") }
-            "help" { return @("用法:", "  adpos help", "  adpos <command> --help", "", "说明:", "  显示命令总览或指定命令的详细帮助。") }
+            "help" { return @("用法:", "  adpos help", "  adpos help <command>", "  adpos <command> --help", "", "说明:", "  显示命令总览或指定命令的详细帮助。") }
             default { return @("命令 '$CommandName' 没有详细帮助。使用 'adpos help' 查看所有命令。") }
         }
     }
@@ -118,7 +118,7 @@ function Get-ADPCommandHelpLines {
         "snapshot" { return @("Usage:", "  adpos snapshot create <runtime> <snapshot-name>", "", "Examples:", "  adpos snapshot create frontend before-update") }
         "restore" { return @("Usage:", "  adpos restore <runtime> <snapshot-name> [-Plan] [-Force]", "", "Arguments:", "  -Plan            Show what would be restored", "  -Force           Skip confirmation prompt", "", "Examples:", "  adpos restore frontend before-update -Plan") }
         "logs" { return @("Usage:", "  adpos logs <runtime>", "", "Examples:", "  adpos logs frontend") }
-        "doctor" { return @("Usage:", "  adpos doctor [-FirstRun] [-FixMutagen] [-Plan] [-Json]", "", "Arguments:", "  -FirstRun        First-run check mode", "  -FixMutagen      Auto-fix Mutagen configuration issues", "  -Plan            Diagnose only, do not fix", "  -Json            Output in JSON format", "", "Examples:", "  adpos doctor", "  adpos doctor -FixMutagen -Json") }
+        "doctor" { return @("Usage:", "  adpos doctor [-FirstRun] [-Json]", "  adpos doctor -FixMutagen [-Plan] [-Json]", "", "Arguments:", "  -FirstRun        First-run check mode", "  -FixMutagen      Auto-fix Mutagen configuration issues", "  -Plan            Preview Mutagen remediation; only valid with -FixMutagen", "  -Json            Output in JSON format", "", "Examples:", "  adpos doctor", "  adpos doctor -FixMutagen -Plan", "  adpos doctor -FixMutagen -Json") }
         "validate" { return @("Usage:", "  adpos validate [-Quick] [-SkipCliSmoke] [-SkipInstallerSmoke] [-SkipShellSyntax]", "", "Description:", "  Run repository validation tests. -Quick runs syntax and contract checks only.", "", "Examples:", "  adpos validate", "  adpos validate -Quick") }
         "destroy" { return @("Usage:", "  adpos destroy <runtime> [-Plan] [-Force]", "", "Warning:", "  This operation is irreversible. The VM and all data will be permanently lost.", "", "Examples:", "  adpos destroy frontend -Plan") }
         "completion" { return @("Usage:", "  adpos completion <powershell|bash>", "", "Examples:", "  adpos completion powershell", "  adpos completion bash > ~/.adp-completion.bash") }
@@ -129,7 +129,7 @@ function Get-ADPCommandHelpLines {
         "serve" { return @("Usage:", "  adpos serve [-Port <port>] [-Public] [-Json]", "", "Description:", "  Start a lightweight HTTP health check service. -Json outputs a one-shot health report.", "", "Examples:", "  adpos serve", "  adpos serve -Json") }
         "uninstall" { return @("Usage:", "  adpos uninstall [-NonInteractive] [-Force]", "", "Description:", "  One-click uninstall of the global adpos command registration. Safe default: removes only the ADP-OS user PATH bin and adpos.cmd shim owned by the current checkout.", "  If global adpos belongs to another checkout, uninstall refuses by default; use -Force only when you intend to remove that global binding.", "  It does not delete VMs, workspaces, ISO cache, local tools, logs, or repository files. From the repository root, .\uninstall.cmd does the same thing.", "", "Examples:", "  adpos uninstall", "  .\uninstall.cmd", "  .\uninstall.cmd -Force") }
         "version" { return @("Usage:", "  adpos version", "  adpos --version", "", "Description:", "  Show the current ADP-OS version.") }
-        "help" { return @("Usage:", "  adpos help", "  adpos <command> --help", "", "Description:", "  Show the command overview or detailed help for one command.") }
+        "help" { return @("Usage:", "  adpos help", "  adpos help <command>", "  adpos <command> --help", "", "Description:", "  Show the command overview or detailed help for one command.") }
         default { return @("Command '$CommandName' has no detailed help. Use 'adpos help' for all commands.") }
     }
 }
@@ -174,13 +174,13 @@ function Show-Help {
         Write-Host "  -Json                          以 JSON 格式输出 (支持: status, doctor, capabilities, serve)"
         Write-Host "  --help, --version              显示帮助或版本信息"
         Write-Host ""
-        Write-Host "使用 'adpos <command> --help' 查看特定命令的详细帮助。" -ForegroundColor DarkGray
+        Write-Host "使用 'adpos help <command>' 或 'adpos <command> --help' 查看特定命令的详细帮助。" -ForegroundColor DarkGray
     } else {
         Write-Host "Global options:" -ForegroundColor Yellow
         Write-Host "  -Json                          Output in JSON format (supported: status, doctor, capabilities, serve)"
         Write-Host "  --help, --version              Show help or version information"
         Write-Host ""
-        Write-Host "Use 'adpos <command> --help' for detailed per-command help." -ForegroundColor DarkGray
+        Write-Host "Use 'adpos help <command>' or 'adpos <command> --help' for detailed per-command help." -ForegroundColor DarkGray
     }
     Write-Host ""
 }
