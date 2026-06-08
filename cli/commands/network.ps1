@@ -10,8 +10,19 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-if (-not $SubCommand -or $SubCommand -notin @("apply", "configure-local", "local")) {
+$validSubCommands = @("apply", "configure-local", "local")
+if (-not $SubCommand) {
     Write-ErrorLog -Message (Get-UIText -English "Usage: adpos network apply <runtime|all> [-Plan] | adpos network configure-local [-Plan|-Apply] (alias: local)" -Chinese "用法: adpos network apply <runtime|all> [-Plan] | adpos network configure-local [-Plan|-Apply] (别名: local)") -Component "cli.network"
+    exit 1
+}
+
+if ($SubCommand -notin $validSubCommands) {
+    Write-ErrorLog -Message (Get-UIText -English "Unknown network command: $SubCommand. Valid: $($validSubCommands -join ', ')" -Chinese "未知网络命令: $SubCommand。可用: $($validSubCommands -join ', ')") -Component "cli.network"
+    $suggestion = Get-ADPCommandSuggestion -InputCommand $SubCommand -CandidateCommands $validSubCommands
+    if ($suggestion) {
+        Write-UIHost -English "Did you mean: adpos network $suggestion" -Chinese "你是不是想运行: adpos network $suggestion" -ForegroundColor Cyan
+    }
+    Write-UIHost -English "Run 'adpos network --help' for network help." -Chinese "运行 'adpos network --help' 查看网络帮助。" -ForegroundColor DarkGray
     exit 1
 }
 

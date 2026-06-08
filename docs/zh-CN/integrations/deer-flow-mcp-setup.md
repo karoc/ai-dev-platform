@@ -163,7 +163,7 @@ ADP_HOME=$(pwd) python3 cli/mcp/server.py
 
 更新 `extensions_config.json` 后，重启 deer-flow 以加载 ADP-OS MCP 扩展。26 个 ADP-OS 工具将出现在 deer-flow 内置沙箱工具旁边。
 
-Deer-flow agent 现在应该可以访问以下沙箱工具：
+Deer-flow agent 现在应该可以访问以下沙箱工具。这些 `adp_*` 名称是 MCP 工具名，不是本地 shell 命令：
 
 ```
 adp_up, adp_down, adp_stop, adp_status,
@@ -179,7 +179,7 @@ adp_workspace_*, adp_sync_*, adp_doctor, adp_capabilities
 
 ### VM 生命周期测试
 
-在 deer-flow agent 上下文中，执行 VM 生命周期操作：
+在 deer-flow agent 上下文中，执行 VM 生命周期操作。以下内容是 MCP 工具调用；如果在本地终端验证，请使用 `adpos up agent`、`adpos status agent` 和 `adpos stop agent`。
 
 ```
 # 启动 ADP-OS VM
@@ -337,7 +337,7 @@ adp_file_upload agent "/tmp/data.bin" "SGVsbG8=" plan_only=False
 
 ## 已知限制
 
-1. **冷启动延迟**：首次 VM 创建需要 15-45 分钟进行 Ubuntu 自动安装。后续启动约 30 秒。建议在 agent 会话开始前执行 `adp_up` 预暖 VM。
+1. **冷启动延迟**：首次 VM 创建需要 15-45 分钟进行 Ubuntu 自动安装。后续启动约 30 秒。建议在 agent 会话开始前调用 MCP 工具 `adp_up` 预暖 VM。
 
 2. **仅限 Windows 主机**：ADP-OS 目前需要 VMware Workstation 在 Windows 主机上运行。Linux/macOS 主机不支持 VM 供应。
 
@@ -350,6 +350,8 @@ adp_file_upload agent "/tmp/data.bin" "SGVsbG8=" plan_only=False
 ---
 
 ## 验证清单
+
+使用 `adpos` 的项目是本地 CLI 检查；使用 `adp_*` 的项目是 deer-flow agent 上下文中的 MCP 工具检查。
 
 - [ ] ADP-OS CLI 健康：`adpos doctor`
 - [ ] 至少一个 VM 运行时已配置：`adpos status`

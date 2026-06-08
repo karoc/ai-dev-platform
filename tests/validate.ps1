@@ -96,6 +96,14 @@ Invoke-ValidationStep -Name "Check CLI parameter contracts" -ScriptBlock {
     & ".\tests\cli-parameter-contracts.ps1"
 }
 
+Invoke-ValidationStep -Name "Check CLI UX contracts" -ScriptBlock {
+    & ".\tests\cli-ux-contract.ps1"
+}
+
+Invoke-ValidationStep -Name "Check adpos public command surface" -ScriptBlock {
+    & ".\tests\adpos-public-surface.ps1"
+}
+
 Invoke-ValidationStep -Name "Check adpos registration contract" -ScriptBlock {
     & ".\tests\adpos-registration-contract.ps1"
 }

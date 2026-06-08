@@ -2,6 +2,8 @@
 
 Exposes ADP-OS platform management as MCP (Model Context Protocol) tools for agent-native sandbox orchestration.
 
+Tool names beginning with `adp_` are MCP protocol tool names, not local shell commands. In PowerShell, cmd, or bash, use the user-facing `adpos` command instead.
+
 ## Tools (26 total)
 
 ### Platform
@@ -181,9 +183,9 @@ To execute destructive operations, explicitly set `plan_only=False`.
 
 ## Architecture
 
-The MCP server invokes ADP-OS PowerShell CLI via `pwsh.exe` subprocess calls. Each tool maps to an `adp` CLI command and returns structured output.
+The MCP server invokes ADP-OS PowerShell CLI operations via `pwsh.exe` subprocess calls through the internal PowerShell control plane. User-facing shell commands use `adpos`; `adp_*` names remain MCP tool identifiers and return structured output.
 
-All 18 tools return **JSON structured dicts** with the following base fields:
+All tools return **JSON structured dicts** with the following base fields:
 
 | Field | Type | Description |
 |-------|------|-------------|

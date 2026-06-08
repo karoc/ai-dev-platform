@@ -93,13 +93,13 @@ Restart deer-flow to load the MCP extension. The ADP-OS tools appear in deer-flo
 In deer-flow, verify the tools are registered:
 
 ```
-# Agent should see these tools:
+# Agent should see these MCP tool names:
 adp_status, adp_up, adp_down, adp_stop, adp_exec,
 adp_file_read, adp_file_write, adp_dir_list, adp_glob, adp_grep,
 adp_file_download, adp_file_upload, ...
 ```
 
-Test with a simple VM lifecycle:
+Test with a simple VM lifecycle. The following lines are MCP/deer-flow tool invocations, not terminal commands; for local shell verification, use `adpos up agent`, `adpos status agent`, and `adpos stop agent`.
 
 ```
 adp_up agent                    # Start VM (first time: 15-45 min, warm: ~30s)

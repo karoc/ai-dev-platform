@@ -64,6 +64,7 @@ if (-not (Test-Path -LiteralPath $templateRoot)) {
 $config = Read-YamlText ".github\ISSUE_TEMPLATE\config.yml"
 $bug = Read-YamlText ".github\ISSUE_TEMPLATE\bug_report.yml"
 $feature = Read-YamlText ".github\ISSUE_TEMPLATE\feature_request.yml"
+$install = Read-YamlText ".github\ISSUE_TEMPLATE\install_help.yml"
 $question = Read-YamlText ".github\ISSUE_TEMPLATE\usage_question.yml"
 
 Assert-Contains -Name "config.yml" -Text $config -Pattern "blank_issues_enabled:\s*false"
@@ -92,6 +93,17 @@ Assert-Contains -Name "feature_request.yml" -Text $feature -Pattern "agent-nativ
 Assert-Contains -Name "feature_request.yml" -Text $feature -Pattern "docker-or-devcontainer"
 Assert-Contains -Name "feature_request.yml" -Text $feature -Pattern "id:\s*safety"
 Assert-TemplateHasSafetyPrompt -Name "feature_request.yml" -Text $feature
+
+Assert-Contains -Name "install_help.yml" -Text $install -Pattern "name:\s*Installation help"
+Assert-Contains -Name "install_help.yml" -Text $install -Pattern "labels:\s*\[`"install-help`"\]"
+Assert-Contains -Name "install_help.yml" -Text $install -Pattern "id:\s*stage"
+Assert-Contains -Name "install_help.yml" -Text $install -Pattern "id:\s*host"
+Assert-Contains -Name "install_help.yml" -Text $install -Pattern "adpos doctor"
+Assert-Contains -Name "install_help.yml" -Text $install -Pattern "\.\\adpos\.cmd doctor"
+Assert-Contains -Name "install_help.yml" -Text $install -Pattern "adpos up"
+Assert-Contains -Name "install_help.yml" -Text $install -Pattern "tests\\validate\.ps1 -Quick"
+Assert-Contains -Name "install_help.yml" -Text $install -Pattern "id:\s*safety"
+Assert-TemplateHasSafetyPrompt -Name "install_help.yml" -Text $install
 
 Assert-Contains -Name "usage_question.yml" -Text $question -Pattern "name:\s*Usage question"
 Assert-Contains -Name "usage_question.yml" -Text $question -Pattern "labels:\s*\[`"question`"\]"

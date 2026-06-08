@@ -49,6 +49,7 @@ $agentBootstrap = Read-Text "bootstrap\agent\setup-agent.sh"
 $factory = Read-Text "runtimes\vmware\vm-factory.ps1"
 $cli = Read-Text "cli\adp.ps1"
 $cliHelp = Read-Text "cli\lib\help.ps1"
+$suggestions = Read-Text "cli\lib\suggestions.ps1"
 $configModule = Read-Text "core\config\config.ps1"
 $logger = Read-Text "core\logging\logger.ps1"
 $logs = Read-Text "cli\commands\logs.ps1"
@@ -182,8 +183,10 @@ Assert-Contains -Name "global registration stores project path in ADPOS_HOME env
 Assert-Contains -Name "CLI help supports Simplified Chinese command rows" -Text $cliHelp -Pattern 'Get-ADPTopLevelCommandRows[\s\S]*"zh-CN"[\s\S]*初始化平台[\s\S]*显示运行时状态[\s\S]*显示已支持和计划中的运行时能力'
 Assert-Contains -Name "CLI help supports Simplified Chinese command header" -Text $cliHelp -Pattern 'function\s+Show-Help[\s\S]*Get-UILanguage[\s\S]*"zh-CN"[\s\S]*命令:'
 Assert-Contains -Name "CLI unknown command supports Simplified Chinese" -Text $cli -Pattern '未知命令: \$Command[\s\S]*可用命令:'
-Assert-Contains -Name "CLI suggests similar unknown commands in English" -Text $cli -Pattern 'function\s+Get-ADPCommandSuggestion[\s\S]*Did you mean: adpos \$suggestion'
-Assert-Contains -Name "CLI suggests similar unknown commands in Chinese" -Text $cli -Pattern 'function\s+Get-ADPCommandSuggestion[\s\S]*你是不是想运行: adpos \$suggestion'
+Assert-Contains -Name "CLI loads shared command suggestion helper" -Text $cli -Pattern 'cli\\lib\\suggestions\.ps1[\s\S]*Get-ADPCommandSuggestion'
+Assert-Contains -Name "command suggestion helper defines distance-based matching" -Text $suggestions -Pattern 'function\s+Measure-ADPCommandDistance[\s\S]*function\s+Get-ADPCommandSuggestion[\s\S]*StartsWith[\s\S]*Distance'
+Assert-Contains -Name "CLI suggests similar unknown commands in English" -Text $cli -Pattern 'Did you mean: adpos \$suggestion'
+Assert-Contains -Name "CLI suggests similar unknown commands in Chinese" -Text $cli -Pattern '你是不是想运行: adpos \$suggestion'
 Assert-Contains -Name "fresh deployment init supports Simplified Chinese" -Text $init -Pattern 'Write-UIHost[\s\S]*ADP-OS 初始化[\s\S]*SSH 密钥[\s\S]*运行时拓扑[\s\S]*ADP-OS 阶段 2 初始化完成'
 Assert-Contains -Name "fresh deployment doctor supports Simplified Chinese" -Text $doctor -Pattern 'Write-UIHost[\s\S]*ADP-OS Doctor — 系统诊断[\s\S]*所有检查通过。平台状态健康。[\s\S]*首次使用检查清单[\s\S]*预计总耗时[\s\S]*平台设置'
 Assert-Contains -Name "fresh deployment up plan supports Simplified Chinese" -Text $up -Pattern 'Write-UIHost[\s\S]*ADP-OS: 正在启动 \$RuntimeName[\s\S]*仅预览：不会创建、启动、provision 或 bootstrap 任何 VM[\s\S]*运行时:[\s\S]*工作区:'

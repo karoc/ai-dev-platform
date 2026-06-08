@@ -93,13 +93,13 @@ print(f'Tool names: {sorted(tools)}')
 在 deer-flow 中，验证工具已注册：
 
 ```
-# Agent 应该看到以下工具：
+# Agent 应该看到以下 MCP 工具名：
 adp_status, adp_up, adp_down, adp_stop, adp_exec,
 adp_file_read, adp_file_write, adp_dir_list, adp_glob, adp_grep,
 adp_file_download, adp_file_upload, ...
 ```
 
-用简单的 VM 生命周期测试：
+用简单的 VM 生命周期测试。以下内容是 MCP/deer-flow 工具调用，不是终端命令；本地 shell 验证请使用 `adpos up agent`、`adpos status agent` 和 `adpos stop agent`。
 
 ```
 adp_up agent                     # 启动 VM（首次：15-45 分钟，热 VM：~30 秒）

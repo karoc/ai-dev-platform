@@ -473,7 +473,7 @@ class DeerFlowADPSandboxProvider(SandboxProvider):
 
 ### 路径 1: MCP 服务器验证
 
-| # | 测试项 | 命令 | 预期结果 |
+| # | 测试项 | MCP 工具调用 | 预期结果 |
 |---|--------|------|---------|
 | 1 | MCP 工具注册 | `python3 -c "from cli.mcp.server import mcp; print(len(mcp._tool_manager._tools))"` | `26` |
 | 2 | MCP 服务器测试 | `python3 -m pytest tests/test-mcp-server.py -q` | `45 passed` |

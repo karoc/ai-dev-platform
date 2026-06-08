@@ -16,6 +16,11 @@ if (-not $SubCommand) {
 $validSubCommands = @("status", "start", "stop", "list")
 if ($SubCommand -notin $validSubCommands) {
     Write-ErrorLog -Message (Get-UIText -English "Unknown sync command: $SubCommand. Valid: $($validSubCommands -join ', ')" -Chinese "未知同步命令: $SubCommand。可用: $($validSubCommands -join ', ')") -Component "cli.sync"
+    $suggestion = Get-ADPCommandSuggestion -InputCommand $SubCommand -CandidateCommands $validSubCommands
+    if ($suggestion) {
+        Write-UIHost -English "Did you mean: adpos sync $suggestion" -Chinese "你是不是想运行: adpos sync $suggestion" -ForegroundColor Cyan
+    }
+    Write-UIHost -English "Run 'adpos sync --help' for sync help." -Chinese "运行 'adpos sync --help' 查看同步帮助。" -ForegroundColor DarkGray
     exit 1
 }
 

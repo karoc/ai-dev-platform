@@ -132,6 +132,7 @@ MCP 服务器通过三级回退机制解析 `ADP_HOME`：
 ## ADP-OS MCP 工具列表
 
 MCP 服务器共提供 26 个工具，分为四类：
+以 `adp_` 开头的名称是 MCP 协议工具标识，不是本地 shell 命令。本地 PowerShell/cmd/bash 操作请使用 `adpos`。
 
 ### 平台工具（3 个）
 

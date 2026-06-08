@@ -119,7 +119,7 @@ print(sorted(tools))
 
 ### 步骤 4: 验证后端
 
-在 deer-flow agent 上下文中：
+在 deer-flow agent 上下文中。以下内容是 MCP/deer-flow 工具调用，不是终端命令：
 
 ```
 # 启动 VM
@@ -232,6 +232,7 @@ sandbox_id = provider.acquire()
 ## 端到端流程
 
 使用 ADP-OS 作为 VM 后端的 deer-flow agent 会话：
+下面的 `adp_*` 名称是 MCP/deer-flow 工具名；本地 shell 命令仍使用 `adpos`。
 
 ```
 1. Deer-flow agent 启动任务

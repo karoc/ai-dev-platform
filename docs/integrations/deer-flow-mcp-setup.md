@@ -165,7 +165,7 @@ Create or update `extensions_config.json` in your deer-flow project root:
 
 After updating `extensions_config.json`, restart deer-flow to load the ADP-OS MCP extension. The 26 ADP-OS tools appear alongside deer-flow's built-in sandbox tools.
 
-Deer-flow agent should now have access to these sandbox tools:
+Deer-flow agent should now have access to these sandbox tools. These `adp_*` names are MCP tool names, not local shell commands:
 
 ```
 adp_up, adp_down, adp_stop, adp_status,
@@ -181,7 +181,7 @@ adp_workspace_*, adp_sync_*, adp_doctor, adp_capabilities
 
 ### VM Lifecycle Test
 
-In the deer-flow agent context, exercise the VM lifecycle:
+In the deer-flow agent context, exercise the VM lifecycle. These are MCP tool invocations; for a local terminal, use `adpos up agent`, `adpos status agent`, and `adpos stop agent`.
 
 ```
 # Start an ADP-OS VM
@@ -339,7 +339,7 @@ adp_file_upload agent "/tmp/data.bin" "SGVsbG8=" plan_only=False
 
 ## Known Limitations
 
-1. **Cold start latency**: First-time VM creation requires 15-45 minutes for Ubuntu autoinstall. Subsequent boots: ~30 seconds. Consider pre-warming VMs by running `adp_up` before agent sessions begin.
+1. **Cold start latency**: First-time VM creation requires 15-45 minutes for Ubuntu autoinstall. Subsequent boots: ~30 seconds. Consider pre-warming VMs by invoking the MCP tool `adp_up` before agent sessions begin.
 
 2. **Windows host only**: ADP-OS currently requires VMware Workstation on a Windows host. Linux/macOS hosts not supported for VM provisioning.
 
@@ -352,6 +352,8 @@ adp_file_upload agent "/tmp/data.bin" "SGVsbG8=" plan_only=False
 ---
 
 ## Verification Checklist
+
+Items using `adpos` are local CLI checks. Items using `adp_*` are MCP tool checks from the deer-flow agent context.
 
 - [ ] ADP-OS CLI healthy: `adpos doctor`
 - [ ] At least one VM runtime configured: `adpos status`

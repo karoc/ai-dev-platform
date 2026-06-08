@@ -132,6 +132,7 @@ If you get `FileNotFoundError: Cannot locate ADP-OS installation`, set `ADP_HOME
 ## ADP-OS MCP Tools
 
 All 26 tools are exposed through the MCP server. Four categories:
+Tool names beginning with `adp_` are MCP protocol tool identifiers, not local shell commands. Use `adpos` for local PowerShell/cmd/bash operations.
 
 ### Platform Tools (3)
 

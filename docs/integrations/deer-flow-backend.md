@@ -119,7 +119,7 @@ After updating `extensions_config.json`, restart deer-flow. The 26 ADP-OS tools 
 
 ### Step 4: Validate Backend
 
-From the deer-flow agent context:
+From the deer-flow agent context. The following lines are MCP/deer-flow tool invocations, not terminal commands:
 
 ```
 # Start a VM
@@ -232,6 +232,7 @@ Pool VMs use `deerflow-pool-N` naming. If the pool is empty, `acquire()` creates
 ## End-to-End Flow
 
 A deer-flow agent session with ADP-OS as the VM backend:
+The `adp_*` names below are MCP/deer-flow tool names; local shell commands still use `adpos`.
 
 ```
 1. Deer-flow agent starts a task

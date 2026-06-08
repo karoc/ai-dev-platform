@@ -473,7 +473,7 @@ class DeerFlowADPSandboxProvider(SandboxProvider):
 
 ### Path 1: MCP Server Verification
 
-| # | Test | Command | Expected |
+| # | Test | MCP Tool Invocation | Expected |
 |---|------|---------|----------|
 | 1 | MCP tools registered | `python3 -c "from cli.mcp.server import mcp; print(len(mcp._tool_manager._tools))"` | `26` |
 | 2 | MCP server tests | `python3 -m pytest tests/test-mcp-server.py -q` | `45 passed` |
