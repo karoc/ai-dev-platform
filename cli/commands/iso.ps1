@@ -17,7 +17,7 @@ param(
 
 . (Join-Path (Get-ProjectRoot) "runtimes\vmware\os-profiles.ps1")
 
-Write-InfoLog -Message (Get-UIText -English "adpos iso download $Distro" -Chinese "adpos iso 下载 $Distro") -Component "cli.iso"
+Write-InfoLog -Message (Get-UIText -English "adpos iso $Distro" -Chinese "adpos iso $Distro") -Component "cli.iso"
 
 $config = Get-PlatformConfig
 $isoCache = Resolve-Path "iso_cache"
@@ -167,7 +167,7 @@ try {
         }
     }
 
-    Write-UIHost -English "  Retry with: adpos iso download $Distro" -Chinese "  重试: adpos iso download $Distro" -ForegroundColor Yellow
+    Write-UIHost -English "  Retry with: adpos iso $Distro" -Chinese "  重试: adpos iso $Distro" -ForegroundColor Yellow
     Write-UIHost -English "  Or use a China mirror: adpos iso $Distro -Url '<mirror-url>'" -Chinese "  或使用中国镜像: adpos iso $Distro -Url '<镜像地址>'" -ForegroundColor Yellow
     Write-UIHost -English "  Or download manually and place at: $isoCache" -Chinese "  或手动下载后放到: $isoCache" -ForegroundColor Yellow
     if (-not $NonInteractive) { Write-Host "" }

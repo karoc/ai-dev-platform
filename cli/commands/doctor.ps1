@@ -584,7 +584,7 @@ if ($FirstRun) {
     Write-UIHost -English "  Estimated total time: 3-5 minutes (setup) + 20-30 minutes (first VM build)" -Chinese "  预计总耗时: 3-5 分钟（设置）+ 20-30 分钟（首次 VM 构建）" -ForegroundColor DarkGray
 
     Write-Host ""
-    Write-UIHost -English "Tip: Run 'adpos quickstart' for a one-command guided setup that chains these steps." -Chinese "提示: 运行 'adpos quickstart' 可一键引导完成以下步骤。" -ForegroundColor Green
+    Write-UIHost -English "Tip: Run 'adpos setup' for a one-command guided setup that chains these steps." -Chinese "提示: 运行 'adpos setup' 可一键引导完成以下步骤。" -ForegroundColor Green
 
     Write-Host ""
     Write-UIHost -English "Platform Setup (~3-5 min)" -Chinese "平台设置 (~3-5 分钟)" -ForegroundColor Yellow
@@ -599,12 +599,11 @@ if ($FirstRun) {
 
     Write-Host ""
     Write-UIHost -English "  2. Confirm ISO is available (~10s):" -Chinese "  2. 确认 ISO 可用 (~10s):" -ForegroundColor White
-    Write-Host "     adpos iso download                                         # Download Ubuntu ISO (~2.6 GB, 10-30 min)" -ForegroundColor DarkGray
-    Write-Host "     .\\install.ps1 -IsoPath C:\\path\\to\\ubuntu-26.04-live-server-amd64.iso  # Or provide your own" -ForegroundColor DarkGray
+    Write-Host "     adpos iso ubuntu                                           # Download Ubuntu ISO (~2.6 GB, 10-30 min)" -ForegroundColor DarkGray
+    Write-Host "     adpos init -IsoPath C:\path\to\ubuntu-26.04-live-server-amd64.iso        # Or provide your own during init" -ForegroundColor DarkGray
 
     Write-Host ""
     Write-UIHost -English "  3. Initialize platform (~30s):" -Chinese "  3. 初始化平台 (~30s):" -ForegroundColor White
-    Write-Host "     .\\install.ps1     # Or .\\install.ps1 -Quick if already initialized" -ForegroundColor DarkGray
     Write-Host "     adpos init [-Quick] [-IsoPath <path>]" -ForegroundColor DarkGray
 
     Write-Host ""

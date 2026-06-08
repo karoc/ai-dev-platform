@@ -51,6 +51,7 @@ function Expand-WorkspaceModule {
 
 $up = Read-Text "cli\commands\up.ps1"
 $init = Read-Text "cli\commands\init.ps1"
+$iso = Read-Text "cli\commands\iso.ps1"
 $install = Read-Text "install.ps1"
 $setupScript = Read-Text "setup.ps1"
 $quickstart = Read-Text "cli\commands\quickstart.ps1"
@@ -242,6 +243,11 @@ Assert-Contains -Name "command suggestion helper defines distance-based matching
 Assert-Contains -Name "CLI suggests similar unknown commands in English" -Text $cli -Pattern 'Did you mean: adpos \$suggestion'
 Assert-Contains -Name "CLI suggests similar unknown commands in Chinese" -Text $cli -Pattern '你是不是想运行: adpos \$suggestion'
 Assert-Contains -Name "fresh deployment init supports Simplified Chinese" -Text $init -Pattern 'Write-UIHost[\s\S]*ADP-OS 初始化[\s\S]*SSH 密钥[\s\S]*运行时拓扑[\s\S]*ADP-OS 阶段 2 初始化完成'
+Assert-NotContains -Name "CLI guidance does not expose invalid iso download subcommand" -Text "$init`n$doctor`n$iso`n$cliHelp" -Pattern 'adpos iso download'
+Assert-Contains -Name "doctor first run uses valid iso command" -Text $doctor -Pattern 'adpos iso ubuntu'
+Assert-Contains -Name "doctor first run points to unified setup command" -Text $doctor -Pattern "Tip: Run 'adpos setup'"
+Assert-NotContains -Name "doctor first run does not expose install script as primary path" -Text $doctor -Pattern 'install\.ps1'
+Assert-Contains -Name "iso retry uses valid command" -Text $iso -Pattern 'Retry with: adpos iso \$Distro'
 Assert-Contains -Name "fresh deployment doctor supports Simplified Chinese" -Text $doctor -Pattern 'Write-UIHost[\s\S]*ADP-OS Doctor — 系统诊断[\s\S]*所有检查通过。平台状态健康。[\s\S]*首次使用检查清单[\s\S]*预计总耗时[\s\S]*平台设置'
 Assert-Contains -Name "fresh deployment up plan supports Simplified Chinese" -Text $up -Pattern 'Write-UIHost[\s\S]*ADP-OS: 正在启动 \$RuntimeName[\s\S]*仅预览：不会创建、启动、provision 或 bootstrap 任何 VM[\s\S]*运行时:[\s\S]*工作区:'
 Assert-Contains -Name "fresh deployment up NAT mismatch supports Simplified Chinese" -Text $up -Pattern '创建 VM 前检测到 VMware NAT 不匹配[\s\S]*方案 A：将 ADP 本机覆盖对齐到当前 host VMnet8[\s\S]*方案 B：保留 ADP 配置的网段[\s\S]*未创建任何 VM'

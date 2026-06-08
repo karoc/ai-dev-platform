@@ -109,7 +109,7 @@ if (-not $Quick) {
             $sizeGB = [math]::Round((Get-Item $isoPath).Length / 1GB, 1)
             Write-UIHost -English "  ISO found in cache: $isoPath ($sizeGB GB)" -Chinese "  在缓存中找到 ISO: $isoPath ($sizeGB GB)" -ForegroundColor DarkGray
         } else {
-            Write-UIHost -English "  [WARN] ISO not found in cache. Use 'adpos iso download' or place ISO manually." -Chinese "  [WARN] 缓存中未找到 ISO。使用 'adpos iso download' 或手动放置 ISO。" -ForegroundColor Yellow
+            Write-UIHost -English "  [WARN] ISO not found in cache. Use 'adpos iso' or place ISO manually." -Chinese "  [WARN] 缓存中未找到 ISO。使用 'adpos iso' 或手动放置 ISO。" -ForegroundColor Yellow
         }
     }
 }
