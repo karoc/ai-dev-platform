@@ -34,6 +34,21 @@ function Assert-NotContains {
     }
 }
 
+function Expand-WorkspaceModule {
+    param(
+        [string]$Source,
+        [string]$ModuleName,
+        [string]$ModuleText
+    )
+
+    $marker = '. (Join-Path $PSScriptRoot "workspace\' + $ModuleName + '")'
+    if (-not $Source.Contains($marker)) {
+        throw "workspace source did not contain module marker: $marker"
+    }
+
+    return $Source.Replace($marker, $ModuleText)
+}
+
 $up = Read-Text "cli\commands\up.ps1"
 $init = Read-Text "cli\commands\init.ps1"
 $install = Read-Text "install.ps1"
@@ -70,13 +85,21 @@ $runtimeIdentity = Read-Text "core\runtime\runtime-identity.ps1"
 $resourceConflicts = Read-Text "core\diagnostics\resource-conflicts.ps1"
 $sshAliasDiagnostics = Read-Text "core\diagnostics\ssh-alias.ps1"
 $workspace = Read-Text "cli\commands\workspace.ps1"
+$workspacePlanning = Read-Text "cli\commands\workspace\planning.ps1"
 $workspaceProjects = Read-Text "cli\commands\workspace\projects.ps1"
 $workspaceValidation = Read-Text "cli\commands\workspace\validation.ps1"
 $workspaceStatus = Read-Text "cli\commands\workspace\status.ps1"
 $workspaceGuides = Read-Text "cli\commands\workspace\guides.ps1"
 $workspaceTasks = Read-Text "cli\commands\workspace\tasks.ps1"
 $workspaceEvidence = Read-Text "cli\commands\workspace\evidence.ps1"
-$workspaceSource = @($workspace, $workspaceProjects, $workspaceValidation, $workspaceStatus, $workspaceGuides, $workspaceTasks, $workspaceEvidence) -join "`n"
+$workspaceSource = $workspace
+$workspaceSource = Expand-WorkspaceModule -Source $workspaceSource -ModuleName "planning.ps1" -ModuleText $workspacePlanning
+$workspaceSource = Expand-WorkspaceModule -Source $workspaceSource -ModuleName "projects.ps1" -ModuleText $workspaceProjects
+$workspaceSource = Expand-WorkspaceModule -Source $workspaceSource -ModuleName "validation.ps1" -ModuleText $workspaceValidation
+$workspaceSource = Expand-WorkspaceModule -Source $workspaceSource -ModuleName "status.ps1" -ModuleText $workspaceStatus
+$workspaceSource = Expand-WorkspaceModule -Source $workspaceSource -ModuleName "guides.ps1" -ModuleText $workspaceGuides
+$workspaceSource = Expand-WorkspaceModule -Source $workspaceSource -ModuleName "tasks.ps1" -ModuleText $workspaceTasks
+$workspaceSource = Expand-WorkspaceModule -Source $workspaceSource -ModuleName "evidence.ps1" -ModuleText $workspaceEvidence
 $destroy = Read-Text "cli\commands\destroy.ps1"
 $stop = Read-Text "cli\commands\stop.ps1"
 $snapshot = Read-Text "cli\commands\snapshot.ps1"
