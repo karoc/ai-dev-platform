@@ -67,5 +67,16 @@ Assert-Contains -Name "adpos network typo reports unknown subcommand" -Text $net
 Assert-Contains -Name "adpos network typo suggests apply" -Text $networkTypo.Output -Pattern "Did you mean: adpos network apply"
 Assert-Contains -Name "adpos network typo gives help path" -Text $networkTypo.Output -Pattern "Run 'adpos network --help' for network help"
 
+$workspaceTypo = Invoke-AdposCli -Arguments @("workspace", "dashbaord")
+Assert-ExitCode -Name "adpos workspace dashbaord" -Actual $workspaceTypo.ExitCode -Expected 1
+Assert-Contains -Name "adpos workspace typo reports unknown subcommand" -Text $workspaceTypo.Output -Pattern "Unknown workspace command: dashbaord"
+Assert-Contains -Name "adpos workspace typo suggests dashboard" -Text $workspaceTypo.Output -Pattern "Did you mean: adpos workspace dashboard"
+Assert-Contains -Name "adpos workspace typo gives help path" -Text $workspaceTypo.Output -Pattern "adpos workspace help"
+
+$workspaceTaskTypo = Invoke-AdposCli -Arguments @("workspace", "task", "revie", "before-large-agent-task", "-ManifestPath", "configs\workspace.example.json")
+Assert-ExitCode -Name "adpos workspace task revie" -Actual $workspaceTaskTypo.ExitCode -Expected 1
+Assert-Contains -Name "adpos workspace task typo reports unknown subcommand" -Text $workspaceTaskTypo.Output -Pattern "Unknown workspace task command: revie"
+Assert-Contains -Name "adpos workspace task typo suggests review" -Text $workspaceTaskTypo.Output -Pattern "Did you mean: adpos workspace task review"
+
 $global:LASTEXITCODE = 0
 Write-Output "CLI UX contracts OK"

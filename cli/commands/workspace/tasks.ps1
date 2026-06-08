@@ -638,6 +638,10 @@ function Invoke-WorkspaceTask {
     $validTaskCommands = @("prepare", "snapshot", "run", "validate", "review", "rollback", "commit", "mark")
     if ([string]::IsNullOrWhiteSpace($Command) -or $Command -notin $validTaskCommands) {
         Write-ErrorLog -Message "Unknown workspace task command: $Command. Valid: $($validTaskCommands -join ', ')" -Component "cli.workspace"
+        $suggestion = Get-ADPCommandSuggestion -InputCommand $Command -CandidateCommands $validTaskCommands
+        if ($suggestion) {
+            Write-UIHost -English "Did you mean: adpos workspace task $suggestion" -Chinese "你是不是想运行: adpos workspace task $suggestion" -ForegroundColor Cyan
+        }
         exit 1
     }
 

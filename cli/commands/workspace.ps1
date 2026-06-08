@@ -642,7 +642,12 @@ switch ($SubCommand) {
         Invoke-EvidenceDeclare -ManifestPath $ManifestPath -AiAssisted:$AiAssisted -Reviewer $Reviewer -Notes $Notes -JsonOutput:$Json
     }
     default {
+        $validWorkspaceCommands = @("help", "show", "plan", "status", "dashboard", "report", "recipes", "init", "create", "open", "sync", "project", "task", "evidence", "declare")
         Write-ErrorLog -Message (Get-UIText -English "Unknown workspace command: $SubCommand. Use 'adpos workspace help' to see grouped subcommands." -Chinese "未知工作区命令: $SubCommand。使用 'adpos workspace help' 查看分组子命令。") -Component "cli.workspace"
+        $suggestion = Get-ADPCommandSuggestion -InputCommand $SubCommand -CandidateCommands $validWorkspaceCommands
+        if ($suggestion) {
+            Write-UIHost -English "Did you mean: adpos workspace $suggestion" -Chinese "你是不是想运行: adpos workspace $suggestion" -ForegroundColor Cyan
+        }
         exit 1
     }
 }
