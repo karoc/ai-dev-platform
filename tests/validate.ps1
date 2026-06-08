@@ -92,6 +92,10 @@ Invoke-ValidationStep -Name "Parse JSON configuration" -ScriptBlock {
     }
 }
 
+Invoke-ValidationStep -Name "Check code file line limits" -ScriptBlock {
+    & ".\tests\code-line-limit.ps1"
+}
+
 Invoke-ValidationStep -Name "Check CLI parameter contracts" -ScriptBlock {
     & ".\tests\cli-parameter-contracts.ps1"
 }
