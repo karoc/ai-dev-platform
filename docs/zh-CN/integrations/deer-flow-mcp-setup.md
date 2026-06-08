@@ -356,7 +356,7 @@ adp_file_upload agent "/tmp/data.bin" "SGVsbG8=" plan_only=False
 - [ ] ADP-OS CLI 健康：`adpos doctor`
 - [ ] 至少一个 VM 运行时已配置：`adpos status`
 - [ ] MCP 服务器模块可加载：`python3 -c "from cli.mcp.server import mcp; print(len(mcp._tool_manager._tools))"` → `26`
-- [ ] MCP 服务器测试通过：`python3 -m pytest tests/test-mcp-server.py -q` → `45 passed`
+- [ ] MCP 服务器测试通过：`python3 -m pytest tests/test-mcp-server.py tests/test-mcp-vm-tools.py -q` → `46 passed`
 - [ ] Deer-flow 适配器测试通过：`python3 -m pytest tests/test_deerflow_adp_sandbox.py -q` → `46 passed`
 - [ ] `extensions_config.json` 使用绝对路径和正确的环境变量配置
 - [ ] Deer-flow 已重启，26 个 ADP-OS 工具对 agent 可见
@@ -370,7 +370,7 @@ adp_file_upload agent "/tmp/data.bin" "SGVsbG8=" plan_only=False
 
 - [Deer-Flow 沙箱架构](https://github.com/ByteDance/deer-flow/tree/main/docker/provisioner)
 - [Deer-Flow Sandbox ABC](https://github.com/ByteDance/deer-flow/blob/main/backend/packages/harness/deerflow/sandbox/sandbox.py)
-- [ADP-OS MCP 服务器源码](../../../cli/mcp/server.py) — 26 个工具，1,365 行
+- [ADP-OS MCP 服务器源码](../../../cli/mcp/server.py) — 26 个工具入口及包内辅助模块
 - [ADP-OS Deer-Flow 适配器](../../../extensions/deer_flow/deerflow_adp_sandbox.py) — Python 原生集成路径
 - [Deer-Flow 集成指南](../deer-flow-integration.md) — 双路径综合参考
 - [Deer-Flow 缺口分析](deer-flow.md) — 架构和缺口跟踪

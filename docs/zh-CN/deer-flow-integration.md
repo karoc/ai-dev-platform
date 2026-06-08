@@ -239,7 +239,7 @@ provider.release(sandbox_id)
 - [ ] ADP-OS CLI 健康：`adpos doctor`
 - [ ] 至少一个 VM 运行时已配置：`adpos status`
 - [ ] MCP 服务器列出 26 个工具：`python3 -c "from cli.mcp.server import mcp; print(len(mcp._tool_manager._tools))"` → `26`
-- [ ] MCP 服务器测试通过：`python -m pytest tests/test-mcp-server.py -v`
+- [ ] MCP 服务器测试通过：`python -m pytest tests/test-mcp-server.py tests/test-mcp-vm-tools.py -v`
 - [ ] Deer-flow 适配器测试通过：`python -m pytest tests/test_deerflow_adp_sandbox.py -v`
 - [ ] （可选）集成测试：deer-flow agent 在 ADP-OS VM 中执行代码
 

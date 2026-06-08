@@ -238,8 +238,8 @@ Default mapping when `thread_id=None`: `"agent"` runtime.
 
 - [ ] ADP-OS CLI healthy: `adpos doctor`
 - [ ] At least one VM runtime configured: `adpos status`
-- [ ] MCP server lists 26 tools: `python cli/mcp/server.py --list-tools`
-- [ ] MCP server tests pass: `python -m pytest tests/test-mcp-server.py -v`
+- [ ] MCP server module loads 26 tools: `python -c "from cli.mcp.server import mcp; print(len(mcp._tool_manager._tools))"`
+- [ ] MCP server tests pass: `python -m pytest tests/test-mcp-server.py tests/test-mcp-vm-tools.py -v`
 - [ ] Deer-flow adapter tests pass: `python -m pytest tests/test_deerflow_adp_sandbox.py -v`
 - [ ] (Optional) Integration test: deer-flow agent executes code in ADP-OS VM
 

@@ -358,7 +358,7 @@ Items using `adpos` are local CLI checks. Items using `adp_*` are MCP tool check
 - [ ] ADP-OS CLI healthy: `adpos doctor`
 - [ ] At least one VM runtime configured: `adpos status`
 - [ ] MCP server module loads: `python3 -c "from cli.mcp.server import mcp; print(len(mcp._tool_manager._tools))"` → `26`
-- [ ] MCP server tests pass: `python3 -m pytest tests/test-mcp-server.py -q` → `45 passed`
+- [ ] MCP server tests pass: `python3 -m pytest tests/test-mcp-server.py tests/test-mcp-vm-tools.py -q` → `46 passed`
 - [ ] Deer-flow adapter tests pass: `python3 -m pytest tests/test_deerflow_adp_sandbox.py -q` → `46 passed`
 - [ ] `extensions_config.json` configured with absolute paths and correct env vars
 - [ ] Deer-flow restarted and 26 ADP-OS tools visible to the agent
@@ -372,7 +372,7 @@ Items using `adpos` are local CLI checks. Items using `adp_*` are MCP tool check
 
 - [Deer-Flow Sandbox Architecture](https://github.com/ByteDance/deer-flow/tree/main/docker/provisioner)
 - [Deer-Flow Sandbox ABC](https://github.com/ByteDance/deer-flow/blob/main/backend/packages/harness/deerflow/sandbox/sandbox.py)
-- [ADP-OS MCP Server Source](../../cli/mcp/server.py) — 26 tools, 1,365 lines
+- [ADP-OS MCP Server Source](../../cli/mcp/server.py) — 26-tool entrypoint with package helpers
 - [ADP-OS Deer-Flow Adapter](../../extensions/deer_flow/deerflow_adp_sandbox.py) — Python-native integration path
 - [Deer-Flow Integration Guide](../deer-flow-integration.md) — Comprehensive both-path reference
 - [Deer-Flow Gap Analysis](deer-flow.md) — Architecture and gap tracking

@@ -307,7 +307,7 @@ The 8 SSH-backed MCP tools that map to deer-flow's `Sandbox` interface:
 - [MCP Server Setup Guide](deer-flow-mcp-setup.md) — Step-by-step MCP configuration
 - [Deer-Flow Integration Guide](../deer-flow-integration.md) — Full two-path reference
 - [Deploying ADP-OS as Deer-Flow VM Sandbox Backend](deer-flow.md) — Architecture and gap analysis
-- [ADP-OS MCP Server Source](../../cli/mcp/server.py) — Reference implementation (26 tools)
+- [ADP-OS MCP Server Source](../../cli/mcp/server.py) — Tool registration entrypoint (26 tools)
 - [Direct Adapter Source](../../extensions/deer_flow/deerflow_adp_sandbox.py) — `DeerFlowADPSandboxProvider`
 - [Operations Guide](../operations.md) — Day-to-day ADP-OS runtime management
 

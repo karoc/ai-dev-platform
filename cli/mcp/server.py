@@ -35,82 +35,44 @@ Usage:
 """
 
 import os
-import sys
 import subprocess
-import json
-import re
-import shutil
-import base64
-import shlex
-import time
+import sys
 from pathlib import Path
-from typing import Optional, Any
+from typing import Optional
 
 from mcp.server.fastmcp import FastMCP
 
-# ---------------------------------------------------------------------------
-# Platform detection
-# ---------------------------------------------------------------------------
+try:
+    from cli.mcp import core as _core
+    from cli.mcp import vm_tools as _vm
+except ModuleNotFoundError:
+    _project_root = Path(__file__).resolve().parent.parent.parent
+    if str(_project_root) not in sys.path:
+        sys.path.insert(0, str(_project_root))
+    from cli.mcp import core as _core
+    from cli.mcp import vm_tools as _vm
 
-IS_WINDOWS = sys.platform == "win32"
+IS_WINDOWS = _core.IS_WINDOWS
 
-# ---------------------------------------------------------------------------
-# ADP-OS path resolution
-# ---------------------------------------------------------------------------
+
+def _sync_core_platform() -> None:
+    _core.IS_WINDOWS = IS_WINDOWS
+
 
 def _resolve_adp_home() -> Path:
-    """Resolve the ADP-OS installation directory."""
-    # 1. Explicit env var
-    env = os.environ.get("ADP_HOME")
-    if env:
-        return Path(env)
-
-    # 2. Relative to this script: ../../ from cli/mcp/server.py -> project root
-    script_dir = Path(__file__).resolve().parent  # cli/mcp/
-    candidate = script_dir.parent.parent           # project root
-    cli_entry = candidate / "cli" / "adp.ps1"
-    if cli_entry.exists():
-        return candidate
-
-    # 3. Platform-specific fallback paths
-    if IS_WINDOWS:
-        # Windows native: check well-known installation paths
-        for p in [
-            Path("D:/Dev/ai-dev-platform"),
-            Path.home() / "ai-dev-platform",
-        ]:
-            if (p / "cli" / "adp.ps1").exists():
-                return p
-    else:
-        # WSL/Linux: check common WSL mount paths
-        for p in [
-            Path("/mnt/d/Dev/ai-dev-platform"),
-            Path("/mnt/c/Users").glob("*/dev/adp-os"),
-        ]:
-            if isinstance(p, Path):
-                check = p / "cli" / "adp.ps1"
-                if check.exists():
-                    return p
-
-    raise FileNotFoundError(
-        "Cannot locate ADP-OS installation. Set ADP_HOME environment variable "
-        "or run this script from within an ADP-OS checkout."
-    )
+    _sync_core_platform()
+    return _core._resolve_adp_home()
 
 
 def _resolve_adp_home_win() -> str:
-    """Resolve ADP-OS home as a Windows path for pwsh.exe invocation."""
     adp_home_win = os.environ.get("ADP_HOME_WIN")
     if adp_home_win:
         return adp_home_win
 
     adp_home = _resolve_adp_home()
-
-    # On Windows, ADP_HOME is already a native Windows path — no conversion needed
     if IS_WINDOWS:
         return str(adp_home)
 
-    # On WSL/Linux, convert WSL path to Windows path via wslpath
     try:
         result = subprocess.run(
             ["wslpath", "-w", str(adp_home)],
@@ -127,522 +89,33 @@ def _resolve_adp_home_win() -> str:
     )
 
 
-# ---------------------------------------------------------------------------
-# Path normalization and conversion
-# ---------------------------------------------------------------------------
-
 def _normalize_windows_path(path: Optional[str], must_exist: bool = False) -> Optional[str]:
-    """Normalize a path for use with Windows pwsh.exe, converting from WSL if needed.
-
-    Handles:
-      - Windows native paths: C:\\..., D:/... (both slash styles) → returned as-is
-      - WSL paths: /mnt/c/... → C:\\... (via wslpath)
-      - Linux paths: /home/... → kept as-is on native Linux, converted on WSL
-
-    When running on WSL (not IS_WINDOWS), WSL-style paths are converted to their
-    Windows equivalent so pwsh.exe can access them. On native Windows, paths
-    pass through unchanged.
-
-    Args:
-        path: Any path string (Windows, WSL, or Linux style)
-        must_exist: If True, raises FileNotFoundError when path doesn't exist
-
-    Returns:
-        Normalized path string suitable for pwsh.exe invocation
-    """
-    if not path:
-        return path
-
-    normalized = path.replace("\\", "/")
-
-    # On native Windows, paths are already in Windows format — just validate
-    if IS_WINDOWS:
-        if must_exist and not Path(normalized).exists():
-            raise FileNotFoundError(f"Path does not exist: {path}")
-        return normalized
-
-    # On WSL/Linux: convert WSL paths to Windows paths for pwsh.exe
-    # WSL mount paths (/mnt/c/...) need conversion; regular Linux paths may too
-    if normalized.startswith("/mnt/"):
-        # WSL mount path → Windows path via wslpath
-        try:
-            result = subprocess.run(
-                ["wslpath", "-w", normalized],
-                capture_output=True, text=True, timeout=5,
-            )
-            if result.returncode == 0:
-                win_path = result.stdout.strip()
-                if must_exist:
-                    # Validate the Windows path exists via wslpath -u round-trip check
-                    check = subprocess.run(
-                        ["wslpath", "-u", win_path],
-                        capture_output=True, text=True, timeout=5,
-                    )
-                    if check.returncode != 0:
-                        raise FileNotFoundError(
-                            f"Path does not exist (wslpath round-trip failed): {path}"
-                        )
-                return win_path
-        except FileNotFoundError:
-            raise
-        except Exception:
-            pass
-        # Fall through: return as-is if conversion fails
-        return normalized
-
-    # Non-mount path on WSL (e.g., /home/...)
-    if must_exist and not Path(normalized).exists():
-        raise FileNotFoundError(f"Path does not exist: {path}")
-
-    return normalized
+    _sync_core_platform()
+    return _core._normalize_windows_path(path, must_exist=must_exist)
 
 
 def _wsl_to_win(path: str) -> str:
-    """Convert a WSL path to Windows path via wslpath.
-
-    Shortcut for _normalize_windows_path when you know it's a WSL path.
-    On native Windows, returns the path unchanged.
-    """
-    if IS_WINDOWS:
-        return path.replace("\\", "/")
-
-    try:
-        result = subprocess.run(
-            ["wslpath", "-w", path],
-            capture_output=True, text=True, timeout=5,
-        )
-        if result.returncode == 0:
-            return result.stdout.strip()
-    except Exception:
-        pass
-    return path
+    _sync_core_platform()
+    return _core._wsl_to_win(path)
 
 
 def _win_to_wsl(path: str) -> str:
-    """Convert a Windows path to WSL path via wslpath.
-
-    On native Windows, returns the path unchanged.
-    """
-    if IS_WINDOWS:
-        return path.replace("\\", "/")
-
-    try:
-        result = subprocess.run(
-            ["wslpath", "-u", path],
-            capture_output=True, text=True, timeout=5,
-        )
-        if result.returncode == 0:
-            return result.stdout.strip()
-    except Exception:
-        pass
-    return path
-
-# ---------------------------------------------------------------------------
-# SSH execution infrastructure
-# ---------------------------------------------------------------------------
-
-# Well-known SSH options shared across all in-VM operations
-_SSH_BASE_OPTS = [
-    "ssh",
-    "-o", "StrictHostKeyChecking=no",
-    "-o", "ConnectTimeout=10",
-    "-o", "BatchMode=yes",
-    "-o", "LogLevel=ERROR",
-    "-o", "ServerAliveInterval=30",
-]
-
-
-def _get_runtime_ip(runtime: str) -> str:
-    """Resolve a runtime name to its VM IP address via adpos status.
-
-    Returns the IP address string, or raises RuntimeError if the runtime
-    is not found or not running.
-    """
-    result = _run_adp(["status", runtime])
-    if not result["success"]:
-        raise RuntimeError(
-            f"Cannot resolve runtime '{runtime}': "
-            f"adpos status failed (exit {result['exit_code']}): {result['stderr']}"
-        )
-
-    parsed = _parse_status(result["stdout"])
-    runtimes = parsed.get("runtimes", [])
-
-    for rt in runtimes:
-        if rt.get("name") == runtime and rt.get("status", "").lower() == "running":
-            ip = rt.get("ip")
-            if ip and ip != "--":
-                return ip
-            raise RuntimeError(
-                f"Runtime '{runtime}' is running but has no IP address. "
-                f"Check VM network configuration."
-            )
-
-    # Runtime not found or not running
-    if runtimes:
-        names = [r.get("name", "?") for r in runtimes]
-        raise RuntimeError(
-            f"Runtime '{runtime}' is not running. "
-            f"Found runtimes: {', '.join(names)}. "
-            f"Start it with adp_up(runtime='{runtime}', plan_only=False)."
-        )
-    raise RuntimeError(
-        f"Runtime '{runtime}' not found. Available runtimes: frontend, backend, agent."
-    )
-
-
-def _sanitize_path(path: str) -> str:
-    """Validate a path for safe use in SSH commands.
-
-    Rejects paths containing '..' segments (path traversal) and null bytes.
-    Returns the path unchanged if safe.
-    """
-    if not path:
-        raise ValueError("Path must not be empty")
-    if "\x00" in path:
-        raise ValueError("Path contains null byte")
-    # Split on both / and \ to catch Windows-style traversal too
-    segments = path.replace("\\", "/").split("/")
-    for seg in segments:
-        if seg == "..":
-            raise ValueError(
-                f"Path traversal detected in '{path}': '..' segments are not allowed. "
-                f"Use absolute paths inside the VM."
-            )
-    return path
-
-
-def _ssh_exec(runtime: str, command: str, timeout: int = 120) -> dict:
-    """Execute a command inside a VM via SSH.
-
-    Args:
-        runtime: Runtime name (frontend, backend, agent)
-        command: Shell command to execute
-        timeout: Command timeout in seconds
-
-    Returns:
-        dict with keys: stdout, stderr, exit_code, success
-    """
-    ip = _get_runtime_ip(runtime)
-    ssh_cmd = _SSH_BASE_OPTS + [f"adp@{ip}", command]
-
-    try:
-        proc = subprocess.run(
-            ssh_cmd,
-            capture_output=True,
-            text=True,
-            timeout=timeout,
-            encoding="utf-8",
-            errors="replace",
-        )
-        return {
-            "stdout": proc.stdout.strip(),
-            "stderr": proc.stderr.strip(),
-            "exit_code": proc.returncode,
-            "success": proc.returncode == 0,
-        }
-    except subprocess.TimeoutExpired:
-        return {
-            "stdout": "",
-            "stderr": f"SSH command timed out after {timeout}s",
-            "exit_code": -1,
-            "success": False,
-        }
-    except Exception as e:
-        return {
-            "stdout": "",
-            "stderr": f"SSH error: {e}",
-            "exit_code": -1,
-            "success": False,
-        }
-
-
-def _ssh_result(runtime: str, result: dict, parsed: Optional[dict] = None) -> dict:
-    """Build a structured result for in-VM operations."""
-    base: dict[str, Any] = {
-        "_text": _format_output(result),
-        "_exit_code": result["exit_code"],
-        "_success": result["success"],
-        "runtime": runtime,
-    }
-    if parsed:
-        base.update(parsed)
-    return base
-
-# ---------------------------------------------------------------------------
-# ADP-OS command invocation
-# ---------------------------------------------------------------------------
-
-def _find_pwsh() -> str:
-    """Find PowerShell 7+ executable."""
-    pwsh = shutil.which("pwsh.exe") or shutil.which("pwsh")
-    if pwsh:
-        return pwsh
-
-    # Platform-specific fallback locations
-    if IS_WINDOWS:
-        for loc in [
-            Path("C:/Program Files/PowerShell/7/pwsh.exe"),
-            Path.home() / "AppData/Local/Programs/PowerShell/7/pwsh.exe",
-            Path.home() / "AppData/Local/Microsoft/WindowsApps/pwsh.exe",
-        ]:
-            if loc.exists():
-                return str(loc)
-
-    raise FileNotFoundError("PowerShell 7+ (pwsh) not found in PATH")
+    _sync_core_platform()
+    return _core._win_to_wsl(path)
 
 
 def _run_adp(args: list[str], timeout: int = 120) -> dict:
-    """Execute an ADP-OS command and return structured result.
-
-    Returns:
-        dict with keys: stdout, stderr, exit_code, success
-    """
-    adp_home_win = _resolve_adp_home_win()
-    cli_path_win = adp_home_win.replace("/", "\\") + "\\cli\\adp.ps1"
-    pwsh = _find_pwsh()
-    adp_home = _resolve_adp_home()
-
-    cmd = [
-        pwsh, "-NoProfile", "-ExecutionPolicy", "Bypass",
-        "-File", cli_path_win
-    ] + args
-
-    try:
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            timeout=timeout,
-            cwd=str(adp_home),
-            encoding="utf-8",
-            errors="replace",
-        )
-        return {
-            "stdout": result.stdout.strip(),
-            "stderr": result.stderr.strip(),
-            "exit_code": result.returncode,
-            "success": result.returncode == 0,
-        }
-    except subprocess.TimeoutExpired:
-        return {
-            "stdout": "",
-            "stderr": f"Command timed out after {timeout}s",
-            "exit_code": -1,
-            "success": False,
-        }
-    except Exception as e:
-        return {
-            "stdout": "",
-            "stderr": str(e),
-            "exit_code": -1,
-            "success": False,
-        }
-
-
-def _format_output(result: dict) -> str:
-    """Format ADP-OS command output for MCP response."""
-    parts = []
-    if result["stdout"]:
-        parts.append(result["stdout"])
-    if result["stderr"]:
-        parts.append(f"[stderr]\n{result['stderr']}")
-    if not result["success"]:
-        parts.append(f"[exit code: {result['exit_code']}]")
-    return "\n".join(parts) if parts else "(no output)"
-
-
-# ---------------------------------------------------------------------------
-# Structured output parsing
-# ---------------------------------------------------------------------------
-
-def _structured_result(result: dict, parsed: Optional[dict] = None) -> dict:
-    """Build a structured result dict from raw CLI output.
-
-    Always includes:
-      - _text: formatted human-readable output
-      - _exit_code: process exit code
-      - _success: whether the command succeeded
-
-    Additional parsed fields from command-specific parsers are merged in.
-    """
-    base: dict[str, Any] = {
-        "_text": _format_output(result),
-        "_exit_code": result["exit_code"],
-        "_success": result["success"],
-    }
-    if parsed:
-        base.update(parsed)
-    return base
-
-
-def _parse_status(stdout: str) -> dict:
-    """Parse 'adpos status' output into structured fields."""
-    runtimes: list[dict] = []
-    # Match runtime entries like: "agent      running      192.168.242.135  reachable  healthy"
-    # The status output format varies; try common patterns
-    for line in stdout.split("\n"):
-        line = line.strip()
-        if not line or line.startswith("===") or line.startswith("---"):
-            continue
-        # Match lines that start with a known runtime name
-        for rt_name in ["frontend", "backend", "agent"]:
-            if line.lower().startswith(rt_name):
-                parts = line.split()
-                rt = {"name": rt_name}
-                if len(parts) > 1:
-                    rt["status"] = parts[1]
-                if len(parts) > 2:
-                    rt["ip"] = parts[2]
-                if len(parts) > 3:
-                    rt["ssh"] = parts[3]
-                if len(parts) > 4:
-                    rt["sync"] = parts[4]
-                runtimes.append(rt)
-                break
-
-    # Count running/stopped
-    running_count = sum(1 for r in runtimes if r.get("status", "").lower() == "running")
-    parsed: dict[str, Any] = {
-        "runtimes": runtimes,
-        "runtime_count": len(runtimes),
-        "running_count": running_count,
-    }
-    return parsed
-
-
-def _parse_doctor(stdout: str) -> dict:
-    """Parse 'adpos doctor' output into structured fields."""
-    # Extract OK count and issue count
-    ok_match = re.search(r"(\d+)\s*OK", stdout)
-    issue_match = re.search(r"(\d+)\s*(?:issue|问题)", stdout, re.IGNORECASE)
-    info_match = re.search(r"(\d+)\s*info", stdout, re.IGNORECASE)
-
-    issues: list[dict] = []
-    # Parse issue lines — they typically follow a pattern like:
-    #   [ISSUE] description or ! description
-    for line in stdout.split("\n"):
-        stripped = line.strip()
-        if re.match(r"^[!⚠].+", stripped) or "[ISSUE]" in stripped:
-            # Clean up the issue text
-            text = re.sub(r"^[!⚠]\s*", "", stripped)
-            text = re.sub(r"\[ISSUE\]\s*", "", text)
-            if text:
-                issues.append({"description": text})
-
-    parsed: dict[str, Any] = {
-        "ok_count": int(ok_match.group(1)) if ok_match else 0,
-        "issue_count": int(issue_match.group(1)) if issue_match else 0,
-        "info_count": int(info_match.group(1)) if info_match else 0,
-        "issues": issues,
-        "healthy": not issues,
-    }
-    return parsed
-
-
-def _parse_workspace_show(stdout: str) -> dict:
-    """Parse 'adpos workspace show' output into structured fields."""
-    projects: list[dict] = []
-    current_project: Optional[dict] = None
-
-    for line in stdout.split("\n"):
-        stripped = line.strip()
-        # Try: "- project-name (runtime: runtime-name)"
-        proj_match = re.match(r"^[-*]\s*(\S+)\s*\(runtime:\s*(.+?)\)", stripped)
-        # Try: "- project-name: runtime-name"
-        if not proj_match:
-            proj_match = re.match(r"^[-*]\s*(\S+)\s*:\s*(.+?)$", stripped)
-        if proj_match:
-            if current_project:
-                projects.append(current_project)
-            current_project = {"name": proj_match.group(1), "runtime": proj_match.group(2).strip()}
-            continue
-        # Detect runtime mapping on separate line
-        rt_match = re.match(r"(?:runtime|运行时)[:\s]+(\S+)", stripped, re.IGNORECASE)
-        if rt_match and current_project and "runtime" not in current_project:
-            current_project["runtime"] = rt_match.group(1)
-
-    if current_project:
-        projects.append(current_project)
-
-    parsed: dict[str, Any] = {
-        "projects": projects,
-        "project_count": len(projects),
-    }
-    return parsed
-
-
-def _parse_sync_status(stdout: str) -> dict:
-    """Parse 'adpos sync status' output into structured fields."""
-    sessions: list[dict] = []
-
-    for line in stdout.split("\n"):
-        stripped = line.strip()
-        for rt_name in ["frontend", "backend", "agent"]:
-            if rt_name in stripped.lower():
-                # Extract status keywords
-                status = "unknown"
-                for kw in ["healthy", "halted", "connecting", "stale", "paused",
-                           "watching", "waiting", "disconnected"]:
-                    if kw in stripped.lower():
-                        status = kw
-                        break
-                sessions.append({
-                    "runtime": rt_name,
-                    "status": status,
-                })
-                break
-
-    healthy_count = sum(1 for s in sessions if s["status"] == "healthy")
-    parsed: dict[str, Any] = {
-        "sessions": sessions,
-        "session_count": len(sessions),
-        "healthy_count": healthy_count,
-    }
-    return parsed
-
-
-def _parse_capabilities(stdout: str) -> dict:
-    """Parse 'adpos capabilities' output into structured fields."""
-    supported: list[str] = []
-    planned: list[str] = []
-    exploratory: list[str] = []
-    current_section = ""
-
-    for line in stdout.split("\n"):
-        stripped = line.strip()
-        if "supported" in stripped.lower() or "支持" in stripped:
-            current_section = "supported"
-            continue
-        if "planned" in stripped.lower() or "计划" in stripped or "规划" in stripped:
-            current_section = "planned"
-            continue
-        if "explor" in stripped.lower() or "探索" in stripped:
-            current_section = "exploratory"
-            continue
-        # Capture capability names (indented items or bullet points)
-        cap_match = re.match(r"^\s*[-•*]\s*(.+)$", stripped)
-        if cap_match and current_section:
-            name = cap_match.group(1).strip()
-            if current_section == "supported":
-                supported.append(name)
-            elif current_section == "planned":
-                planned.append(name)
-            elif current_section == "exploratory":
-                exploratory.append(name)
-
-    parsed: dict[str, Any] = {
-        "supported": supported,
-        "planned": planned,
-        "exploratory": exploratory,
-    }
-    return parsed
+    _sync_core_platform()
+    return _core._run_adp(
+        args,
+        timeout=timeout,
+        resolve_adp_home_win=_resolve_adp_home_win,
+        find_pwsh=_find_pwsh,
+        resolve_adp_home=_resolve_adp_home,
+    )
 
 
 def _load_manifest() -> dict:
-    """Load the workspace manifest JSON. Tries adp-workspace.json, then
-    configs/workspace.example.json, then configs/workspace.recipes.example.json.
-    """
     adp_home = _resolve_adp_home()
     candidates = [
         adp_home / "adp-workspace.json",
@@ -651,20 +124,32 @@ def _load_manifest() -> dict:
     ]
     for path in candidates:
         if path.exists():
-            with open(path, "r", encoding="utf-8") as f:
-                return json.load(f)
+            with open(path, "r", encoding="utf-8") as handle:
+                return _core.json.load(handle)
     return {}
 
 
 def _find_runtime_for_project(project_name: str) -> Optional[str]:
-    """Resolve a project name to its runtime name from the manifest."""
     manifest = _load_manifest()
     projects = manifest.get("projects", [])
-    for proj in projects:
-        if proj.get("name") == project_name:
-            return proj.get("runtime")
+    for project in projects:
+        if project.get("name") == project_name:
+            return project.get("runtime")
     return None
 
+
+_find_pwsh = _core._find_pwsh
+_format_output = _core._format_output
+_get_runtime_ip = _core._get_runtime_ip
+_parse_capabilities = _core._parse_capabilities
+_parse_doctor = _core._parse_doctor
+_parse_status = _core._parse_status
+_parse_sync_status = _core._parse_sync_status
+_parse_workspace_show = _core._parse_workspace_show
+_sanitize_path = _core._sanitize_path
+_ssh_exec = _core._ssh_exec
+_ssh_result = _core._ssh_result
+_structured_result = _core._structured_result
 
 # ---------------------------------------------------------------------------
 # MCP Server
@@ -1024,10 +509,9 @@ def adp_exec(runtime: str, command: str, timeout: int = 120) -> dict:
         command: Shell command to execute inside the VM
         timeout: Maximum execution time in seconds (default: 120)
     """
-    ssh_result = _ssh_exec(runtime, command, timeout=timeout)
-    return _ssh_result(runtime, ssh_result)
-
-
+    return _vm.adp_exec_impl(
+        runtime, command, timeout, ssh_exec=_ssh_exec, ssh_result=_ssh_result
+    )
 @mcp.tool()
 def adp_file_read(runtime: str, path: str) -> dict:
     """Read the contents of a file inside a running VM.
@@ -1039,28 +523,10 @@ def adp_file_read(runtime: str, path: str) -> dict:
         runtime: Runtime name (frontend, backend, agent)
         path: Absolute path to the file inside the VM
     """
-    safe_path = _sanitize_path(path)
-    ssh_result = _ssh_exec(
-        runtime,
-        f"test -f {shlex.quote(safe_path)} && base64 {shlex.quote(safe_path)} || "
-        f"(echo 'ERROR: File not found: {safe_path}' >&2 && exit 1)",
-        timeout=30,
+    return _vm.adp_file_read_impl(
+        runtime, path, sanitize_path=_sanitize_path, ssh_exec=_ssh_exec,
+        ssh_result=_ssh_result
     )
-
-    if ssh_result["success"] and ssh_result["stdout"]:
-        try:
-            content = base64.b64decode(ssh_result["stdout"]).decode("utf-8", errors="replace")
-        except Exception:
-            content = ssh_result["stdout"]  # Return raw if not valid base64
-    else:
-        content = ""
-
-    return _ssh_result(runtime, ssh_result, {
-        "path": path,
-        "content": content,
-    })
-
-
 @mcp.tool()
 def adp_file_write(
     runtime: str,
@@ -1081,41 +547,10 @@ def adp_file_write(
         append: If True, append content instead of overwriting (default: False)
         plan_only: If True (default), preview only without writing
     """
-    safe_path = _sanitize_path(path)
-    content_b64 = base64.b64encode(content.encode("utf-8")).decode("ascii")
-
-    if plan_only:
-        redirect = ">>" if append else ">"
-        return {
-            "_text": (
-                f"[plan] Would write {len(content)} bytes to {path} on runtime '{runtime}'\n"
-                f"  Command: echo '<base64>' | base64 -d {redirect} {safe_path}\n"
-                f"  Execute: adp_file_write(runtime='{runtime}', path='{path}', "
-                f"content=..., append={append}, plan_only=False)"
-            ),
-            "_exit_code": 0,
-            "_success": True,
-            "runtime": runtime,
-            "path": path,
-            "plan_only": True,
-            "bytes_planned": len(content),
-        }
-
-    redirect = ">>" if append else ">"
-    ssh_result = _ssh_exec(
-        runtime,
-        f"echo {shlex.quote(content_b64)} | base64 -d {redirect} {shlex.quote(safe_path)}",
-        timeout=30,
+    return _vm.adp_file_write_impl(
+        runtime, path, content, append, plan_only, sanitize_path=_sanitize_path,
+        ssh_exec=_ssh_exec, ssh_result=_ssh_result
     )
-
-    return _ssh_result(runtime, ssh_result, {
-        "path": path,
-        "bytes_written": len(content) if ssh_result["success"] else 0,
-        "append": append,
-        "plan_only": False,
-    })
-
-
 @mcp.tool()
 def adp_dir_list(runtime: str, path: str, max_depth: int = 2) -> dict:
     """List the contents of a directory inside a running VM.
@@ -1127,29 +562,10 @@ def adp_dir_list(runtime: str, path: str, max_depth: int = 2) -> dict:
         path: Absolute path to the directory inside the VM
         max_depth: Maximum directory depth to traverse (default: 2)
     """
-    safe_path = _sanitize_path(path)
-    # Use find with -maxdepth, excluding hidden files/dirs by default
-    ssh_result = _ssh_exec(
-        runtime,
-        f"find {shlex.quote(safe_path)} -maxdepth {max_depth} "
-        f"-not -path '*/\\.*' 2>/dev/null | sort",
-        timeout=30,
+    return _vm.adp_dir_list_impl(
+        runtime, path, max_depth, sanitize_path=_sanitize_path,
+        ssh_exec=_ssh_exec, ssh_result=_ssh_result
     )
-
-    entries = []
-    if ssh_result["success"] and ssh_result["stdout"]:
-        entries = [
-            e for e in ssh_result["stdout"].split("\n") if e.strip()
-        ]
-
-    return _ssh_result(runtime, ssh_result, {
-        "path": path,
-        "max_depth": max_depth,
-        "entries": entries,
-        "entry_count": len(entries),
-    })
-
-
 @mcp.tool()
 def adp_glob(
     runtime: str,
@@ -1169,37 +585,10 @@ def adp_glob(
         include_dirs: If True, include directories in results (default: False)
         max_results: Maximum number of results to return (default: 200)
     """
-    safe_path = _sanitize_path(path)
-    safe_pattern = shlex.quote(pattern)
-
-    type_filter = "" if include_dirs else "-type f"
-    ssh_result = _ssh_exec(
-        runtime,
-        f"find {shlex.quote(safe_path)} {type_filter} "
-        f"-name {safe_pattern} -not -path '*/\\.*' 2>/dev/null "
-        f"| head -n {max_results + 1} | sort",
-        timeout=30,
+    return _vm.adp_glob_impl(
+        runtime, path, pattern, include_dirs, max_results,
+        sanitize_path=_sanitize_path, ssh_exec=_ssh_exec, ssh_result=_ssh_result
     )
-
-    matches = []
-    truncated = False
-    if ssh_result["success"] and ssh_result["stdout"]:
-        lines = [l for l in ssh_result["stdout"].split("\n") if l.strip()]
-        if len(lines) > max_results:
-            truncated = True
-            matches = lines[:max_results]
-        else:
-            matches = lines
-
-    return _ssh_result(runtime, ssh_result, {
-        "path": path,
-        "pattern": pattern,
-        "matches": matches,
-        "match_count": len(matches),
-        "truncated": truncated,
-    })
-
-
 @mcp.tool()
 def adp_grep(
     runtime: str,
@@ -1223,53 +612,10 @@ def adp_grep(
         case_sensitive: If True, case-sensitive search (default: False)
         max_results: Maximum number of matches to return (default: 100)
     """
-    safe_path = _sanitize_path(path)
-    safe_pattern = shlex.quote(pattern)
-
-    grep_opts = ["-r", "-n", "-I"]  # -I: skip binary files
-    if literal:
-        grep_opts.append("-F")  # Fixed strings
-    if not case_sensitive:
-        grep_opts.append("-i")
-
-    include = ""
-    if glob_filter:
-        safe_glob = shlex.quote(glob_filter)
-        include = f"--include={safe_glob}"
-
-    ssh_result = _ssh_exec(
-        runtime,
-        f"grep {' '.join(grep_opts)} {include} "
-        f"{safe_pattern} {shlex.quote(safe_path)} 2>/dev/null "
-        f"| head -n {max_results + 1}",
-        timeout=30,
+    return _vm.adp_grep_impl(
+        runtime, path, pattern, glob_filter, literal, case_sensitive, max_results,
+        sanitize_path=_sanitize_path, ssh_exec=_ssh_exec, ssh_result=_ssh_result
     )
-
-    matches = []
-    truncated = False
-    if ssh_result["success"] or ssh_result["exit_code"] == 1:
-        # grep exit code 1 = no matches (not an error)
-        if ssh_result["stdout"]:
-            lines = [l for l in ssh_result["stdout"].split("\n") if l.strip()]
-            if len(lines) > max_results:
-                truncated = True
-                matches = lines[:max_results]
-            else:
-                matches = lines
-        if ssh_result["exit_code"] == 1 and not ssh_result["stdout"]:
-            # No matches found — success case
-            ssh_result["success"] = True
-            ssh_result["exit_code"] = 0
-
-    return _ssh_result(runtime, ssh_result, {
-        "path": path,
-        "pattern": pattern,
-        "matches": matches,
-        "match_count": len(matches),
-        "truncated": truncated,
-    })
-
-
 @mcp.tool()
 def adp_file_download(runtime: str, path: str) -> dict:
     """Download a binary file from a running VM as base64-encoded content.
@@ -1278,20 +624,10 @@ def adp_file_download(runtime: str, path: str) -> dict:
         runtime: Runtime name (frontend, backend, agent)
         path: Absolute path to the file inside the VM
     """
-    safe_path = _sanitize_path(path)
-    ssh_result = _ssh_exec(
-        runtime,
-        f"test -f {shlex.quote(safe_path)} && base64 {shlex.quote(safe_path)} || "
-        f"(echo 'ERROR: File not found: {safe_path}' >&2 && exit 1)",
-        timeout=30,
+    return _vm.adp_file_download_impl(
+        runtime, path, sanitize_path=_sanitize_path, ssh_exec=_ssh_exec,
+        ssh_result=_ssh_result
     )
-
-    return _ssh_result(runtime, ssh_result, {
-        "path": path,
-        "content_base64": ssh_result["stdout"] if ssh_result["success"] else "",
-    })
-
-
 @mcp.tool()
 def adp_file_upload(
     runtime: str,
@@ -1310,51 +646,10 @@ def adp_file_upload(
         content_base64: Base64-encoded file content
         plan_only: If True (default), preview only without writing
     """
-    safe_path = _sanitize_path(path)
-
-    # Validate that content_base64 looks like valid base64
-    try:
-        decoded = base64.b64decode(content_base64, validate=True)
-        byte_count = len(decoded)
-    except Exception as e:
-        return {
-            "_text": f"Invalid base64 content: {e}",
-            "_exit_code": -1,
-            "_success": False,
-            "runtime": runtime,
-            "path": path,
-            "error": str(e),
-        }
-
-    if plan_only:
-        return {
-            "_text": (
-                f"[plan] Would upload {byte_count} bytes to {path} on runtime '{runtime}'\n"
-                f"  Command: mkdir -p $(dirname {safe_path}) && "
-                f"echo '<base64>' | base64 -d > {safe_path}\n"
-                f"  Execute: adp_file_upload(runtime='{runtime}', path='{path}', "
-                f"content_base64=..., plan_only=False)"
-            ),
-            "_exit_code": 0,
-            "_success": True,
-            "runtime": runtime,
-            "path": path,
-            "plan_only": True,
-            "bytes_planned": byte_count,
-        }
-
-    ssh_result = _ssh_exec(
-        runtime,
-        f"mkdir -p $(dirname {shlex.quote(safe_path)}) && "
-        f"echo {shlex.quote(content_base64)} | base64 -d > {shlex.quote(safe_path)}",
-        timeout=30,
+    return _vm.adp_file_upload_impl(
+        runtime, path, content_base64, plan_only, sanitize_path=_sanitize_path,
+        ssh_exec=_ssh_exec, ssh_result=_ssh_result
     )
-
-    return _ssh_result(runtime, ssh_result, {
-        "path": path,
-        "bytes_written": byte_count if ssh_result["success"] else 0,
-        "plan_only": False,
-    })
 
 
 # ---------------------------------------------------------------------------

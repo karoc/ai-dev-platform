@@ -224,11 +224,12 @@ Path resolution:
 
 ```bash
 cd /path/to/ai-dev-platform
-python -m pytest tests/test-mcp-server.py -v
+python -m pytest tests/test-mcp-server.py tests/test-mcp-vm-tools.py -v
 ```
 
 Or run without pytest:
 
 ```bash
 python tests/test-mcp-server.py
+python tests/test-mcp-vm-tools.py
 ```

@@ -386,7 +386,7 @@ provider.release(sandbox_id)
 
 ### 阶段一：基于 SSH 的沙箱提供者 ✅（f7453c8）
 
-在 `cli/mcp/server.py` 中添加了 8 个新 MCP 工具，通过 SSH 在运行中的 VM 内执行：
+在 `cli/mcp/server.py` 中注册了 8 个新 MCP 工具，VM 辅助逻辑位于 `cli/mcp/vm_tools.py`，通过 SSH 在运行中的 VM 内执行：
 
 ```
 adp_exec(runtime, command, timeout=120) → {stdout, stderr, exit_code}
@@ -399,7 +399,7 @@ adp_file_download(runtime, path) → {content_base64}
 adp_file_upload(runtime, path, content_base64, plan_only=True) → {path}
 ```
 
-MCP 服务器：18 → 26 个工具。测试：45/45 通过。
+MCP 服务器：18 → 26 个工具。测试：46/46 通过。
 
 ### 阶段二：Deer-Flow 适配器类 ✅（7a976fd）
 
@@ -460,12 +460,12 @@ class DeerFlowADPSandboxProvider(SandboxProvider):
 
 ### 集成前检查
 
-- [x] MCP 服务器测试通过（45/45，截至 2026-06-05 全部绿色）
+- [x] MCP 服务器测试通过（MCP 核心与 VM 工具套件共 46/46，截至 2026-06-09 全部绿色）
 - [x] Deer-flow MCP 配置格式已验证（extensions_config.json，stdio 类型）
 - [x] 集成指南已编写（docs/deer-flow-integration.md 英文 + 简体中文）
 - [x] 缺口分析已更新（本文档——P0 已解决，P1 部分解决）
 - [x] 8 个 SSH 支持的 MCP 工具已在 `cli/mcp/server.py` 中实现（共 26 个）— 提交 f7453c8
-- [x] 测试套件已更新（`tests/test-mcp-server.py`）覆盖新工具 — 45 个测试
+- [x] 测试套件已更新（`tests/test-mcp-server.py`、`tests/test-mcp-vm-tools.py`）覆盖新工具 — 46 个测试
 - [x] Deer-flow `SandboxProvider` 适配器类已实现 — 提交 7a976fd
 - [x] SandboxProvider 测试套件（`tests/test_deerflow_adp_sandbox.py`）— 30+ 个测试
 - [x] 启动时间已记录（冷启动 15-45 分钟 vs 热 VM ~30 秒 — 已记录于本文档及适配器 README）
@@ -476,7 +476,7 @@ class DeerFlowADPSandboxProvider(SandboxProvider):
 | # | 测试项 | MCP 工具调用 | 预期结果 |
 |---|--------|------|---------|
 | 1 | MCP 工具注册 | `python3 -c "from cli.mcp.server import mcp; print(len(mcp._tool_manager._tools))"` | `26` |
-| 2 | MCP 服务器测试 | `python3 -m pytest tests/test-mcp-server.py -q` | `45 passed` |
+| 2 | MCP 服务器测试 | `python3 -m pytest tests/test-mcp-server.py tests/test-mcp-vm-tools.py -q` | `46 passed` |
 | 3 | Deer-flow 配置有效 | 验证 `extensions_config.json` 语法 | 有效 JSON，绝对路径 |
 | 4 | Deer-flow 可看到 ADP-OS 工具 | 重启 deer-flow，检查工具列表 | `adp_up`、`adp_exec` 等可见 |
 | 5 | VM 生命周期——启动 | `adp_up agent` | VM 启动，SSH 可达 |
@@ -529,8 +529,9 @@ class DeerFlowADPSandboxProvider(SandboxProvider):
 - [Deer-flow Sandbox Provisioner](https://github.com/ByteDance/deer-flow/tree/main/docker/provisioner) — 基于 K8s 的沙箱 Pod 管理器
 - [Deer-flow Sandbox ABC](https://github.com/ByteDance/deer-flow/blob/main/backend/packages/harness/deerflow/sandbox/sandbox.py) — 抽象沙箱接口
 - [Deer-flow Sandbox Tools](https://github.com/ByteDance/deer-flow/blob/main/backend/packages/harness/deerflow/sandbox/tools.py) — Agent 端沙箱操作
-- [ADP-OS MCP Server](../../../cli/mcp/server.py) — 参考实现（26 个工具）
-- [ADP-OS MCP Tests](../../../tests/test-mcp-server.py) — 测试套件
+- [ADP-OS MCP Server](../../../cli/mcp/server.py) — 工具注册入口（26 个工具）
+- [ADP-OS MCP Tests](../../../tests/test-mcp-server.py) — 核心测试套件
+- [ADP-OS MCP VM Tool Tests](../../../tests/test-mcp-vm-tools.py) — VM 工具测试套件
 
 ---
 

@@ -386,7 +386,7 @@ All phases are complete as of 2026-06-05.
 
 ### Phase 1: SSH-Backed Sandbox Provider ✅ (f7453c8)
 
-8 new MCP tools added to `cli/mcp/server.py` that execute inside running VMs via SSH:
+8 new MCP tools registered in `cli/mcp/server.py`, with VM helper logic in `cli/mcp/vm_tools.py`, execute inside running VMs via SSH:
 
 ```
 adp_exec(runtime, command, timeout=120) → {stdout, stderr, exit_code}
@@ -399,7 +399,7 @@ adp_file_download(runtime, path) → {content_base64}
 adp_file_upload(runtime, path, content_base64, plan_only=True) → {path}
 ```
 
-MCP server: 18 → 26 tools. Tests: 45/45.
+MCP server: 18 → 26 tools. Tests: 46/46.
 
 ### Phase 2: Deer-Flow Adapter Class ✅ (7a976fd)
 
@@ -460,12 +460,12 @@ class DeerFlowADPSandboxProvider(SandboxProvider):
 
 ### Pre-Integration
 
-- [x] MCP server tests pass (45/45, all tests green as of 2026-06-05)
+- [x] MCP server tests pass (46/46 across MCP core and VM tool suites, all tests green as of 2026-06-09)
 - [x] Deer-flow MCP configuration format verified (extensions_config.json, stdio type)
 - [x] Integration guides written (docs/deer-flow-integration.md en + zh-CN)
 - [x] Gap analysis updated (this document — P0 resolved, P1 partially resolved)
 - [x] 8 SSH-backed MCP tools implemented in `cli/mcp/server.py` (26 total) — commit f7453c8
-- [x] Test suite updated (`tests/test-mcp-server.py`) covering new tools — 45 tests
+- [x] Test suite updated (`tests/test-mcp-server.py`, `tests/test-mcp-vm-tools.py`) covering new tools — 46 tests
 - [x] Deer-flow `SandboxProvider` adapter class implemented — commit 7a976fd
 - [x] Test suite for SandboxProvider (`tests/test_deerflow_adp_sandbox.py`) — 30+ tests
 - [x] Startup time documented (cold start 15-45 min vs warm VM ~30s — documented in this guide and adapter README)
@@ -476,7 +476,7 @@ class DeerFlowADPSandboxProvider(SandboxProvider):
 | # | Test | MCP Tool Invocation | Expected |
 |---|------|---------|----------|
 | 1 | MCP tools registered | `python3 -c "from cli.mcp.server import mcp; print(len(mcp._tool_manager._tools))"` | `26` |
-| 2 | MCP server tests | `python3 -m pytest tests/test-mcp-server.py -q` | `45 passed` |
+| 2 | MCP server tests | `python3 -m pytest tests/test-mcp-server.py tests/test-mcp-vm-tools.py -q` | `46 passed` |
 | 3 | Deer-flow config valid | Validate `extensions_config.json` syntax | Valid JSON, absolute paths |
 | 4 | Deer-flow sees ADP-OS tools | Restart deer-flow, check tool list | `adp_up`, `adp_exec`, etc. visible |
 | 5 | VM lifecycle — boot | `adp_up agent` | VM boots, SSH reachable |
@@ -529,8 +529,9 @@ class DeerFlowADPSandboxProvider(SandboxProvider):
 - [Deer-flow Sandbox Provisioner](https://github.com/ByteDance/deer-flow/tree/main/docker/provisioner) — K8s-based sandbox Pod manager
 - [Deer-flow Sandbox ABC](https://github.com/ByteDance/deer-flow/blob/main/backend/packages/harness/deerflow/sandbox/sandbox.py) — Abstract sandbox interface
 - [Deer-flow Sandbox Tools](https://github.com/ByteDance/deer-flow/blob/main/backend/packages/harness/deerflow/sandbox/tools.py) — Agent-facing sandbox operations
-- [ADP-OS MCP Server](../../cli/mcp/server.py) — Reference implementation (26 tools)
-- [ADP-OS MCP Tests](../../tests/test-mcp-server.py) — Test suite
+- [ADP-OS MCP Server](../../cli/mcp/server.py) — Tool registration entrypoint (26 tools)
+- [ADP-OS MCP Tests](../../tests/test-mcp-server.py) — Core test suite
+- [ADP-OS MCP VM Tool Tests](../../tests/test-mcp-vm-tools.py) — VM tool test suite
 
 ---
 
