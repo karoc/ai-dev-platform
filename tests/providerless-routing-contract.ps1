@@ -150,10 +150,14 @@ function Assert-ExitCode {
 $cliText = Get-Content -LiteralPath (Join-Path $projectRoot "cli\adp.ps1") -Raw -Encoding UTF8
 $workspaceText = Get-Content -LiteralPath (Join-Path $projectRoot "cli\commands\workspace.ps1") -Raw -Encoding UTF8
 $workspaceProbeText = Get-Content -LiteralPath (Join-Path $projectRoot "cli\lib\workspace-probes.ps1") -Raw -Encoding UTF8
+$parameterPreflightText = Get-Content -LiteralPath (Join-Path $projectRoot "cli\lib\parameter-preflight.ps1") -Raw -Encoding UTF8
 Assert-Contains -Name "entry routing has provider requirement gate" -Text $cliText -Pattern 'function\s+Test-ADPCommandRequiresEntryProvider'
 Assert-Contains -Name "entry routing has workspace provider gate" -Text $cliText -Pattern 'function\s+Test-ADPWorkspaceCommandRequiresEntryProvider'
 Assert-Contains -Name "entry provider is initialized after command file validation" -Text $cliText -Pattern 'if\s+\(-not\s+\(Test-Path\s+\$commandFile\)\)[\s\S]*if\s+\(Test-ADPCommandRequiresEntryProvider'
+Assert-Contains -Name "entry parameter preflight runs before provider init" -Text $cliText -Pattern 'if\s+\(-not\s+\(Test-Path\s+\$commandFile\)\)[\s\S]*Invoke-ADPCommandParameterPreflight[\s\S]*if\s+\(Test-ADPCommandRequiresEntryProvider'
 Assert-Contains -Name "entry provider remains available by default" -Text $cliText -Pattern 'if\s+\(\$normalizedCommand\s+-in\s+\$providerlessCommands\)[\s\S]*return \$true'
+Assert-Contains -Name "parameter preflight parses only command param block" -Text $parameterPreflightText -Pattern 'Parser\]::ParseInput[\s\S]*\$ast\.ParamBlock[\s\S]*\[scriptblock\]::Create\(\$preflightText\)'
+Assert-NotContains -Name "parameter preflight never dot-sources command files" -Text $parameterPreflightText -Pattern '\. \$Path|\. \(Quote|Invoke-CommandFile'
 Assert-Contains -Name "workspace snapshot evidence keeps entry provider" -Text $cliText -Pattern '\$workspaceCommand\s+-eq\s+"evidence"[\s\S]*Test-ADPArgumentSwitchPresent[\s\S]*-Name "Snapshot"'
 Assert-Contains -Name "workspace loads probe policy" -Text $workspaceText -Pattern 'Set-ADPWorkspaceExternalProbePolicy'
 Assert-Contains -Name "workspace runtime probes can be skipped" -Text $workspaceProbeText -Pattern 'Test-ADPWorkspaceExternalProbeAllowed[\s\S]*New-ADPWorkspaceProbeSkippedStatus -Kind "runtime"'
@@ -172,6 +176,10 @@ Assert-NotContains -Name "snapshot is not providerless at entry" -Text $entryPro
 Assert-Contains -Name "run plan is providerless by flag" -Text $cliText -Pattern '\$normalizedCommand\s+-eq\s+"run"[\s\S]*-Name "Plan"'
 Assert-Contains -Name "prerequisite help alias is normalized" -Text $cliText -Pattern 'function\s+Resolve-ADPArgumentAlias[\s\S]*"--help-prereqs"[\s\S]*"-HelpPrereqs"'
 Assert-Contains -Name "prerequisite help is providerless by flag" -Text $cliText -Pattern '\$normalizedCommand\s+-in\s+@\("precheck", "quickstart"\)[\s\S]*-Name "HelpPrereqs"'
+
+. (Join-Path $projectRoot "cli\lib\parameter-preflight.ps1")
+Invoke-ADPCommandParameterPreflight -Path (Join-Path $projectRoot "cli\commands\sandbox.ps1") -RawArguments @("curl", "--silent")
+Invoke-ADPCommandParameterPreflight -Path (Join-Path $projectRoot "cli\commands\workspace.ps1") -RawArguments @("evidence", "-Export", "-Path", "out.zip")
 
 $sandboxRoot = New-ProviderlessRoutingSandbox
 try {
@@ -198,6 +206,32 @@ try {
         Assert-Contains -Name $case.Name -Text $result.Output -Pattern $case.Pattern
         Assert-NotContains -Name $case.Name -Text $result.Output -Pattern $sentinel
         Assert-NotContains -Name $case.Name -Text $result.Output -Pattern 'Get-VMStatus|Get-SnapshotList|Initialize-Mutagen|Test-SyncSessionExists'
+    }
+
+    $invalidArgumentCases = @(
+        @{ Name = "doctor unknown parameter"; Args = @("doctor", "-Bogus"); Detail = "Bogus" },
+        @{ Name = "up missing iso path value"; Args = @("up", "agent", "-IsoPath"); Detail = "IsoPath" },
+        @{ Name = "up typo parameter"; Args = @("up", "agent", "-NoBootstrp"); Detail = "NoBootstrp" },
+        @{ Name = "status typo parameter"; Args = @("status", "-RuntimName", "agent"); Detail = "RuntimName" },
+        @{ Name = "sync typo parameter"; Args = @("sync", "start", "agent", "-RuntimName"); Detail = "RuntimName" },
+        @{ Name = "network typo parameter"; Args = @("network", "apply", "agent", "-Plna"); Detail = "Plna" },
+        @{ Name = "serve invalid port"; Args = @("serve", "-Port", "abc"); Detail = "Port" },
+        @{ Name = "serve missing port"; Args = @("serve", "-Port"); Detail = "Port" },
+        @{ Name = "precheck typo parameter"; Args = @("precheck", "-Jsson"); Detail = "Jsson" },
+        @{ Name = "quickstart typo parameter"; Args = @("quickstart", "-SkpDoctor"); Detail = "SkpDoctor" },
+        @{ Name = "quickstart missing iso path value"; Args = @("quickstart", "-IsoPath"); Detail = "IsoPath" },
+        @{ Name = "run typo parameter"; Args = @("run", "agent", "-NoBootstrp"); Detail = "NoBootstrp" },
+        @{ Name = "sandbox missing distro value"; Args = @("sandbox", "-Distro"); Detail = "Distro" }
+    )
+
+    foreach ($case in $invalidArgumentCases) {
+        $result = Invoke-SandboxAdpos -SandboxRoot $sandboxRoot -Arguments $case.Args
+        Assert-ExitCode -Name $case.Name -Actual $result.ExitCode -Expected 1
+        Assert-Contains -Name $case.Name -Text $result.Output -Pattern "Invalid arguments for command: adpos"
+        Assert-Contains -Name $case.Name -Text $result.Output -Pattern $case.Detail
+        Assert-Contains -Name $case.Name -Text $result.Output -Pattern "Run 'adpos .+ --help' for usage"
+        Assert-NotContains -Name $case.Name -Text $result.Output -Pattern $sentinel
+        Assert-NotContains -Name $case.Name -Text $result.Output -Pattern 'Provider init skipped|VMware adapter init skipped|Get-VMStatus|Initialize-Mutagen'
     }
 } finally {
     $tempRoot = [System.IO.Path]::GetTempPath()

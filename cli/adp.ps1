@@ -195,6 +195,7 @@ function Write-ADPCommandArgumentError {
 
 . (Join-Path $script:ProjectRoot "cli\lib\suggestions.ps1")
 . (Join-Path $script:ProjectRoot "cli\lib\help.ps1")
+. (Join-Path $script:ProjectRoot "cli\lib\parameter-preflight.ps1")
 
 # --- Help / Version flag detection ---
 $helpFlags = @('--help', '-Help', '-?')
@@ -284,6 +285,13 @@ if (-not (Test-Path $commandFile)) {
     } else {
         Write-Host "  Command '$Command' is reserved for a future phase." -ForegroundColor DarkGray
     }
+    exit 1
+}
+
+try {
+    Invoke-ADPCommandParameterPreflight -Path $commandFile -RawArguments $Arguments
+} catch [System.Management.Automation.ParameterBindingException] {
+    Write-ADPCommandArgumentError -CommandName $Command -ErrorRecord $_
     exit 1
 }
 
