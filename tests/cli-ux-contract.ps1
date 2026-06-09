@@ -158,6 +158,18 @@ Assert-Contains -Name "setup missing IsoPath reports ADP argument error zh-CN" -
 Assert-Contains -Name "setup missing IsoPath gives command help path zh-CN" -Text $setupMissingIsoPathZh.Output -Pattern "运行 'adpos setup --help' 查看用法"
 Assert-NotContains -Name "setup missing IsoPath hides raw binding type zh-CN" -Text $setupMissingIsoPathZh.Output -Pattern "ParameterBindingException|FullyQualifiedErrorId|At .* char"
 
+$versionBogus = Invoke-AdposCli -Arguments @("version", "-Bogus")
+Assert-ExitCode -Name "adpos version -Bogus" -Actual $versionBogus.ExitCode -Expected 1
+Assert-Contains -Name "version rejects extra arguments" -Text $versionBogus.Output -Pattern "Invalid arguments for command: adpos version"
+Assert-Contains -Name "version extra argument gives command help path" -Text $versionBogus.Output -Pattern "Run 'adpos version --help' for usage"
+Assert-NotContains -Name "version extra argument does not print version" -Text $versionBogus.Output -Pattern "ADP-OS version"
+
+$capabilitiesBogus = Invoke-AdposCli -Arguments @("capabilities", "-Bogus")
+Assert-ExitCode -Name "adpos capabilities -Bogus" -Actual $capabilitiesBogus.ExitCode -Expected 1
+Assert-Contains -Name "capabilities rejects extra arguments" -Text $capabilitiesBogus.Output -Pattern "Invalid arguments for command: adpos capabilities"
+Assert-Contains -Name "capabilities extra argument gives command help path" -Text $capabilitiesBogus.Output -Pattern "Run 'adpos capabilities --help' for usage"
+Assert-NotContains -Name "capabilities extra argument does not print capabilities" -Text $capabilitiesBogus.Output -Pattern "ADP-OS Capabilities"
+
 $syncTypo = Invoke-AdposCli -Arguments @("sync", "stats")
 Assert-ExitCode -Name "adpos sync stats" -Actual $syncTypo.ExitCode -Expected 1
 Assert-Contains -Name "adpos sync typo reports unknown subcommand" -Text $syncTypo.Output -Pattern "Unknown sync command: stats"

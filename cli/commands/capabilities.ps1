@@ -1,6 +1,9 @@
 # ADP-OS Capabilities Command
 # Reports supported and planned host/runtime capabilities without changing state.
 
+[CmdletBinding()]
+param()
+
 $ErrorActionPreference = "Stop"
 
 Write-Host ""

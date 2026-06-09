@@ -115,6 +115,7 @@ $restore = Read-Text "cli\commands\restore.ps1"
 $capabilities = Read-Text "cli\commands\capabilities.ps1"
 $validateCmd = Read-Text "cli\commands\validate.ps1"
 $completion = Read-Text "cli\commands\completion.ps1"
+$versionCmd = Read-Text "cli\commands\version.ps1"
 $ci = Read-Text ".github\workflows\ci.yml"
 $validate = Read-Text "tests\validate.ps1"
 $networkingDocs = Read-Text "docs\networking.md"
@@ -288,6 +289,8 @@ Assert-Contains -Name "fresh deployment network configure-local apply supports S
 Assert-Contains -Name "configuration docs explain UI language preference" -Text $configurationDocs -Pattern 'platform\.ui\.language[\s\S]*installer and CLI language[\s\S]*Supported values are `en` and `zh-CN`[\s\S]*`ADP_LANG` takes precedence'
 Assert-Contains -Name "Chinese configuration docs explain UI language preference" -Text $configurationDocsZh -Pattern 'platform\.ui\.language[\s\S]*installer 和 CLI 用户可见语言[\s\S]*当前支持的值为 `en` 和 `zh-CN`[\s\S]*`ADP_LANG` 优先级高于配置'
 Assert-Contains -Name "capabilities command documents supported and planned carriers" -Text (Read-Text "cli\commands\capabilities.ps1") -Pattern 'Capabilities only: no VMs[\s\S]*\[supported\] vmware-workstation[\s\S]*\[planned\] hyper-v[\s\S]*\[planned\] kvm-libvirt[\s\S]*\[planned\] macos-vm[\s\S]*Docker and dev containers are runtime-internal project tools today'
+Assert-Contains -Name "capabilities command rejects extra arguments through binding" -Text $capabilities -Pattern '\[CmdletBinding\(\)\]\s*param\(\)'
+Assert-Contains -Name "version command rejects extra arguments through binding" -Text $versionCmd -Pattern '\[CmdletBinding\(\)\]\s*param\(\)'
 Assert-Contains -Name "capabilities docs define support boundary" -Text $capabilitiesDocs -Pattern '## Runtime Carrier Matrix[\s\S]*VMware Workstation[\s\S]*Supported on Windows[\s\S]*Hyper-V[\s\S]*Not implemented[\s\S]*Docker and dev containers are runtime-internal project tools today'
 Assert-Contains -Name "Chinese capabilities docs define support boundary" -Text $capabilitiesDocsZh -Pattern '## 运行时承载矩阵[\s\S]*VMware Workstation[\s\S]*Windows 上已支持[\s\S]*Hyper-V[\s\S]*尚未实现[\s\S]*Docker 和 dev containers 当前是 runtime 内部项目工具'
 Assert-Contains -Name "roadmap separates current workspace surface from remaining directions" -Text $roadmapDocs -Pattern '## Workspace Orchestration[\s\S]*Current public surface:[\s\S]*workspace create \[-Plan\][\s\S]*workspace open[\s\S]*workspace sync[\s\S]*workspace project[\s\S]*workspace report -Markdown[\s\S]*Remaining directions:[\s\S]*safer clone/import guidance'

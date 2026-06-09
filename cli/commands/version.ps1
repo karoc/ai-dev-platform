@@ -1,6 +1,9 @@
 # ADP-OS Version Command
 # Prints the installed ADP-OS version from VERSION file or git describe.
 
+[CmdletBinding()]
+param()
+
 $ErrorActionPreference = "Stop"
 
 $versionFile = Join-Path $script:ProjectRoot "VERSION"
