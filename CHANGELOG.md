@@ -6,6 +6,8 @@ All notable public changes to AI Dev Platform OS are documented here.
 
 Versions follow [Semantic Versioning](https://semver.org/) (`MAJOR.MINOR.PATCH`). Entries are grouped by release version, then by date within the version. The latest release is at the top.
 
+Note: user-facing shell commands are `adpos` from 2026-06-08 onward. Older entries may mention the retired `adp` shell command for historical accuracy; use `adpos` for current operations.
+
 ## [v1.0.0] — 2026-06-04
 
 Initial public release.
@@ -31,7 +33,7 @@ Initial public release.
 
 - Hardened post-restore runtime readiness checks for the survival demo path. ADP-managed SSH probes now use a bounded process timeout, classify `ssh-timeout` separately from `auth-pending` and `unreachable`, avoid stale direct OpenSSH known-hosts state for readiness checks, and keep VMware control operations bounded so `status`, `up -NoBootstrap`, and `stop` do not appear to wait indefinitely on half-ready restored VMs.
 
-- Fixed `adp workspace evidence -Snapshot` and `adp workspace evidence -Export -Path <zip>` when `-ManifestPath` points to an existing manifest. The workspace evidence code now explicitly calls PowerShell's built-in `Resolve-Path` for filesystem paths, uses provider filesystem paths for ZIP input/output, and binds the documented `-Path` alias for exports, preventing survival demo evidence recording from failing with path resolver or provider-qualified path errors.
+- Fixed `adpos workspace evidence -Snapshot` and `adpos workspace evidence -Export -Path <zip>` when `-ManifestPath` points to an existing manifest. The workspace evidence code now explicitly calls PowerShell's built-in `Resolve-Path` for filesystem paths, uses provider filesystem paths for ZIP input/output, and binds the documented `-Path` alias for exports, preventing survival demo evidence recording from failing with path resolver or provider-qualified path errors.
 
 ### 2026-06-05
 

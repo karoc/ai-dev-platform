@@ -14,6 +14,7 @@ function Get-PublicSurfaceFiles {
         "CONTRIBUTING.zh-CN.md",
         "SUPPORT.md",
         "SUPPORT.zh-CN.md",
+        ".gitignore",
         ".github\pull_request_template.md",
         "setup.cmd",
         "uninstall.cmd",
@@ -86,6 +87,58 @@ foreach ($file in (Get-PublicSurfaceFiles)) {
 
 if ($violations.Count -gt 0) {
     throw "Public command surface violations:`n$($violations -join "`n")"
+}
+
+function Assert-Contains {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Name,
+
+        [Parameter(Mandatory = $true)]
+        [string]$Text,
+
+        [Parameter(Mandatory = $true)]
+        [string]$Pattern
+    )
+
+    if ($Text -notmatch $Pattern) {
+        throw "Missing expected public surface contract: $Name"
+    }
+}
+
+function Get-ChangelogEntry {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$RelativePath,
+
+        [Parameter(Mandatory = $true)]
+        [string]$Date
+    )
+
+    $text = Get-Content -LiteralPath (Join-Path $projectRoot $RelativePath) -Raw -Encoding UTF8
+    $pattern = "(?ms)^### $([regex]::Escape($Date))\r?\n(?<entry>.*?)(?=^### \d{4}-\d{2}-\d{2}|\z)"
+    $match = [regex]::Match($text, $pattern)
+    if (-not $match.Success) {
+        throw "Missing changelog entry $Date in $RelativePath"
+    }
+
+    return $match.Groups["entry"].Value
+}
+
+$readme = Get-Content -LiteralPath (Join-Path $projectRoot "README.md") -Raw -Encoding UTF8
+$readmeZh = Get-Content -LiteralPath (Join-Path $projectRoot "README.zh-CN.md") -Raw -Encoding UTF8
+$changelog = Get-Content -LiteralPath (Join-Path $projectRoot "CHANGELOG.md") -Raw -Encoding UTF8
+$changelogZh = Get-Content -LiteralPath (Join-Path $projectRoot "CHANGELOG.zh-CN.md") -Raw -Encoding UTF8
+Assert-Contains -Name "English README command reference includes sandbox runtime" -Text $readme -Pattern 'adpos init <frontend\|backend\|agent\|sandbox>[\s\S]*adpos up <frontend\|backend\|agent\|sandbox>[\s\S]*adpos status \[frontend\|backend\|agent\|sandbox\][\s\S]*adpos stop <frontend\|backend\|agent\|sandbox>[\s\S]*adpos sync start <frontend\|backend\|agent\|sandbox>[\s\S]*adpos network apply <frontend\|backend\|agent\|sandbox\|all>'
+Assert-Contains -Name "Chinese README command reference includes sandbox runtime" -Text $readmeZh -Pattern 'adpos init <frontend\|backend\|agent\|sandbox>[\s\S]*adpos up <frontend\|backend\|agent\|sandbox>[\s\S]*adpos status \[frontend\|backend\|agent\|sandbox\][\s\S]*adpos stop <frontend\|backend\|agent\|sandbox>[\s\S]*adpos sync start <frontend\|backend\|agent\|sandbox>[\s\S]*adpos network apply <frontend\|backend\|agent\|sandbox\|all>'
+Assert-Contains -Name "English changelog explains retired adp history" -Text $changelog -Pattern 'user-facing shell commands are `adpos` from 2026-06-08 onward[\s\S]*retired `adp` shell command[\s\S]*use `adpos` for current operations'
+Assert-Contains -Name "Chinese changelog explains retired adp history" -Text $changelogZh -Pattern '自 2026-06-08 起，面向用户的 shell 命令为 `adpos`[\s\S]*已退役的 `adp` shell 命令[\s\S]*当前操作请使用 `adpos`'
+
+foreach ($changelog in @("CHANGELOG.md", "CHANGELOG.zh-CN.md")) {
+    $entry = Get-ChangelogEntry -RelativePath $changelog -Date "2026-06-08"
+    if ($entry -cmatch $legacyAdpSubcommandPattern) {
+        throw "$changelog latest public entry exposes legacy adp shell command: $($Matches[0])"
+    }
 }
 
 Write-Output "adpos public surface checks OK"

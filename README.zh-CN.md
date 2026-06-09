@@ -369,11 +369,11 @@ adpos help [command]
 adpos iso [ubuntu|almalinux|rocky|debian] [-Url <url>] [-Force] [-NonInteractive]
 adpos quickstart [-Distro <name>] [-IsoPath <path>] [-SkipIsoDownload] [-SkipDoctor] [-Force] [-NonInteractive]
 adpos init
-adpos init <frontend|backend|agent> [-IsoPath <path>] [-NoProvision] [-Quick] [-NonInteractive]
-adpos up <frontend|backend|agent> [-IsoPath <path>] [-Plan] [-NoProvision] [-NoBootstrap]
-adpos status [frontend|backend|agent]
+adpos init <frontend|backend|agent|sandbox> [-IsoPath <path>] [-NoProvision] [-Quick] [-NonInteractive]
+adpos up <frontend|backend|agent|sandbox> [-IsoPath <path>] [-Plan] [-NoProvision] [-NoBootstrap]
+adpos status [frontend|backend|agent|sandbox]
 adpos capabilities
-adpos stop <frontend|backend|agent>
+adpos stop <frontend|backend|agent|sandbox>
 adpos sync status
 adpos workspace init
 adpos workspace show
@@ -394,9 +394,9 @@ adpos workspace declare -AiAssisted [-Reviewer <name>] [-Notes "..."] [-Json]  å
 adpos workspace task <prepare|snapshot|run|validate|review|rollback|commit> <task-name>
 adpos workspace task validate <task-name> [-Execute] [-Plan]
 adpos workspace task mark <task-name> <prepared|checkpointed|checkpoint-waived|running|validated|reviewed|rollback|committed>
-adpos sync start <frontend|backend|agent>
-adpos sync stop <frontend|backend|agent>
-adpos network apply <frontend|backend|agent|all> [-Plan]
+adpos sync start <frontend|backend|agent|sandbox>
+adpos sync stop <frontend|backend|agent|sandbox>
+adpos network apply <frontend|backend|agent|sandbox|all> [-Plan]
 adpos snapshot create <runtime> <name>
 adpos restore <runtime> <name>
 adpos logs <runtime>
