@@ -394,6 +394,8 @@ The reference uses `adpos`, the formal command installed by `.\setup.cmd`. From 
 
 `adpos uninstall` removes only the global command registration owned by the current checkout. Runtime data, workspace data, caches, tools, logs, and repository files remain untouched. If global `adpos` belongs to another checkout, uninstall refuses by default; run uninstall from the owning checkout, or use `-Force` only when you intend to remove that global binding.
 
+`adpos demo -Plan` prints a non-mutating readiness guide for the 10-minute survival demo. It does not run the demo, start VMs, create snapshots, touch sync/SSH/host configuration/files, or approve recording, publishing, outreach, testimonials, Discord, or GitHub Discussions.
+
 ```powershell
 adpos setup [-Distro <name>] [-IsoPath <path>] [-SkipIsoDownload] [-SkipDoctor] [-Force] [-NonInteractive] [-NoRegisterCommand] [-Plan]
 adpos uninstall [-NonInteractive] [-Force]
@@ -402,6 +404,7 @@ adpos version
 adpos iso [ubuntu|almalinux|rocky|debian] [-Url <url>] [-Force] [-NonInteractive]
 adpos quickstart [-Distro <name>] [-IsoPath <path>] [-SkipIsoDownload] [-SkipDoctor] [-Force] [-NonInteractive] [-NoRegisterCommand] [-Plan] [--help-prereqs]
 adpos precheck [--help-prereqs]
+adpos demo [-Plan]
 adpos init
 adpos init <frontend|backend|agent|sandbox> [-IsoPath <path>] [-NoProvision] [-Quick] [-NonInteractive]
 adpos up <frontend|backend|agent|sandbox> [-IsoPath <path>] [-Plan] [-NoProvision] [-NoBootstrap]

@@ -17,6 +17,7 @@ Initial public release.
 ### Added
 
 - Added public-only recording and live-demo checklist guardrails to the survival demo path, including public artifact boundaries, privacy review, evidence ZIP inspection, sync fencing, and maintainer-approval boundaries before publication or outreach.
+- Added `adpos demo [-Plan]` as a providerless, non-mutating readiness guide for the 10-minute survival demo. It prints the manual readiness chain and hard boundaries without starting VMs, touching sync/SSH/snapshots/host configuration/files, or approving publication or outreach.
 
 ### Fixed
 

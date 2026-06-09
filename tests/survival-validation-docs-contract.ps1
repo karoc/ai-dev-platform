@@ -95,6 +95,16 @@ Assert-Contains `
     -Pattern 'README\.txt`?、`snapshot-hashes\.json`?、`operation-log\.json`?、`workspace-report\.md`? 和 `adp-workspace\.json`?'
 
 Assert-Contains `
+    -Name "English demo script introduces demo readiness guide command" `
+    -Text $demoScript `
+    -Pattern '`adpos demo -Plan`[\s\S]*providerless readiness guide[\s\S]*guidance only[\s\S]*does not run the demo[\s\S]*create or start VMs[\s\S]*approve outreach'
+
+Assert-Contains `
+    -Name "Chinese demo script introduces demo readiness guide command" `
+    -Text $demoScriptZh `
+    -Pattern '`adpos demo -Plan`[\s\S]*providerless 就绪引导[\s\S]*只是引导信息[\s\S]*不会运行 demo[\s\S]*创建或启动 VM[\s\S]*批准外联'
+
+Assert-Contains `
     -Name "English survival guide links public-only checklist" `
     -Text $survival `
     -Pattern 'Pass the \[Public-Only Recording Checklist\]\(demo-script\.md#public-only-recording-checklist\)'
@@ -103,6 +113,16 @@ Assert-Contains `
     -Name "Chinese survival guide links public checklist" `
     -Text $survivalZh `
     -Pattern '先通过\[录制前公开核对\]\(demo-script\.md#录制前公开核对\)'
+
+Assert-Contains `
+    -Name "English survival guide exposes demo readiness guide command" `
+    -Text $survival `
+    -Pattern '`adpos demo -Plan`[\s\S]*providerless readiness guide[\s\S]*does not run the demo[\s\S]*start VMs[\s\S]*approve recording, publishing, outreach'
+
+Assert-Contains `
+    -Name "Chinese survival guide exposes demo readiness guide command" `
+    -Text $survivalZh `
+    -Pattern '`adpos demo -Plan`[\s\S]*providerless 就绪引导[\s\S]*不会运行 demo[\s\S]*启动 VM[\s\S]*不批准录制、发布、外联'
 
 Assert-Contains `
     -Name "English survival demo readiness requires Windows 11" `
@@ -190,6 +210,16 @@ Assert-Contains `
     -Pattern '新增仅公开材料录制和现场演示核对护栏'
 
 Assert-Contains `
+    -Name "English changelog records demo readiness guide command" `
+    -Text $changelog `
+    -Pattern 'Added `adpos demo \[-Plan\]` as a providerless, non-mutating readiness guide[\s\S]*without starting VMs[\s\S]*approving publication or outreach'
+
+Assert-Contains `
+    -Name "Chinese changelog records demo readiness guide command" `
+    -Text $changelogZh `
+    -Pattern '新增 `adpos demo \[-Plan\]`，作为 providerless、非变更的 10 分钟 survival demo 就绪引导[\s\S]*不启动 VM[\s\S]*不批准发布或外联'
+
+Assert-Contains `
     -Name "English changelog records dry-run readiness alignment" `
     -Text $changelog `
     -Pattern 'Aligned public demo dry-run readiness docs around the Windows 11 host requirement'
@@ -237,6 +267,11 @@ Assert-NotContains `
 Assert-NotContains `
     -Name "demo docs do not expose retired adp shell command" `
     -Text $demoDocs `
-    -Pattern '(^|[^A-Za-z0-9_.-])(\.\\|\./)?adp\s+(setup|uninstall|iso|quickstart|init|up|status|capabilities|isolate|stop|sync|workspace|network|snapshot|restore|logs|doctor|destroy|precheck|help|version|validate|completion|serve|run|sandbox)\b'
+    -Pattern '(^|[^A-Za-z0-9_.-])(\.\\|\./)?adp\s+(setup|uninstall|iso|quickstart|init|up|status|capabilities|isolate|stop|sync|workspace|network|snapshot|restore|logs|doctor|destroy|precheck|demo|help|version|validate|completion|serve|run|sandbox)\b'
+
+Assert-NotContains `
+    -Name "demo readiness guide is not described as execution or publication approval" `
+    -Text (@($readme, $readmeZh, $demoScript, $demoScriptZh, $survival, $survivalZh) -join "`n") `
+    -Pattern 'adpos demo -Plan (runs|starts|executes|publishes|contacts users|approves outreach)|adpos demo -Plan (运行|开始|执行|发布|联系用户|批准外联)'
 
 Write-Output "Survival validation documentation contracts OK"

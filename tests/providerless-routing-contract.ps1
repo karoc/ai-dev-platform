@@ -176,6 +176,7 @@ Assert-NotContains -Name "serve is not providerless at entry" -Text $entryProvid
 Assert-NotContains -Name "up is not providerless at entry" -Text $entryProviderlessCommands -Pattern '"up"'
 Assert-NotContains -Name "status is not providerless at entry" -Text $entryProviderlessCommands -Pattern '"status"'
 Assert-NotContains -Name "snapshot is not providerless at entry" -Text $entryProviderlessCommands -Pattern '"snapshot"'
+Assert-Contains -Name "demo is providerless at entry" -Text $entryProviderlessCommands -Pattern '"demo"'
 Assert-Contains -Name "run plan is providerless by flag" -Text $cliText -Pattern '\$normalizedCommand\s+-eq\s+"run"[\s\S]*-Name "Plan"'
 Assert-Contains -Name "prerequisite help alias is normalized" -Text $cliText -Pattern 'function\s+Resolve-ADPArgumentAlias[\s\S]*"--help-prereqs"[\s\S]*"-HelpPrereqs"'
 Assert-Contains -Name "precheck help is providerless by flag" -Text $cliText -Pattern '\$normalizedCommand\s+-eq\s+"precheck"[\s\S]*-Name "HelpPrereqs"'
@@ -194,6 +195,8 @@ try {
         @{ Name = "help doctor"; Args = @("help", "doctor"); ExitCode = 0; Pattern = "ADP-OS: adpos doctor" },
         @{ Name = "precheck help prereqs"; Args = @("precheck", "--help-prereqs"); ExitCode = 0; Pattern = "ADP-OS Prerequisites" },
         @{ Name = "quickstart plan"; Args = @("quickstart", "-Plan", "-SkipIsoDownload", "-SkipDoctor", "-NoRegisterCommand"); ExitCode = 0; Pattern = "ADP-OS Quickstart Plan" },
+        @{ Name = "demo"; Args = @("demo"); ExitCode = 0; Pattern = "ADP-OS Demo Readiness Plan" },
+        @{ Name = "demo plan"; Args = @("demo", "-Plan"); ExitCode = 0; Pattern = "Readiness guide only" },
         @{ Name = "unknown command"; Args = @("hepl"); ExitCode = 1; Pattern = "Unknown command: hepl" },
         @{ Name = "capabilities"; Args = @("capabilities"); ExitCode = 0; Pattern = "Capabilities only: no VMs" },
         @{ Name = "isolate plan"; Args = @("isolate", "-Plan", "-Namespace", "v2"); ExitCode = 0; Pattern = "Plan only: configs\\\\local\.json will not be changed" },
@@ -210,7 +213,7 @@ try {
         Assert-ExitCode -Name $case.Name -Actual $result.ExitCode -Expected $case.ExitCode
         Assert-Contains -Name $case.Name -Text $result.Output -Pattern $case.Pattern
         Assert-NotContains -Name $case.Name -Text $result.Output -Pattern $sentinel
-        Assert-NotContains -Name $case.Name -Text $result.Output -Pattern 'Get-VMStatus|Get-SnapshotList|Initialize-Mutagen|Test-SyncSessionExists'
+        Assert-NotContains -Name $case.Name -Text $result.Output -Pattern 'Get-VMStatus|Get-SnapshotList|Initialize-Mutagen|Test-SyncSessionExists|Provider init skipped|VMware adapter init skipped'
     }
 
     $invalidArgumentCases = @(
@@ -225,6 +228,7 @@ try {
         @{ Name = "precheck typo parameter"; Args = @("precheck", "-Jsson"); Detail = "Jsson" },
         @{ Name = "quickstart typo parameter"; Args = @("quickstart", "-SkpDoctor"); Detail = "SkpDoctor" },
         @{ Name = "quickstart missing iso path value"; Args = @("quickstart", "-IsoPath"); Detail = "IsoPath" },
+        @{ Name = "demo typo parameter"; Args = @("demo", "-Bogus"); Detail = "Bogus" },
         @{ Name = "run typo parameter"; Args = @("run", "agent", "-NoBootstrp"); Detail = "NoBootstrp" },
         @{ Name = "sandbox missing distro value"; Args = @("sandbox", "-Distro"); Detail = "Distro" }
     )

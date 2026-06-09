@@ -8,6 +8,7 @@
 
 公开录制或现场演示必须能够只依赖公开仓库复现：
 
+- 先运行 `adpos demo -Plan` 查看 providerless 就绪引导。它只是引导信息：不会运行 demo、创建或启动 VM、修改 sync session、创建 snapshot、打开 SSH、修改主机配置、修改 PATH、写入文件、发布录制或批准外联。
 - 只使用公开 ADP-OS checkout、公开文档、公开 recipe manifest、公开 issue templates，以及公开 ADP-OS 命令生成的 artifacts。
 - 面向用户的 shell 命令是 `adpos`；仓库根目录中的 `.\adpos.cmd` 只是 `PATH` 刷新前的本地 wrapper。不要引入 `adp` shell 命令。
 - 不要依赖私有维护者脚本、私有清理笔记、私有仓库、私有反馈记录、未发布支持渠道或未文档化的 VMware 介入。

@@ -75,8 +75,23 @@ Assert-Contains -Name "adpos help shows command overview" -Text $help.Output -Pa
 Assert-Contains -Name "adpos help includes setup" -Text $help.Output -Pattern "adpos setup"
 Assert-Contains -Name "adpos help includes isolate" -Text $help.Output -Pattern "adpos isolate"
 Assert-Contains -Name "adpos help includes uninstall" -Text $help.Output -Pattern "adpos uninstall"
+Assert-Contains -Name "adpos help includes demo readiness guide" -Text $help.Output -Pattern "adpos demo \[-Plan\]"
 Assert-Contains -Name "adpos help advertises command-specific help" -Text $help.Output -Pattern "adpos help <command>"
 Assert-Contains -Name "adpos help wraps long quickstart usage before summary" -Text $help.Output -Pattern "adpos quickstart .*--help-prereqs\]\s+[\r\n]+\s+Compatibility guided setup entry"
+
+$demoHelp = Invoke-AdposCli -Arguments @("help", "demo")
+Assert-ExitCode -Name "adpos help demo" -Actual $demoHelp.ExitCode -Expected 0
+Assert-Contains -Name "adpos help demo shows command title" -Text $demoHelp.Output -Pattern "ADP-OS: adpos demo"
+Assert-Contains -Name "adpos help demo shows plan usage" -Text $demoHelp.Output -Pattern "adpos demo \[-Plan\]"
+Assert-Contains -Name "adpos help demo states readiness guide only" -Text $demoHelp.Output -Pattern "readiness guide[\s\S]*without running the demo"
+Assert-Contains -Name "adpos help demo states no mutation boundary" -Text $demoHelp.Output -Pattern "Does not start VMs, create snapshots, change sync, open SSH, change host configuration, PATH, files, downloads, or command registration"
+Assert-Contains -Name "adpos help demo states outreach boundary" -Text $demoHelp.Output -Pattern "does not approve recording, publishing, outreach"
+Assert-Contains -Name "adpos help demo points to docs" -Text $demoHelp.Output -Pattern "docs/demo-script\.md[\s\S]*docs/survival-validation\.md"
+
+$demoFlagHelp = Invoke-AdposCli -Arguments @("demo", "--help")
+Assert-ExitCode -Name "adpos demo --help" -Actual $demoFlagHelp.ExitCode -Expected 0
+Assert-Contains -Name "adpos demo --help shows command title" -Text $demoFlagHelp.Output -Pattern "ADP-OS: adpos demo"
+Assert-Contains -Name "adpos demo --help shows plan usage" -Text $demoFlagHelp.Output -Pattern "adpos demo \[-Plan\]"
 
 $doctorHelp = Invoke-AdposCli -Arguments @("help", "doctor")
 Assert-ExitCode -Name "adpos help doctor" -Actual $doctorHelp.ExitCode -Expected 0
@@ -105,6 +120,12 @@ Assert-ExitCode -Name "adpos help doctor zh-CN" -Actual $doctorHelpZh.ExitCode -
 Assert-Contains -Name "adpos help doctor zh-CN shows mutagen plan usage" -Text $doctorHelpZh.Output -Pattern "adpos doctor -FixMutagen \[-Plan\] \[-Json\]"
 Assert-Contains -Name "adpos help doctor zh-CN explains plan scope" -Text $doctorHelpZh.Output -Pattern "仅与 -FixMutagen 一起使用"
 
+$demoHelpZh = Invoke-AdposCli -Arguments @("help", "demo") -Environment @{ ADP_LANG = "zh-CN" }
+Assert-ExitCode -Name "adpos help demo zh-CN" -Actual $demoHelpZh.ExitCode -Expected 0
+Assert-Contains -Name "adpos help demo zh-CN shows plan usage" -Text $demoHelpZh.Output -Pattern "adpos demo \[-Plan\]"
+Assert-Contains -Name "adpos help demo zh-CN states guide only" -Text $demoHelpZh.Output -Pattern "就绪引导[\s\S]*不运行 demo"
+Assert-Contains -Name "adpos help demo zh-CN states outreach boundary" -Text $demoHelpZh.Output -Pattern "不批准录制、发布、外联"
+
 $helpTypo = Invoke-AdposCli -Arguments @("help", "doctro")
 Assert-ExitCode -Name "adpos help doctro" -Actual $helpTypo.ExitCode -Expected 1
 Assert-Contains -Name "adpos help typo reports missing detailed help" -Text $helpTypo.Output -Pattern "Command 'doctro' has no detailed help"
@@ -116,6 +137,10 @@ Assert-ExitCode -Name "adpos help doctro zh-CN" -Actual $helpTypoZh.ExitCode -Ex
 Assert-Contains -Name "adpos help typo zh-CN reports missing detailed help" -Text $helpTypoZh.Output -Pattern "命令 'doctro' 没有详细帮助"
 Assert-Contains -Name "adpos help typo zh-CN suggests command-specific help" -Text $helpTypoZh.Output -Pattern "你是不是想运行: adpos help doctor"
 Assert-Contains -Name "adpos help typo zh-CN gives help overview recovery" -Text $helpTypoZh.Output -Pattern "运行 'adpos help' 查看所有命令"
+
+$helpDemoTypo = Invoke-AdposCli -Arguments @("help", "dmeo")
+Assert-ExitCode -Name "adpos help dmeo" -Actual $helpDemoTypo.ExitCode -Expected 1
+Assert-Contains -Name "adpos help demo typo suggests command-specific help" -Text $helpDemoTypo.Output -Pattern "Did you mean: adpos help demo"
 
 $precheckHelp = Invoke-AdposCli -Arguments @("precheck", "--help-prereqs")
 Assert-ExitCode -Name "adpos precheck --help-prereqs" -Actual $precheckHelp.ExitCode -Expected 0
@@ -133,11 +158,39 @@ Assert-Contains -Name "quickstart plan states non-mutating boundary" -Text $quic
 Assert-Contains -Name "quickstart plan preserves option state" -Text $quickstartPlan.Output -Pattern "Skip ISO download: true[\s\S]*Skip doctor: true[\s\S]*Register global command: no"
 Assert-NotContains -Name "quickstart plan does not run precheck or provider" -Text $quickstartPlan.Output -Pattern "Running: adpos precheck|Provider init skipped|VMware adapter init skipped|Installing Mutagen locally"
 
+$demoDefault = Invoke-AdposCli -Arguments @("demo")
+Assert-ExitCode -Name "adpos demo" -Actual $demoDefault.ExitCode -Expected 0
+Assert-Contains -Name "adpos demo reports readiness plan" -Text $demoDefault.Output -Pattern "ADP-OS Demo Readiness Plan"
+Assert-Contains -Name "adpos demo states guide only" -Text $demoDefault.Output -Pattern "Readiness guide only: this command does not run the demo"
+Assert-Contains -Name "adpos demo states no mutation boundary" -Text $demoDefault.Output -Pattern "No VM, sync session, snapshot, SSH, host configuration, PATH, files, downloads, or registrations will be changed"
+Assert-Contains -Name "adpos demo lists manual readiness chain" -Text $demoDefault.Output -Pattern "adpos precheck[\s\S]*adpos run agent -Plan[\s\S]*adpos doctor[\s\S]*adpos status agent[\s\S]*adpos sync status[\s\S]*adpos workspace recipes -ManifestPath configs\\workspace\.recipes\.example\.json"
+Assert-Contains -Name "adpos demo states VMware hard boundary" -Text $demoDefault.Output -Pattern "If VMware is unavailable, do not run the survival demo"
+Assert-Contains -Name "adpos demo states publication boundary" -Text $demoDefault.Output -Pattern "does not approve recording, publishing, outreach, user recruitment, testimonials, Discord, or GitHub Discussions"
+Assert-Contains -Name "adpos demo points to docs" -Text $demoDefault.Output -Pattern "docs/demo-script\.md[\s\S]*docs/survival-validation\.md"
+Assert-NotContains -Name "adpos demo does not run provider or demo" -Text $demoDefault.Output -Pattern "Provider init skipped|VMware adapter init skipped|Running demo|Demo complete"
+
+$demoPlan = Invoke-AdposCli -Arguments @("demo", "-Plan")
+Assert-ExitCode -Name "adpos demo -Plan" -Actual $demoPlan.ExitCode -Expected 0
+Assert-Contains -Name "adpos demo -Plan reports readiness plan" -Text $demoPlan.Output -Pattern "ADP-OS Demo Readiness Plan"
+Assert-Contains -Name "adpos demo -Plan stays guide only" -Text $demoPlan.Output -Pattern "Readiness guide only: this command does not run the demo"
+
+$demoPlanZh = Invoke-AdposCli -Arguments @("demo", "-Plan") -Environment @{ ADP_LANG = "zh-CN" }
+Assert-ExitCode -Name "adpos demo -Plan zh-CN" -Actual $demoPlanZh.ExitCode -Expected 0
+Assert-Contains -Name "adpos demo zh-CN reports readiness plan" -Text $demoPlanZh.Output -Pattern "ADP-OS 演练就绪计划"
+Assert-Contains -Name "adpos demo zh-CN states guide only" -Text $demoPlanZh.Output -Pattern "仅就绪引导：此命令不会运行 demo"
+Assert-Contains -Name "adpos demo zh-CN states mutation boundary" -Text $demoPlanZh.Output -Pattern "不会更改 VM、同步会话、快照、SSH、主机配置、PATH、文件、下载或命令注册"
+Assert-Contains -Name "adpos demo zh-CN states publication boundary" -Text $demoPlanZh.Output -Pattern "不批准录制、发布、外联"
+
 $topLevelTypo = Invoke-AdposCli -Arguments @("hepl")
 Assert-ExitCode -Name "adpos hepl" -Actual $topLevelTypo.ExitCode -Expected 1
 Assert-Contains -Name "adpos hepl reports unknown command" -Text $topLevelTypo.Output -Pattern "Unknown command: hepl"
 Assert-Contains -Name "adpos hepl suggests help" -Text $topLevelTypo.Output -Pattern "Did you mean: adpos help"
 Assert-Contains -Name "adpos hepl gives recovery path" -Text $topLevelTypo.Output -Pattern "Run 'adpos help' to see full help"
+
+$demoTypo = Invoke-AdposCli -Arguments @("dmeo")
+Assert-ExitCode -Name "adpos dmeo" -Actual $demoTypo.ExitCode -Expected 1
+Assert-Contains -Name "adpos dmeo reports unknown command" -Text $demoTypo.Output -Pattern "Unknown command: dmeo"
+Assert-Contains -Name "adpos dmeo suggests demo" -Text $demoTypo.Output -Pattern "Did you mean: adpos demo"
 
 $doctorPlan = Invoke-AdposCli -Arguments @("doctor", "-Plan")
 Assert-ExitCode -Name "adpos doctor -Plan" -Actual $doctorPlan.ExitCode -Expected 1

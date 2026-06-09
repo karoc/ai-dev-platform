@@ -1,5 +1,5 @@
 # ADP-OS CLI Entry Point
-# Subcommand routing: init, up, status, stop, sync, snapshot, logs, doctor, destroy, capabilities, isolate, run, completion, iso, quickstart
+# Subcommand routing: init, up, status, stop, sync, snapshot, logs, doctor, destroy, capabilities, isolate, run, completion, iso, quickstart, demo
 # .SYNOPSIS
 #   adp.ps1 <command> [args...] [-Json]
 
@@ -34,7 +34,7 @@ Initialize-Config -ProjectRoot $script:ProjectRoot
 Initialize-Logging -LogDirectory (Join-Path $script:ProjectRoot "logs")
 
 # --- Command Router ---
-$validCommands = @("setup", "init", "up", "status", "stop", "sync", "snapshot", "restore", "logs", "doctor", "destroy", "network", "workspace", "capabilities", "isolate", "validate", "help", "run", "completion", "version", "iso", "quickstart", "precheck", "sandbox", "serve", "uninstall")
+$validCommands = @("setup", "init", "up", "status", "stop", "sync", "snapshot", "restore", "logs", "doctor", "destroy", "network", "workspace", "capabilities", "isolate", "validate", "help", "run", "completion", "version", "iso", "quickstart", "precheck", "demo", "sandbox", "serve", "uninstall")
 
 function Get-ADPArgumentValue {
     param(
@@ -133,7 +133,7 @@ function Test-ADPCommandRequiresEntryProvider {
 
     $providerlessCommands = @(
         "setup", "logs", "capabilities", "isolate", "validate",
-        "help", "completion", "version", "iso", "uninstall"
+        "help", "completion", "version", "iso", "demo", "uninstall"
     )
     if ($normalizedCommand -in $providerlessCommands) {
         return $false

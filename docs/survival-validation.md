@@ -77,6 +77,7 @@ Do not optimize the first validation round for generic developers, Linux/macOS-f
 
 Before showing the demo to a user:
 
+- Run `adpos demo -Plan` for the providerless readiness guide. It only prints what to check next; it does not run the demo, start VMs, touch sync/SSH/snapshots/host configuration/files, or approve recording, publishing, outreach, testimonials, Discord, or GitHub Discussions.
 - Pass the [Public-Only Recording Checklist](demo-script.md#public-only-recording-checklist) before recording, publishing, or using the demo in a live user session.
 - Run the demo on a real Windows 11 host with VMware Workstation available and reachable.
 - Use PowerShell 7 for the control plane. From a stock Windows shell, use `.\adpos.cmd`; if only built-in Windows PowerShell 5.1 is available, run `.\setup.cmd` first so the user gets the PowerShell 7 install path instead of a broken ADP command.

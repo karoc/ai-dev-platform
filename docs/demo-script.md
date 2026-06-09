@@ -27,6 +27,7 @@ Before recording or showing a public demo, the run must be reproducible from the
 
 Run these before the session. Do NOT include in the 10-minute window.
 
+- Start with `adpos demo -Plan` to print the providerless readiness guide. It is guidance only: it does not run the demo, create or start VMs, change sync sessions, create snapshots, open SSH, change host configuration, change PATH, write files, publish recordings, or approve outreach.
 - [ ] 1. **Verify VMware** — `adpos doctor` shows VMware reachable. If "VMware: unavailable", stop — demo cannot proceed.
 - [ ] 2. **Verify agent runtime** — `adpos status agent` shows the VM running, SSH reachable, and sync healthy.
 - [ ] 3. **Pre-create snapshot** — `adpos snapshot create agent before-broad-agent-refactor` (VMware snapshot; takes 30–120s). If it already exists, confirm it was created from the exact workspace baseline for this recording. If the baseline changed, replace it during pre-demo setup with VMware Workstation/`vmrun`, or choose a fresh snapshot name before rehearsing.

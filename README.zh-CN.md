@@ -366,6 +366,8 @@ adpos workspace task validate frontend-browser-acceptance -Execute -ManifestPath
 
 `adpos uninstall` 只移除属于当前 checkout 的全局命令注册。Runtime 数据、workspace 数据、缓存、工具、日志和仓库文件都会保留。如果全局 `adpos` 属于另一个 checkout，默认会拒绝卸载；请到所属 checkout 中执行卸载，或在确认要移除该全局绑定时使用 `-Force`。
 
+`adpos demo -Plan` 会打印 10 分钟 survival demo 的非变更就绪引导。它不会运行 demo、启动 VM、创建快照、触碰 sync/SSH/主机配置/文件，也不批准录制、发布、外联、testimonial、Discord 或 GitHub Discussions。
+
 ```powershell
 adpos setup [-Distro <name>] [-IsoPath <path>] [-SkipIsoDownload] [-SkipDoctor] [-Force] [-NonInteractive] [-NoRegisterCommand] [-Plan]
 adpos uninstall [-NonInteractive] [-Force]
@@ -374,6 +376,7 @@ adpos version
 adpos iso [ubuntu|almalinux|rocky|debian] [-Url <url>] [-Force] [-NonInteractive]
 adpos quickstart [-Distro <name>] [-IsoPath <path>] [-SkipIsoDownload] [-SkipDoctor] [-Force] [-NonInteractive] [-NoRegisterCommand] [-Plan] [--help-prereqs]
 adpos precheck [--help-prereqs]
+adpos demo [-Plan]
 adpos init
 adpos init <frontend|backend|agent|sandbox> [-IsoPath <path>] [-NoProvision] [-Quick] [-NonInteractive]
 adpos up <frontend|backend|agent|sandbox> [-IsoPath <path>] [-Plan] [-NoProvision] [-NoBootstrap]

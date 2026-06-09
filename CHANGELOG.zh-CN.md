@@ -17,6 +17,7 @@
 ### 新增
 
 - 在 survival demo 路径中新增仅公开材料录制和现场演示核对护栏，覆盖公开 artifact 边界、隐私复查、evidence ZIP 检查、sync fence，以及发布或外联前必须获得 maintainer 批准的边界。
+- 新增 `adpos demo [-Plan]`，作为 providerless、非变更的 10 分钟 survival demo 就绪引导。它只打印手动就绪链路和硬性边界，不启动 VM、不触碰 sync/SSH/snapshot/主机配置/文件，也不批准发布或外联。
 
 ### 修复
 
