@@ -161,9 +161,12 @@ If another VM with the same runtime resource name is already running, ADP-OS rep
 
 ```powershell
 .\setup.cmd -IsoPath C:\...\ubuntu.iso   # Use a pre-downloaded ISO
+.\setup.cmd -Distro ubuntu                # Choose a supported distro profile
 .\setup.cmd -SkipIsoDownload              # Skip ISO download (already cached)
+.\setup.cmd -SkipDoctor                   # Skip post-install doctor checks
 .\setup.cmd -NonInteractive               # Run without prompts (for scripts/CI)
 .\setup.cmd -Force                        # Skip precheck, proceed anyway
+.\setup.cmd -NoRegisterCommand            # Do not register the global adpos command
 ```
 
 **Optional prerequisite preview, if PowerShell 7 is already available:**

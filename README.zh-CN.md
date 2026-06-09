@@ -145,9 +145,12 @@ cd ai-dev-platform
 
 ```powershell
 .\setup.cmd -IsoPath C:\...\ubuntu.iso   # 使用已下载的 ISO
+.\setup.cmd -Distro ubuntu                # 选择支持的发行版配置
 .\setup.cmd -SkipIsoDownload              # 跳过 ISO 下载（已缓存）
+.\setup.cmd -SkipDoctor                   # 跳过安装后的 doctor 检查
 .\setup.cmd -NonInteractive               # 无交互运行（脚本/CI 使用）
 .\setup.cmd -Force                        # 跳过前提条件检查
+.\setup.cmd -NoRegisterCommand            # 不注册全局 adpos 命令
 ```
 
 **可选：如果已安装 PowerShell 7，可先预览前提条件：**

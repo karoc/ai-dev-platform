@@ -65,14 +65,13 @@ Before you start, make sure you have:
 | Step | Time | What Happens |
 |------|------|-------------|
 | Clone the repo | < 1 min | `git clone` — a few megabytes |
-| Download Ubuntu ISO | 5–15 min | ~2.6 GB download. Speed depends on your connection and [Ubuntu mirror](https://releases.ubuntu.com/26.04/) reachability |
-| `setup.cmd` (setup + init) | 5–10 min | Runs guided setup, registers the global `adpos` command, remasters ISO, creates VM templates |
+| `setup.cmd` (guided setup + init) | 10–30 min | Scans prerequisites, downloads or reuses the Ubuntu ISO, registers the global `adpos` command, initializes platform metadata, runs doctor |
 | `adpos up frontend` (first VM) | 15–45 min | Provisions and boots your first VM, runs bootstrap scripts |
 | Later warm start | ~30s | Starts an existing VM after it has already been provisioned |
 | Verify with `adpos status` | < 1 min | Confirms everything is running |
 | **Total** | **~30–70 minutes** | From zero to working development VM |
 
-Times assume a typical broadband connection and a reasonably fast machine. ISO download is usually the slowest step.
+Times assume a typical broadband connection and a reasonably fast machine. The ISO download inside `setup.cmd` is usually the slowest setup step.
 
 ## Step-by-Step Walkthrough
 
@@ -131,11 +130,11 @@ The runtime gate blocks duplicate running VMs with the same runtime resource nam
 .\setup.cmd
 ```
 
-This single command handles ISO download, platform installation, initialization, and diagnostics:
+This single command handles prerequisite checks, ISO download or cache reuse, platform installation, initialization, and diagnostics:
 
 1. **Prerequisite Scan** — Checks all 6 prerequisites and shows remediation for any missing items.  
-2. **ISO Download** — Downloads Ubuntu Server 26.04 (~2.6 GB). Progress shown with percentage and speed.
-3. **Bootstrap** — Sets up directories, registers `adpos`, generates seed ISO, and creates VM templates.
+2. **ISO Download/Cache** — Downloads Ubuntu Server 26.04 (~2.6 GB) unless a valid ISO is already supplied or cached.
+3. **Bootstrap** — Sets up directories, registers `adpos`, and initializes platform and VM factory metadata.
 4. **Init** — Runs `adpos init -Quick` through the setup chain to finalize platform configuration.
 5. **Doctor** — Runs `adpos doctor` through the setup chain to verify all prerequisites are in place.
 
@@ -161,8 +160,8 @@ adpos up frontend
 
 This command:
 
-1. Creates the VM disk and VMX configuration
-2. Boots the VM with the remastered ISO
+1. Creates the seed/autoinstall ISO, VM disk, and VMX configuration
+2. Boots the VM with the prepared installer ISO
 3. Waits for cloud-init to finish provisioning
 4. Runs SSH bootstrap scripts (Docker, Node.js, etc.)
 5. Confirms the VM is ready

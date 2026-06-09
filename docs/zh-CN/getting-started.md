@@ -65,14 +65,13 @@ ADP-OS 不会替代 Docker。它提供可运行 Docker 的虚拟机，并在此�
 | 步骤 | 耗时 | 内容 |
 |------|------|------|
 | 克隆仓库 | < 1 分钟 | `git clone` — 几 MB 大小 |
-| 下载 Ubuntu ISO | 5–15 分钟 | ~2.6 GB 下载。速度取决于你的网络和 [Ubuntu 镜像](https://releases.ubuntu.com/26.04/) 的可达性 |
-| `setup.cmd`（设置 + 初始化） | 5–10 分钟 | 运行引导式设置、注册全局 `adpos` 命令、重制 ISO、创建 VM 模板 |
+| `setup.cmd`（引导式设置 + 初始化） | 10–30 分钟 | 检查前提条件，下载或复用 Ubuntu ISO，注册全局 `adpos` 命令，初始化平台元数据，运行 doctor |
 | `adpos up frontend`（首次 VM） | 15–45 分钟 | 创建并启动你的第一个 VM，运行引导脚本 |
 | 之后 warm start | 约 30 秒 | 启动已经完成 provisioning 的既有 VM |
 | 用 `adpos status` 验证 | < 1 分钟 | 确认一切正常运行 |
 | **合计** | **约 30–70 分钟** | 从零到可用的开发虚拟机 |
 
-以上时间假设使用典型宽带连接和配置较好的机器。ISO 下载通常是最慢的步骤。
+以上时间假设使用典型宽带连接和配置较好的机器。`setup.cmd` 内部的 ISO 下载通常是设置阶段最慢的步骤。
 
 ## 逐步操作指南
 
@@ -131,11 +130,11 @@ runtime gate 会阻止相同 runtime resource name 的重复运行 VM。如果 `
 .\setup.cmd
 ```
 
-这一条命令即可完成前提条件扫描、ISO 下载、平台安装、初始化和诊断：
+这一条命令即可完成前提条件扫描、ISO 下载或缓存复用、平台安装、初始化和诊断：
 
 1. **前提条件扫描** — 检查全部 6 项前提条件，显示每项的修复步骤。
-2. **ISO 下载** — 下载 Ubuntu Server 26.04（约 2.6 GB）。显示百分比和速度。
-3. **引导** — 设置目录、注册 `adpos`、生成 seed ISO 并创建 VM 模板。
+2. **ISO 下载/缓存** — 下载 Ubuntu Server 26.04（约 2.6 GB），除非已提供或已缓存有效 ISO。
+3. **引导** — 设置目录、注册 `adpos`，并初始化平台和 VM factory 元数据。
 4. **初始化** — setup 链路会运行 `adpos init -Quick` 完成平台配置。
 5. **诊断** — setup 链路会运行 `adpos doctor` 验证所有前置条件是否就绪。
 
@@ -161,8 +160,8 @@ adpos up frontend
 
 这条命令会：
 
-1. 创建 VM 磁盘和 VMX 配置
-2. 使用重制后的 ISO 启动 VM
+1. 创建 seed/autoinstall ISO、VM 磁盘和 VMX 配置
+2. 使用准备好的安装 ISO 启动 VM
 3. 等待 cloud-init 完成 provisioning
 4. 运行 SSH 引导脚本（Docker、Node.js 等）
 5. 确认 VM 就绪

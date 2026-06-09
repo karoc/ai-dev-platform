@@ -6,7 +6,7 @@
 
 ## 从这里开始
 
-- **[快速入门](getting-started.md)**：首次设置指南——从零到运行中的开发 VM，约 30 分钟。
+- **[快速入门](getting-started.md)**：首次设置指南——从零到运行中的开发 VM，约 30-70 分钟。
 - **[Copilot SDK 集成指南](copilot-sdk-integration.md)**：在 GitHub Copilot Agent SDK 中加载 ADP-OS 工具。含 Python/TypeScript 快速开始示例、工具参考和权限模式。
 - **[Deer-Flow 集成指南](deer-flow-integration.md)**：在 ByteDance/deer-flow（70K⭐）中将 ADP-OS 配置为 MCP 服务器。快速开始指南、26 工具参考、工作流示例及当前限制。
 - **[Deer-Flow VM 后端](integrations/deer-flow-backend.md)**：将 ADP-OS 用作 deer-flow 的硬件 VM 沙箱后端。MCP 服务器和直接适配器配置、VM 池预暖、端到端流程。

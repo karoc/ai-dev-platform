@@ -127,8 +127,20 @@ function Get-ChangelogEntry {
 
 $readme = Get-Content -LiteralPath (Join-Path $projectRoot "README.md") -Raw -Encoding UTF8
 $readmeZh = Get-Content -LiteralPath (Join-Path $projectRoot "README.zh-CN.md") -Raw -Encoding UTF8
+$docsIndex = Get-Content -LiteralPath (Join-Path $projectRoot "docs\README.md") -Raw -Encoding UTF8
+$docsIndexZh = Get-Content -LiteralPath (Join-Path $projectRoot "docs\zh-CN\README.md") -Raw -Encoding UTF8
+$gettingStarted = Get-Content -LiteralPath (Join-Path $projectRoot "docs\getting-started.md") -Raw -Encoding UTF8
+$gettingStartedZh = Get-Content -LiteralPath (Join-Path $projectRoot "docs\zh-CN\getting-started.md") -Raw -Encoding UTF8
 $changelog = Get-Content -LiteralPath (Join-Path $projectRoot "CHANGELOG.md") -Raw -Encoding UTF8
 $changelogZh = Get-Content -LiteralPath (Join-Path $projectRoot "CHANGELOG.zh-CN.md") -Raw -Encoding UTF8
+Assert-Contains -Name "English docs index uses first-setup 30-70 minute timeline" -Text $docsIndex -Pattern 'running development VM in ~30-70 minutes'
+Assert-Contains -Name "Chinese docs index uses first-setup 30-70 minute timeline" -Text $docsIndexZh -Pattern '运行中的开发 VM，约 30-70 分钟'
+Assert-Contains -Name "English getting started keeps ISO download inside setup timeline" -Text $gettingStarted -Pattern '\| `setup\.cmd` \(guided setup \+ init\) \| 10–30 min \| Scans prerequisites, downloads or reuses the Ubuntu ISO'
+Assert-Contains -Name "Chinese getting started keeps ISO download inside setup timeline" -Text $gettingStartedZh -Pattern '\| `setup\.cmd`（引导式设置 \+ 初始化） \| 10–30 分钟 \| 检查前提条件，下载或复用 Ubuntu ISO'
+Assert-Contains -Name "English getting started puts seed ISO creation in up stage" -Text $gettingStarted -Pattern 'Creates the seed/autoinstall ISO, VM disk, and VMX configuration'
+Assert-Contains -Name "Chinese getting started puts seed ISO creation in up stage" -Text $gettingStartedZh -Pattern '创建 seed/autoinstall ISO、VM 磁盘和 VMX 配置'
+Assert-Contains -Name "English README setup options include full setup wrapper parameters" -Text $readme -Pattern '\.\\setup\.cmd -IsoPath[\s\S]*\.\\setup\.cmd -Distro ubuntu[\s\S]*\.\\setup\.cmd -SkipIsoDownload[\s\S]*\.\\setup\.cmd -SkipDoctor[\s\S]*\.\\setup\.cmd -NonInteractive[\s\S]*\.\\setup\.cmd -Force[\s\S]*\.\\setup\.cmd -NoRegisterCommand'
+Assert-Contains -Name "Chinese README setup options include full setup wrapper parameters" -Text $readmeZh -Pattern '\.\\setup\.cmd -IsoPath[\s\S]*\.\\setup\.cmd -Distro ubuntu[\s\S]*\.\\setup\.cmd -SkipIsoDownload[\s\S]*\.\\setup\.cmd -SkipDoctor[\s\S]*\.\\setup\.cmd -NonInteractive[\s\S]*\.\\setup\.cmd -Force[\s\S]*\.\\setup\.cmd -NoRegisterCommand'
 Assert-Contains -Name "English README command reference includes sandbox runtime" -Text $readme -Pattern 'adpos init <frontend\|backend\|agent\|sandbox>[\s\S]*adpos up <frontend\|backend\|agent\|sandbox>[\s\S]*adpos status \[frontend\|backend\|agent\|sandbox\][\s\S]*adpos stop <frontend\|backend\|agent\|sandbox>[\s\S]*adpos sync start <frontend\|backend\|agent\|sandbox>[\s\S]*adpos network apply <frontend\|backend\|agent\|sandbox\|all>'
 Assert-Contains -Name "Chinese README command reference includes sandbox runtime" -Text $readmeZh -Pattern 'adpos init <frontend\|backend\|agent\|sandbox>[\s\S]*adpos up <frontend\|backend\|agent\|sandbox>[\s\S]*adpos status \[frontend\|backend\|agent\|sandbox\][\s\S]*adpos stop <frontend\|backend\|agent\|sandbox>[\s\S]*adpos sync start <frontend\|backend\|agent\|sandbox>[\s\S]*adpos network apply <frontend\|backend\|agent\|sandbox\|all>'
 foreach ($case in @(
