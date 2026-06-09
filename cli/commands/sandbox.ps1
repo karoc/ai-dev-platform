@@ -4,7 +4,7 @@
 
 [CmdletBinding()]
 param(
-    [Parameter(ValueFromRemainingArguments = $true)]
+    [Parameter(Position = 0, ValueFromRemainingArguments = $true)]
     [string[]]$CommandArgs,
     [string]$Distro = "ubuntu-26.04",
     [string]$IsoPath
