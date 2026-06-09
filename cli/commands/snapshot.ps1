@@ -1,6 +1,7 @@
 # ADP-OS Snapshot Command
 # Create named VM snapshots for a runtime
 
+[CmdletBinding()]
 param(
     [string]$SubCommand,
     [string]$RuntimeName,

@@ -3,6 +3,7 @@
 # Checks all prerequisites and prints a table with status and remediation
 # Non-blocking by default: reports results but doesn't exit with error
 
+[CmdletBinding()]
 param(
     [switch]$Json,
     [switch]$HelpPrereqs

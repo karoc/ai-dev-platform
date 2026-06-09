@@ -1,6 +1,7 @@
 # ADP-OS setup command.
 # Delegates to the stock one-click setup script.
 
+[CmdletBinding()]
 param(
     [string]$Distro = "ubuntu",
     [string]$IsoPath,

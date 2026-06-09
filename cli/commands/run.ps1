@@ -2,6 +2,7 @@
 # One-command runtime creation: combines init + up + sync start + status.
 # Like "docker run" or "daytona create" — a single command to get a working agent VM.
 
+[CmdletBinding()]
 param(
     [Parameter(Position = 0)]
     [string]$RuntimeName,

@@ -1,6 +1,7 @@
 # ADP-OS Stop Command
 # Stop a named runtime VM
 
+[CmdletBinding()]
 param(
     [string]$RuntimeName
 )

@@ -2,6 +2,7 @@
 # Runs the shared repository validation suite (tests/validate.ps1).
 # Accepts the same flags: -Quick, -SkipCliSmoke, -SkipInstallerSmoke, -SkipShellSyntax.
 
+[CmdletBinding()]
 param(
     [switch]$Quick,
     [switch]$SkipCliSmoke,

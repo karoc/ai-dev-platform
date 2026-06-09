@@ -2,6 +2,7 @@
 # One-command disposable VM: creates a temp VM, runs a command inside, destroys the VM.
 # Guarantees cleanup regardless of command success/failure.
 
+[CmdletBinding()]
 param(
     [Parameter(ValueFromRemainingArguments = $true)]
     [string[]]$CommandArgs,

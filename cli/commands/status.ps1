@@ -1,6 +1,7 @@
 # ADP-OS Status Command
 # Shows runtime status and connection details without changing VM, sync, or guest state.
 
+[CmdletBinding()]
 param(
     [string]$RuntimeName,
     [switch]$Json

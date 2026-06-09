@@ -1,6 +1,7 @@
 # ADP-OS uninstall command.
 # Safe default: unregisters the global adpos command only.
 
+[CmdletBinding()]
 param(
     [switch]$NonInteractive,
     [switch]$Force

@@ -1,6 +1,7 @@
 # ADP-OS Network Command
 # Apply configured runtime networking to existing VMs.
 
+[CmdletBinding()]
 param(
     [string]$SubCommand,
     [string]$RuntimeName,

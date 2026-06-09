@@ -1,6 +1,7 @@
 # ADP-OS Up Command (Phase 2)
 # Starts a runtime — auto-creates VM from ISO if needed
 
+[CmdletBinding()]
 param(
     [string]$RuntimeName,
     [switch]$NoBootstrap,

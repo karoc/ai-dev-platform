@@ -2,6 +2,7 @@
 # Restore a runtime from a named snapshot
 # Protected: requires -Force to execute, -Plan for dry-run preview
 
+[CmdletBinding()]
 param(
     [string]$RuntimeName,
     [string]$SnapshotName,

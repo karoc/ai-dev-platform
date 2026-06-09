@@ -1,6 +1,7 @@
 # ADP-OS Shell Completion Command
 # Generates tab completion scripts for supported shells.
 
+[CmdletBinding()]
 param(
     [Parameter(Position = 0)]
     [string]$Shell

@@ -1,6 +1,7 @@
 # ADP-OS Logs Command
 # Show runtime logs (bootstrap, system, sync)
 
+[CmdletBinding()]
 param(
     [string]$RuntimeName
 )

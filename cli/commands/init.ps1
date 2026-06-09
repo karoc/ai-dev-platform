@@ -2,6 +2,7 @@
 # Full platform initialization: dependencies, VM factory, SSH, bootstrap readiness
 # Optionally provisions the first VM from ISO
 
+[CmdletBinding()]
 param(
     [string]$RuntimeName,
     [string]$IsoPath,

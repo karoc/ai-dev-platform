@@ -1,6 +1,7 @@
 # ADP-OS Destroy Command
 # Destroy a runtime VM completely
 
+[CmdletBinding()]
 param(
     [string]$RuntimeName,
     [switch]$Force,

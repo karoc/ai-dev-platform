@@ -1,6 +1,7 @@
 # ADP-OS Doctor Command
 # System diagnostics — checks all dependencies and platform health
 
+[CmdletBinding()]
 param(
     [switch]$FirstRun,
     [switch]$FixMutagen,

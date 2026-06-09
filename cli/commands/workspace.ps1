@@ -1,6 +1,7 @@
 # ADP-OS Workspace Command
 # Non-destructive workspace manifest helpers.
 
+[CmdletBinding()]
 param(
     [string]$SubCommand,
     [string]$TaskCommand,

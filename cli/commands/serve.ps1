@@ -7,6 +7,7 @@
 #   adpos serve -Port 8080       Custom port
 #   adpos serve -Public          Listen on all interfaces (requires admin or URL reservation)
 
+[CmdletBinding()]
 param(
     [int]$Port = 9080,
 

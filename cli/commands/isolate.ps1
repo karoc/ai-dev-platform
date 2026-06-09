@@ -1,6 +1,7 @@
 # ADP-OS checkout isolation planner command.
 # Renders read-only local override guidance for running multiple checkouts.
 
+[CmdletBinding()]
 param(
     [switch]$Plan,
     [string]$Namespace,

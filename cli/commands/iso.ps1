@@ -3,6 +3,7 @@
 # Supports Ubuntu Server, AlmaLinux, Rocky Linux, Debian
 # Uses BITS transfer for download resume support
 
+[CmdletBinding()]
 param(
     [Parameter(Position = 0)]
     [ValidateSet("ubuntu", "almalinux", "rocky", "debian")]

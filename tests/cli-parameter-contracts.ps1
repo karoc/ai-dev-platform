@@ -144,6 +144,14 @@ $gettingStartedDocs = Read-Text "docs\getting-started.md"
 $gettingStartedDocsZh = Read-Text "docs\zh-CN\getting-started.md"
 $pullRequestTemplate = Read-Text ".github\pull_request_template.md"
 
+$topLevelCommandFiles = Get-ChildItem -LiteralPath (Join-Path $projectRoot "cli\commands") -Filter "*.ps1" -File
+foreach ($commandFile in $topLevelCommandFiles) {
+    $commandText = Get-Content -LiteralPath $commandFile.FullName -Raw -Encoding UTF8
+    if ($commandText -notmatch '^\s*(?:#[^\r\n]*\r?\n\s*)*\[CmdletBinding\(\)\]\s*param\s*\(') {
+        throw "Top-level command script must use [CmdletBinding()] before param(): $($commandFile.FullName)"
+    }
+}
+
 Assert-Contains -Name "CLI loads help module before use" -Text $cli -Pattern 'cli\\lib\\help\.ps1[\s\S]*if\s*\(\$Command\s+-eq\s+"help"\)[\s\S]*if\s*\(-not\s+\$Command\)'
 Assert-Contains -Name "CLI help module defines Show-Help" -Text $cliHelp -Pattern 'function\s+Show-Help[\s\S]*function\s+Show-CommandHelp[\s\S]*function\s+Show-Version'
 Assert-Contains -Name "CLI propagates command exit codes" -Text $cli -Pattern 'Invoke-CommandFile[\s\S]*if\s*\(\$LASTEXITCODE\s+-gt\s+0\)\s*\{[\s\S]*exit\s+\$LASTEXITCODE'

@@ -1,6 +1,7 @@
 # ADP-OS Sync Command
 # Workspace sync status and management (Mutagen integration)
 
+[CmdletBinding()]
 param(
     [string]$SubCommand,
     [string]$RuntimeName

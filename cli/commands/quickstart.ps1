@@ -2,6 +2,7 @@
 # Guided first-run experience — chains precheck, ISO download, install, init, and doctor
 # Designed to reduce the ~15 manual steps to one guided flow
 
+[CmdletBinding()]
 param(
     [string]$Distro = "ubuntu",
     [string]$IsoPath,
