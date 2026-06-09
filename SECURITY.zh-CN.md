@@ -6,9 +6,9 @@ AI Dev Platform OS 当前是本地开发 MVP。它会创建本地 VMware 运行�
 
 ## 支持范围
 
-当前安全说明适用于 `main` 分支和 Windows VMware MVP。
+当前安全说明适用于最新 `main` 分支、轻量级 `v1.0.0` 公开 release，以及 Windows VMware MVP。
 
-项目尚未发布版本化 release。在引入 release 前，请使用最新 `main` 分支获取安全修复。
+安全修复当前在最新 `main` 分支处理。除非未来发布正式的 release policy，否则不承诺 release branch 或 patch release 维护。需要安全修复时请使用最新 `main` 分支；只有在明确需要固定公开快照时才使用 GitHub release。
 
 ## 本地开发安全模型
 

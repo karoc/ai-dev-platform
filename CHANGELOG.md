@@ -12,6 +12,12 @@ Note: user-facing shell commands are `adpos` from 2026-06-08 onward. Older entri
 
 Initial public release.
 
+### 2026-06-09
+
+### Fixed
+
+- Corrected release and security documentation to acknowledge the existing `v1.0.0` public release while keeping security-fix guidance centered on the latest `main` branch unless a future release maintenance policy is introduced.
+
 ### 2026-06-08
 
 ### Added

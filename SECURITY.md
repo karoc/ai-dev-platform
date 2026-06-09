@@ -6,9 +6,9 @@ AI Dev Platform OS is currently a local-development MVP. It provisions local VMw
 
 ## Supported Scope
 
-Security guidance currently applies to the `main` branch and the Windows VMware MVP.
+Security guidance currently applies to the latest `main` branch, the lightweight `v1.0.0` public release, and the Windows VMware MVP.
 
-The project does not yet publish versioned releases. Until releases are introduced, use the latest `main` branch for security fixes.
+Security fixes are currently handled on the latest `main` branch. Release-branch or patch-release maintenance is not promised unless a future release policy says so. Use the latest `main` branch for security fixes, or a GitHub release only when you intentionally need that fixed public snapshot.
 
 ## Local Development Security Model
 

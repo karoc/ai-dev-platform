@@ -2,7 +2,7 @@
 
 简体中文 | [English](../release-process.md)
 
-本文描述 ADP-OS 变更如何从本地工作进入公开更新。当前项目尚未发布版本化 release tag，因此流程有意保持轻量。
+本文描述 ADP-OS 变更如何从本地工作进入公开更新。流程有意保持轻量：ADP-OS 已有 `v1.0.0` release tag，但公开更新在发布前仍需要 validation、evidence、safety checks，以及 repository owner 授权。
 
 ## 发布边界
 

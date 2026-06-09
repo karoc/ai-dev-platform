@@ -2,7 +2,7 @@
 
 [简体中文](zh-CN/release-process.md) | English
 
-This process describes how ADP-OS changes should move from local work to a public update. It is intentionally lightweight because the project does not publish versioned release tags yet.
+This process describes how ADP-OS changes should move from local work to a public update. It is intentionally lightweight: ADP-OS has a `v1.0.0` release tag, but public updates still need validation, evidence, safety checks, and repository-owner authorization before publication.
 
 ## Release Boundary
 
