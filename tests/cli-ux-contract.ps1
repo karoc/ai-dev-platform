@@ -76,6 +76,7 @@ Assert-Contains -Name "adpos help includes setup" -Text $help.Output -Pattern "a
 Assert-Contains -Name "adpos help includes isolate" -Text $help.Output -Pattern "adpos isolate"
 Assert-Contains -Name "adpos help includes uninstall" -Text $help.Output -Pattern "adpos uninstall"
 Assert-Contains -Name "adpos help advertises command-specific help" -Text $help.Output -Pattern "adpos help <command>"
+Assert-Contains -Name "adpos help wraps long quickstart usage before summary" -Text $help.Output -Pattern "adpos quickstart .*--help-prereqs\]\s+[\r\n]+\s+Compatibility guided setup entry"
 
 $doctorHelp = Invoke-AdposCli -Arguments @("help", "doctor")
 Assert-ExitCode -Name "adpos help doctor" -Actual $doctorHelp.ExitCode -Expected 0
@@ -90,6 +91,14 @@ Assert-Contains -Name "adpos doctor --help shows command title" -Text $doctorFla
 Assert-Contains -Name "adpos doctor --help shows normal diagnostic usage" -Text $doctorFlagHelp.Output -Pattern "adpos doctor \[-FirstRun\] \[-Json\]"
 Assert-Contains -Name "adpos doctor --help scopes plan to fix mutagen" -Text $doctorFlagHelp.Output -Pattern "adpos doctor -FixMutagen \[-Plan\] \[-Json\]"
 Assert-Contains -Name "adpos doctor --help explains plan scope" -Text $doctorFlagHelp.Output -Pattern "only valid with -FixMutagen"
+
+$upHelp = Invoke-AdposCli -Arguments @("help", "up")
+Assert-ExitCode -Name "adpos help up" -Actual $upHelp.ExitCode -Expected 0
+Assert-Contains -Name "adpos help up lists sandbox runtime" -Text $upHelp.Output -Pattern "Runtime name \(frontend, backend, agent, sandbox\)"
+
+$stopHelp = Invoke-AdposCli -Arguments @("stop", "--help")
+Assert-ExitCode -Name "adpos stop --help" -Actual $stopHelp.ExitCode -Expected 0
+Assert-Contains -Name "adpos stop --help lists sandbox runtime" -Text $stopHelp.Output -Pattern "Runtime name \(frontend, backend, agent, sandbox\)"
 
 $doctorHelpZh = Invoke-AdposCli -Arguments @("help", "doctor") -Environment @{ ADP_LANG = "zh-CN" }
 Assert-ExitCode -Name "adpos help doctor zh-CN" -Actual $doctorHelpZh.ExitCode -Expected 0
@@ -181,6 +190,16 @@ Assert-ExitCode -Name "adpos network aplpy" -Actual $networkTypo.ExitCode -Expec
 Assert-Contains -Name "adpos network typo reports unknown subcommand" -Text $networkTypo.Output -Pattern "Unknown network command: aplpy"
 Assert-Contains -Name "adpos network typo suggests apply" -Text $networkTypo.Output -Pattern "Did you mean: adpos network apply"
 Assert-Contains -Name "adpos network typo gives help path" -Text $networkTypo.Output -Pattern "Run 'adpos network --help' for network help"
+
+$stopBadRuntime = Invoke-AdposCli -Arguments @("stop", "not-a-runtime")
+Assert-ExitCode -Name "adpos stop not-a-runtime" -Actual $stopBadRuntime.ExitCode -Expected 1
+Assert-Contains -Name "stop bad runtime lists sandbox" -Text $stopBadRuntime.Output -Pattern "Unknown runtime: not-a-runtime\. Valid: frontend, backend, agent, sandbox"
+Assert-Contains -Name "stop bad runtime gives help path" -Text $stopBadRuntime.Output -Pattern "Run 'adpos stop --help' for usage"
+
+$networkBadRuntime = Invoke-AdposCli -Arguments @("network", "apply", "not-a-runtime", "-Plan")
+Assert-ExitCode -Name "adpos network apply not-a-runtime -Plan" -Actual $networkBadRuntime.ExitCode -Expected 1
+Assert-Contains -Name "network bad runtime lists sandbox and all" -Text $networkBadRuntime.Output -Pattern "Unknown runtime: not-a-runtime\. Valid: frontend, backend, agent, sandbox, all"
+Assert-Contains -Name "network bad runtime gives help path" -Text $networkBadRuntime.Output -Pattern "Run 'adpos network --help' for network help"
 
 $workspaceTypo = Invoke-AdposCli -Arguments @("workspace", "dashbaord")
 Assert-ExitCode -Name "adpos workspace dashbaord" -Actual $workspaceTypo.ExitCode -Expected 1

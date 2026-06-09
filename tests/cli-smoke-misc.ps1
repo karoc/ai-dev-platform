@@ -2,13 +2,13 @@ Assert-Command `
     -Name "logs unknown runtime" `
     -Arguments @("logs", "not-a-runtime") `
     -ExitCode 1 `
-    -Patterns @("Unknown runtime: not-a-runtime", "frontend, backend, agent")
+    -Patterns @("Unknown runtime: not-a-runtime", "frontend, backend, agent, sandbox")
 
 Assert-Command `
     -Name "destroy plan unknown runtime" `
     -Arguments @("destroy", "not-a-runtime", "-Plan") `
     -ExitCode 1 `
-    -Patterns @("Unknown runtime: not-a-runtime")
+    -Patterns @("Unknown runtime: not-a-runtime", "frontend, backend, agent, sandbox", "adpos destroy --help")
 
 # --- setup.ps1 smoke tests ---
 $setupScript = Join-Path $projectRoot "setup.ps1"

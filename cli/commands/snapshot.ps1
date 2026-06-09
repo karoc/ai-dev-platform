@@ -8,18 +8,24 @@ param(
     [string]$SnapshotName
 )
 
+$validRuntimes = (Get-AllRuntimeNames) -join ', '
+
 if (-not $SubCommand -or $SubCommand -ne "create") {
     Write-ErrorLog -Message (Get-UIText -English "Usage: adpos snapshot create <runtime> <snapshot-name>" -Chinese "用法: adpos snapshot create <runtime> <snapshot-name>") -Component "cli.snapshot"
+    Write-UIHost -English "Run 'adpos snapshot --help' for usage." -Chinese "运行 'adpos snapshot --help' 查看用法。" -ForegroundColor DarkGray
     exit 1
 }
 
 if (-not $RuntimeName -or -not $SnapshotName) {
     Write-ErrorLog -Message (Get-UIText -English "Usage: adpos snapshot create <runtime> <snapshot-name>" -Chinese "用法: adpos snapshot create <runtime> <snapshot-name>") -Component "cli.snapshot"
+    Write-UIHost -English "Runtime can be: $validRuntimes" -Chinese "运行时可以是: $validRuntimes" -ForegroundColor DarkGray
+    Write-UIHost -English "Run 'adpos snapshot --help' for usage." -Chinese "运行 'adpos snapshot --help' 查看用法。" -ForegroundColor DarkGray
     exit 1
 }
 
 if (-not (Test-RuntimeExists $RuntimeName)) {
-    Write-ErrorLog -Message (Get-UIText -English "Unknown runtime: $RuntimeName" -Chinese "未知运行时: $RuntimeName") -Component "cli.snapshot"
+    Write-ErrorLog -Message (Get-UIText -English "Unknown runtime: $RuntimeName. Valid: $validRuntimes" -Chinese "未知运行时: $RuntimeName。可用: $validRuntimes") -Component "cli.snapshot"
+    Write-UIHost -English "Run 'adpos snapshot --help' for usage." -Chinese "运行 'adpos snapshot --help' 查看用法。" -ForegroundColor DarkGray
     exit 1
 }
 

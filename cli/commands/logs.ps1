@@ -7,7 +7,9 @@ param(
 )
 
 if (-not $RuntimeName) {
-    Write-ErrorLog -Message (Get-UIText -English "Usage: adpos logs <runtime> (frontend|backend|agent)" -Chinese "用法: adpos logs <runtime> (frontend|backend|agent)") -Component "cli.logs"
+    $validRuntimes = (Get-AllRuntimeNames) -join ', '
+    Write-ErrorLog -Message (Get-UIText -English "Usage: adpos logs <runtime> ($validRuntimes)" -Chinese "用法: adpos logs <runtime> ($validRuntimes)") -Component "cli.logs"
+    Write-UIHost -English "Run 'adpos logs --help' for usage." -Chinese "运行 'adpos logs --help' 查看用法。" -ForegroundColor DarkGray
     exit 1
 }
 

@@ -6,13 +6,17 @@ param(
     [string]$RuntimeName
 )
 
+$validRuntimes = (Get-AllRuntimeNames) -join ', '
+
 if (-not $RuntimeName) {
-    Write-ErrorLog -Message (Get-UIText -English "Usage: adpos stop <runtime> (frontend|backend|agent)" -Chinese "用法: adpos stop <runtime> (frontend|backend|agent)") -Component "cli.stop"
+    Write-ErrorLog -Message (Get-UIText -English "Usage: adpos stop <runtime> ($validRuntimes)" -Chinese "用法: adpos stop <runtime> ($validRuntimes)") -Component "cli.stop"
+    Write-UIHost -English "Run 'adpos stop --help' for usage." -Chinese "运行 'adpos stop --help' 查看用法。" -ForegroundColor DarkGray
     exit 1
 }
 
 if (-not (Test-RuntimeExists $RuntimeName)) {
-    Write-ErrorLog -Message (Get-UIText -English "Unknown runtime: $RuntimeName" -Chinese "未知运行时: $RuntimeName") -Component "cli.stop"
+    Write-ErrorLog -Message (Get-UIText -English "Unknown runtime: $RuntimeName. Valid: $validRuntimes" -Chinese "未知运行时: $RuntimeName。可用: $validRuntimes") -Component "cli.stop"
+    Write-UIHost -English "Run 'adpos stop --help' for usage." -Chinese "运行 'adpos stop --help' 查看用法。" -ForegroundColor DarkGray
     exit 1
 }
 

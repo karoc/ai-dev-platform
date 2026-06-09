@@ -74,16 +74,16 @@ function Get-ADPCommandHelpLines {
     if ((Get-UILanguage) -eq "zh-CN") {
         switch ($CommandName) {
             "setup" { return @("用法:", "  adpos setup [-Distro <name>] [-IsoPath <path>] [-SkipIsoDownload] [-SkipDoctor] [-Force] [-NonInteractive] [-NoRegisterCommand]", "", "说明:", "  一键安装入口。它会执行 precheck、ISO 下载、平台引导、初始化、doctor，并默认注册全局 adpos 命令。", "  首次 clone 后仍可在仓库根目录运行 .\setup.cmd；注册完成后可在任意目录运行 adpos。", "  如果已有全局 adpos 指向其他 checkout，交互模式会询问是否替换；非交互模式会保留现有绑定，除非使用 -Force。", "  如果当前终端还没有刷新 PATH，请打开新终端，或在仓库根目录临时使用 .\adpos.cmd。", "", "示例:", "  .\setup.cmd", "  adpos setup -IsoPath D:\ISOs\ubuntu-26.04-live-server-amd64.iso", "  adpos setup -SkipIsoDownload") }
-            "init" { return @("用法:", "  adpos init", "  adpos init <runtime> [-IsoPath <path>] [-NoProvision] [-Quick]", "", "参数:", "  <runtime>        运行时名称 (frontend, backend, agent)", "  -IsoPath <path>  指定 ISO 路径（跳过缓存查找）", "  -NoProvision     跳过 VM 创建步骤", "  -Quick           跳过平台依赖检查，快速初始化", "", "说明:", "  不带参数时初始化平台依赖；带 <runtime> 参数时额外创建并配置指定运行时。", "", "示例:", "  adpos init", "  adpos init backend -IsoPath D:\ISOs\ubuntu-26.04.iso") }
-            "up" { return @("用法:", "  adpos up <runtime> [-IsoPath <path>] [-Plan] [-NoProvision] [-NoBootstrap]", "", "参数:", "  <runtime>        运行时名称 (frontend, backend, agent)", "  -IsoPath <path>  指定 ISO 路径（跳过缓存查找）", "  -Plan            仅显示计划，不执行实际操作", "  -NoProvision     跳过 VM 创建/克隆步骤", "  -NoBootstrap     跳过开机后的 SSH bootstrap 步骤", "", "示例:", "  adpos up frontend", "  adpos up agent -IsoPath D:\ISOs\ubuntu-22.04.iso -NoBootstrap") }
+            "init" { return @("用法:", "  adpos init", "  adpos init <runtime> [-IsoPath <path>] [-NoProvision] [-Quick]", "", "参数:", "  <runtime>        运行时名称 (frontend, backend, agent, sandbox)", "  -IsoPath <path>  指定 ISO 路径（跳过缓存查找）", "  -NoProvision     跳过 VM 创建步骤", "  -Quick           跳过平台依赖检查，快速初始化", "", "说明:", "  不带参数时初始化平台依赖；带 <runtime> 参数时额外创建并配置指定运行时。", "", "示例:", "  adpos init", "  adpos init backend -IsoPath D:\ISOs\ubuntu-26.04.iso") }
+            "up" { return @("用法:", "  adpos up <runtime> [-IsoPath <path>] [-Plan] [-NoProvision] [-NoBootstrap]", "", "参数:", "  <runtime>        运行时名称 (frontend, backend, agent, sandbox)", "  -IsoPath <path>  指定 ISO 路径（跳过缓存查找）", "  -Plan            仅显示计划，不执行实际操作", "  -NoProvision     跳过 VM 创建/克隆步骤", "  -NoBootstrap     跳过开机后的 SSH bootstrap 步骤", "", "示例:", "  adpos up frontend", "  adpos up agent -IsoPath D:\ISOs\ubuntu-22.04.iso -NoBootstrap") }
             "run" { return @("用法:", "  adpos run <runtime> [-IsoPath <path>] [-Plan] [-NoProvision] [-NoBootstrap] [-NoSync]", "", "说明:", "  一键执行 init + up + sync start + status。首次 VM 创建通常需要 15-45 分钟，后续热启动约 30 秒。", "", "示例:", "  adpos run frontend", "  adpos run agent -Plan") }
-            "status" { return @("用法:", "  adpos status [runtime] [-Json]", "", "参数:", "  <runtime>        运行时名称，省略时显示所有运行时", "  -Json            以 JSON 格式输出", "", "示例:", "  adpos status", "  adpos status frontend -Json") }
-            "stop" { return @("用法:", "  adpos stop <runtime>", "", "参数:", "  <runtime>        运行时名称 (frontend, backend, agent)", "", "示例:", "  adpos stop frontend") }
+            "status" { return @("用法:", "  adpos status [runtime] [-Json]", "", "参数:", "  <runtime>        运行时名称 (frontend, backend, agent, sandbox)，省略时显示所有运行时", "  -Json            以 JSON 格式输出", "", "示例:", "  adpos status", "  adpos status frontend -Json") }
+            "stop" { return @("用法:", "  adpos stop <runtime>", "", "参数:", "  <runtime>        运行时名称 (frontend, backend, agent, sandbox)", "", "示例:", "  adpos stop frontend") }
             "sync" { return @("用法:", "  adpos sync <status|start|stop|list> [runtime]", "", "子命令:", "  status           显示同步会话状态", "  start            启动同步会话", "  stop             停止同步会话", "  list             列出所有同步会话", "", "示例:", "  adpos sync status frontend", "  adpos sync start backend") }
             "workspace" { return @("用法:", "  adpos workspace <command> [-ManifestPath <path>] [-Plan] [-Markdown]", "", "常用子命令:", "  show, plan, status, dashboard, recipes, create, open, sync, project, report", "  task <action> <name> 管理工作区任务；evidence/declare 管理证据链。", "", "选项:", "  -ManifestPath    指定 manifest 文件路径", "  -Plan            仅显示计划", "  -Execute         通过 SSH 在 VM 中执行验证命令（仅 task validate）", "  -Local           本地执行验证命令，无需 VM（仅 task validate）", "  -Markdown        以 Markdown 格式输出", "", "示例:", "  adpos workspace init", "  adpos workspace dashboard -Markdown") }
             "capabilities" { return @("用法:", "  adpos capabilities [-Json]", "", "说明:", "  只读命令，不修改任何 VM、同步会话、快照或主机网络。", "", "示例:", "  adpos capabilities", "  adpos capabilities -Json") }
             "isolate" { return @("用法:", "  adpos isolate [-Plan|-Apply] [-Namespace <name>]", "", "说明:", "  预览或应用第二个 checkout 的本机隔离配置。-Plan 不修改 configs\local.json。", "  -Apply 只写入当前 checkout 被忽略的 configs\local.json；已有文件会先备份为 configs\local.json.bak.<timestamp>。", "  输出或写入建议的 platform.runtime_namespace、workspace_root、vm_store、provider vm_store 和 runtime static_ip。", "  如果全局 adpos 指向其他 checkout，请在当前仓库根目录运行 .\adpos.cmd isolate -Plan。", "", "示例:", "  adpos isolate -Plan", "  .\adpos.cmd isolate -Plan -Namespace v2", "  .\adpos.cmd isolate -Apply -Namespace v2") }
-            "network" { return @("用法:", "  adpos network apply <runtime|all> [-Plan]", "  adpos network configure-local [-Plan|-Apply]", "", "说明:", "  apply 将静态 IP 网络配置应用到运行时；configure-local 预览或写入本机 VMnet8 覆盖配置。", "", "示例:", "  adpos network configure-local -Plan", "  adpos network apply all -Plan") }
+            "network" { return @("用法:", "  adpos network apply <runtime|all> [-Plan]", "  adpos network configure-local [-Plan|-Apply]", "", "说明:", "  apply 将静态 IP 网络配置应用到运行时；runtime 可以是 frontend、backend、agent 或 sandbox；all 会应用到所有已配置运行时。", "  configure-local 预览或写入本机 VMnet8 覆盖配置。", "", "示例:", "  adpos network configure-local -Plan", "  adpos network apply all -Plan") }
             "snapshot" { return @("用法:", "  adpos snapshot create <runtime> <snapshot-name>", "", "示例:", "  adpos snapshot create frontend before-update") }
             "restore" { return @("用法:", "  adpos restore <runtime> <snapshot-name> [-Plan] [-Force]", "", "参数:", "  -Plan            预览将要执行的操作", "  -Force           跳过确认提示，直接恢复", "", "示例:", "  adpos restore frontend before-update -Plan") }
             "logs" { return @("用法:", "  adpos logs <runtime>", "", "示例:", "  adpos logs frontend") }
@@ -105,16 +105,16 @@ function Get-ADPCommandHelpLines {
 
     switch ($CommandName) {
         "setup" { return @("Usage:", "  adpos setup [-Distro <name>] [-IsoPath <path>] [-SkipIsoDownload] [-SkipDoctor] [-Force] [-NonInteractive] [-NoRegisterCommand]", "", "Description:", "  One-click install entry. Runs precheck, ISO download, platform bootstrap, init, doctor, and registers the global adpos command by default.", "  Right after cloning, run .\setup.cmd from the repository root. After registration, run adpos from any directory.", "  If global adpos already points to another checkout, interactive setup asks before replacing it; non-interactive setup keeps the existing binding unless -Force is used.", "  If the current terminal has not refreshed PATH yet, open a new terminal or use .\adpos.cmd from the repository root.", "", "Examples:", "  .\setup.cmd", "  adpos setup -IsoPath D:\ISOs\ubuntu-26.04-live-server-amd64.iso", "  adpos setup -SkipIsoDownload") }
-        "init" { return @("Usage:", "  adpos init", "  adpos init <runtime> [-IsoPath <path>] [-NoProvision] [-Quick]", "", "Arguments:", "  <runtime>        Runtime name (frontend, backend, agent)", "  -IsoPath <path>  Specify ISO path (skip cache lookup)", "  -NoProvision     Skip VM creation step", "  -Quick           Skip platform dependency checks, fast init", "", "Description:", "  Without arguments: initializes platform dependencies. With <runtime>: also creates and configures that runtime.", "", "Examples:", "  adpos init", "  adpos init backend -IsoPath D:\ISOs\ubuntu-22.04.iso") }
-        "up" { return @("Usage:", "  adpos up <runtime> [-IsoPath <path>] [-Plan] [-NoProvision] [-NoBootstrap]", "", "Arguments:", "  <runtime>        Runtime name (frontend, backend, agent)", "  -IsoPath <path>  Specify ISO path (skip cache lookup)", "  -Plan            Plan-only mode; do not start VM", "  -NoProvision     Skip VM creation/clone step", "  -NoBootstrap     Skip post-boot SSH bootstrap step", "", "Examples:", "  adpos up frontend", "  adpos up agent -IsoPath D:\ISOs\ubuntu-22.04.iso -NoBootstrap") }
+        "init" { return @("Usage:", "  adpos init", "  adpos init <runtime> [-IsoPath <path>] [-NoProvision] [-Quick]", "", "Arguments:", "  <runtime>        Runtime name (frontend, backend, agent, sandbox)", "  -IsoPath <path>  Specify ISO path (skip cache lookup)", "  -NoProvision     Skip VM creation step", "  -Quick           Skip platform dependency checks, fast init", "", "Description:", "  Without arguments: initializes platform dependencies. With <runtime>: also creates and configures that runtime.", "", "Examples:", "  adpos init", "  adpos init backend -IsoPath D:\ISOs\ubuntu-22.04.iso") }
+        "up" { return @("Usage:", "  adpos up <runtime> [-IsoPath <path>] [-Plan] [-NoProvision] [-NoBootstrap]", "", "Arguments:", "  <runtime>        Runtime name (frontend, backend, agent, sandbox)", "  -IsoPath <path>  Specify ISO path (skip cache lookup)", "  -Plan            Plan-only mode; do not start VM", "  -NoProvision     Skip VM creation/clone step", "  -NoBootstrap     Skip post-boot SSH bootstrap step", "", "Examples:", "  adpos up frontend", "  adpos up agent -IsoPath D:\ISOs\ubuntu-22.04.iso -NoBootstrap") }
         "run" { return @("Usage:", "  adpos run <runtime> [-IsoPath <path>] [-Plan] [-NoProvision] [-NoBootstrap] [-NoSync]", "", "Description:", "  One-command shortcut: init + up + sync start + status. First VM creation usually takes 15-45 minutes; warm starts are about 30 seconds.", "", "Examples:", "  adpos run frontend", "  adpos run agent -Plan") }
-        "status" { return @("Usage:", "  adpos status [runtime] [-Json]", "", "Arguments:", "  <runtime>        Runtime name; omit to show all runtimes", "  -Json            Output in JSON format", "", "Examples:", "  adpos status", "  adpos status frontend -Json") }
-        "stop" { return @("Usage:", "  adpos stop <runtime>", "", "Arguments:", "  <runtime>        Runtime name (frontend, backend, agent)", "", "Examples:", "  adpos stop frontend") }
+        "status" { return @("Usage:", "  adpos status [runtime] [-Json]", "", "Arguments:", "  <runtime>        Runtime name (frontend, backend, agent, sandbox); omit to show all runtimes", "  -Json            Output in JSON format", "", "Examples:", "  adpos status", "  adpos status frontend -Json") }
+        "stop" { return @("Usage:", "  adpos stop <runtime>", "", "Arguments:", "  <runtime>        Runtime name (frontend, backend, agent, sandbox)", "", "Examples:", "  adpos stop frontend") }
         "sync" { return @("Usage:", "  adpos sync <status|start|stop|list> [runtime]", "", "Subcommands:", "  status           Show sync session status", "  start            Start sync session", "  stop             Stop sync session", "  list             List all sync sessions", "", "Examples:", "  adpos sync status frontend", "  adpos sync start backend") }
         "workspace" { return @("Usage:", "  adpos workspace <command> [-ManifestPath <path>] [-Plan] [-Markdown]", "", "Common subcommands:", "  show, plan, status, dashboard, recipes, create, open, sync, project, report", "  task <action> <name> manages workspace tasks; evidence/declare manage the evidence chain.", "", "Options:", "  -ManifestPath    Specify manifest file path", "  -Plan            Show plan only", "  -Execute         Execute validation commands via SSH in VM (task validate only)", "  -Local           Execute validation commands locally, no VM required (task validate only)", "  -Markdown        Output in Markdown format", "", "Examples:", "  adpos workspace init", "  adpos workspace dashboard -Markdown") }
         "capabilities" { return @("Usage:", "  adpos capabilities [-Json]", "", "Description:", "  Read-only. Does not modify VMs, sync sessions, snapshots, or host networking.", "", "Examples:", "  adpos capabilities", "  adpos capabilities -Json") }
         "isolate" { return @("Usage:", "  adpos isolate [-Plan|-Apply] [-Namespace <name>]", "", "Description:", "  Plan or apply local isolation settings for a second checkout. -Plan does not change configs\local.json.", "  -Apply writes only this checkout's ignored configs\local.json; an existing file is backed up as configs\local.json.bak.<timestamp> first.", "  Prints or writes suggested platform.runtime_namespace, workspace_root, vm_store, provider vm_store, and runtime static_ip overrides.", "  If global adpos points to another checkout, run .\adpos.cmd isolate -Plan from this repository root.", "", "Examples:", "  adpos isolate -Plan", "  .\adpos.cmd isolate -Plan -Namespace v2", "  .\adpos.cmd isolate -Apply -Namespace v2") }
-        "network" { return @("Usage:", "  adpos network apply <runtime|all> [-Plan]", "  adpos network configure-local [-Plan|-Apply]", "", "Description:", "  apply configures static IP networking on runtimes; configure-local plans or writes local VMnet8 overrides.", "", "Examples:", "  adpos network configure-local -Plan", "  adpos network apply all -Plan") }
+        "network" { return @("Usage:", "  adpos network apply <runtime|all> [-Plan]", "  adpos network configure-local [-Plan|-Apply]", "", "Description:", "  apply configures static IP networking on runtimes. Runtime can be frontend, backend, agent, or sandbox; all applies every configured runtime.", "  configure-local plans or writes local VMnet8 overrides.", "", "Examples:", "  adpos network configure-local -Plan", "  adpos network apply all -Plan") }
         "snapshot" { return @("Usage:", "  adpos snapshot create <runtime> <snapshot-name>", "", "Examples:", "  adpos snapshot create frontend before-update") }
         "restore" { return @("Usage:", "  adpos restore <runtime> <snapshot-name> [-Plan] [-Force]", "", "Arguments:", "  -Plan            Show what would be restored", "  -Force           Skip confirmation prompt", "", "Examples:", "  adpos restore frontend before-update -Plan") }
         "logs" { return @("Usage:", "  adpos logs <runtime>", "", "Examples:", "  adpos logs frontend") }
@@ -146,6 +146,22 @@ function Write-ADPHelpLines {
     }
 }
 
+function Write-ADPHelpCommandRow {
+    param(
+        [string]$Usage,
+        [string]$Summary
+    )
+
+    $usageWidth = 86
+    if ($Usage.Length -le $usageWidth) {
+        Write-Host ("  {0,-86} {1}" -f $Usage, $Summary)
+        return
+    }
+
+    Write-Host "  $Usage"
+    Write-Host ("  {0,-86} {1}" -f "", $Summary)
+}
+
 function Show-Help {
     param([string]$CommandName)
 
@@ -165,7 +181,7 @@ function Show-Help {
     }
 
     foreach ($row in (Get-ADPTopLevelCommandRows)) {
-        Write-Host ("  {0,-86} {1}" -f $row.Usage, $row.Summary)
+        Write-ADPHelpCommandRow -Usage $row.Usage -Summary $row.Summary
     }
 
     Write-Host ""

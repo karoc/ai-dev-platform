@@ -10,13 +10,18 @@ param(
     [switch]$Force
 )
 
+$validRuntimes = (Get-AllRuntimeNames) -join ', '
+
 if (-not $RuntimeName -or -not $SnapshotName) {
     Write-ErrorLog -Message (Get-UIText -English "Usage: adpos restore <runtime> <snapshot-name> [-Plan] [-Force]" -Chinese "用法: adpos restore <runtime> <snapshot-name> [-Plan] [-Force]") -Component "cli.restore"
+    Write-UIHost -English "Runtime can be: $validRuntimes" -Chinese "运行时可以是: $validRuntimes" -ForegroundColor DarkGray
+    Write-UIHost -English "Run 'adpos restore --help' for usage." -Chinese "运行 'adpos restore --help' 查看用法。" -ForegroundColor DarkGray
     exit 1
 }
 
 if (-not (Test-RuntimeExists $RuntimeName)) {
-    Write-ErrorLog -Message (Get-UIText -English "Unknown runtime: $RuntimeName" -Chinese "未知运行时: $RuntimeName") -Component "cli.restore"
+    Write-ErrorLog -Message (Get-UIText -English "Unknown runtime: $RuntimeName. Valid: $validRuntimes" -Chinese "未知运行时: $RuntimeName。可用: $validRuntimes") -Component "cli.restore"
+    Write-UIHost -English "Run 'adpos restore --help' for usage." -Chinese "运行 'adpos restore --help' 查看用法。" -ForegroundColor DarkGray
     exit 1
 }
 

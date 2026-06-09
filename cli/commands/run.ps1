@@ -16,7 +16,9 @@ param(
 $ErrorActionPreference = "Stop"
 
 if (-not $RuntimeName) {
-    Write-ErrorLog -Message (Get-UIText -English "Usage: adpos run <runtime> (frontend|backend|agent) [-IsoPath <path>] [-Plan] [-NoBootstrap] [-NoProvision] [-NoSync]" -Chinese "用法: adpos run <runtime> (frontend|backend|agent) [-IsoPath <path>] [-Plan] [-NoBootstrap] [-NoProvision] [-NoSync]") -Component "cli.run"
+    $validRuntimes = (Get-AllRuntimeNames) -join ', '
+    Write-ErrorLog -Message (Get-UIText -English "Usage: adpos run <runtime> ($validRuntimes) [-IsoPath <path>] [-Plan] [-NoBootstrap] [-NoProvision] [-NoSync]" -Chinese "用法: adpos run <runtime> ($validRuntimes) [-IsoPath <path>] [-Plan] [-NoBootstrap] [-NoProvision] [-NoSync]") -Component "cli.run"
+    Write-UIHost -English "Run 'adpos run --help' for usage." -Chinese "运行 'adpos run --help' 查看用法。" -ForegroundColor DarkGray
     exit 1
 }
 

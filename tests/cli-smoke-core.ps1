@@ -15,7 +15,7 @@ Assert-Command `
     -Name "capabilities" `
     -Arguments @("capabilities") `
     -ExitCode 0 `
-    -Patterns @("ADP-OS Capabilities", "Capabilities only: no VMs", "\[supported\] vmware-workstation", "host: Windows", "\[planned\] hyper-v", "\[planned\] kvm-libvirt", "\[planned\] macos-vm", "\[exploratory\] container-backed", "Docker and dev containers are runtime-internal project tools today", "Docs: docs/capabilities.md")
+    -Patterns @("ADP-OS Capabilities", "Capabilities only: no VMs", "Runtime profiles:\s+frontend, backend, agent, sandbox", "\[supported\] vmware-workstation", "host: Windows", "\[planned\] hyper-v", "\[planned\] kvm-libvirt", "\[planned\] macos-vm", "\[exploratory\] container-backed", "Docker and dev containers are runtime-internal project tools today", "Docs: docs/capabilities.md")
 
 Assert-Command `
     -Name "unknown command" `
@@ -34,7 +34,7 @@ Assert-Command `
     -Name "up unknown runtime" `
     -Arguments @("up", "not-a-runtime", "-Plan") `
     -ExitCode 1 `
-    -Patterns @("Unknown runtime: not-a-runtime", "frontend, backend, agent")
+    -Patterns @("Unknown runtime: not-a-runtime", "frontend, backend, agent, sandbox")
 
 if (Get-Command vmrun.exe -ErrorAction SilentlyContinue) {
     Assert-Command `
@@ -76,7 +76,7 @@ Assert-Command `
     -Name "status unknown runtime" `
     -Arguments @("status", "not-a-runtime") `
     -ExitCode 1 `
-    -Patterns @("Unknown runtime: not-a-runtime", "frontend, backend, agent")
+    -Patterns @("Unknown runtime: not-a-runtime", "frontend, backend, agent, sandbox")
 
 Assert-Command `
     -Name "sync unknown subcommand" `
@@ -88,7 +88,7 @@ Assert-Command `
     -Name "sync unknown runtime" `
     -Arguments @("sync", "stop", "not-a-runtime") `
     -ExitCode 1 `
-    -Patterns @("Unknown runtime: not-a-runtime", "frontend, backend, agent")
+    -Patterns @("Unknown runtime: not-a-runtime", "frontend, backend, agent, sandbox")
 
 Assert-Command `
     -Name "doctor plan without fix mutagen" `

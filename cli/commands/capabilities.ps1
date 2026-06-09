@@ -6,6 +6,8 @@ param()
 
 $ErrorActionPreference = "Stop"
 
+$runtimeProfiles = (Get-AllRuntimeNames) -join ', '
+
 Write-Host ""
 Write-UIHost -English "ADP-OS Capabilities" -Chinese "ADP-OS 运行时能力" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
@@ -16,7 +18,7 @@ Write-UIHost -English "Current support:" -Chinese "当前支持:" -ForegroundCol
 Write-UIHost -English "  Host control plane: Windows PowerShell" -Chinese "  主机控制平面：Windows PowerShell" -ForegroundColor DarkGray
 Write-UIHost -English "  Runtime carrier:    VMware Workstation" -Chinese "  运行时载体：VMware Workstation" -ForegroundColor DarkGray
 Write-UIHost -English "  Guest OS profile:   Ubuntu Server 26.04" -Chinese "  Guest OS 配置：Ubuntu Server 26.04" -ForegroundColor DarkGray
-Write-UIHost -English "  Runtime profiles:   frontend, backend, agent" -Chinese "  运行时配置：frontend, backend, agent" -ForegroundColor DarkGray
+Write-UIHost -English "  Runtime profiles:   $runtimeProfiles" -Chinese "  运行时配置：$runtimeProfiles" -ForegroundColor DarkGray
 Write-UIHost -English "  Workspace sync:     Mutagen over SSH" -Chinese "  工作区同步：Mutagen over SSH" -ForegroundColor DarkGray
 Write-UIHost -English "  Runtime lifecycle:  up, status, stop, logs, destroy, network apply" -Chinese "  运行时生命周期：up, status, stop, logs, destroy, network apply" -ForegroundColor DarkGray
 Write-UIHost -English "  Rollback lifecycle: snapshot create, restore" -Chinese "  回滚生命周期：snapshot create, restore" -ForegroundColor DarkGray

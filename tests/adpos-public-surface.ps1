@@ -131,6 +131,24 @@ $changelog = Get-Content -LiteralPath (Join-Path $projectRoot "CHANGELOG.md") -R
 $changelogZh = Get-Content -LiteralPath (Join-Path $projectRoot "CHANGELOG.zh-CN.md") -Raw -Encoding UTF8
 Assert-Contains -Name "English README command reference includes sandbox runtime" -Text $readme -Pattern 'adpos init <frontend\|backend\|agent\|sandbox>[\s\S]*adpos up <frontend\|backend\|agent\|sandbox>[\s\S]*adpos status \[frontend\|backend\|agent\|sandbox\][\s\S]*adpos stop <frontend\|backend\|agent\|sandbox>[\s\S]*adpos sync start <frontend\|backend\|agent\|sandbox>[\s\S]*adpos network apply <frontend\|backend\|agent\|sandbox\|all>'
 Assert-Contains -Name "Chinese README command reference includes sandbox runtime" -Text $readmeZh -Pattern 'adpos init <frontend\|backend\|agent\|sandbox>[\s\S]*adpos up <frontend\|backend\|agent\|sandbox>[\s\S]*adpos status \[frontend\|backend\|agent\|sandbox\][\s\S]*adpos stop <frontend\|backend\|agent\|sandbox>[\s\S]*adpos sync start <frontend\|backend\|agent\|sandbox>[\s\S]*adpos network apply <frontend\|backend\|agent\|sandbox\|all>'
+foreach ($case in @(
+    @{ Name = "setup full parameters"; Pattern = 'adpos setup \[-Distro <name>\] \[-IsoPath <path>\] \[-SkipIsoDownload\] \[-SkipDoctor\] \[-Force\] \[-NonInteractive\] \[-NoRegisterCommand\]' },
+    @{ Name = "quickstart full parameters"; Pattern = 'adpos quickstart \[-Distro <name>\] \[-IsoPath <path>\] \[-SkipIsoDownload\] \[-SkipDoctor\] \[-Force\] \[-NonInteractive\] \[-NoRegisterCommand\] \[--help-prereqs\]' },
+    @{ Name = "precheck command"; Pattern = 'adpos precheck \[--help-prereqs\]' },
+    @{ Name = "run command"; Pattern = 'adpos run <frontend\|backend\|agent\|sandbox> \[-IsoPath <path>\] \[-Plan\] \[-NoProvision\] \[-NoBootstrap\] \[-NoSync\]' },
+    @{ Name = "validate command"; Pattern = 'adpos validate \[-Quick\] \[-SkipCliSmoke\] \[-SkipInstallerSmoke\] \[-SkipShellSyntax\]' },
+    @{ Name = "completion command"; Pattern = 'adpos completion <powershell\|bash>' },
+    @{ Name = "sandbox command"; Pattern = 'adpos sandbox <command\.\.\.> \[-Distro <name>\] \[-IsoPath <path>\]' },
+    @{ Name = "serve command"; Pattern = 'adpos serve \[-Port <port>\] \[-Public\] \[-Json\]' },
+    @{ Name = "isolate command"; Pattern = 'adpos isolate \[-Plan\|-Apply\] \[-Namespace <name>\]' },
+    @{ Name = "network configure-local command"; Pattern = 'adpos network configure-local \[-Plan\|-Apply\]' },
+    @{ Name = "uninstall noninteractive parameter"; Pattern = 'adpos uninstall \[-NonInteractive\] \[-Force\]' },
+    @{ Name = "restore safety parameters"; Pattern = 'adpos restore <runtime> <name> \[-Plan\] \[-Force\]' },
+    @{ Name = "destroy safety parameters"; Pattern = 'adpos destroy <runtime> \[-Plan\] \[-Force\]' }
+)) {
+    Assert-Contains -Name "English README command reference covers $($case.Name)" -Text $readme -Pattern $case.Pattern
+    Assert-Contains -Name "Chinese README command reference covers $($case.Name)" -Text $readmeZh -Pattern $case.Pattern
+}
 Assert-Contains -Name "English changelog explains retired adp history" -Text $changelog -Pattern 'user-facing shell commands are `adpos` from 2026-06-08 onward[\s\S]*retired `adp` shell command[\s\S]*use `adpos` for current operations'
 Assert-Contains -Name "Chinese changelog explains retired adp history" -Text $changelogZh -Pattern '自 2026-06-08 起，面向用户的 shell 命令为 `adpos`[\s\S]*已退役的 `adp` shell 命令[\s\S]*当前操作请使用 `adpos`'
 

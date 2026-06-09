@@ -391,17 +391,25 @@ The reference uses `adpos`, the formal command installed by `.\setup.cmd`. From 
 `adpos uninstall` removes only the global command registration owned by the current checkout. Runtime data, workspace data, caches, tools, logs, and repository files remain untouched. If global `adpos` belongs to another checkout, uninstall refuses by default; run uninstall from the owning checkout, or use `-Force` only when you intend to remove that global binding.
 
 ```powershell
-adpos setup [-IsoPath <path>] [-SkipIsoDownload] [-NonInteractive] [-Force]
-adpos uninstall [-Force]
+adpos setup [-Distro <name>] [-IsoPath <path>] [-SkipIsoDownload] [-SkipDoctor] [-Force] [-NonInteractive] [-NoRegisterCommand]
+adpos uninstall [-NonInteractive] [-Force]
 adpos help [command]
+adpos version
 adpos iso [ubuntu|almalinux|rocky|debian] [-Url <url>] [-Force] [-NonInteractive]
-adpos quickstart [-Distro <name>] [-IsoPath <path>] [-SkipIsoDownload] [-SkipDoctor] [-Force] [-NonInteractive]
+adpos quickstart [-Distro <name>] [-IsoPath <path>] [-SkipIsoDownload] [-SkipDoctor] [-Force] [-NonInteractive] [-NoRegisterCommand] [--help-prereqs]
+adpos precheck [--help-prereqs]
 adpos init
 adpos init <frontend|backend|agent|sandbox> [-IsoPath <path>] [-NoProvision] [-Quick] [-NonInteractive]
 adpos up <frontend|backend|agent|sandbox> [-IsoPath <path>] [-Plan] [-NoProvision] [-NoBootstrap]
+adpos run <frontend|backend|agent|sandbox> [-IsoPath <path>] [-Plan] [-NoProvision] [-NoBootstrap] [-NoSync]
 adpos status [frontend|backend|agent|sandbox]
 adpos capabilities
 adpos stop <frontend|backend|agent|sandbox>
+adpos validate [-Quick] [-SkipCliSmoke] [-SkipInstallerSmoke] [-SkipShellSyntax]
+adpos completion <powershell|bash>
+adpos sandbox <command...> [-Distro <name>] [-IsoPath <path>]
+adpos serve [-Port <port>] [-Public] [-Json]
+adpos isolate [-Plan|-Apply] [-Namespace <name>]
 adpos sync status
 adpos workspace init
 adpos workspace show
@@ -425,12 +433,13 @@ adpos workspace task mark <task-name> <prepared|checkpointed|checkpoint-waived|r
 adpos sync start <frontend|backend|agent|sandbox>
 adpos sync stop <frontend|backend|agent|sandbox>
 adpos network apply <frontend|backend|agent|sandbox|all> [-Plan]
+adpos network configure-local [-Plan|-Apply]
 adpos snapshot create <runtime> <name>
-adpos restore <runtime> <name>
+adpos restore <runtime> <name> [-Plan] [-Force]
 adpos logs <runtime>
 adpos doctor [-FirstRun] [-Json]
 adpos doctor -FixMutagen [-Plan] [-Json]
-adpos destroy <runtime> [-Plan]
+adpos destroy <runtime> [-Plan] [-Force]
 adpos workspace evidence -Snapshot [-ManifestPath <path>]
 adpos workspace evidence -Log -Operation <op> [-Details <text>] [-ManifestPath <path>]
 adpos workspace evidence -Export [-Path <path>] [-ManifestPath <path>]

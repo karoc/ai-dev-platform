@@ -363,17 +363,25 @@ adpos workspace task validate frontend-browser-acceptance -Execute -ManifestPath
 `adpos uninstall` 只移除属于当前 checkout 的全局命令注册。Runtime 数据、workspace 数据、缓存、工具、日志和仓库文件都会保留。如果全局 `adpos` 属于另一个 checkout，默认会拒绝卸载；请到所属 checkout 中执行卸载，或在确认要移除该全局绑定时使用 `-Force`。
 
 ```powershell
-adpos setup [-IsoPath <path>] [-SkipIsoDownload] [-NonInteractive] [-Force]
-adpos uninstall [-Force]
+adpos setup [-Distro <name>] [-IsoPath <path>] [-SkipIsoDownload] [-SkipDoctor] [-Force] [-NonInteractive] [-NoRegisterCommand]
+adpos uninstall [-NonInteractive] [-Force]
 adpos help [command]
+adpos version
 adpos iso [ubuntu|almalinux|rocky|debian] [-Url <url>] [-Force] [-NonInteractive]
-adpos quickstart [-Distro <name>] [-IsoPath <path>] [-SkipIsoDownload] [-SkipDoctor] [-Force] [-NonInteractive]
+adpos quickstart [-Distro <name>] [-IsoPath <path>] [-SkipIsoDownload] [-SkipDoctor] [-Force] [-NonInteractive] [-NoRegisterCommand] [--help-prereqs]
+adpos precheck [--help-prereqs]
 adpos init
 adpos init <frontend|backend|agent|sandbox> [-IsoPath <path>] [-NoProvision] [-Quick] [-NonInteractive]
 adpos up <frontend|backend|agent|sandbox> [-IsoPath <path>] [-Plan] [-NoProvision] [-NoBootstrap]
+adpos run <frontend|backend|agent|sandbox> [-IsoPath <path>] [-Plan] [-NoProvision] [-NoBootstrap] [-NoSync]
 adpos status [frontend|backend|agent|sandbox]
 adpos capabilities
 adpos stop <frontend|backend|agent|sandbox>
+adpos validate [-Quick] [-SkipCliSmoke] [-SkipInstallerSmoke] [-SkipShellSyntax]
+adpos completion <powershell|bash>
+adpos sandbox <command...> [-Distro <name>] [-IsoPath <path>]
+adpos serve [-Port <port>] [-Public] [-Json]
+adpos isolate [-Plan|-Apply] [-Namespace <name>]
 adpos sync status
 adpos workspace init
 adpos workspace show
@@ -397,12 +405,13 @@ adpos workspace task mark <task-name> <prepared|checkpointed|checkpoint-waived|r
 adpos sync start <frontend|backend|agent|sandbox>
 adpos sync stop <frontend|backend|agent|sandbox>
 adpos network apply <frontend|backend|agent|sandbox|all> [-Plan]
+adpos network configure-local [-Plan|-Apply]
 adpos snapshot create <runtime> <name>
-adpos restore <runtime> <name>
+adpos restore <runtime> <name> [-Plan] [-Force]
 adpos logs <runtime>
 adpos doctor [-FirstRun] [-Json]
 adpos doctor -FixMutagen [-Plan] [-Json]
-adpos destroy <runtime> [-Plan]
+adpos destroy <runtime> [-Plan] [-Force]
 adpos workspace evidence -Snapshot [-ManifestPath <path>]
 adpos workspace evidence -Log -Operation <op> [-Details <text>] [-ManifestPath <path>]
 adpos workspace evidence -Export [-Path <path>] [-ManifestPath <path>]

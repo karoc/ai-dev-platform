@@ -8,13 +8,18 @@ param(
     [switch]$Plan
 )
 
+$validRuntimes = (Get-AllRuntimeNames) -join ', '
+
 if (-not $RuntimeName) {
     Write-ErrorLog -Message (Get-UIText -English "Usage: adpos destroy <runtime> [-Plan] [-Force]" -Chinese "用法: adpos destroy <runtime> [-Plan] [-Force]") -Component "cli.destroy"
+    Write-UIHost -English "Runtime can be: $validRuntimes" -Chinese "运行时可以是: $validRuntimes" -ForegroundColor DarkGray
+    Write-UIHost -English "Run 'adpos destroy --help' for usage." -Chinese "运行 'adpos destroy --help' 查看用法。" -ForegroundColor DarkGray
     exit 1
 }
 
 if (-not (Test-RuntimeExists $RuntimeName)) {
-    Write-ErrorLog -Message (Get-UIText -English "Unknown runtime: $RuntimeName" -Chinese "未知运行时: $RuntimeName") -Component "cli.destroy"
+    Write-ErrorLog -Message (Get-UIText -English "Unknown runtime: $RuntimeName. Valid: $validRuntimes" -Chinese "未知运行时: $RuntimeName。可用: $validRuntimes") -Component "cli.destroy"
+    Write-UIHost -English "Run 'adpos destroy --help' for usage." -Chinese "运行 'adpos destroy --help' 查看用法。" -ForegroundColor DarkGray
     exit 1
 }
 

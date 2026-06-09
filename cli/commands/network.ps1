@@ -29,6 +29,8 @@ if ($SubCommand -notin $validSubCommands) {
 
 if ($SubCommand -eq "apply" -and -not $RuntimeName) {
     Write-ErrorLog -Message (Get-UIText -English "Usage: adpos network apply <runtime|all> [-Plan]" -Chinese "用法: adpos network apply <runtime|all> [-Plan]") -Component "cli.network"
+    Write-UIHost -English "Runtime can be: $((Get-AllRuntimeNames) -join ', '), or all." -Chinese "运行时可以是: $((Get-AllRuntimeNames) -join ', ')，或 all。" -ForegroundColor DarkGray
+    Write-UIHost -English "Run 'adpos network --help' for network help." -Chinese "运行 'adpos network --help' 查看网络帮助。" -ForegroundColor DarkGray
     exit 1
 }
 
@@ -39,6 +41,12 @@ if ($SubCommand -eq "apply" -and $Apply) {
 
 if ($SubCommand -in @("configure-local", "local") -and $Plan -and $Apply) {
     Write-ErrorLog -Message (Get-UIText -English "Use either -Plan or -Apply, not both." -Chinese "-Plan 与 -Apply 只能二选一。") -Component "cli.network"
+    exit 1
+}
+
+if ($SubCommand -eq "apply" -and $RuntimeName -ne "all" -and -not (Test-RuntimeExists $RuntimeName)) {
+    Write-ErrorLog -Message (Get-UIText -English "Unknown runtime: $RuntimeName. Valid: $((Get-AllRuntimeNames) -join ', '), all" -Chinese "未知运行时: $RuntimeName。可用: $((Get-AllRuntimeNames) -join ', ')，all") -Component "cli.network"
+    Write-UIHost -English "Run 'adpos network --help' for network help." -Chinese "运行 'adpos network --help' 查看网络帮助。" -ForegroundColor DarkGray
     exit 1
 }
 
