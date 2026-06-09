@@ -73,17 +73,17 @@ function Assert-Setup {
 }
 
 Assert-Setup `
-    -Name "setup script exists and shows banner" `
-    -Arguments @() `
-    -ExitCode 1 `
-    -Patterns @("ADP-OS One-Click Setup", "AI Development Platform", "Scan prerequisites")
-
-if (Get-Command vmrun.exe -ErrorAction SilentlyContinue) {
-    Assert-Setup `
-        -Name "setup non-interactive force skip-iso skip-doctor" `
-        -Arguments @("-NonInteractive", "-Force", "-SkipIsoDownload", "-SkipDoctor") `
-        -ExitCode 0 `
-        -Patterns @("ADP-OS Quickstart", "NonInteractive", "Force")
-} else {
-    Write-Host "SKIP: setup non-interactive test (vmrun.exe not found — CI without VMware)"
-}
+    -Name "setup plan is non-mutating" `
+    -Arguments @("-Plan", "-NonInteractive", "-Force", "-SkipIsoDownload", "-SkipDoctor", "-NoRegisterCommand") `
+    -ExitCode 0 `
+    -Patterns @(
+        "ADP-OS Setup Plan",
+        "Plan only: no prerequisites will be scanned",
+        "Skip ISO download: true",
+        "Skip doctor: true",
+        "NonInteractive: true",
+        "Force: true",
+        "Register global command: no",
+        "Would run: adpos quickstart -Plan[\s\S]*-SkipIsoDownload[\s\S]*-SkipDoctor[\s\S]*-NonInteractive[\s\S]*-Force[\s\S]*-NoRegisterCommand",
+        "To execute: run the same setup command without -Plan"
+    )

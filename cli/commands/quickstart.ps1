@@ -11,11 +11,76 @@ param(
     [switch]$NonInteractive,
     [switch]$Force,
     [switch]$NoRegisterCommand,
+    [switch]$Plan,
     [switch]$HelpPrereqs
 )
 
 . (Join-Path (Get-ProjectRoot) "runtimes\vmware\os-profiles.ps1")
 . (Join-Path (Get-ProjectRoot) "scripts\adpos-registration.ps1")
+
+function Show-QuickstartPlan {
+    param(
+        [string]$Distro,
+        [string]$IsoPath,
+        [switch]$SkipIsoDownload,
+        [switch]$SkipDoctor,
+        [switch]$NonInteractive,
+        [switch]$Force,
+        [switch]$NoRegisterCommand
+    )
+
+    Write-Host ""
+    Write-UIHost -English "ADP-OS Quickstart Plan" -Chinese "ADP-OS 快速启动计划" -ForegroundColor Cyan
+    Write-Host "========================================" -ForegroundColor Cyan
+    Write-Host ""
+    Write-UIHost -English "Plan only: no precheck remediation, ISO download, install, init, doctor, global command registration, VM, sync, or host configuration changes will be made." -Chinese "仅预览：不会执行 precheck 修复、ISO 下载、安装、初始化、doctor、全局命令注册、VM、同步或主机配置更改。" -ForegroundColor Yellow
+    Write-Host ""
+    Write-UIHost -English "Requested options:" -Chinese "请求的选项:" -ForegroundColor Cyan
+    Write-UIHost -English "  Distro: $Distro" -Chinese "  发行版: $Distro" -ForegroundColor DarkGray
+    Write-UIHost -English "  ISO path: $(if ($IsoPath) { $IsoPath } else { '(cache/default)' })" -Chinese "  ISO 路径: $(if ($IsoPath) { $IsoPath } else { '(缓存/默认)' })" -ForegroundColor DarkGray
+    Write-UIHost -English "  Skip ISO download: $(if ($SkipIsoDownload) { 'true' } else { 'false' })" -Chinese "  跳过 ISO 下载: $(if ($SkipIsoDownload) { 'true' } else { 'false' })" -ForegroundColor DarkGray
+    Write-UIHost -English "  Skip doctor: $(if ($SkipDoctor) { 'true' } else { 'false' })" -Chinese "  跳过 doctor: $(if ($SkipDoctor) { 'true' } else { 'false' })" -ForegroundColor DarkGray
+    Write-UIHost -English "  NonInteractive: $(if ($NonInteractive) { 'true' } else { 'false' })" -Chinese "  非交互: $(if ($NonInteractive) { 'true' } else { 'false' })" -ForegroundColor DarkGray
+    Write-UIHost -English "  Force: $(if ($Force) { 'true' } else { 'false' })" -Chinese "  强制: $(if ($Force) { 'true' } else { 'false' })" -ForegroundColor DarkGray
+    Write-UIHost -English "  Register global command: $(if ($NoRegisterCommand) { 'no' } else { 'yes' })" -Chinese "  注册全局命令: $(if ($NoRegisterCommand) { '否' } else { '是' })" -ForegroundColor DarkGray
+    Write-Host ""
+    Write-UIHost -English "Would run:" -Chinese "将执行:" -ForegroundColor Cyan
+    if (-not $Force) {
+        Write-UIHost -English "  1. adpos precheck" -Chinese "  1. adpos precheck" -ForegroundColor DarkGray
+        Write-UIHost -English "     Mutagen-only remediation would be reported but not installed in -Plan." -Chinese "     在 -Plan 中只报告 Mutagen-only 修复，不安装。" -ForegroundColor DarkGray
+    } else {
+        Write-UIHost -English "  1. Skip prerequisite scan (-Force)." -Chinese "  1. 跳过前提条件扫描 (-Force)。" -ForegroundColor DarkGray
+    }
+    if ($SkipIsoDownload) {
+        Write-UIHost -English "  2. Skip ISO download (-SkipIsoDownload)." -Chinese "  2. 跳过 ISO 下载 (-SkipIsoDownload)。" -ForegroundColor DarkGray
+    } elseif ($IsoPath) {
+        Write-UIHost -English "  2. Use provided ISO: $IsoPath" -Chinese "  2. 使用提供的 ISO: $IsoPath" -ForegroundColor DarkGray
+    } else {
+        Write-UIHost -English "  2. Download or reuse the configured ISO cache." -Chinese "  2. 下载或复用配置的 ISO 缓存。" -ForegroundColor DarkGray
+    }
+    Write-UIHost -English "  3. install.ps1 (global adpos registration: $(if ($NoRegisterCommand) { 'skipped' } else { 'enabled' }))" -Chinese "  3. install.ps1（全局 adpos 注册: $(if ($NoRegisterCommand) { '跳过' } else { '启用' })）" -ForegroundColor DarkGray
+    Write-UIHost -English "  4. adpos init -Quick" -Chinese "  4. adpos init -Quick" -ForegroundColor DarkGray
+    if ($SkipDoctor) {
+        Write-UIHost -English "  5. Skip doctor (-SkipDoctor)." -Chinese "  5. 跳过 doctor (-SkipDoctor)。" -ForegroundColor DarkGray
+    } else {
+        Write-UIHost -English "  5. adpos doctor" -Chinese "  5. adpos doctor" -ForegroundColor DarkGray
+    }
+    Write-Host ""
+    Write-UIHost -English "To execute: run the same quickstart command without -Plan." -Chinese "要执行: 去掉 -Plan 后运行同一个 quickstart 命令。" -ForegroundColor Cyan
+    Write-Host ""
+}
+
+if ($Plan) {
+    Show-QuickstartPlan `
+        -Distro $Distro `
+        -IsoPath $IsoPath `
+        -SkipIsoDownload:$SkipIsoDownload `
+        -SkipDoctor:$SkipDoctor `
+        -NonInteractive:$NonInteractive `
+        -Force:$Force `
+        -NoRegisterCommand:$NoRegisterCommand
+    exit 0
+}
 
 Write-InfoLog -Message (Get-UIText -English "adpos quickstart" -Chinese "adpos 快速启动") -Component "cli.quickstart"
 

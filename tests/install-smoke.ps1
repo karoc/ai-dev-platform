@@ -117,6 +117,38 @@ function Assert-Install {
 }
 
 Assert-Install `
+    -Name "install plan is non-mutating" `
+    -Arguments @("-Plan", "-SkipDependencyCheck", "-SkipVMValidation", "-NonInteractive") `
+    -ExitCode 0 `
+    -Patterns @(
+        "ADP-OS Install Plan",
+        "Plan only: no PowerShell 7 winget install",
+        "dependency remediation",
+        "directory creation",
+        "initialized marker",
+        "global adpos registration",
+        "Register global command: no",
+        "plan does not create them",
+        "plan does not copy",
+        "To execute: run the same install command without -Plan"
+    ) `
+    -Inspect {
+        param([string]$UserProfile)
+
+        foreach ($path in @(
+            (Join-Path $UserProfile "adp-workspaces\workspaces"),
+            (Join-Path $UserProfile "adp-vms\vms"),
+            (Join-Path $UserProfile "adp-iso"),
+            (Join-Path $UserProfile ".adp-os\initialized"),
+            (Join-Path $UserProfile "AppData\Local\ADP-OS\bin\adpos.cmd")
+        )) {
+            if (Test-Path -LiteralPath $path) {
+                throw "install -Plan unexpectedly created path: $path"
+            }
+        }
+    }
+
+Assert-Install `
     -Name "install skip checks missing ISO guidance" `
     -Arguments @("-SkipDependencyCheck", "-SkipVMValidation") `
     -ExitCode 0 `

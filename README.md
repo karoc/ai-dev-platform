@@ -164,6 +164,7 @@ If another VM with the same runtime resource name is already running, ADP-OS rep
 .\setup.cmd -Distro ubuntu                # Choose a supported distro profile
 .\setup.cmd -SkipIsoDownload              # Skip ISO download (already cached)
 .\setup.cmd -SkipDoctor                   # Skip post-install doctor checks
+.\setup.cmd -Plan                         # Preview setup without changing state
 .\setup.cmd -NonInteractive               # Run without prompts (for scripts/CI)
 .\setup.cmd -Force                        # Skip precheck, proceed anyway
 .\setup.cmd -NoRegisterCommand            # Do not register the global adpos command
@@ -394,12 +395,12 @@ The reference uses `adpos`, the formal command installed by `.\setup.cmd`. From 
 `adpos uninstall` removes only the global command registration owned by the current checkout. Runtime data, workspace data, caches, tools, logs, and repository files remain untouched. If global `adpos` belongs to another checkout, uninstall refuses by default; run uninstall from the owning checkout, or use `-Force` only when you intend to remove that global binding.
 
 ```powershell
-adpos setup [-Distro <name>] [-IsoPath <path>] [-SkipIsoDownload] [-SkipDoctor] [-Force] [-NonInteractive] [-NoRegisterCommand]
+adpos setup [-Distro <name>] [-IsoPath <path>] [-SkipIsoDownload] [-SkipDoctor] [-Force] [-NonInteractive] [-NoRegisterCommand] [-Plan]
 adpos uninstall [-NonInteractive] [-Force]
 adpos help [command]
 adpos version
 adpos iso [ubuntu|almalinux|rocky|debian] [-Url <url>] [-Force] [-NonInteractive]
-adpos quickstart [-Distro <name>] [-IsoPath <path>] [-SkipIsoDownload] [-SkipDoctor] [-Force] [-NonInteractive] [-NoRegisterCommand] [--help-prereqs]
+adpos quickstart [-Distro <name>] [-IsoPath <path>] [-SkipIsoDownload] [-SkipDoctor] [-Force] [-NonInteractive] [-NoRegisterCommand] [-Plan] [--help-prereqs]
 adpos precheck [--help-prereqs]
 adpos init
 adpos init <frontend|backend|agent|sandbox> [-IsoPath <path>] [-NoProvision] [-Quick] [-NonInteractive]

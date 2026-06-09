@@ -178,7 +178,8 @@ Assert-NotContains -Name "status is not providerless at entry" -Text $entryProvi
 Assert-NotContains -Name "snapshot is not providerless at entry" -Text $entryProviderlessCommands -Pattern '"snapshot"'
 Assert-Contains -Name "run plan is providerless by flag" -Text $cliText -Pattern '\$normalizedCommand\s+-eq\s+"run"[\s\S]*-Name "Plan"'
 Assert-Contains -Name "prerequisite help alias is normalized" -Text $cliText -Pattern 'function\s+Resolve-ADPArgumentAlias[\s\S]*"--help-prereqs"[\s\S]*"-HelpPrereqs"'
-Assert-Contains -Name "prerequisite help is providerless by flag" -Text $cliText -Pattern '\$normalizedCommand\s+-in\s+@\("precheck", "quickstart"\)[\s\S]*-Name "HelpPrereqs"'
+Assert-Contains -Name "precheck help is providerless by flag" -Text $cliText -Pattern '\$normalizedCommand\s+-eq\s+"precheck"[\s\S]*-Name "HelpPrereqs"'
+Assert-Contains -Name "quickstart help and plan are providerless by flag" -Text $cliText -Pattern '\$normalizedCommand\s+-eq\s+"quickstart"[\s\S]*-Name "HelpPrereqs"[\s\S]*-Name "Plan"'
 
 . (Join-Path $projectRoot "cli\lib\parameter-preflight.ps1")
 Invoke-ADPCommandParameterPreflight -Path (Join-Path $projectRoot "cli\commands\sandbox.ps1") -RawArguments @("curl", "--silent")
@@ -192,6 +193,7 @@ try {
         @{ Name = "help"; Args = @("help"); ExitCode = 0; Pattern = "ADP-OS CLI" },
         @{ Name = "help doctor"; Args = @("help", "doctor"); ExitCode = 0; Pattern = "ADP-OS: adpos doctor" },
         @{ Name = "precheck help prereqs"; Args = @("precheck", "--help-prereqs"); ExitCode = 0; Pattern = "ADP-OS Prerequisites" },
+        @{ Name = "quickstart plan"; Args = @("quickstart", "-Plan", "-SkipIsoDownload", "-SkipDoctor", "-NoRegisterCommand"); ExitCode = 0; Pattern = "ADP-OS Quickstart Plan" },
         @{ Name = "unknown command"; Args = @("hepl"); ExitCode = 1; Pattern = "Unknown command: hepl" },
         @{ Name = "capabilities"; Args = @("capabilities"); ExitCode = 0; Pattern = "Capabilities only: no VMs" },
         @{ Name = "isolate plan"; Args = @("isolate", "-Plan", "-Namespace", "v2"); ExitCode = 0; Pattern = "Plan only: configs\\\\local\.json will not be changed" },

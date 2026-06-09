@@ -148,6 +148,7 @@ cd ai-dev-platform
 .\setup.cmd -Distro ubuntu                # 选择支持的发行版配置
 .\setup.cmd -SkipIsoDownload              # 跳过 ISO 下载（已缓存）
 .\setup.cmd -SkipDoctor                   # 跳过安装后的 doctor 检查
+.\setup.cmd -Plan                         # 预览 setup，不执行变更
 .\setup.cmd -NonInteractive               # 无交互运行（脚本/CI 使用）
 .\setup.cmd -Force                        # 跳过前提条件检查
 .\setup.cmd -NoRegisterCommand            # 不注册全局 adpos 命令
@@ -366,12 +367,12 @@ adpos workspace task validate frontend-browser-acceptance -Execute -ManifestPath
 `adpos uninstall` 只移除属于当前 checkout 的全局命令注册。Runtime 数据、workspace 数据、缓存、工具、日志和仓库文件都会保留。如果全局 `adpos` 属于另一个 checkout，默认会拒绝卸载；请到所属 checkout 中执行卸载，或在确认要移除该全局绑定时使用 `-Force`。
 
 ```powershell
-adpos setup [-Distro <name>] [-IsoPath <path>] [-SkipIsoDownload] [-SkipDoctor] [-Force] [-NonInteractive] [-NoRegisterCommand]
+adpos setup [-Distro <name>] [-IsoPath <path>] [-SkipIsoDownload] [-SkipDoctor] [-Force] [-NonInteractive] [-NoRegisterCommand] [-Plan]
 adpos uninstall [-NonInteractive] [-Force]
 adpos help [command]
 adpos version
 adpos iso [ubuntu|almalinux|rocky|debian] [-Url <url>] [-Force] [-NonInteractive]
-adpos quickstart [-Distro <name>] [-IsoPath <path>] [-SkipIsoDownload] [-SkipDoctor] [-Force] [-NonInteractive] [-NoRegisterCommand] [--help-prereqs]
+adpos quickstart [-Distro <name>] [-IsoPath <path>] [-SkipIsoDownload] [-SkipDoctor] [-Force] [-NonInteractive] [-NoRegisterCommand] [-Plan] [--help-prereqs]
 adpos precheck [--help-prereqs]
 adpos init
 adpos init <frontend|backend|agent|sandbox> [-IsoPath <path>] [-NoProvision] [-Quick] [-NonInteractive]

@@ -143,8 +143,15 @@ function Test-ADPCommandRequiresEntryProvider {
         return (-not (Test-ADPArgumentSwitchPresent -RawArguments $RawArguments -Name "Plan"))
     }
 
-    if ($normalizedCommand -in @("precheck", "quickstart")) {
+    if ($normalizedCommand -eq "precheck") {
         return (-not (Test-ADPArgumentSwitchPresent -RawArguments $RawArguments -Name "HelpPrereqs"))
+    }
+
+    if ($normalizedCommand -eq "quickstart") {
+        return (-not (
+            (Test-ADPArgumentSwitchPresent -RawArguments $RawArguments -Name "HelpPrereqs") -or
+            (Test-ADPArgumentSwitchPresent -RawArguments $RawArguments -Name "Plan")
+        ))
     }
 
     return $true

@@ -9,11 +9,62 @@ param(
     [string]$IsoPath,
     [switch]$NoRegisterCommand,
     [switch]$NonInteractive,
-    [switch]$RegisterCommandForce
+    [switch]$RegisterCommandForce,
+    [switch]$Plan
 )
 
 $ErrorActionPreference = "Stop"
 $script:ProjectRoot = $PSScriptRoot
+
+function Show-ADPInstallPlan {
+    param(
+        [switch]$SkipDependencyCheck,
+        [switch]$SkipVMValidation,
+        [switch]$Quick,
+        [string]$IsoPath,
+        [switch]$NoRegisterCommand,
+        [switch]$NonInteractive,
+        [switch]$RegisterCommandForce
+    )
+
+    Write-Host ""
+    Write-Host "========================================" -ForegroundColor Cyan
+    Write-Host "  ADP-OS Install Plan" -ForegroundColor Cyan
+    Write-Host "========================================" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "Plan only: no PowerShell 7 winget install, dependency remediation, directory creation, ISO copy or download, VMware initialization, initialized marker, or global adpos registration will be performed." -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "Requested options:" -ForegroundColor Cyan
+    Write-Host "  Skip dependency check: $(if ($SkipDependencyCheck) { 'true' } else { 'false' })" -ForegroundColor DarkGray
+    Write-Host "  Skip VM validation: $(if ($SkipVMValidation) { 'true' } else { 'false' })" -ForegroundColor DarkGray
+    Write-Host "  Quick: $(if ($Quick) { 'true' } else { 'false' })" -ForegroundColor DarkGray
+    Write-Host "  ISO path: $(if ($IsoPath) { $IsoPath } else { '(cache/default)' })" -ForegroundColor DarkGray
+    Write-Host "  NonInteractive: $(if ($NonInteractive) { 'true' } else { 'false' })" -ForegroundColor DarkGray
+    Write-Host "  Register global command: $(if ($NoRegisterCommand) { 'no' } else { 'yes' })" -ForegroundColor DarkGray
+    Write-Host "  Force registration replacement: $(if ($RegisterCommandForce) { 'true' } else { 'false' })" -ForegroundColor DarkGray
+    Write-Host ""
+    Write-Host "[1/6] Detect platform: would inspect OS information." -ForegroundColor DarkGray
+    Write-Host "[2/6] Check dependencies: would run or skip according to -SkipDependencyCheck." -ForegroundColor DarkGray
+    Write-Host "[3/6] Directory structure: would ensure workspace_root, iso_cache, and vm_store paths; plan does not create them." -ForegroundColor DarkGray
+    Write-Host "[4/6] ISO check: would inspect cache or copy -IsoPath in apply mode; plan does not copy." -ForegroundColor DarkGray
+    Write-Host "[5/6] VMware adapter: would run or skip according to -SkipVMValidation." -ForegroundColor DarkGray
+    Write-Host "[6/6] Finalize: would write initialized marker and register adpos unless -NoRegisterCommand." -ForegroundColor DarkGray
+    Write-Host ""
+    Write-Host "To execute: run the same install command without -Plan." -ForegroundColor Cyan
+    Write-Host ""
+}
+
+if ($Plan) {
+    Show-ADPInstallPlan `
+        -SkipDependencyCheck:$SkipDependencyCheck `
+        -SkipVMValidation:$SkipVMValidation `
+        -Quick:$Quick `
+        -IsoPath $IsoPath `
+        -NoRegisterCommand:$NoRegisterCommand `
+        -NonInteractive:$NonInteractive `
+        -RegisterCommandForce:$RegisterCommandForce
+    exit 0
+}
 
 function Find-ADPPowerShell7 {
     $candidates = @(
@@ -77,6 +128,7 @@ if ($PSVersionTable.PSVersion.Major -lt 7) {
         if ($NoRegisterCommand) { $forwardArgs += "-NoRegisterCommand" }
         if ($NonInteractive) { $forwardArgs += "-NonInteractive" }
         if ($RegisterCommandForce) { $forwardArgs += "-RegisterCommandForce" }
+        if ($Plan) { $forwardArgs += "-Plan" }
 
         Write-Host "Restarting ADP-OS install with PowerShell 7: $pwsh" -ForegroundColor Cyan
         & $pwsh @forwardArgs

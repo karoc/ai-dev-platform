@@ -126,6 +126,13 @@ $quickstartHelp = Invoke-AdposCli -Arguments @("quickstart", "--help-prereqs")
 Assert-ExitCode -Name "adpos quickstart --help-prereqs" -Actual $quickstartHelp.ExitCode -Expected 0
 Assert-Contains -Name "quickstart help-prereqs delegates to prerequisites" -Text $quickstartHelp.Output -Pattern "ADP-OS Prerequisites"
 
+$quickstartPlan = Invoke-AdposCli -Arguments @("quickstart", "-Plan", "-SkipIsoDownload", "-SkipDoctor", "-NoRegisterCommand", "-NonInteractive", "-Force")
+Assert-ExitCode -Name "adpos quickstart -Plan" -Actual $quickstartPlan.ExitCode -Expected 0
+Assert-Contains -Name "quickstart plan reports title" -Text $quickstartPlan.Output -Pattern "ADP-OS Quickstart Plan"
+Assert-Contains -Name "quickstart plan states non-mutating boundary" -Text $quickstartPlan.Output -Pattern "Plan only: no precheck remediation, ISO download, install, init, doctor, global command registration, VM, sync, or host configuration changes will be made"
+Assert-Contains -Name "quickstart plan preserves option state" -Text $quickstartPlan.Output -Pattern "Skip ISO download: true[\s\S]*Skip doctor: true[\s\S]*Register global command: no"
+Assert-NotContains -Name "quickstart plan does not run precheck or provider" -Text $quickstartPlan.Output -Pattern "Running: adpos precheck|Provider init skipped|VMware adapter init skipped|Installing Mutagen locally"
+
 $topLevelTypo = Invoke-AdposCli -Arguments @("hepl")
 Assert-ExitCode -Name "adpos hepl" -Actual $topLevelTypo.ExitCode -Expected 1
 Assert-Contains -Name "adpos hepl reports unknown command" -Text $topLevelTypo.Output -Pattern "Unknown command: hepl"

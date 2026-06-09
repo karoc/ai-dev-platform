@@ -9,7 +9,8 @@ param(
     [switch]$SkipDoctor,
     [switch]$NonInteractive,
     [switch]$Force,
-    [switch]$NoRegisterCommand
+    [switch]$NoRegisterCommand,
+    [switch]$Plan
 )
 
 $setupScript = Join-Path (Get-ProjectRoot) "setup.ps1"
@@ -21,6 +22,7 @@ if ($SkipDoctor) { $setupArgs += "-SkipDoctor" }
 if ($NonInteractive) { $setupArgs += "-NonInteractive" }
 if ($Force) { $setupArgs += "-Force" }
 if ($NoRegisterCommand) { $setupArgs += "-NoRegisterCommand" }
+if ($Plan) { $setupArgs += "-Plan" }
 
 & $setupScript @setupArgs
 exit $LASTEXITCODE

@@ -6,6 +6,7 @@
 #   .\setup.ps1                        Interactive guided setup
 #   .\setup.ps1 -IsoPath C:\...\ubuntu.iso   Use a pre-downloaded ISO
 #   .\setup.ps1 -SkipIsoDownload        Skip ISO download (ISO already cached)
+#   .\setup.ps1 -Plan                   Preview setup steps without changing state
 #   .\setup.ps1 -NonInteractive         Run without prompts (for scripts/CI)
 #   .\setup.ps1 -Force                  Skip precheck, proceed anyway
 #   .\setup.ps1 -NoRegisterCommand      Do not register the global adpos command
@@ -15,6 +16,7 @@ param(
     [string]$IsoPath,
     [switch]$SkipIsoDownload,
     [switch]$SkipDoctor,
+    [switch]$Plan,
     [switch]$NonInteractive,
     [switch]$Force,
     [switch]$NoRegisterCommand
@@ -22,6 +24,59 @@ param(
 
 $ErrorActionPreference = "Stop"
 $script:ProjectRoot = $PSScriptRoot
+
+function Show-ADPSetupPlan {
+    param(
+        [string]$Distro,
+        [string]$IsoPath,
+        [switch]$SkipIsoDownload,
+        [switch]$SkipDoctor,
+        [switch]$NonInteractive,
+        [switch]$Force,
+        [switch]$NoRegisterCommand
+    )
+
+    $quickstartArgs = @("quickstart", "-Plan")
+    if ($Distro -and $Distro -ne "ubuntu") { $quickstartArgs += @("-Distro", $Distro) }
+    if ($IsoPath) { $quickstartArgs += @("-IsoPath", $IsoPath) }
+    if ($SkipIsoDownload) { $quickstartArgs += "-SkipIsoDownload" }
+    if ($SkipDoctor) { $quickstartArgs += "-SkipDoctor" }
+    if ($NonInteractive) { $quickstartArgs += "-NonInteractive" }
+    if ($Force) { $quickstartArgs += "-Force" }
+    if ($NoRegisterCommand) { $quickstartArgs += "-NoRegisterCommand" }
+
+    Write-Host ""
+    Write-Host "========================================" -ForegroundColor Cyan
+    Write-Host "  ADP-OS Setup Plan" -ForegroundColor Cyan
+    Write-Host "========================================" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "Plan only: no prerequisites will be scanned, no Mutagen will be installed, no ISO will be downloaded, no install/init/doctor steps will run, and no global adpos registration will be changed." -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "Requested options:" -ForegroundColor Cyan
+    Write-Host "  Distro: $Distro" -ForegroundColor DarkGray
+    Write-Host "  ISO path: $(if ($IsoPath) { $IsoPath } else { '(cache/default)' })" -ForegroundColor DarkGray
+    Write-Host "  Skip ISO download: $(if ($SkipIsoDownload) { 'true' } else { 'false' })" -ForegroundColor DarkGray
+    Write-Host "  Skip doctor: $(if ($SkipDoctor) { 'true' } else { 'false' })" -ForegroundColor DarkGray
+    Write-Host "  NonInteractive: $(if ($NonInteractive) { 'true' } else { 'false' })" -ForegroundColor DarkGray
+    Write-Host "  Force: $(if ($Force) { 'true' } else { 'false' })" -ForegroundColor DarkGray
+    Write-Host "  Register global command: $(if ($NoRegisterCommand) { 'no' } else { 'yes' })" -ForegroundColor DarkGray
+    Write-Host ""
+    Write-Host "Would run: adpos $($quickstartArgs -join ' ')" -ForegroundColor Cyan
+    Write-Host "To execute: run the same setup command without -Plan." -ForegroundColor DarkGray
+    Write-Host ""
+}
+
+if ($Plan) {
+    Show-ADPSetupPlan `
+        -Distro $Distro `
+        -IsoPath $IsoPath `
+        -SkipIsoDownload:$SkipIsoDownload `
+        -SkipDoctor:$SkipDoctor `
+        -NonInteractive:$NonInteractive `
+        -Force:$Force `
+        -NoRegisterCommand:$NoRegisterCommand
+    exit 0
+}
 
 function Find-ADPPowerShell7 {
     $candidates = @(
@@ -82,6 +137,7 @@ if ($PSVersionTable.PSVersion.Major -lt 7) {
         if ($IsoPath) { $forwardArgs += @("-IsoPath", $IsoPath) }
         if ($SkipIsoDownload) { $forwardArgs += "-SkipIsoDownload" }
         if ($SkipDoctor) { $forwardArgs += "-SkipDoctor" }
+        if ($Plan) { $forwardArgs += "-Plan" }
         if ($NonInteractive) { $forwardArgs += "-NonInteractive" }
         if ($Force) { $forwardArgs += "-Force" }
         if ($NoRegisterCommand) { $forwardArgs += "-NoRegisterCommand" }
