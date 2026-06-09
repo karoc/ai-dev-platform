@@ -196,6 +196,7 @@ function Write-ADPCommandArgumentError {
 . (Join-Path $script:ProjectRoot "cli\lib\suggestions.ps1")
 . (Join-Path $script:ProjectRoot "cli\lib\help.ps1")
 . (Join-Path $script:ProjectRoot "cli\lib\parameter-preflight.ps1")
+. (Join-Path $script:ProjectRoot "cli\lib\semantic-preflight.ps1")
 
 # --- Help / Version flag detection ---
 $helpFlags = @('--help', '-Help', '-?')
@@ -292,6 +293,10 @@ try {
     Invoke-ADPCommandParameterPreflight -Path $commandFile -RawArguments $Arguments
 } catch [System.Management.Automation.ParameterBindingException] {
     Write-ADPCommandArgumentError -CommandName $Command -ErrorRecord $_
+    exit 1
+}
+
+if (-not (Invoke-ADPCommandSemanticPreflight -CommandName $Command -RawArguments $Arguments)) {
     exit 1
 }
 

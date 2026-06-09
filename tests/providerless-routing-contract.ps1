@@ -151,13 +151,16 @@ $cliText = Get-Content -LiteralPath (Join-Path $projectRoot "cli\adp.ps1") -Raw 
 $workspaceText = Get-Content -LiteralPath (Join-Path $projectRoot "cli\commands\workspace.ps1") -Raw -Encoding UTF8
 $workspaceProbeText = Get-Content -LiteralPath (Join-Path $projectRoot "cli\lib\workspace-probes.ps1") -Raw -Encoding UTF8
 $parameterPreflightText = Get-Content -LiteralPath (Join-Path $projectRoot "cli\lib\parameter-preflight.ps1") -Raw -Encoding UTF8
+$semanticPreflightText = Get-Content -LiteralPath (Join-Path $projectRoot "cli\lib\semantic-preflight.ps1") -Raw -Encoding UTF8
 Assert-Contains -Name "entry routing has provider requirement gate" -Text $cliText -Pattern 'function\s+Test-ADPCommandRequiresEntryProvider'
 Assert-Contains -Name "entry routing has workspace provider gate" -Text $cliText -Pattern 'function\s+Test-ADPWorkspaceCommandRequiresEntryProvider'
 Assert-Contains -Name "entry provider is initialized after command file validation" -Text $cliText -Pattern 'if\s+\(-not\s+\(Test-Path\s+\$commandFile\)\)[\s\S]*if\s+\(Test-ADPCommandRequiresEntryProvider'
 Assert-Contains -Name "entry parameter preflight runs before provider init" -Text $cliText -Pattern 'if\s+\(-not\s+\(Test-Path\s+\$commandFile\)\)[\s\S]*Invoke-ADPCommandParameterPreflight[\s\S]*if\s+\(Test-ADPCommandRequiresEntryProvider'
+Assert-Contains -Name "entry semantic preflight runs before provider init" -Text $cliText -Pattern 'Invoke-ADPCommandParameterPreflight[\s\S]*Invoke-ADPCommandSemanticPreflight[\s\S]*if\s+\(Test-ADPCommandRequiresEntryProvider'
 Assert-Contains -Name "entry provider remains available by default" -Text $cliText -Pattern 'if\s+\(\$normalizedCommand\s+-in\s+\$providerlessCommands\)[\s\S]*return \$true'
 Assert-Contains -Name "parameter preflight parses only command param block" -Text $parameterPreflightText -Pattern 'Parser\]::ParseInput[\s\S]*\$ast\.ParamBlock[\s\S]*\[scriptblock\]::Create\(\$preflightText\)'
 Assert-NotContains -Name "parameter preflight never dot-sources command files" -Text $parameterPreflightText -Pattern '\. \$Path|\. \(Quote|Invoke-CommandFile'
+Assert-Contains -Name "semantic preflight catches doctor plan pairing" -Text $semanticPreflightText -Pattern '\$normalizedCommand\s+-eq\s+"doctor"[\s\S]*-Name "Plan"[\s\S]*-Name "FixMutagen"[\s\S]*-Plan is only supported with -FixMutagen'
 Assert-Contains -Name "workspace snapshot evidence keeps entry provider" -Text $cliText -Pattern '\$workspaceCommand\s+-eq\s+"evidence"[\s\S]*Test-ADPArgumentSwitchPresent[\s\S]*-Name "Snapshot"'
 Assert-Contains -Name "workspace loads probe policy" -Text $workspaceText -Pattern 'Set-ADPWorkspaceExternalProbePolicy'
 Assert-Contains -Name "workspace runtime probes can be skipped" -Text $workspaceProbeText -Pattern 'Test-ADPWorkspaceExternalProbeAllowed[\s\S]*New-ADPWorkspaceProbeSkippedStatus -Kind "runtime"'
@@ -233,6 +236,13 @@ try {
         Assert-NotContains -Name $case.Name -Text $result.Output -Pattern $sentinel
         Assert-NotContains -Name $case.Name -Text $result.Output -Pattern 'Provider init skipped|VMware adapter init skipped|Get-VMStatus|Initialize-Mutagen'
     }
+
+    $doctorPlan = Invoke-SandboxAdpos -SandboxRoot $sandboxRoot -Arguments @("doctor", "-Plan")
+    Assert-ExitCode -Name "doctor plan semantic preflight" -Actual $doctorPlan.ExitCode -Expected 1
+    Assert-Contains -Name "doctor plan semantic preflight" -Text $doctorPlan.Output -Pattern "-Plan is only supported with -FixMutagen"
+    Assert-Contains -Name "doctor plan semantic preflight help path" -Text $doctorPlan.Output -Pattern "Run 'adpos doctor --help' for usage"
+    Assert-NotContains -Name "doctor plan semantic preflight" -Text $doctorPlan.Output -Pattern $sentinel
+    Assert-NotContains -Name "doctor plan semantic preflight" -Text $doctorPlan.Output -Pattern 'Provider init skipped|VMware adapter init skipped|Initialize-Mutagen|Running: adpos doctor'
 } finally {
     $tempRoot = [System.IO.Path]::GetTempPath()
     if ($sandboxRoot -and (Test-Path -LiteralPath $sandboxRoot) -and [System.IO.Path]::GetFullPath($sandboxRoot).StartsWith($tempRoot, [System.StringComparison]::OrdinalIgnoreCase)) {
