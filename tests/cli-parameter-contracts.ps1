@@ -146,6 +146,7 @@ $pullRequestTemplate = Read-Text ".github\pull_request_template.md"
 Assert-Contains -Name "CLI loads help module before use" -Text $cli -Pattern 'cli\\lib\\help\.ps1[\s\S]*if\s*\(\$Command\s+-eq\s+"help"\)[\s\S]*if\s*\(-not\s+\$Command\)'
 Assert-Contains -Name "CLI help module defines Show-Help" -Text $cliHelp -Pattern 'function\s+Show-Help[\s\S]*function\s+Show-CommandHelp[\s\S]*function\s+Show-Version'
 Assert-Contains -Name "CLI propagates command exit codes" -Text $cli -Pattern 'Invoke-CommandFile[\s\S]*if\s*\(\$LASTEXITCODE\s+-gt\s+0\)\s*\{[\s\S]*exit\s+\$LASTEXITCODE'
+Assert-Contains -Name "CLI catches PowerShell parameter binding errors" -Text $cli -Pattern 'function\s+Write-ADPCommandArgumentError[\s\S]*Invalid arguments for command:[\s\S]*Run ''\$commandText --help'' for usage[\s\S]*catch \[System\.Management\.Automation\.ParameterBindingException\]'
 Assert-Contains -Name "CI runs shared validation entry" -Text $ci -Pattern '\.\\tests\\validate\.ps1'
 Assert-Contains -Name "shared validation runs installer smoke tests" -Text $validate -Pattern '\.\\tests\\install-smoke\.ps1'
 Assert-Contains -Name "shared validation runs CLI smoke tests" -Text $validate -Pattern '\.\\tests\\cli-smoke\.ps1'

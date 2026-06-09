@@ -45,6 +45,18 @@ function Assert-Contains {
     }
 }
 
+function Assert-NotContains {
+    param(
+        [string]$Name,
+        [string]$Text,
+        [string]$Pattern
+    )
+
+    if ($Text -match $Pattern) {
+        throw "$Name contained unexpected pattern: $Pattern`nOutput:`n$Text"
+    }
+}
+
 function Assert-ExitCode {
     param(
         [string]$Name,
@@ -118,6 +130,33 @@ Assert-Contains -Name "doctor plan without fix mutagen explains valid pairing" -
 $doctorPlanZh = Invoke-AdposCli -Arguments @("doctor", "-Plan") -Environment @{ ADP_LANG = "zh-CN" }
 Assert-ExitCode -Name "adpos doctor -Plan zh-CN" -Actual $doctorPlanZh.ExitCode -Expected 1
 Assert-Contains -Name "doctor plan without fix mutagen explains valid pairing zh-CN" -Text $doctorPlanZh.Output -Pattern "-Plan 仅支持与 -FixMutagen 一起使用"
+
+$isoMissingUrl = Invoke-AdposCli -Arguments @("iso", "ubuntu", "-Url")
+Assert-ExitCode -Name "adpos iso ubuntu -Url" -Actual $isoMissingUrl.ExitCode -Expected 1
+Assert-Contains -Name "iso missing Url reports ADP argument error" -Text $isoMissingUrl.Output -Pattern "Invalid arguments for command: adpos iso"
+Assert-Contains -Name "iso missing Url preserves binding detail" -Text $isoMissingUrl.Output -Pattern "Missing an argument for parameter 'Url'"
+Assert-Contains -Name "iso missing Url gives command help path" -Text $isoMissingUrl.Output -Pattern "Run 'adpos iso --help' for usage"
+Assert-NotContains -Name "iso missing Url hides raw binding type" -Text $isoMissingUrl.Output -Pattern "ParameterBindingException|FullyQualifiedErrorId|At .* char"
+
+$isoBadDistro = Invoke-AdposCli -Arguments @("iso", "ubunut")
+Assert-ExitCode -Name "adpos iso ubunut" -Actual $isoBadDistro.ExitCode -Expected 1
+Assert-Contains -Name "iso bad distro reports ADP argument error" -Text $isoBadDistro.Output -Pattern "Invalid arguments for command: adpos iso"
+Assert-Contains -Name "iso bad distro preserves valid set" -Text $isoBadDistro.Output -Pattern "ubuntu,almalinux,rocky,debian"
+Assert-Contains -Name "iso bad distro gives command help path" -Text $isoBadDistro.Output -Pattern "Run 'adpos iso --help' for usage"
+Assert-NotContains -Name "iso bad distro hides raw binding type" -Text $isoBadDistro.Output -Pattern "ParameterBindingException|FullyQualifiedErrorId|At .* char"
+
+$workspaceMissingManifest = Invoke-AdposCli -Arguments @("workspace", "status", "-ManifestPath")
+Assert-ExitCode -Name "adpos workspace status -ManifestPath" -Actual $workspaceMissingManifest.ExitCode -Expected 1
+Assert-Contains -Name "workspace missing ManifestPath reports ADP argument error" -Text $workspaceMissingManifest.Output -Pattern "Invalid arguments for command: adpos workspace"
+Assert-Contains -Name "workspace missing ManifestPath preserves binding detail" -Text $workspaceMissingManifest.Output -Pattern "Missing an argument for parameter 'ManifestPath'"
+Assert-Contains -Name "workspace missing ManifestPath gives command help path" -Text $workspaceMissingManifest.Output -Pattern "Run 'adpos workspace --help' for usage"
+Assert-NotContains -Name "workspace missing ManifestPath hides raw binding type" -Text $workspaceMissingManifest.Output -Pattern "ParameterBindingException|FullyQualifiedErrorId|At .* char"
+
+$setupMissingIsoPathZh = Invoke-AdposCli -Arguments @("setup", "-IsoPath") -Environment @{ ADP_LANG = "zh-CN" }
+Assert-ExitCode -Name "adpos setup -IsoPath zh-CN" -Actual $setupMissingIsoPathZh.ExitCode -Expected 1
+Assert-Contains -Name "setup missing IsoPath reports ADP argument error zh-CN" -Text $setupMissingIsoPathZh.Output -Pattern "命令参数无效: adpos setup"
+Assert-Contains -Name "setup missing IsoPath gives command help path zh-CN" -Text $setupMissingIsoPathZh.Output -Pattern "运行 'adpos setup --help' 查看用法"
+Assert-NotContains -Name "setup missing IsoPath hides raw binding type zh-CN" -Text $setupMissingIsoPathZh.Output -Pattern "ParameterBindingException|FullyQualifiedErrorId|At .* char"
 
 $syncTypo = Invoke-AdposCli -Arguments @("sync", "stats")
 Assert-ExitCode -Name "adpos sync stats" -Actual $syncTypo.ExitCode -Expected 1

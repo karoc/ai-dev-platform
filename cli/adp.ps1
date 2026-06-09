@@ -176,6 +176,23 @@ function Invoke-CommandFile {
     & $scriptBlock
 }
 
+function Write-ADPCommandArgumentError {
+    param(
+        [string]$CommandName,
+        [System.Management.Automation.ErrorRecord]$ErrorRecord
+    )
+
+    $detail = if ($ErrorRecord -and $ErrorRecord.Exception) { $ErrorRecord.Exception.Message } else { "" }
+    $commandText = "adpos $CommandName"
+    $message = Get-UIText -English "Invalid arguments for command: $commandText" -Chinese "命令参数无效: $commandText"
+    Write-ErrorLog -Message $message -Component "cli"
+    if (-not [string]::IsNullOrWhiteSpace($detail)) {
+        Write-Host "  $detail" -ForegroundColor Yellow
+    }
+    Write-UIHost -English "Run '$commandText --help' for usage." -Chinese "运行 '$commandText --help' 查看用法。" -ForegroundColor DarkGray
+    Write-UIHost -English "Run 'adpos help' to see all commands." -Chinese "运行 'adpos help' 查看所有命令。" -ForegroundColor DarkGray
+}
+
 . (Join-Path $script:ProjectRoot "cli\lib\suggestions.ps1")
 . (Join-Path $script:ProjectRoot "cli\lib\help.ps1")
 
@@ -293,7 +310,12 @@ if (Test-ADPCommandRequiresEntryProvider -CommandName $Command -RawArguments $Ar
 
 Write-DebugLog -Message "Executing command: $Command with args: $Arguments" -Component "cli"
 $global:LASTEXITCODE = 0
-Invoke-CommandFile -Path $commandFile -RawArguments $Arguments
+try {
+    Invoke-CommandFile -Path $commandFile -RawArguments $Arguments
+} catch [System.Management.Automation.ParameterBindingException] {
+    Write-ADPCommandArgumentError -CommandName $Command -ErrorRecord $_
+    exit 1
+}
 if ($LASTEXITCODE -gt 0) {
     exit $LASTEXITCODE
 }
