@@ -175,16 +175,14 @@ WSL users must also set `ADP_HOME_WIN` (see [MCP Server Setup Guide](deer-flow-m
 
 **Step 3 — Restart deer-flow** to load the MCP extension. ADP-OS tools appear alongside built-in tools.
 
-**Step 4 — Validate from the MCP client**:
+**Step 4 — Validate from the MCP client**. These are MCP tool names, not local shell executables. For local PowerShell CLI verification, use `adpos up agent`, `adpos status agent`, and `adpos stop agent`.
 
-```
+```text
 adp_up agent                    # Boot VM (~30s warm, 15-45 min first install)
 adp_status agent                # Confirm VM is running
 adp_exec agent "python3 --version"  # Execute code inside VM
 adp_stop agent                  # Graceful shutdown
 ```
-
-These are MCP tool names, not local shell executables. For local PowerShell CLI verification, use `adpos up agent`, `adpos status agent`, and `adpos stop agent`.
 
 > For detailed MCP setup including environment variables, troubleshooting, and platform-specific examples, see the [MCP Server Setup Guide](deer-flow-mcp-setup.md).
 
@@ -366,7 +364,7 @@ This section documents practical constraints that integrators should be aware of
 
 | Limitation | Impact | Mitigation |
 |-----------|--------|------------|
-| **Static SSH credentials** | Default VM SSH credentials are `adp`/`adp`. Anyone with network access to the VMware NAT subnet can connect. | Change SSH password after first boot: `adp_exec agent "echo 'adp:NEW_PASSWORD' | sudo chpasswd"`. Set via `ADP_SSH_USER`/`ADP_SSH_PASSWORD` env vars. For production, use SSH keys. |
+| **Static SSH credentials** | Default VM SSH credentials are `adp`/`adp`. Anyone with network access to the VMware NAT subnet can connect. | Change SSH password after first boot through the MCP client/tool interface: `adp_exec agent "echo 'adp:NEW_PASSWORD' \| sudo chpasswd"`. Set via `ADP_SSH_USER`/`ADP_SSH_PASSWORD` env vars. For production, use SSH keys. |
 | **Single host** | All VMs run on the same VMware host. No distributed VM scheduling. | For multi-host scaling, deploy multiple ADP-OS instances and route deer-flow threads to them via the adapter's `thread_id→runtime` mapping. |
 | **No snapshot/rollback in MCP** | ADP-OS has VM snapshot infrastructure but it is not exposed as MCP tools. Cannot checkpoint and restore VM state from deer-flow agents. | Snapshot exposure is a P2 roadmap item. Current workaround: manage snapshots manually via `adpos workspace task snapshot`. |
 | **Linux guest only** | ADP-OS VMs currently run Ubuntu 26.04 (autoinstalled from ISO). No Windows or macOS guest support. | This matches deer-flow's expectations — all deer-flow sandbox tools (bash, ls, glob, grep) assume Linux. |
@@ -473,6 +471,8 @@ class DeerFlowADPSandboxProvider(SandboxProvider):
 
 ### Path 1: MCP Server Verification
 
+Rows in the **MCP Tool Invocation** column are deer-flow/MCP tool calls, not local shell commands. For local operator checks, use the `adpos` CLI.
+
 | # | Test | MCP Tool Invocation | Expected |
 |---|------|---------|----------|
 | 1 | MCP tools registered | `python3 -c "from cli.mcp.server import mcp; print(len(mcp._tool_manager._tools))"` | `26` |
@@ -516,11 +516,16 @@ class DeerFlowADPSandboxProvider(SandboxProvider):
 
 ### Post-Integration Health
 
+Local CLI checks:
+
 - [ ] ADP-OS CLI healthy: `adpos doctor`
 - [ ] At least one VM runtime configured: `adpos status`
 - [ ] No orphaned VMs after agent sessions: `adpos status` shows expected runtimes only
-- [ ] Mutagen sync healthy (if using workspace tools): `adp_sync_status`
 - [ ] SSH credentials changed from defaults (production)
+
+MCP client checks:
+
+- [ ] Mutagen sync healthy (if using workspace tools): `adp_sync_status`
 
 ---
 

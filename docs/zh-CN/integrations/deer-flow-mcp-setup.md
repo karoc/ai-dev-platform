@@ -3,7 +3,7 @@
 > **日期**: 2026-06-05 | **目标读者**: Deer-flow 集成者、ADP-OS 运维人员
 > **双语**: 中文 & English | [English version](../../integrations/deer-flow-mcp-setup.md)
 
-逐步可复制执行的实操指南，将 [ByteDance/deer-flow](https://github.com/ByteDance/deer-flow)（70K⭐）通过 **MCP 协议**连接到 ADP-OS VM。每个命令均经过测试，可独立执行。
+本指南将 [ByteDance/deer-flow](https://github.com/ByteDance/deer-flow)（70K⭐）通过 **MCP 协议**连接到 ADP-OS VM。终端片段使用 `adpos ...`；以 `adp_*` 开头的示例是 MCP/deer-flow 工具调用，必须通过 MCP 客户端或 deer-flow agent 调用，不是 shell 命令。
 
 完整的双路径集成参考（MCP + 直接适配器），参见 [Deer-Flow 集成指南](../deer-flow-integration.md) ([English](../../deer-flow-integration.md))。架构分析和缺口跟踪，参见[将 ADP-OS 部署为 Deer-Flow VM 沙箱后端](deer-flow.md)。
 
@@ -203,7 +203,9 @@ adp_stop agent
 
 ### VM 内文件操作测试
 
-```
+以下示例同样是在 deer-flow agent 上下文中的 MCP 工具调用，不是终端命令。
+
+```text
 # 在 VM 内写入文件
 adp_file_write agent "/tmp/test.py" "print('Hello from ADP-OS!')" plan_only=False
 
@@ -232,7 +234,9 @@ adp_grep agent "/tmp" "Hello"
 
 ### 诊断测试
 
-```
+这些是在 deer-flow agent 上下文中的 MCP 诊断工具调用。本地 CLI 健康检查请使用 `adpos doctor`。
+
+```text
 # 平台健康检查
 adp_doctor
 
@@ -306,7 +310,7 @@ kill %1
 **症状**：VM 内工具失败，提示 "Connection refused" 或 SSH 错误。
 
 **检查项**：
-1. VM 正在运行：`adp_status agent`
+1. 通过 MCP 客户端确认 VM 正在运行：`adp_status agent`
 2. SSH 凭据匹配 `configs/topology.json`
 3. VMware NAT 网络配置正确
 4. 集成主机可以访问 VM 的 IP 地址
@@ -328,7 +332,9 @@ ssh -o StrictHostKeyChecking=no adp@<vm-ip> "echo 'SSH OK'"
 
 **说明**：MCP 工具出于安全考虑默认 `plan_only=True`。agent 必须显式传递 `plan_only=False`：
 
-```
+请通过 MCP/deer-flow 工具接口执行这些调用，不要在终端 shell 中运行：
+
+```text
 adp_file_write agent "/tmp/config.json" '{"key": "value"}' plan_only=False
 adp_file_upload agent "/tmp/data.bin" "SGVsbG8=" plan_only=False
 ```
@@ -351,15 +357,25 @@ adp_file_upload agent "/tmp/data.bin" "SGVsbG8=" plan_only=False
 
 ## 验证清单
 
-使用 `adpos` 的项目是本地 CLI 检查；使用 `adp_*` 的项目是 deer-flow agent 上下文中的 MCP 工具检查。
+### 本地 CLI 检查
+
+在本地终端中执行这些检查。
 
 - [ ] ADP-OS CLI 健康：`adpos doctor`
 - [ ] 至少一个 VM 运行时已配置：`adpos status`
+
+### 集成配置检查
+
 - [ ] MCP 服务器模块可加载：`python3 -c "from cli.mcp.server import mcp; print(len(mcp._tool_manager._tools))"` → `26`
 - [ ] MCP 服务器测试通过：`python3 -m pytest tests/test-mcp-server.py tests/test-mcp-vm-tools.py -q` → `46 passed`
 - [ ] Deer-flow 适配器测试通过：`python3 -m pytest tests/test_deerflow_adp_sandbox.py -q` → `47 passed`
 - [ ] `extensions_config.json` 使用绝对路径和正确的环境变量配置
 - [ ] Deer-flow 已重启，26 个 ADP-OS 工具对 agent 可见
+
+### MCP 客户端检查
+
+通过 deer-flow agent 或 MCP 客户端上下文执行这些调用。它们不是终端 shell 命令。
+
 - [ ] `adp_up agent` 成功（创建或启动 VM）
 - [ ] `adp_exec agent "python3 --version"` 从 VM 内返回 Python 版本
 - [ ] `adp_file_read` / `adp_file_write` 在 VM 上正确工作

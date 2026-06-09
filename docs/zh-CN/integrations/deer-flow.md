@@ -175,16 +175,14 @@ WSL 用户必须同时设置 `ADP_HOME_WIN`（详见 [MCP 配置指南](deer-flo
 
 **步骤 3 — 重启 deer-flow** 以加载 MCP 扩展。ADP-OS 工具将出现在内置工具旁边。
 
-**步骤 4 — 从 MCP 客户端验证**：
+**步骤 4 — 从 MCP 客户端验证**。这些是 MCP 工具名，不是本地 shell 可执行文件。本地 PowerShell CLI 验证请使用 `adpos up agent`、`adpos status agent` 和 `adpos stop agent`。
 
-```
+```text
 adp_up agent                    # 启动 VM（热 VM ~30 秒，首次安装 15-45 分钟）
 adp_status agent                # 确认 VM 运行中
 adp_exec agent "python3 --version"  # 在 VM 内执行代码
 adp_stop agent                  # 优雅关闭
 ```
-
-这些是 MCP 工具名，不是本地 shell 可执行文件。本地 PowerShell CLI 验证请使用 `adpos up agent`、`adpos status agent` 和 `adpos stop agent`。
 
 > 详细 MCP 配置包括环境变量、故障排查和平台特定示例，请参阅 [MCP 配置指南](deer-flow-mcp-setup.md)。
 
@@ -366,7 +364,7 @@ provider.release(sandbox_id)
 
 | 限制 | 影响 | 缓解措施 |
 |------|------|---------|
-| **静态 SSH 凭证** | 默认 VM SSH 凭证为 `adp`/`adp`。能访问 VMware NAT 子网的任何人都可连接。 | 首次启动后更改 SSH 密码：`adp_exec agent "echo 'adp:NEW_PASSWORD' | sudo chpasswd"`。通过 `ADP_SSH_USER`/`ADP_SSH_PASSWORD` 环境变量设置。生产环境使用 SSH 密钥。 |
+| **静态 SSH 凭证** | 默认 VM SSH 凭证为 `adp`/`adp`。能访问 VMware NAT 子网的任何人都可连接。 | 首次启动后通过 MCP 客户端/工具接口更改 SSH 密码：`adp_exec agent "echo 'adp:NEW_PASSWORD' \| sudo chpasswd"`。通过 `ADP_SSH_USER`/`ADP_SSH_PASSWORD` 环境变量设置。生产环境使用 SSH 密钥。 |
 | **单主机** | 所有 VM 在同一 VMware 主机上运行。无分布式 VM 调度。 | 多主机扩展需部署多个 ADP-OS 实例，并通过适配器的 `thread_id→runtime` 映射将 deer-flow 线程路由到对应实例。 |
 | **MCP 无快照/回滚** | ADP-OS 有 VM 快照基础设施但未作为 MCP 工具暴露。无法从 deer-flow agent 进行检查点和恢复 VM 状态。 | 快照暴露是 P2 路线图项目。当前变通方案：通过 `adpos workspace task snapshot` 手动管理快照。 |
 | **仅 Linux 客户机** | ADP-OS VM 当前运行 Ubuntu 26.04（从 ISO 自动安装）。不支持 Windows 或 macOS 客户机。 | 这符合 deer-flow 的预期——所有 deer-flow 沙箱工具（bash、ls、glob、grep）均假设 Linux 环境。 |
@@ -473,6 +471,8 @@ class DeerFlowADPSandboxProvider(SandboxProvider):
 
 ### 路径 1: MCP 服务器验证
 
+**MCP 工具调用**列中的条目是在 deer-flow/MCP 上下文中的工具调用，不是本地 shell 命令。本地运维检查请使用 `adpos` CLI。
+
 | # | 测试项 | MCP 工具调用 | 预期结果 |
 |---|--------|------|---------|
 | 1 | MCP 工具注册 | `python3 -c "from cli.mcp.server import mcp; print(len(mcp._tool_manager._tools))"` | `26` |
@@ -516,11 +516,16 @@ class DeerFlowADPSandboxProvider(SandboxProvider):
 
 ### 集成后健康检查
 
+本地 CLI 检查：
+
 - [ ] ADP-OS CLI 健康: `adpos doctor`
 - [ ] 至少一个 VM runtime 已配置: `adpos status`
 - [ ] Agent 会话后无遗留 VM: `adpos status` 仅显示预期的 runtime
-- [ ] Mutagen 同步健康（如使用工作区工具）: `adp_sync_status`
 - [ ] SSH 凭证已更改默认值（生产环境）
+
+MCP 客户端检查：
+
+- [ ] Mutagen 同步健康（如使用工作区工具）: `adp_sync_status`
 
 ---
 

@@ -3,7 +3,7 @@
 > **Date**: 2026-06-05 | **Target audience**: Deer-flow integrators, ADP-OS operators
 > **Bilingual**: English & 中文 | [简体中文版](../zh-CN/integrations/deer-flow-mcp-setup.md)
 
-Step-by-step, copy-paste runnable guide to connect [ByteDance/deer-flow](https://github.com/ByteDance/deer-flow) (70K⭐) to ADP-OS VMs via the **MCP protocol**. Each command is tested and self-contained.
+Step-by-step guide to connect [ByteDance/deer-flow](https://github.com/ByteDance/deer-flow) (70K⭐) to ADP-OS VMs via the **MCP protocol**. Terminal snippets use `adpos ...`; examples starting with `adp_*` are MCP/deer-flow tool calls that must be invoked through an MCP client or deer-flow agent, not directly in a shell.
 
 For the comprehensive integration reference covering both MCP and Direct Adapter paths, see [Deer-Flow Integration Guide](../deer-flow-integration.md) ([简体中文](../zh-CN/deer-flow-integration.md)). For architecture and gap analysis, see [Deploying ADP-OS as Deer-Flow VM Sandbox Backend](deer-flow.md).
 
@@ -205,7 +205,9 @@ adp_stop agent
 
 ### In-VM File Operations Test
 
-```
+These examples are also MCP tool invocations from the deer-flow agent context, not terminal commands.
+
+```text
 # Write a file inside the VM
 adp_file_write agent "/tmp/test.py" "print('Hello from ADP-OS!')" plan_only=False
 
@@ -234,7 +236,9 @@ adp_grep agent "/tmp" "Hello"
 
 ### Diagnostics Test
 
-```
+These are MCP diagnostic tool calls from the deer-flow agent context. For local CLI health checks, use `adpos doctor`.
+
+```text
 # Platform health check
 adp_doctor
 
@@ -308,7 +312,7 @@ kill %1
 **Symptoms**: In-VM tools fail with "Connection refused" or SSH errors.
 
 **Checks**:
-1. VM is running: `adp_status agent`
+1. VM is running through the MCP client: `adp_status agent`
 2. SSH credentials match `configs/topology.json`
 3. VMware NAT network is properly configured
 4. Integration host can reach the VM's IP address
@@ -330,7 +334,9 @@ ssh -o StrictHostKeyChecking=no adp@<vm-ip> "echo 'SSH OK'"
 
 **Explanation**: MCP tools default to `plan_only=True` for safety. The agent must explicitly pass `plan_only=False`:
 
-```
+Run these through the MCP/deer-flow tool interface, not a terminal shell:
+
+```text
 adp_file_write agent "/tmp/config.json" '{"key": "value"}' plan_only=False
 adp_file_upload agent "/tmp/data.bin" "SGVsbG8=" plan_only=False
 ```
@@ -353,15 +359,25 @@ adp_file_upload agent "/tmp/data.bin" "SGVsbG8=" plan_only=False
 
 ## Verification Checklist
 
-Items using `adpos` are local CLI checks. Items using `adp_*` are MCP tool checks from the deer-flow agent context.
+### Local CLI checks
+
+Use these from a local terminal.
 
 - [ ] ADP-OS CLI healthy: `adpos doctor`
 - [ ] At least one VM runtime configured: `adpos status`
+
+### Integration setup checks
+
 - [ ] MCP server module loads: `python3 -c "from cli.mcp.server import mcp; print(len(mcp._tool_manager._tools))"` → `26`
 - [ ] MCP server tests pass: `python3 -m pytest tests/test-mcp-server.py tests/test-mcp-vm-tools.py -q` → `46 passed`
 - [ ] Deer-flow adapter tests pass: `python3 -m pytest tests/test_deerflow_adp_sandbox.py -q` → `47 passed`
 - [ ] `extensions_config.json` configured with absolute paths and correct env vars
 - [ ] Deer-flow restarted and 26 ADP-OS tools visible to the agent
+
+### MCP client checks
+
+Use these from the deer-flow agent or MCP client context. They are not terminal shell commands.
+
 - [ ] `adp_up agent` succeeds (creates or boots the VM)
 - [ ] `adp_exec agent "python3 --version"` returns Python version from inside the VM
 - [ ] `adp_file_read` / `adp_file_write` work correctly on the VM
