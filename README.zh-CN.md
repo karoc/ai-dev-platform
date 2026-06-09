@@ -90,7 +90,7 @@ ADP-OS 兼容 [Claude Managed Agents](https://docs.anthropic.com/en/docs/agents-
 - Ubuntu Server 26.04 live server ISO。
 - WSL，以及 `xorriso` 或其他兼容的 ISO 重制路径。
 - OpenSSH client。
-- Mutagen 0.18.x，可位于 `PATH`，也可放在 `.tools\mutagen\mutagen.exe`。
+- Mutagen 0.18.x，可位于 `PATH`，也可放在 `.tools\mutagen\mutagen.exe`。运行 `.\setup.cmd` 时，如果 Mutagen 是唯一缺失的前提条件，ADP-OS 会把测试过的本地 binary 安装到已忽略的 `.tools\mutagen` 下，然后重新运行 precheck。
 
 在 WSL 中安装 `xorriso`：
 
@@ -114,7 +114,7 @@ cd ai-dev-platform
 .\setup.cmd
 ```
 
-`.\setup.cmd` 是克隆后面向普通 Windows shell 的推荐入口。它将引导您一次性完成全部设置：前提条件扫描、ISO 下载（~2.6 GB）、平台引导、初始化和系统诊断。如果缺少 PowerShell 7，`setup.cmd` / `setup.ps1` 会先尝试用 `winget` 自动安装；如果仍无法获得可用的 `pwsh.exe`，才会打印手动安装路径并退出，不会让 Windows PowerShell 5.1 误跑 ADP-OS 控制平面。已经打开 PowerShell 7 时，也可以直接运行 `.\setup.ps1`。
+`.\setup.cmd` 是克隆后面向普通 Windows shell 的推荐入口。它将引导您一次性完成全部设置：前提条件扫描、ISO 下载（~2.6 GB）、平台引导、初始化和系统诊断。如果缺少 PowerShell 7，`setup.cmd` / `setup.ps1` 会先尝试用 `winget` 自动安装；如果仍无法获得可用的 `pwsh.exe`，才会打印手动安装路径并退出，不会让 Windows PowerShell 5.1 误跑 ADP-OS 控制平面。如果 Mutagen 是唯一缺失的前提条件，setup 会把测试过的本地 Mutagen binary 安装到已忽略的 `.tools\mutagen` 下，并重新运行 precheck 后继续。已经打开 PowerShell 7 时，也可以直接运行 `.\setup.ps1`。
 
 设置流程还会为当前用户注册全局 `adpos` 命令。安装完成后，可以在任意目录运行 `adpos` 操作 ADP-OS；ADP-OS 对外只暴露 `adpos` 这一个用户 shell 命令。如果当前 shell 还没有刷新用户 `PATH`，请打开一个新终端；在仓库根目录下使用 `.\adpos.cmd` 作为本地 wrapper。
 

@@ -10,6 +10,9 @@ param(
 )
 
 Write-InfoLog -Message (Get-UIText -English "Running: adpos precheck" -Chinese "正在运行: adpos precheck") -Component "cli.precheck"
+$global:PrecheckPassed = $false
+$global:PrecheckIssues = 0
+$global:PrecheckResults = @()
 
 # --- Help prereqs: just print the full requirements list ---
 if ($HelpPrereqs) {
@@ -351,3 +354,4 @@ if ($missingCount -gt 0) {
 # Store result for callers (e.g. quickstart)
 $global:PrecheckPassed = ($missingCount -eq 0)
 $global:PrecheckIssues = ($missingCount + $warnCount)
+$global:PrecheckResults = @($script:checks | ForEach-Object { [pscustomobject]$_ })

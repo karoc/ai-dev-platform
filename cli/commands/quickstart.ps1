@@ -65,6 +65,36 @@ function Write-QuickstartMultiCheckoutGuidance {
     }
 }
 
+function Test-QuickstartMutagenOnlyPrecheckIssue {
+    param([object[]]$PrecheckResults)
+
+    $issues = @($PrecheckResults | Where-Object { $_.Status -in @("MISSING", "WARN") })
+    if ($issues.Count -eq 0) {
+        return $false
+    }
+
+    return (@($issues | Where-Object { $_.Name -ne "Mutagen 0.18.x" }).Count -eq 0)
+}
+
+function Invoke-QuickstartMutagenRemediation {
+    param([switch]$NonInteractive)
+
+    Write-Host ""
+    Write-UIHost `
+        -English "Mutagen is the only missing prerequisite. Installing the tested local Mutagen binary..." `
+        -Chinese "Mutagen 是唯一缺失的前提条件。正在安装测试过的本地 Mutagen binary..." `
+        -ForegroundColor Cyan
+    Write-UIHost `
+        -English "  This uses the same ignored .tools\\mutagen location as: adpos doctor -FixMutagen" `
+        -Chinese "  这会使用与 adpos doctor -FixMutagen 相同的已忽略 .tools\\mutagen 位置" `
+        -ForegroundColor DarkGray
+
+    $doctorCommand = Join-Path (Get-ProjectRoot) "cli\commands\doctor.ps1"
+    Reset-QuickstartExitCode
+    . $doctorCommand -FixMutagen
+    Reset-QuickstartExitCode
+}
+
 # --- --help-prereqs: delegate to precheck ---
 if ($HelpPrereqs) {
     $precheckCommand = Join-Path (Get-ProjectRoot) "cli\commands\precheck.ps1"
@@ -83,7 +113,16 @@ if (-not $NonInteractive) {
 
 if (-not $Force) {
     $precheckCommand = Join-Path (Get-ProjectRoot) "cli\commands\precheck.ps1"
+    $mutagenRemediated = $false
+    Reset-QuickstartExitCode
     . $precheckCommand
+
+    if (-not $global:PrecheckPassed -and (Test-QuickstartMutagenOnlyPrecheckIssue -PrecheckResults $global:PrecheckResults)) {
+        Invoke-QuickstartMutagenRemediation -NonInteractive:$NonInteractive
+        $mutagenRemediated = $true
+        Reset-QuickstartExitCode
+        . $precheckCommand
+    }
 
     if (-not $global:PrecheckPassed) {
         $issuesCount = if ($global:PrecheckIssues) { $global:PrecheckIssues } else { 1 }
@@ -112,7 +151,11 @@ if (-not $Force) {
     }
 
     if (-not $NonInteractive) {
-        Write-UIHost -English "All prerequisites met. Proceeding with setup..." -Chinese "所有前提条件已满足。继续设置..." -ForegroundColor Green
+        if ($mutagenRemediated) {
+            Write-UIHost -English "Mutagen remediation succeeded. All prerequisites met. Proceeding with setup..." -Chinese "Mutagen 修复成功。所有前提条件已满足。继续设置..." -ForegroundColor Green
+        } else {
+            Write-UIHost -English "All prerequisites met. Proceeding with setup..." -Chinese "所有前提条件已满足。继续设置..." -ForegroundColor Green
+        }
         Write-Host ""
     }
 } else {

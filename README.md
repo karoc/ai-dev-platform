@@ -94,7 +94,7 @@ ADP-OS is compatible with [Claude Managed Agents](https://docs.anthropic.com/en/
 - Ubuntu Server 26.04 live server ISO.
 - WSL with `xorriso` or another compatible ISO remastering path.
 - OpenSSH client.
-- Mutagen 0.18.x, either on `PATH` or at `.tools\mutagen\mutagen.exe`.
+- Mutagen 0.18.x, either on `PATH` or at `.tools\mutagen\mutagen.exe`. During `.\setup.cmd`, if Mutagen is the only missing prerequisite, ADP-OS installs the tested local binary under ignored `.tools\mutagen` and reruns precheck.
 
 Install `xorriso` in WSL:
 
@@ -128,7 +128,7 @@ If you already have PowerShell 7 open, you can run the PowerShell entry point di
 .\setup.ps1
 ```
 
-Both entries guide you through the entire setup in one pass: prerequisite scanning, ISO download (~2.6 GB), platform bootstrap, initialization, and system diagnostics. If PowerShell 7 is missing, `setup.cmd` and `setup.ps1` first try to install it with `winget`; if that cannot produce a working `pwsh.exe`, they print the manual install path and exit before running the ADP-OS control plane. If you launch `setup.ps1` from built-in Windows PowerShell 5.1 and PowerShell 7 is available or successfully installed, it restarts itself with `pwsh.exe`.
+Both entries guide you through the entire setup in one pass: prerequisite scanning, ISO download (~2.6 GB), platform bootstrap, initialization, and system diagnostics. If PowerShell 7 is missing, `setup.cmd` and `setup.ps1` first try to install it with `winget`; if that cannot produce a working `pwsh.exe`, they print the manual install path and exit before running the ADP-OS control plane. If Mutagen is the only missing prerequisite, setup installs the tested local Mutagen binary under ignored `.tools\mutagen` and reruns precheck before continuing. If you launch `setup.ps1` from built-in Windows PowerShell 5.1 and PowerShell 7 is available or successfully installed, it restarts itself with `pwsh.exe`.
 
 Setup also registers the global `adpos` command for your user account, so after installation you can run ADP-OS from any directory. ADP-OS exposes `adpos` as the only user-facing shell command. Open a new terminal if the current shell has not picked up the updated user `PATH` yet; from the repository root, use `.\adpos.cmd` as the local wrapper.
 

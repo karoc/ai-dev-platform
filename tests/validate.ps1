@@ -172,6 +172,10 @@ Invoke-ValidationStep -Name "Check Mutagen remediation behavior" -ScriptBlock {
     & ".\tests\mutagen-remediation.ps1"
 }
 
+Invoke-ValidationStep -Name "Check quickstart Mutagen remediation contract" -ScriptBlock {
+    & ".\tests\quickstart-mutagen-contract.ps1"
+}
+
 Invoke-ValidationStep -Name "Check Windows CMD wrappers" -ScriptBlock {
     & ".\tests\cmd-wrapper.ps1"
 }

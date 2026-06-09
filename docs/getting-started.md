@@ -55,10 +55,10 @@ Before you start, make sure you have:
 | 3 | **VMware Workstation Pro** | [Download](https://www.vmware.com/products/workstation-pro.html) (free for personal use, or paid license). Verify with `vmrun.exe` on your PATH. |
 | 4 | **WSL** (Windows Subsystem for Linux) | Run `wsl --install` in an admin PowerShell. Required for ISO remastering. |
 | 5 | **OpenSSH Client** | Already included in Windows 11. Verify with `ssh -V`. |
-| 6 | **Mutagen 0.18.x** | ADP-OS can install it for you via `adpos doctor -FixMutagen` after setup, or `.\adpos.cmd doctor -FixMutagen` from the repo root before your shell refreshes `PATH`. Or [download manually](https://github.com/mutagen-io/mutagen/releases) if GitHub is slow. |
+| 6 | **Mutagen 0.18.x** | If this is the only missing prerequisite, `.\setup.cmd` installs the tested local Mutagen binary under ignored `.tools\mutagen` and reruns precheck. You can also run `.\adpos.cmd doctor -FixMutagen` from the repo root, or [download manually](https://github.com/mutagen-io/mutagen/releases) if GitHub is slow. |
 | 7 | **~10 GB free disk space** | For ISOs, VM disks, and tool binaries. |
 
-**Note:** Items 1–5 are pre-requisites you install yourself. Item 6 (Mutagen) can be installed by ADP-OS's built-in doctor. Item 7 is just space.
+**Note:** Items 1–5 are pre-requisites you install yourself. Item 6 (Mutagen) can be installed by setup when it is the only missing prerequisite, or by ADP-OS's built-in doctor. Item 7 is just space.
 
 ## Expected Timeline
 

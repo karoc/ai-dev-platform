@@ -55,10 +55,10 @@ ADP-OS 不会替代 Docker。它提供可运行 Docker 的虚拟机，并在此�
 | 3 | **VMware Workstation Pro** | [下载](https://www.vmware.com/products/workstation-pro.html)（个人免费使用，或付费许可）。验证 `vmrun.exe` 是否在 PATH 中。 |
 | 4 | **WSL**（Windows Subsystem for Linux） | 在管理员 PowerShell 中运行 `wsl --install`。ISO 重制需要此项。 |
 | 5 | **OpenSSH 客户端** | Windows 11 已内置。运行 `ssh -V` 验证。 |
-| 6 | **Mutagen 0.18.x** | 安装后 ADP-OS 可以通过 `adpos doctor -FixMutagen` 帮你安装；如果当前 shell 尚未刷新 `PATH`，可在仓库根目录用 `.\adpos.cmd doctor -FixMutagen`。如果 GitHub 速度慢，也可以[手动下载](https://github.com/mutagen-io/mutagen/releases)。 |
+| 6 | **Mutagen 0.18.x** | 如果这是唯一缺失的前提条件，`.\setup.cmd` 会把测试过的本地 Mutagen binary 安装到已忽略的 `.tools\mutagen` 下，并重新运行 precheck。也可以在仓库根目录运行 `.\adpos.cmd doctor -FixMutagen`，或在 GitHub 速度慢时[手动下载](https://github.com/mutagen-io/mutagen/releases)。 |
 | 7 | **约 10 GB 可用磁盘空间** | 用于 ISO、VM 磁盘和工具二进制文件。 |
 
-**注意：** 第 1–5 项是你需要自己安装的前置条件。第 6 项（Mutagen）可由 ADP-OS 内置的 doctor 安装。第 7 项只是空间。
+**注意：** 第 1–5 项是你需要自己安装的前置条件。第 6 项（Mutagen）可在它是唯一缺失项时由 setup 安装，也可由 ADP-OS 内置的 doctor 安装。第 7 项只是空间。
 
 ## 预计时间线
 
