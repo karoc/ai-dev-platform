@@ -257,13 +257,13 @@ If direct OpenSSH reports a stale host-key warning after restore, refresh only t
 | Installed packages | ✗ Unaffected | ✓ Reverted |
 | systemd services | ✗ Unaffected | ✓ Reverted |
 
-> Narrator: **"git reset only protects tracked files. ADP-OS protects the entire machine."**
+> Narrator: **"git reset only protects tracked files. ADP-OS restores the ADP-managed VM runtime state, including files and services inside that VM."**
 
 ---
 
 ### Phase F: Evidence Export (分钟 9–10)
 
-**Goal**: Produce the portable, verifiable audit trail.
+**Goal**: Produce the portable, verifiable demo evidence package.
 
 ```powershell
 # Step F1 — Export evidence ZIP (existing command)
@@ -289,9 +289,9 @@ try {
 }
 ```
 
-> Narrator: "The ZIP contains: snapshot-hashes.json (cryptographic proof), operation-log.json (immutable action record), workspace-report.md (human-readable summary), adp-workspace.json, and README.txt. This is a self-contained audit trail. A reviewer can verify the SHA-256 chain and confirm nothing was tampered with."
+> Narrator: "The ZIP contains: snapshot-hashes.json (hash-chained checkpoint evidence), operation-log.json (hash-chained action record), workspace-report.md (human-readable summary), adp-workspace.json, and README.txt. This is a self-contained demo evidence package. A reviewer can verify the recorded SHA-256 chain and check for tampering in the exported evidence."
 
-> Narrator: **"This is the artifact that proves value."**
+> Narrator: **"This is the artifact that shows the value."**
 
 ---
 

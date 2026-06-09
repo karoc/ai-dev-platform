@@ -1,4 +1,4 @@
-# ADP-OS — The Notary for AI Development: Auditable, Reproducible, Provable
+# ADP-OS — The Notary for AI Development: Auditable, Reproducible, Evidence-Based
 
 [简体中文](README.zh-CN.md) | English
 
@@ -6,7 +6,7 @@
 [![MCP](https://img.shields.io/badge/MCP_SDK-26_tools-4B8BBE?logo=python)](cli/mcp/server.py)
 [![Support](https://img.shields.io/badge/Support-GitHub_Issues-2ea44f?logo=github)](https://github.com/karoc/ai-dev-platform/issues/new/choose)
 
-ADP-OS is a platform that makes AI-assisted development auditable. It produces a verifiable **evidence chain** — snapshot signatures, operation logs, and exportable evidence packages — so you can prove what was built, how it was built, and who (or what AI) wrote each piece. Every development action is recorded, every workspace state is snapshot-addressable, and every release ships with an audit trail.
+ADP-OS is a platform that makes AI-assisted development auditable. It produces a verifiable **evidence chain** — snapshot signatures, operation logs, and exportable evidence packages — so reviewers can inspect what ADP-OS recorded about a task, its runtime checkpoint, and explicit AI-assisted development declarations. When work goes through ADP-OS workflows, selected checkpoints, operations, task states, and AI declarations are recorded as review evidence.
 
 ADP-OS provisions isolated, programmable Linux code execution runtimes as self-hosted AI development infrastructure for frontend, backend, and AI agent workloads, keeps workspaces synchronized from Windows into each VM, and creates rollback snapshots for repeatable AI coding workflows. It is Windows-first, running on VMware Workstation, Ubuntu Server, and Mutagen.
 
@@ -20,10 +20,10 @@ AI is writing more code every day. But when an AI generates a commit, how do you
 
 ADP-OS answers these questions with a verifiable **evidence chain**:
 
-- **Snapshot signatures** — Every VM state checkpoint is hashed and timestamped, so you can prove the exact environment a piece of code was built in.
+- **Snapshot signatures** — ADP-created VM state checkpoints are hashed and timestamped, so reviewers can identify the recorded runtime checkpoint for a task.
 - **Operation logs** — Every `adpos up`, `adpos sync`, `adpos snapshot`, and validation run is logged with operation type, timestamp, and outcome.
-- **Evidence export** — `adpos workspace evidence -Export` packages all logs, signatures, task states, and AI declarations into a single ZIP archive for compliance, review, or publication.
-- **AI declarations** — `adpos workspace declare -AiAssisted` records who reviewed AI-generated code, creating a provenance trail from prompt to production.
+- **Evidence export** — `adpos workspace evidence -Export` packages ADP evidence files, signatures, task states, and AI declarations into a single ZIP archive for compliance, review, or publication.
+- **AI declarations** — `adpos workspace declare -AiAssisted` records who reviewed declared AI-assisted work, creating an explicit review note for the task.
 
 ```
 以前：ADP-OS 是一个管理 AI 开发 VM 的工具。
@@ -37,8 +37,8 @@ ADP-OS answers these questions with a verifiable **evidence chain**:
 
 ## What It Provides
 
-- **Evidence chain** — Snapshot signing (`adpos workspace evidence -Snapshot`), operation logs (`adpos workspace evidence -Log`), evidence package export (`adpos workspace evidence -Export`), and AI-assisted development declarations (`adpos workspace declare -AiAssisted`). Every build is auditable, every AI contribution is recorded.
-- **Windows-first VM sandbox** — Local-first, self-hosted programmable code execution sandbox infrastructure with hardware-level isolation for AI agents and computer-use agents. Windows control plane implemented in PowerShell 7.
+- **Evidence chain** — Snapshot signing (`adpos workspace evidence -Snapshot`), operation logs (`adpos workspace evidence -Log`), evidence package export (`adpos workspace evidence -Export`), and AI-assisted development declarations (`adpos workspace declare -AiAssisted`). ADP-managed checkpoints and explicit AI declarations can be audited through the workspace workflow.
+- **Windows-first VM sandbox** — Local-first, self-hosted programmable code execution sandbox infrastructure with VM-level isolation on VMware Workstation for AI agents and computer-use agents. Windows control plane implemented in PowerShell 7.
 - VMware Workstation VM factory for Ubuntu Server 26.04.
 - Remastered Ubuntu autoinstall ISO generation with cloud-init seed data.
 - Runtime profiles for `frontend`, `backend`, and `agent`.

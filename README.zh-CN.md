@@ -1,4 +1,4 @@
-# ADP-OS —— AI 开发的公证人：可审计、可复现、可证明
+# ADP-OS —— AI 开发的公证人：可审计、可复现、证据化
 
 简体中文 | [English](README.md)
 
@@ -6,7 +6,7 @@
 [![MCP](https://img.shields.io/badge/MCP_SDK-26_tools-4B8BBE?logo=python)](cli/mcp/server.py)
 [![Support](https://img.shields.io/badge/Support-GitHub_Issues-2ea44f?logo=github)](https://github.com/karoc/ai-dev-platform/issues/new/choose)
 
-ADP-OS 是一个让 AI 辅助开发变得可审计的平台。它生成可验证的**证据链** —— 快照签名、操作日志和可导出的证据包 —— 让你能够证明：构建了什么、如何构建、由谁（或哪个 AI）编写了每一段代码。每一次开发操作都有记录，每个工作区状态都可以通过快照寻址，每个发布都附带完整的审计轨迹。
+ADP-OS 是一个让 AI 辅助开发变得可审计的平台。它生成可验证的**证据链** —— 快照签名、操作日志和可导出的证据包 —— 让审查者能够检查 ADP-OS 对某个任务、运行时检查点和显式 AI 辅助开发声明所记录的内容。当工作通过 ADP-OS 工作流推进时，选定的检查点、操作、任务状态和 AI 声明会被记录为审查证据。
 
 ADP-OS 会为前端、后端和 AI Agent 工作负载创建隔离的、可编程的 Linux 代码执行运行时作为自托管 AI 开发基础设施，将 Windows 工作区同步到各个 VM 中，并提供回滚快照，以支持可复现的 AI 编码工作流。它是 Windows 优先的，基于 VMware Workstation、Ubuntu Server 和 Mutagen。
 
@@ -20,10 +20,10 @@ AI 每天在写越来越多的代码。但当 AI 生成一个 commit 时，你�
 
 ADP-OS 用一条可验证的**证据链**来回答这些问题：
 
-- **快照签名** — 每个 VM 状态检查点都会被哈希并加盖时间戳，你可以证明代码是在哪个确切环境中构建的。
+- **快照签名** — ADP 创建的 VM 状态检查点会被哈希并加盖时间戳，审查者可以识别某个任务记录下来的运行时检查点。
 - **操作日志** — 每次 `adpos up`、`adpos sync`、`adpos snapshot` 和验证运行都会记录操作类型、时间戳和结果。
-- **证据导出** — `adpos workspace evidence -Export` 将所有日志、签名、任务状态和 AI 声明打包为一个 ZIP 归档，用于合规、审查或发布。
-- **AI 开发声明** — `adpos workspace declare -AiAssisted` 记录谁审查了 AI 生成的代码，创建从 prompt 到生产的溯源轨迹。
+- **证据导出** — `adpos workspace evidence -Export` 将 ADP 证据文件、签名、任务状态和 AI 声明打包为一个 ZIP 归档，用于合规、审查或发布。
+- **AI 开发声明** — `adpos workspace declare -AiAssisted` 记录谁审查了声明为 AI 辅助的工作，为该任务创建显式审查说明。
 
 ```
 以前：ADP-OS 是一个管理 AI 开发 VM 的工具。
@@ -33,8 +33,8 @@ ADP-OS 用一条可验证的**证据链**来回答这些问题：
 
 ## 提供能力
 
-- **证据链 / Evidence chain** — 快照签名 (`adpos workspace evidence -Snapshot`)、操作日志 (`adpos workspace evidence -Log`)、证据包导出 (`adpos workspace evidence -Export`)、AI 辅助开发声明 (`adpos workspace declare -AiAssisted`)。每次构建都可审计，每次 AI 贡献都有记录。
-- **Windows 优先的 VM 沙箱** — 本地优先的面向 AI Agent 和 Computer-Use Agent 的硬件级隔离可编程代码执行沙箱基础设施。使用 PowerShell 7 实现的 Windows 控制平面。
+- **证据链 / Evidence chain** — 快照签名 (`adpos workspace evidence -Snapshot`)、操作日志 (`adpos workspace evidence -Log`)、证据包导出 (`adpos workspace evidence -Export`)、AI 辅助开发声明 (`adpos workspace declare -AiAssisted`)。ADP 托管的检查点和显式 AI 声明可以通过 workspace 工作流进行审计。
+- **Windows 优先的 VM 沙箱** — 本地优先的面向 AI Agent 和 Computer-Use Agent 的 VMware Workstation VM 级隔离可编程代码执行沙箱基础设施。使用 PowerShell 7 实现的 Windows 控制平面。
 - 面向 Ubuntu Server 26.04 的 VMware Workstation VM 工厂。
 - 基于 cloud-init seed data 的 Ubuntu autoinstall ISO 重制。
 - `frontend`、`backend` 和 `agent` 运行时 profile。
