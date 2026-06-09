@@ -18,7 +18,7 @@ adpos sync status
 .\tests\validate.ps1 -Quick
 ```
 
-从 stock Windows shell 运行时，优先使用 wrapper 形式，例如 `adpos doctor`。如果未安装 `pwsh.exe`，先运行 `.\setup.cmd`；它会尝试用 `winget` 安装 PowerShell 7，然后用 `pwsh.exe` 重启 setup。内置 Windows PowerShell 5.1 只是 bootstrap 路径，不运行 ADP-OS control plane。
+执行 `.\setup.cmd` 后，`adpos` 是正式命令，并且应该可以在任意目录使用。如果当前 shell 尚未刷新 `PATH`，请打开新终端，或在仓库根目录使用 `.\adpos.cmd doctor`。ADP-OS 只暴露 `adpos` 作为面向用户的 shell 命令。如果未安装 `pwsh.exe`，先运行 `.\setup.cmd`；它会尝试用 `winget` 安装 PowerShell 7，然后用 `pwsh.exe` 重启 setup。内置 Windows PowerShell 5.1 只是 bootstrap 路径，不运行 ADP-OS control plane。
 
 建议保留这些上下文：
 

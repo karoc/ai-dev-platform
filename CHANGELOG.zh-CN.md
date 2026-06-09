@@ -23,6 +23,7 @@
 - 修正 release 和 security 文档，明确项目已有 `v1.0.0` 公开 release，同时保持安全修复以最新 `main` 分支为准，除非未来引入正式的 release 维护策略。
 - 修正 `adpos status [-Json]` 与 `validation_failed` task lifecycle state 的公开命令参考，使 README 和 workspace 文档与 survival demo 脚本及 CLI contract 保持一致。
 - 将 GitHub Actions workflows 固定到显式 `windows-2025-vs2026` runner image，并升级 checkout 到 `actions/checkout@v6`，避免即将到来的 `windows-latest` 与 Node 20 action runtime 漂移。
+- 对齐公开 demo dry-run 就绪文档，明确 Windows 11 host 要求、HTTPS clone onboarding、当前 Ubuntu ISO 命名、当前 `agent` sizing、`adpos sync list`，以及正式 `adpos` / `.\adpos.cmd` 入口边界。
 
 ### 2026-06-08
 

@@ -23,6 +23,7 @@ Initial public release.
 - Corrected release and security documentation to acknowledge the existing `v1.0.0` public release while keeping security-fix guidance centered on the latest `main` branch unless a future release maintenance policy is introduced.
 - Corrected public command references for `adpos status [-Json]` and the `validation_failed` task lifecycle state so the README and workspace docs match the survival demo script and CLI contract.
 - Pinned GitHub Actions workflows to the explicit `windows-2025-vs2026` runner image and upgraded checkout to `actions/checkout@v6` to avoid upcoming `windows-latest` and Node 20 action-runtime drift.
+- Aligned public demo dry-run readiness docs around the Windows 11 host requirement, HTTPS clone onboarding, current Ubuntu ISO naming, current `agent` sizing, `adpos sync list`, and the formal `adpos` / `.\adpos.cmd` entry boundary.
 
 ### 2026-06-08
 

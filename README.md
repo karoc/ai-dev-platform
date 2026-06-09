@@ -415,6 +415,7 @@ adpos sandbox <command...> [-Distro <name>] [-IsoPath <path>]
 adpos serve [-Port <port>] [-Public] [-Json]
 adpos isolate [-Plan|-Apply] [-Namespace <name>]
 adpos sync status
+adpos sync list
 adpos workspace init
 adpos workspace show
 adpos workspace plan

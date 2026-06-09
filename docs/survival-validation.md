@@ -78,7 +78,7 @@ Do not optimize the first validation round for generic developers, Linux/macOS-f
 Before showing the demo to a user:
 
 - Pass the [Public-Only Recording Checklist](demo-script.md#public-only-recording-checklist) before recording, publishing, or using the demo in a live user session.
-- Run the demo on a real Windows 10/11 host with VMware Workstation available and reachable.
+- Run the demo on a real Windows 11 host with VMware Workstation available and reachable.
 - Use PowerShell 7 for the control plane. From a stock Windows shell, use `.\adpos.cmd`; if only built-in Windows PowerShell 5.1 is available, run `.\setup.cmd` first so the user gets the PowerShell 7 install path instead of a broken ADP command.
 - Use an ADP-OS checkout with public docs and recipes available.
 - Pre-provision the `agent` runtime; first VM creation is not part of the 10-minute window.
@@ -142,7 +142,7 @@ session_id: "YYYYMMDD-NN"
 date: "2026-MM-DD"
 persona: "P0|P1|P2|P3"
 channel: "github|discord|v2ex|call|referral|other"
-os: "Windows 10|Windows 11|Other"
+os: "Windows 11|Unsupported Windows version|Other"
 agent_tool: "Cursor|Claude Code|Codex|Cline|Hermes|Other|None"
 current_sandbox: "none|wsl2|docker|manual-vm-snapshot|manual-backup|cloud-sandbox|other"
 
