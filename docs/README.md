@@ -26,6 +26,7 @@ This documentation covers how to install, operate, configure, and understand ADP
 - [Browser Testing](browser-testing.md): headless frontend browser acceptance testing.
 - [Evidence Chain](evidence.md): tamper-evident SHA-256 hash chains for audits.
 - [Survival Validation](survival-validation.md): first-users validation process, 10-minute demo readiness, observer checklist, feedback form, failure classification, and decision criteria.
+- [10-Minute Survival Value Demo / Recording Checklist](demo-script.md) ([简体中文](zh-CN/demo-script.md)): presenter script, public-only recording checklist, 6-phase flow, and troubleshooting guide.
 
 ## Community
 

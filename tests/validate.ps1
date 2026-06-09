@@ -112,6 +112,10 @@ Invoke-ValidationStep -Name "Check release documentation contracts" -ScriptBlock
     & ".\tests\release-docs-contract.ps1"
 }
 
+Invoke-ValidationStep -Name "Check survival validation documentation contracts" -ScriptBlock {
+    & ".\tests\survival-validation-docs-contract.ps1"
+}
+
 Invoke-ValidationStep -Name "Check adpos registration contract" -ScriptBlock {
     & ".\tests\adpos-registration-contract.ps1"
 }

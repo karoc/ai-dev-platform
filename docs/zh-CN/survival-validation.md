@@ -77,6 +77,7 @@
 
 展示给用户前：
 
+- 录制、发布或在用户现场演示前，先通过[录制前公开核对](demo-script.md#录制前公开核对)。
 - 在真实 Windows 10/11 主机上运行，且 VMware Workstation 可用并可访问。
 - 控制面使用 PowerShell 7。从 stock Windows shell 运行时使用 `.\adpos.cmd`；如果机器只有内置 Windows PowerShell 5.1，先运行 `.\setup.cmd`，让用户得到 PowerShell 7 安装路径，而不是直接得到失败的 ADP 命令。
 - 使用包含公开文档和 recipes 的 ADP-OS checkout。

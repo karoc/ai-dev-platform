@@ -192,7 +192,7 @@ adp-workspace.state.json
 adpos workspace task mark before-large-agent-task prepared
 ```
 
-`task mark` 只记录本地 task state。它会写入 `adp-workspace.state.json`，平台仓库默认忽略这个文件。state 文件让 `workspace status`、`workspace dashboard`、`workspace project`、`workspace report` 和 task lifecycle 命令可以显示人类或 agent 已将任务标记为 `prepared`、`checkpointed`、`checkpoint-waived`、`running`、`validated`、`reviewed`、`rollback` 或 `committed`。执行过的 validation 也会把 validation result 详情写到同一个被忽略的 state 文件。标记状态不会运行任务、创建快照、运行验证、恢复快照、stage 文件或 commit 改动。
+`task mark` 只记录本地 task state。它会写入 `adp-workspace.state.json`，平台仓库默认忽略这个文件。state 文件让 `workspace status`、`workspace dashboard`、`workspace project`、`workspace report` 和 task lifecycle 命令可以显示人类或 agent 已将任务标记为 `prepared`、`checkpointed`、`checkpoint-waived`、`running`、`validated`、`validation_failed`、`reviewed`、`rollback` 或 `committed`。执行过的 validation 也会把 validation result 详情写到同一个被忽略的 state 文件。标记状态不会运行任务、创建快照、运行验证、恢复快照、stage 文件或 commit 改动。
 
 Lifecycle state 本身不是证据。`checkpoint-waived` 记录人类已经显式接受缺少 VM snapshot 保护的风险；它不会创建快照、证明 rollback safety，也不会恢复 rollback capability。如果后续真实 snapshot 已创建，checkpoint gate 会优先显示 snapshot ready；标记 `checkpointed` 会清除本地 waiver marker。`running` 表示手动执行已经开始或尝试过；不代表 ADP-OS 启动了 agent 或批准了这项工作。`validated` 只是本地 lifecycle note，除非已经通过 `workspace task validate <task> -Execute` 记录了 executable validation evidence。`reviewed` 只应在人类 source review 接受 diff、rollback path、snapshot context 和已记录 validation evidence 后使用。`rollback` 和 `committed` 也只是本地 note；ADP-OS 不会 restore snapshot、修改源码、stage 文件或运行 `git commit`。
 

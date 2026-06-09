@@ -24,6 +24,7 @@
 - [浏览器测试](browser-testing.md)：frontend 运行时的 headless 浏览器验收测试。
 - [证据链](evidence.md)：防篡改的 SHA-256 哈希链，用于审计。
 - [生存验证](survival-validation.md)：首批用户验证流程、10 分钟 demo 准备、观察清单、反馈表、失败分类和决策标准。
+- [10 分钟生存价值演示 / 录制前核对](demo-script.md)：演示脚本、公开视频核对、6 阶段流程和故障排除指南。
 
 ## 社区
 

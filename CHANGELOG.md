@@ -14,9 +14,14 @@ Initial public release.
 
 ### 2026-06-09
 
+### Added
+
+- Added public-only recording and live-demo checklist guardrails to the survival demo path, including public artifact boundaries, privacy review, evidence ZIP inspection, sync fencing, and maintainer-approval boundaries before publication or outreach.
+
 ### Fixed
 
 - Corrected release and security documentation to acknowledge the existing `v1.0.0` public release while keeping security-fix guidance centered on the latest `main` branch unless a future release maintenance policy is introduced.
+- Corrected public command references for `adpos status [-Json]` and the `validation_failed` task lifecycle state so the README and workspace docs match the survival demo script and CLI contract.
 
 ### 2026-06-08
 

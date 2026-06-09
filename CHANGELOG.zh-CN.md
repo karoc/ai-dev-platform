@@ -14,9 +14,14 @@
 
 ### 2026-06-09
 
+### 新增
+
+- 在 survival demo 路径中新增仅公开材料录制和现场演示核对护栏，覆盖公开 artifact 边界、隐私复查、evidence ZIP 检查、sync fence，以及发布或外联前必须获得 maintainer 批准的边界。
+
 ### 修复
 
 - 修正 release 和 security 文档，明确项目已有 `v1.0.0` 公开 release，同时保持安全修复以最新 `main` 分支为准，除非未来引入正式的 release 维护策略。
+- 修正 `adpos status [-Json]` 与 `validation_failed` task lifecycle state 的公开命令参考，使 README 和 workspace 文档与 survival demo 脚本及 CLI contract 保持一致。
 
 ### 2026-06-08
 

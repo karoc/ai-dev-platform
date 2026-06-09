@@ -9,6 +9,20 @@
 
 ---
 
+## Public-Only Recording Checklist
+
+Before recording or showing a public demo, the run must be reproducible from the public repository only.
+
+- Use only the public ADP-OS checkout, public docs, public recipe manifest, public issue templates, and artifacts produced by public ADP-OS commands.
+- The user-facing shell command is `adpos`; from the repository root, `.\adpos.cmd` is the local wrapper before `PATH` refresh. Do not introduce an `adp` shell command.
+- Do not rely on private maintainer scripts, private cleanup notes, private repositories, private feedback records, unpublished support channels, or undocumented VMware intervention.
+- Use `configs\workspace.recipes.example.json`, `broad-agent-refactor`, `before-broad-agent-refactor`, and `/home/adp/workspace/agent-workspace` as the public demo baseline.
+- Do not start the timed recording until VMware is reachable, `agent` is pre-provisioned, `adpos doctor`, `adpos status agent`, and `adpos sync status` report the expected public readiness.
+- Keep the sync fence explicit: stop `agent` sync before VM mutation, keep it stopped through restore, and restart it only after choosing the host or VM workspace as the source of truth.
+- Generate `configs\workspace-report.md` before evidence export and verify the evidence ZIP contains `README.txt`, `snapshot-hashes.json`, `operation-log.json`, `workspace-report.md`, and `adp-workspace.json`.
+- Stop the recording and classify it as rehearsal or product-readiness evidence if restore readiness cannot be shown through public ADP commands, if direct SSH needs undocumented host-key surgery, if private cleanup is needed, or if secrets or private local paths are visible.
+- Recording prep does not include outreach. No public posting, automated outreach, scraping, bulk messages, testimonials, queued contacts, Discord, GitHub Discussions, or target-user contact is approved or official until the maintainer explicitly enables or approves it.
+
 ## Pre-Demo Setup Checklist
 
 Run these before the session. Do NOT include in the 10-minute window.
@@ -329,6 +343,7 @@ The demo must honestly disclose:
 - **Font**: Cascadia Code or Consolas, 14pt
 - **Resolution**: 1920×1080
 - **Style**: Clean white-on-black terminal. No face cam. Text overlays for key concepts.
+- **Privacy review**: Rewatch the recording before publication. Discard and re-record if credentials, private local paths, private maintainer context, private feedback notes, or unrelated notifications are visible.
 
 ---
 

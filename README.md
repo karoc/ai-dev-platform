@@ -406,7 +406,7 @@ adpos init
 adpos init <frontend|backend|agent|sandbox> [-IsoPath <path>] [-NoProvision] [-Quick] [-NonInteractive]
 adpos up <frontend|backend|agent|sandbox> [-IsoPath <path>] [-Plan] [-NoProvision] [-NoBootstrap]
 adpos run <frontend|backend|agent|sandbox> [-IsoPath <path>] [-Plan] [-NoProvision] [-NoBootstrap] [-NoSync]
-adpos status [frontend|backend|agent|sandbox]
+adpos status [frontend|backend|agent|sandbox] [-Json]
 adpos capabilities
 adpos stop <frontend|backend|agent|sandbox>
 adpos validate [-Quick] [-SkipCliSmoke] [-SkipInstallerSmoke] [-SkipShellSyntax]
@@ -433,7 +433,7 @@ adpos workspace evidence -Export [-Path <path>]                   Export all evi
 adpos workspace declare -AiAssisted [-Reviewer <name>] [-Notes "..."] [-Json]  Declare AI-assisted development
 adpos workspace task <prepare|snapshot|run|validate|review|rollback|commit> <task-name>
 adpos workspace task validate <task-name> [-Execute] [-Plan]
-adpos workspace task mark <task-name> <prepared|checkpointed|checkpoint-waived|running|validated|reviewed|rollback|committed>
+adpos workspace task mark <task-name> <prepared|checkpointed|checkpoint-waived|running|validated|validation_failed|reviewed|rollback|committed>
 adpos sync start <frontend|backend|agent|sandbox>
 adpos sync stop <frontend|backend|agent|sandbox>
 adpos network apply <frontend|backend|agent|sandbox|all> [-Plan]
@@ -503,6 +503,7 @@ agent     watching  %USERPROFILE%\adp-workspaces\agent   /home/adp/workspace
 - [Operations](docs/operations.md)
 - [Evidence Chain](docs/evidence.md)
 - [Survival Validation](docs/survival-validation.md)
+- [10-Minute Survival Value Demo / Recording Checklist](docs/demo-script.md)
 - [Troubleshooting](docs/troubleshooting.md)
 - [Networking](docs/networking.md)
 - [Browser Testing](docs/browser-testing.md)

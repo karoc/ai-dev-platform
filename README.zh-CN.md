@@ -378,7 +378,7 @@ adpos init
 adpos init <frontend|backend|agent|sandbox> [-IsoPath <path>] [-NoProvision] [-Quick] [-NonInteractive]
 adpos up <frontend|backend|agent|sandbox> [-IsoPath <path>] [-Plan] [-NoProvision] [-NoBootstrap]
 adpos run <frontend|backend|agent|sandbox> [-IsoPath <path>] [-Plan] [-NoProvision] [-NoBootstrap] [-NoSync]
-adpos status [frontend|backend|agent|sandbox]
+adpos status [frontend|backend|agent|sandbox] [-Json]
 adpos capabilities
 adpos stop <frontend|backend|agent|sandbox>
 adpos validate [-Quick] [-SkipCliSmoke] [-SkipInstallerSmoke] [-SkipShellSyntax]
@@ -405,7 +405,7 @@ adpos workspace evidence -Export [-Path <path>]                   导出所有�
 adpos workspace declare -AiAssisted [-Reviewer <name>] [-Notes "..."] [-Json]  声明 AI 辅助开发
 adpos workspace task <prepare|snapshot|run|validate|review|rollback|commit> <task-name>
 adpos workspace task validate <task-name> [-Execute] [-Plan]
-adpos workspace task mark <task-name> <prepared|checkpointed|checkpoint-waived|running|validated|reviewed|rollback|committed>
+adpos workspace task mark <task-name> <prepared|checkpointed|checkpoint-waived|running|validated|validation_failed|reviewed|rollback|committed>
 adpos sync start <frontend|backend|agent|sandbox>
 adpos sync stop <frontend|backend|agent|sandbox>
 adpos network apply <frontend|backend|agent|sandbox|all> [-Plan]
@@ -438,6 +438,7 @@ adpos workspace declare -AiAssisted [-Reviewer <name>] [-Notes "..."] [-Manifest
 - [操作指南](docs/zh-CN/operations.md)
 - [证据链](docs/zh-CN/evidence.md)
 - [生存验证](docs/zh-CN/survival-validation.md)
+- [10 分钟生存价值演示 / 录制前核对](docs/zh-CN/demo-script.md)
 - [排障](docs/zh-CN/troubleshooting.md)
 - [网络说明](docs/zh-CN/networking.md)
 - [浏览器测试](docs/zh-CN/browser-testing.md)
