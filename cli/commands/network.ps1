@@ -45,8 +45,8 @@ if ($SubCommand -in @("configure-local", "local") -and $Plan -and $Apply) {
 }
 
 if ($SubCommand -eq "apply" -and $RuntimeName -ne "all" -and -not (Test-RuntimeExists $RuntimeName)) {
-    Write-ErrorLog -Message (Get-UIText -English "Unknown runtime: $RuntimeName. Valid: $((Get-AllRuntimeNames) -join ', '), all" -Chinese "未知运行时: $RuntimeName。可用: $((Get-AllRuntimeNames) -join ', ')，all") -Component "cli.network"
-    Write-UIHost -English "Run 'adpos network --help' for network help." -Chinese "运行 'adpos network --help' 查看网络帮助。" -ForegroundColor DarkGray
+    $validTargets = @((Get-AllRuntimeNames) + "all")
+    Write-ADPUnknownRuntimeError -RuntimeName $RuntimeName -CommandText "network apply" -ValidRuntimeNames $validTargets -Component "cli.network" -HelpEnglish "Run 'adpos network --help' for network help." -HelpChinese "运行 'adpos network --help' 查看网络帮助。"
     exit 1
 }
 

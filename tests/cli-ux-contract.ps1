@@ -201,6 +201,43 @@ Assert-ExitCode -Name "adpos network apply not-a-runtime -Plan" -Actual $network
 Assert-Contains -Name "network bad runtime lists sandbox and all" -Text $networkBadRuntime.Output -Pattern "Unknown runtime: not-a-runtime\. Valid: frontend, backend, agent, sandbox, all"
 Assert-Contains -Name "network bad runtime gives help path" -Text $networkBadRuntime.Output -Pattern "Run 'adpos network --help' for network help"
 
+$upRuntimeTypo = Invoke-AdposCli -Arguments @("up", "fronend", "-Plan")
+Assert-ExitCode -Name "adpos up fronend -Plan" -Actual $upRuntimeTypo.ExitCode -Expected 1
+Assert-Contains -Name "up runtime typo reports valid runtimes" -Text $upRuntimeTypo.Output -Pattern "Unknown runtime: fronend\. Valid: frontend, backend, agent, sandbox"
+Assert-Contains -Name "up runtime typo suggests frontend" -Text $upRuntimeTypo.Output -Pattern "Did you mean: adpos up frontend"
+Assert-Contains -Name "up runtime typo gives help path" -Text $upRuntimeTypo.Output -Pattern "Run 'adpos up --help' for usage"
+
+$statusRuntimeTypo = Invoke-AdposCli -Arguments @("status", "fronend")
+Assert-ExitCode -Name "adpos status fronend" -Actual $statusRuntimeTypo.ExitCode -Expected 1
+Assert-Contains -Name "status runtime typo reports valid runtimes" -Text $statusRuntimeTypo.Output -Pattern "Unknown runtime: fronend\. Valid: frontend, backend, agent, sandbox"
+Assert-Contains -Name "status runtime typo suggests frontend" -Text $statusRuntimeTypo.Output -Pattern "Did you mean: adpos status frontend"
+Assert-Contains -Name "status runtime typo gives help path" -Text $statusRuntimeTypo.Output -Pattern "Run 'adpos status --help' for usage"
+
+$syncRuntimeTypo = Invoke-AdposCli -Arguments @("sync", "start", "fronend")
+Assert-ExitCode -Name "adpos sync start fronend" -Actual $syncRuntimeTypo.ExitCode -Expected 1
+Assert-Contains -Name "sync runtime typo reports valid runtimes" -Text $syncRuntimeTypo.Output -Pattern "Unknown runtime: fronend\. Valid: frontend, backend, agent, sandbox"
+Assert-Contains -Name "sync runtime typo suggests frontend" -Text $syncRuntimeTypo.Output -Pattern "Did you mean: adpos sync start frontend"
+Assert-Contains -Name "sync runtime typo gives help path" -Text $syncRuntimeTypo.Output -Pattern "Run 'adpos sync --help' for sync help"
+
+$initRuntimeTypo = Invoke-AdposCli -Arguments @("init", "fronend", "-Quick", "-NonInteractive")
+Assert-ExitCode -Name "adpos init fronend -Quick -NonInteractive" -Actual $initRuntimeTypo.ExitCode -Expected 1
+Assert-Contains -Name "init runtime typo reports valid runtimes" -Text $initRuntimeTypo.Output -Pattern "Unknown runtime: fronend\. Valid: frontend, backend, agent, sandbox"
+Assert-Contains -Name "init runtime typo suggests frontend" -Text $initRuntimeTypo.Output -Pattern "Did you mean: adpos init frontend"
+Assert-Contains -Name "init runtime typo gives help path" -Text $initRuntimeTypo.Output -Pattern "Run 'adpos init --help' for usage"
+Assert-NotContains -Name "init runtime typo stops before directory setup" -Text $initRuntimeTypo.Output -Pattern "Platform Directories|VM Factory"
+
+$runRuntimeTypo = Invoke-AdposCli -Arguments @("run", "fronend", "-Plan")
+Assert-ExitCode -Name "adpos run fronend -Plan" -Actual $runRuntimeTypo.ExitCode -Expected 1
+Assert-Contains -Name "run runtime typo reports valid runtimes" -Text $runRuntimeTypo.Output -Pattern "Unknown runtime: fronend\. Valid: frontend, backend, agent, sandbox"
+Assert-Contains -Name "run runtime typo suggests frontend" -Text $runRuntimeTypo.Output -Pattern "Did you mean: adpos run frontend"
+Assert-Contains -Name "run runtime typo gives help path" -Text $runRuntimeTypo.Output -Pattern "Run 'adpos run --help' for usage"
+
+$networkRuntimeTypo = Invoke-AdposCli -Arguments @("network", "apply", "fronend", "-Plan")
+Assert-ExitCode -Name "adpos network apply fronend -Plan" -Actual $networkRuntimeTypo.ExitCode -Expected 1
+Assert-Contains -Name "network runtime typo reports valid targets" -Text $networkRuntimeTypo.Output -Pattern "Unknown runtime: fronend\. Valid: frontend, backend, agent, sandbox, all"
+Assert-Contains -Name "network runtime typo suggests frontend" -Text $networkRuntimeTypo.Output -Pattern "Did you mean: adpos network apply frontend"
+Assert-Contains -Name "network runtime typo gives help path" -Text $networkRuntimeTypo.Output -Pattern "Run 'adpos network --help' for network help"
+
 $workspaceTypo = Invoke-AdposCli -Arguments @("workspace", "dashbaord")
 Assert-ExitCode -Name "adpos workspace dashbaord" -Actual $workspaceTypo.ExitCode -Expected 1
 Assert-Contains -Name "adpos workspace typo reports unknown subcommand" -Text $workspaceTypo.Output -Pattern "Unknown workspace command: dashbaord"

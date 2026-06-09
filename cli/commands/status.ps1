@@ -15,7 +15,7 @@ if ($Json -or $global:ADPOutputJson) {
 }
 
 if ($RuntimeName -and -not (Test-RuntimeExists $RuntimeName)) {
-    Write-ErrorLog -Message (Get-UIText -English "Unknown runtime: $RuntimeName. Valid: $((Get-AllRuntimeNames) -join ', ')" -Chinese "未知运行时: $RuntimeName。可用: $((Get-AllRuntimeNames) -join ', ')") -Component "cli.status"
+    Write-ADPUnknownRuntimeError -RuntimeName $RuntimeName -CommandText "status" -Component "cli.status"
     exit 1
 }
 

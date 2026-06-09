@@ -15,8 +15,7 @@ if (-not $RuntimeName) {
 }
 
 if (-not (Test-RuntimeExists $RuntimeName)) {
-    Write-ErrorLog -Message (Get-UIText -English "Unknown runtime: $RuntimeName. Valid: $validRuntimes" -Chinese "未知运行时: $RuntimeName。可用: $validRuntimes") -Component "cli.stop"
-    Write-UIHost -English "Run 'adpos stop --help' for usage." -Chinese "运行 'adpos stop --help' 查看用法。" -ForegroundColor DarkGray
+    Write-ADPUnknownRuntimeError -RuntimeName $RuntimeName -CommandText "stop" -Component "cli.stop"
     exit 1
 }
 

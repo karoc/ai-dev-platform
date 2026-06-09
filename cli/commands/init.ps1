@@ -30,6 +30,11 @@ if (-not $NonInteractive) {
 $config = Get-PlatformConfig
 $topology = Get-TopologyConfig
 
+if ($RuntimeName -and -not (Test-RuntimeExists $RuntimeName)) {
+    Write-ADPUnknownRuntimeError -RuntimeName $RuntimeName -CommandText "init" -Component "cli.init"
+    exit 1
+}
+
 # =============================================
 # Step 1: Verify VMware
 # =============================================

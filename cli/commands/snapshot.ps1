@@ -24,8 +24,7 @@ if (-not $RuntimeName -or -not $SnapshotName) {
 }
 
 if (-not (Test-RuntimeExists $RuntimeName)) {
-    Write-ErrorLog -Message (Get-UIText -English "Unknown runtime: $RuntimeName. Valid: $validRuntimes" -Chinese "未知运行时: $RuntimeName。可用: $validRuntimes") -Component "cli.snapshot"
-    Write-UIHost -English "Run 'adpos snapshot --help' for usage." -Chinese "运行 'adpos snapshot --help' 查看用法。" -ForegroundColor DarkGray
+    Write-ADPUnknownRuntimeError -RuntimeName $RuntimeName -CommandText "snapshot create" -Component "cli.snapshot" -HelpEnglish "Run 'adpos snapshot --help' for usage." -HelpChinese "运行 'adpos snapshot --help' 查看用法。"
     exit 1
 }
 

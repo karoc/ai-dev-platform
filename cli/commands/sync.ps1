@@ -28,10 +28,11 @@ if ($SubCommand -notin $validSubCommands) {
 if ($SubCommand -in @("start", "stop")) {
     if (-not $RuntimeName) {
         Write-ErrorLog -Message (Get-UIText -English "Usage: adpos sync $SubCommand <runtime>" -Chinese "用法: adpos sync $SubCommand <runtime>") -Component "cli.sync"
+        Write-UIHost -English "Run 'adpos sync --help' for sync help." -Chinese "运行 'adpos sync --help' 查看同步帮助。" -ForegroundColor DarkGray
         exit 1
     }
     if (-not (Test-RuntimeExists $RuntimeName)) {
-        Write-ErrorLog -Message (Get-UIText -English "Unknown runtime: $RuntimeName. Valid: $((Get-AllRuntimeNames) -join ', ')" -Chinese "未知运行时: $RuntimeName。可用: $((Get-AllRuntimeNames) -join ', ')") -Component "cli.sync"
+        Write-ADPUnknownRuntimeError -RuntimeName $RuntimeName -CommandText "sync $SubCommand" -Component "cli.sync" -HelpEnglish "Run 'adpos sync --help' for sync help." -HelpChinese "运行 'adpos sync --help' 查看同步帮助。"
         exit 1
     }
 }

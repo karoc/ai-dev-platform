@@ -20,8 +20,7 @@ if (-not $RuntimeName -or -not $SnapshotName) {
 }
 
 if (-not (Test-RuntimeExists $RuntimeName)) {
-    Write-ErrorLog -Message (Get-UIText -English "Unknown runtime: $RuntimeName. Valid: $validRuntimes" -Chinese "未知运行时: $RuntimeName。可用: $validRuntimes") -Component "cli.restore"
-    Write-UIHost -English "Run 'adpos restore --help' for usage." -Chinese "运行 'adpos restore --help' 查看用法。" -ForegroundColor DarkGray
+    Write-ADPUnknownRuntimeError -RuntimeName $RuntimeName -CommandText "restore" -Component "cli.restore"
     exit 1
 }
 

@@ -18,8 +18,7 @@ if (-not $RuntimeName) {
 }
 
 if (-not (Test-RuntimeExists $RuntimeName)) {
-    Write-ErrorLog -Message (Get-UIText -English "Unknown runtime: $RuntimeName. Valid: $validRuntimes" -Chinese "未知运行时: $RuntimeName。可用: $validRuntimes") -Component "cli.destroy"
-    Write-UIHost -English "Run 'adpos destroy --help' for usage." -Chinese "运行 'adpos destroy --help' 查看用法。" -ForegroundColor DarkGray
+    Write-ADPUnknownRuntimeError -RuntimeName $RuntimeName -CommandText "destroy" -Component "cli.destroy"
     exit 1
 }
 

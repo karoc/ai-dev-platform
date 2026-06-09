@@ -33,28 +33,71 @@ function Get-ADPCommandSuggestion {
         [string[]]$CandidateCommands
     )
 
-    if ([string]::IsNullOrWhiteSpace($InputCommand)) {
+    return Get-ADPValueSuggestion -InputValue $InputCommand -CandidateValues $CandidateCommands
+}
+
+function Get-ADPValueSuggestion {
+    param(
+        [string]$InputValue,
+        [string[]]$CandidateValues
+    )
+
+    if ([string]::IsNullOrWhiteSpace($InputValue)) {
         return $null
     }
 
-    $prefixMatch = $CandidateCommands | Where-Object { $_.StartsWith($InputCommand, [System.StringComparison]::OrdinalIgnoreCase) } | Select-Object -First 1
+    $prefixMatch = $CandidateValues | Where-Object { $_.StartsWith($InputValue, [System.StringComparison]::OrdinalIgnoreCase) } | Select-Object -First 1
     if ($prefixMatch) {
         return $prefixMatch
     }
 
-    $best = $CandidateCommands |
+    $best = $CandidateValues |
         ForEach-Object {
             [pscustomobject]@{
-                Command  = $_
-                Distance = Measure-ADPCommandDistance -Left $InputCommand.ToLowerInvariant() -Right $_.ToLowerInvariant()
+                Value    = $_
+                Distance = Measure-ADPCommandDistance -Left $InputValue.ToLowerInvariant() -Right $_.ToLowerInvariant()
             }
         } |
-        Sort-Object Distance, Command |
+        Sort-Object Distance, Value |
         Select-Object -First 1
 
-    if ($best -and $best.Distance -le [Math]::Max(2, [Math]::Floor($InputCommand.Length / 3))) {
-        return $best.Command
+    if ($best -and $best.Distance -le [Math]::Max(2, [Math]::Floor($InputValue.Length / 3))) {
+        return $best.Value
     }
 
     return $null
+}
+
+function Write-ADPUnknownRuntimeError {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$RuntimeName,
+
+        [Parameter(Mandatory = $true)]
+        [string]$CommandText,
+
+        [string[]]$ValidRuntimeNames = (Get-AllRuntimeNames),
+
+        [string]$Component = "cli",
+
+        [string]$HelpEnglish,
+
+        [string]$HelpChinese
+    )
+
+    $validText = $ValidRuntimeNames -join ', '
+    Write-ErrorLog -Message (Get-UIText -English "Unknown runtime: $RuntimeName. Valid: $validText" -Chinese "未知运行时: $RuntimeName。可用: $validText") -Component $Component
+
+    $suggestion = Get-ADPValueSuggestion -InputValue $RuntimeName -CandidateValues $ValidRuntimeNames
+    if ($suggestion) {
+        Write-UIHost -English "Did you mean: adpos $CommandText $suggestion" -Chinese "你是不是想运行: adpos $CommandText $suggestion" -ForegroundColor Cyan
+    }
+
+    if ([string]::IsNullOrWhiteSpace($HelpEnglish)) {
+        $HelpEnglish = "Run 'adpos $CommandText --help' for usage."
+    }
+    if ([string]::IsNullOrWhiteSpace($HelpChinese)) {
+        $HelpChinese = "运行 'adpos $CommandText --help' 查看用法。"
+    }
+    Write-UIHost -English $HelpEnglish -Chinese $HelpChinese -ForegroundColor DarkGray
 }
