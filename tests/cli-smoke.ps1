@@ -13,7 +13,17 @@ $smokeParts = @(
 )
 
 foreach ($part in $smokeParts) {
-    . (Join-Path $PSScriptRoot $part)
+    $partWatch = [System.Diagnostics.Stopwatch]::StartNew()
+    Write-Host "SMOKE PART start: $part"
+    try {
+        . (Join-Path $PSScriptRoot $part)
+        $partWatch.Stop()
+        Write-Host ("SMOKE PART ok: {0} ({1:n1}s)" -f $part, $partWatch.Elapsed.TotalSeconds)
+    } catch {
+        $partWatch.Stop()
+        Write-Host ("SMOKE PART failed: {0} ({1:n1}s)" -f $part, $partWatch.Elapsed.TotalSeconds)
+        throw
+    }
 }
 
 Write-Output "CLI smoke tests OK"

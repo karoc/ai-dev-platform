@@ -118,6 +118,8 @@ $completion = Read-Text "cli\commands\completion.ps1"
 $versionCmd = Read-Text "cli\commands\version.ps1"
 $ci = Read-Text ".github\workflows\ci.yml"
 $validate = Read-Text "tests\validate.ps1"
+$cliSmoke = Read-Text "tests\cli-smoke.ps1"
+$cliSmokeCommon = Read-Text "tests\lib\cli-smoke-common.ps1"
 $networkingDocs = Read-Text "docs\networking.md"
 $networkingDocsZh = Read-Text "docs\zh-CN\networking.md"
 $operationsDocs = Read-Text "docs\operations.md"
@@ -159,6 +161,9 @@ Assert-Contains -Name "CLI catches PowerShell parameter binding errors" -Text $c
 Assert-Contains -Name "CI runs shared validation entry" -Text $ci -Pattern '\.\\tests\\validate\.ps1'
 Assert-Contains -Name "shared validation runs installer smoke tests" -Text $validate -Pattern '\.\\tests\\install-smoke\.ps1'
 Assert-Contains -Name "shared validation runs CLI smoke tests" -Text $validate -Pattern '\.\\tests\\cli-smoke\.ps1'
+Assert-Contains -Name "CLI smoke runner prints per-part progress" -Text $cliSmoke -Pattern 'SMOKE PART start:[\s\S]*SMOKE PART ok:[\s\S]*SMOKE PART failed:'
+Assert-Contains -Name "CLI smoke runner uses bounded command waits" -Text $cliSmokeCommon -Pattern 'ADP_CLI_SMOKE_COMMAND_TIMEOUT_SECONDS[\s\S]*WaitForExit\(\$TimeoutSeconds \* 1000\)[\s\S]*Kill\(\$true\)'
+Assert-Contains -Name "CLI smoke runner prints per-command progress" -Text $cliSmokeCommon -Pattern 'function\s+Assert-Command[\s\S]*SMOKE start:[\s\S]*SMOKE ok:[\s\S]*SMOKE failed:'
 Assert-Contains -Name "shared validation runs documentation language link checks" -Text $validate -Pattern '\.\\tests\\docs-language-links\.ps1'
 Assert-Contains -Name "shared validation runs configuration schema checks" -Text $validate -Pattern '\.\\tests\\config-schema\.ps1'
 Assert-Contains -Name "shared validation runs artifact hygiene checks" -Text $validate -Pattern '\.\\tests\\artifact-hygiene\.ps1'

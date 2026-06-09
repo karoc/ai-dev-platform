@@ -16,7 +16,8 @@ $setupScript = Join-Path $projectRoot "setup.ps1"
 function Invoke-Setup {
     param(
         [string[]]$Arguments,
-        [hashtable]$Environment = @{}
+        [hashtable]$Environment = @{},
+        [int]$TimeoutSeconds = $script:CliSmokeCommandTimeoutSeconds
     )
     $stdout = [System.IO.Path]::GetTempFileName()
     $stderr = [System.IO.Path]::GetTempFileName()
@@ -33,9 +34,15 @@ function Invoke-Setup {
             $process = Start-Process -FilePath $script:PwshPath `
                 -ArgumentList $processArguments `
                 -WorkingDirectory $projectRoot `
-                -NoNewWindow -Wait -PassThru `
+                -NoNewWindow -PassThru `
                 -RedirectStandardOutput $stdout `
                 -RedirectStandardError $stderr
+            Wait-CliSmokeProcess `
+                -Process $process `
+                -TimeoutSeconds $TimeoutSeconds `
+                -Label "setup.ps1 $($Arguments -join ' ')" `
+                -StdoutPath $stdout `
+                -StderrPath $stderr
         } finally {
             [Console]::OutputEncoding = $savedOutputEncoding
         }
@@ -61,14 +68,26 @@ function Assert-Setup {
         [string[]]$Patterns,
         [hashtable]$Environment = @{}
     )
-    $result = Invoke-Setup -Arguments $Arguments -Environment $Environment
-    if ($result.ExitCode -ne $ExitCode) {
-        throw "$Name exit code was $($result.ExitCode), expected $ExitCode.`n$($result.Output)"
-    }
-    foreach ($pattern in $Patterns) {
-        if ($result.Output -notmatch $pattern) {
-            throw "$Name output did not match: $pattern`n$($result.Output)"
+
+    $watch = [System.Diagnostics.Stopwatch]::StartNew()
+    Write-Host "SMOKE start: $Name"
+    try {
+        $result = Invoke-Setup -Arguments $Arguments -Environment $Environment
+        if ($result.ExitCode -ne $ExitCode) {
+            throw "$Name exit code was $($result.ExitCode), expected $ExitCode.`n$($result.Output)"
         }
+        foreach ($pattern in $Patterns) {
+            if ($result.Output -notmatch $pattern) {
+                throw "$Name output did not match: $pattern`n$($result.Output)"
+            }
+        }
+
+        $watch.Stop()
+        Write-Host ("SMOKE ok: {0} ({1:n1}s)" -f $Name, $watch.Elapsed.TotalSeconds)
+    } catch {
+        $watch.Stop()
+        Write-Host ("SMOKE failed: {0} ({1:n1}s)" -f $Name, $watch.Elapsed.TotalSeconds)
+        throw
     }
 }
 

@@ -5,16 +5,58 @@ $script:Cli = Join-Path $script:ProjectRoot "cli\adp.ps1"
 $projectRoot = $script:ProjectRoot
 $cli = $script:Cli
 
+function Get-CliSmokeCommandTimeoutSeconds {
+    [int]$parsed = 0
+    if ($env:ADP_CLI_SMOKE_COMMAND_TIMEOUT_SECONDS -and [int]::TryParse($env:ADP_CLI_SMOKE_COMMAND_TIMEOUT_SECONDS, [ref]$parsed) -and $parsed -gt 0) {
+        return $parsed
+    }
+
+    return 120
+}
+
+$script:CliSmokeCommandTimeoutSeconds = Get-CliSmokeCommandTimeoutSeconds
+
 # Resolve pwsh full path for Start-Process (bare "pwsh" not always in PATH on CI runners)
 $script:PwshPath = try { (Get-Process -Id $PID).Path } catch { $null }
 if (-not $script:PwshPath) {
     $script:PwshPath = (Get-Command pwsh -ErrorAction Stop).Source
 }
 
+function Wait-CliSmokeProcess {
+    param(
+        [System.Diagnostics.Process]$Process,
+        [int]$TimeoutSeconds,
+        [string]$Label,
+        [string]$StdoutPath,
+        [string]$StderrPath
+    )
+
+    if (-not $Process.WaitForExit($TimeoutSeconds * 1000)) {
+        try {
+            $Process.Kill($true)
+        } catch {
+            try { $Process.Kill() } catch { }
+        }
+
+        $outText = Get-Content -LiteralPath $StdoutPath -Raw -Encoding UTF8 -ErrorAction SilentlyContinue
+        $errText = Get-Content -LiteralPath $StderrPath -Raw -Encoding UTF8 -ErrorAction SilentlyContinue
+        throw @(
+            "CLI smoke command timed out after $TimeoutSeconds seconds: $Label",
+            "STDOUT:",
+            $outText,
+            "STDERR:",
+            $errText
+        ) -join "`n"
+    }
+
+    $Process.Refresh()
+}
+
 function Invoke-Cli {
     param(
         [string[]]$Arguments,
-        [hashtable]$Environment = @{}
+        [hashtable]$Environment = @{},
+        [int]$TimeoutSeconds = $script:CliSmokeCommandTimeoutSeconds
     )
 
     $stdout = [System.IO.Path]::GetTempFileName()
@@ -33,9 +75,15 @@ function Invoke-Cli {
             $process = Start-Process -FilePath $script:PwshPath `
                 -ArgumentList $processArguments `
                 -WorkingDirectory $script:ProjectRoot `
-                -NoNewWindow -Wait -PassThru `
+                -NoNewWindow -PassThru `
                 -RedirectStandardOutput $stdout `
                 -RedirectStandardError $stderr
+            Wait-CliSmokeProcess `
+                -Process $process `
+                -TimeoutSeconds $TimeoutSeconds `
+                -Label "adpos $($Arguments -join ' ')" `
+                -StdoutPath $stdout `
+                -StderrPath $stderr
         } finally {
             [Console]::OutputEncoding = $savedOutputEncoding
         }
@@ -87,9 +135,20 @@ function Assert-Command {
         [hashtable]$Environment = @{}
     )
 
-    $result = Invoke-Cli -Arguments $Arguments -Environment $Environment
-    Assert-ExitCode -Name $Name -Result $result -Expected $ExitCode
-    foreach ($pattern in $Patterns) {
-        Assert-OutputContains -Name $Name -Result $result -Pattern $pattern
+    $watch = [System.Diagnostics.Stopwatch]::StartNew()
+    Write-Host "SMOKE start: $Name"
+    try {
+        $result = Invoke-Cli -Arguments $Arguments -Environment $Environment
+        Assert-ExitCode -Name $Name -Result $result -Expected $ExitCode
+        foreach ($pattern in $Patterns) {
+            Assert-OutputContains -Name $Name -Result $result -Pattern $pattern
+        }
+
+        $watch.Stop()
+        Write-Host ("SMOKE ok: {0} ({1:n1}s)" -f $Name, $watch.Elapsed.TotalSeconds)
+    } catch {
+        $watch.Stop()
+        Write-Host ("SMOKE failed: {0} ({1:n1}s)" -f $Name, $watch.Elapsed.TotalSeconds)
+        throw
     }
 }
