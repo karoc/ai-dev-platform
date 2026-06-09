@@ -108,6 +108,10 @@ Invoke-ValidationStep -Name "Check adpos public command surface" -ScriptBlock {
     & ".\tests\adpos-public-surface.ps1"
 }
 
+Invoke-ValidationStep -Name "Check GitHub Actions platform contracts" -ScriptBlock {
+    & ".\tests\github-actions-contract.ps1"
+}
+
 Invoke-ValidationStep -Name "Check release documentation contracts" -ScriptBlock {
     & ".\tests\release-docs-contract.ps1"
 }

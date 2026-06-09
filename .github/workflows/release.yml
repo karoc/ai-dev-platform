@@ -11,11 +11,11 @@ permissions:
 jobs:
   release:
     name: Create GitHub Release
-    runs-on: windows-latest
+    runs-on: windows-2025-vs2026
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Validate repository
         shell: pwsh
